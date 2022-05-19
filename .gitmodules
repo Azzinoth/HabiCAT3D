@@ -1,0 +1,3 @@
+[submodule "FEBasicApplication"]
+	path = FEBasicApplication
+	url = https://github.com/Azzinoth/FEBasicApplication
