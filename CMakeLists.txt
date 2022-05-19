@@ -27,6 +27,11 @@ file(GLOB imgui_SRC
 file(GLOB source_SRC
 	"FEBasicApplication/FEBasicApplication.cpp"
 	"FEBasicApplication/FEBasicApplication.h"
+	"FECoreIncludes.h"
+	"FEFileSystem.cpp"
+	"FEFileSystem.h"
+	"FEObjLoader.cpp"
+	"FEObjLoader.h"
 	"main.cpp"
 )
 
