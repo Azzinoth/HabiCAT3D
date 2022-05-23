@@ -1,22 +1,14 @@
 #pragma once
+#include "FEFileSystem.h"
+#include "FEBasicCamera.h"
 
-#include "FEBasicApplication/FEBasicApplication.h"
 using namespace FocalEngine;
 
-#include "FEFileSystem.h"
 //#include <vector>
 //#include <algorithm>
 //#include <sstream>
 //#include <fstream>
 //#include <unordered_map>
-
-//#define GLM_FORCE_XYZW_ONLY
-//#include "glm/vec3.hpp"
-//#include "glm/vec4.hpp"
-//#include "glm/mat4x4.hpp"
-//#include "glm/gtc/matrix_transform.hpp"
-//#include "glm/gtc/type_ptr.inl"
-//#include "glm/gtx/quaternion.hpp"
 
 namespace FocalEngine
 {

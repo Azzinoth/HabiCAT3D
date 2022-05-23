@@ -24,14 +24,36 @@ file(GLOB imgui_SRC
 	"FEBasicApplication/ThirdParty/imgui/imgui_widgets.cpp"
 )
 
+# *************** SUB_SYSTEM ***************
+
+file(GLOB SubSystems_SRC
+	"SubSystems/FEObjLoader.h"
+	"SubSystems/FEObjLoader.cpp"
+	"SubSystems/FEBasicCamera.h"
+	"SubSystems/FEBasicCamera.cpp"
+	"SubSystems/FEFreeCamera.h"
+	"SubSystems/FEFreeCamera.cpp"
+	"SubSystems/FEFileSystem.cpp"
+	"SubSystems/FEFileSystem.h"
+	"SubSystems/FETransformComponent.cpp"
+	"SubSystems/FETransformComponent.h"
+)
+
+#file(GLOB BasicApplicationSubSystem_SRC
+#	"SubSystems/FEBasicApplication/FEBasicApplication.cpp"
+#	"SubSystems/FEBasicApplication/FEBasicApplication.h"
+#)
+
 file(GLOB source_SRC
 	"FEBasicApplication/FEBasicApplication.cpp"
 	"FEBasicApplication/FEBasicApplication.h"
 	"FECoreIncludes.h"
 	"FEFileSystem.cpp"
 	"FEFileSystem.h"
-	"FEObjLoader.cpp"
-	"FEObjLoader.h"
+	"FEShader.cpp"
+	"FEShader.h"
+	"FEMesh.cpp"
+	"FEMesh.h"
 	"main.cpp"
 )
 
@@ -41,6 +63,9 @@ link_directories("FEBasicApplication/ThirdParty/GLFW/lib/$(PlatformTarget)")
 # add the executable
 add_executable(RugosityCalculator WIN32
 								  ${source_SRC}
+								  # *************** SUB_SYSTEM ***************
+								  ${SubSystems_SRC}
+								  #${BasicApplicationSubSystem_SRC}
 								  # *************** THIRD_PARTY ***************
 								  ${imgui_SRC}
 )
@@ -51,6 +76,9 @@ target_link_libraries(RugosityCalculator glfw3dll.lib)
 target_link_libraries(RugosityCalculator opengl32.lib)
 
 source_group("Source Files" FILES ${source_SRC})
+# *************** SUB_SYSTEM ***************
+source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
+#source_group("Source Files/SubSystems/BasicApplication" FILES ${BasicApplicationSubSystem_SRC})
 # *************** THIRD_PARTY ***************
 source_group("Source Files/ThirdParty/imgui" FILES ${imgui_SRC})
 
