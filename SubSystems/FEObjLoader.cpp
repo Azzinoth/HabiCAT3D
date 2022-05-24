@@ -262,7 +262,7 @@ glm::vec3 FEObjLoader::calculateTangent(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2
 	float t1 = uv1.y - uv0.y;
 	float t2 = uv2.y - uv0.y;
 
-	glm::vec3 tangent = t2*q1 - t1*q2;
+	glm::vec3 tangent = t1 * q2 - t2 * q1;
 
 	return tangent;
 }

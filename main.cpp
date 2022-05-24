@@ -3,9 +3,12 @@
 using namespace FocalEngine;
 
 FEFreeCamera* currentCamera = nullptr;
+bool wireframeMode = false;
 
 static const char* const sTestVS = R"(
 @In_Position@
+@In_Normal@
+
 @WorldMatrix@
 @ViewMatrix@
 @ProjectionMatrix@
@@ -28,6 +31,8 @@ void main(void)
 	vs_out.worldPosition = worldPosition.xyz;
 	vs_out.viewPosition = FEViewMatrix * worldPosition;
 	gl_Position = FEProjectionMatrix * vs_out.viewPosition;
+
+	vs_out.vertexNormal = normalize(vec3(FEWorldMatrix * vec4(FENormal, 0.0)));
 }
 )";
 
@@ -45,14 +50,19 @@ in VS_OUT
 @ViewMatrix@
 @ProjectionMatrix@
 
-layout (location = 0) out vec4 outColor;
+uniform vec3 lightDirection;
+
+layout (location = 0) out vec4 out_Color;
 
 void main(void)
 {
-	//vec3 baseColor = pow(textureColor.rgb, vec3(FEGamma));
-	vec3 baseColor = vec3(1.0, 0.0, 0.0);
+	vec3 baseColor = vec3(0.0, 0.5, 1.0);
 
-	outColor = vec4(baseColor, 1.0);
+	//vec3 lightDirection = normalize(vec3(0.0, 1.0, 0.2));
+	float diffuseFactor = max(dot(FS_IN.vertexNormal, lightDirection), 0.15);
+	vec3 ambientColor = vec3(0.55f, 0.73f, 0.87f) * 2.8f;
+
+	out_Color = vec4(ambientColor * diffuseFactor * baseColor, 1.0f);
 }
 )";
 
@@ -270,9 +280,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	APPLICATION.setMouseMoveCallback(mouseMoveCallback);
 	APPLICATION.setMouseButtonCallback(mouseButtonCallback);
 
+	glClearColor(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 1.0f);
 	FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
 
 	FEShader* testShader = new FEShader("mainShader", sTestVS, sTestFS);
+	testShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
+
 	static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
 	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
 	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
@@ -313,6 +326,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 			testShader->loadDataToGPU();
 
+			if (wireframeMode)
+			{
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			}
+			else
+			{
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			}
+
 			FE_GL_ERROR(glBindVertexArray(loadedMesh->getVaoID()));
 			if ((loadedMesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));
 			if ((loadedMesh->vertexAttributes & FE_COLOR) == FE_COLOR) FE_GL_ERROR(glEnableVertexAttribArray(1));
@@ -327,16 +349,33 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 			glBindVertexArray(0);
 
-			APPLICATION.setWindowCaption("vertexCount: " + std::to_string(loadedMesh->getVertexCount()));
+
+			//APPLICATION.setWindowCaption("vertexCount: " + std::to_string(loadedMesh->getVertexCount()));
 
 			testShader->stop();
 		}
 			
+		// ********************* LIGHT DIRECTION *********************
+		glm::vec3 position = *reinterpret_cast<glm::vec3*>(testShader->getParameter("lightDirection")->data);
+		ImGui::Text("Light direction : ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat((std::string("##X pos : ")).c_str(), &position[0], 0.1f);
 		
-
-
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat((std::string("##Y pos : ")).c_str(), &position[1], 0.1f);
 		
-		ImGui::ShowDemoWindow();
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat((std::string("##Z pos : ")).c_str(), &position[2], 0.1f);
+	
+		testShader->getParameter("lightDirection")->updateData(position);
+
+		ImGui::Checkbox("Wireframe", &wireframeMode);
+		
+		
+		//ImGui::ShowDemoWindow();
 
 		APPLICATION.endFrame();
 	}
