@@ -90,6 +90,9 @@ namespace FocalEngine
 		FERawOBJData* currentMaterialObject = nullptr;
 		bool checkCurrentMaterialObject();
 
+		bool haveTextureCoord = false;
+		bool haveNormalCoord = false;
+
 #ifdef FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
 		struct vertexThatNeedDoubling
 		{

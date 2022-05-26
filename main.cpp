@@ -2,6 +2,28 @@
 #include "SubSystems/FEFreeCamera.h"
 using namespace FocalEngine;
 
+#include "ThirdParty/CGAL/Simple_cartesian.h"
+#include "ThirdParty/CGAL/Surface_mesh.h"
+#include "ThirdParty/CGAL/Surface_mesh_simplification/edge_collapse.h"
+#include "ThirdParty/CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Count_ratio_stop_predicate.h"
+
+#include "ThirdParty/CGAL/boost/graph/IO/OBJ.h"
+//#include "ThirdParty/CGAL/Polygon_mesh_processing/orient_polygon_soup.h"
+#include "ThirdParty/CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h"
+#include "ThirdParty/CGAL/Polygon_mesh_processing/polygon_mesh_to_polygon_soup.h"
+#include "ThirdParty/CGAL/Polygon_mesh_processing/repair_polygon_soup.h"
+
+//#include "ThirdParty/CGAL/IO/OBJ.h"
+
+typedef CGAL::Simple_cartesian<double>  Kernel;
+typedef Kernel::Point_3                 Point_3;
+typedef CGAL::Surface_mesh<Point_3>		Surface_mesh;
+
+typedef std::vector<std::size_t>		Polygon_3;
+
+namespace SMS = CGAL::Surface_mesh_simplification;
+namespace PMP = CGAL::Polygon_mesh_processing;
+
 FEFreeCamera* currentCamera = nullptr;
 bool wireframeMode = false;
 
@@ -181,11 +203,11 @@ FEMesh* importOBJ(const char* fileName, bool forceOneMesh)
 	if (objLoader.loadedObjects.size() > 0)
 	{
 		result = rawDataToMesh(objLoader.loadedObjects[0]->fVerC.data(), int(objLoader.loadedObjects[0]->fVerC.size()),
-			objLoader.loadedObjects[0]->fTexC.data(), int(objLoader.loadedObjects[0]->fTexC.size()),
-			objLoader.loadedObjects[0]->fNorC.data(), int(objLoader.loadedObjects[0]->fNorC.size()),
-			objLoader.loadedObjects[0]->fTanC.data(), int(objLoader.loadedObjects[0]->fTanC.size()),
-			objLoader.loadedObjects[0]->fInd.data(), int(objLoader.loadedObjects[0]->fInd.size()),
-			objLoader.loadedObjects[0]->matIDs.data(), int(objLoader.loadedObjects[0]->matIDs.size()), int(objLoader.loadedObjects[0]->materialRecords.size()), "");
+								objLoader.loadedObjects[0]->fTexC.data(), int(objLoader.loadedObjects[0]->fTexC.size()),
+								objLoader.loadedObjects[0]->fNorC.data(), int(objLoader.loadedObjects[0]->fNorC.size()),
+								objLoader.loadedObjects[0]->fTanC.data(), int(objLoader.loadedObjects[0]->fTanC.size()),
+								objLoader.loadedObjects[0]->fInd.data(), int(objLoader.loadedObjects[0]->fInd.size()),
+								objLoader.loadedObjects[0]->matIDs.data(), int(objLoader.loadedObjects[0]->matIDs.size()), int(objLoader.loadedObjects[0]->materialRecords.size()), "");
 	}
 
 	//createMaterialsFromOBJData(result);
@@ -194,6 +216,7 @@ FEMesh* importOBJ(const char* fileName, bool forceOneMesh)
 }
 
 FEMesh* loadedMesh = nullptr;
+FEMesh* simplifiedMesh = nullptr;
 
 static void dropCallback(int count, const char** paths);
 void dropCallback(int count, const char** paths)
@@ -272,8 +295,159 @@ void mouseButtonCallback(int button, int action, int mods)
 	}
 }
 
+FEMesh* surfaceMeshToFEMesh(Surface_mesh mesh)
+{
+	FEMesh* result = nullptr;
+
+	// Extracting data from Surface_mesh.
+	std::vector<Point_3> extractedPoints;
+	std::vector<Polygon_3> extractedFaces;
+	PMP::polygon_mesh_to_polygon_soup(mesh, extractedPoints, extractedFaces);
+	PMP::repair_polygon_soup(extractedPoints, extractedFaces);
+
+	// Formating data to FE format.
+	std::vector<int> FEIndices;
+	for (size_t i = 0; i < extractedFaces.size(); i++)
+	{
+		FEIndices.push_back(extractedFaces[i][0]);
+		FEIndices.push_back(extractedFaces[i][1]);
+		FEIndices.push_back(extractedFaces[i][2]);
+	}
+
+	std::vector<float> FEVertices;
+	for (size_t i = 0; i < extractedPoints.size(); i++)
+	{
+		FEVertices.push_back(extractedPoints[i][0]);
+		FEVertices.push_back(extractedPoints[i][1]);
+		FEVertices.push_back(extractedPoints[i][2]);
+	}
+
+	result = rawDataToMesh(FEVertices.data(), int(FEVertices.size()),
+						   nullptr, 0, nullptr, 0,nullptr, 0,
+						   FEIndices.data(), int(FEIndices.size()),
+						   nullptr, 0, 0, "");
+
+	return result;
+}
+
+Surface_mesh FEMeshToSurfaceMesh(FEMesh* mesh)
+{
+	// Extracting data from FEMesh.
+	std::vector<float> FEVertices;
+	FEVertices.resize(mesh->getPositionsCount());
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
+
+	std::vector<int> FEIndices;
+	FEIndices.resize(mesh->getIndicesCount());
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
+
+	// Formating data to CGAL format.
+	std::vector<Polygon_3> CGALFaces;
+	CGALFaces.resize(FEIndices.size() / 3);
+	int count = 0;
+	for (size_t i = 0; i < FEIndices.size(); i+=3)
+	{
+		CGALFaces[count].push_back(FEIndices[i]);
+		CGALFaces[count].push_back(FEIndices[i + 1]);
+		CGALFaces[count].push_back(FEIndices[i + 2]);
+		count++;
+	}
+
+	
+	std::vector<Point_3> CGALPoints;
+	for (size_t i = 0; i < FEVertices.size(); i += 3)
+	{
+		CGALPoints.push_back(Point_3(FEVertices[i], FEVertices[i + 1], FEVertices[i + 2]));
+	}
+
+	Surface_mesh result;
+
+	PMP::repair_polygon_soup(CGALPoints, CGALFaces);
+	PMP::polygon_soup_to_polygon_mesh(CGALPoints, CGALFaces, result);
+	
+	return result;
+}
+
+void saveSurfaceMeshToOBJFile(std::string fileName, Surface_mesh mesh)
+{
+	std::vector<Point_3> extractedPoints;
+	std::vector<Polygon_3> extractedFaces;
+	PMP::polygon_mesh_to_polygon_soup(mesh, extractedPoints, extractedFaces);
+	PMP::repair_polygon_soup(extractedPoints, extractedFaces);
+
+	CGAL::IO::write_OBJ(fileName, extractedPoints, extractedFaces);
+}
+
+FEMesh* simplify(FEMesh* originalMesh, double verticesLeftInPersent)
+{
+	if (verticesLeftInPersent == 0)
+		return nullptr;
+
+	Surface_mesh surface_mesh = FEMeshToSurfaceMesh(originalMesh);
+
+	// In this example, the simplification stops when the number of undirected edges
+	// drops below 10% of the initial count
+	double stop_ratio = verticesLeftInPersent;
+	SMS::Count_ratio_stop_predicate<Surface_mesh> stop(stop_ratio);
+
+	int r = SMS::edge_collapse(surface_mesh, stop);
+
+	return surfaceMeshToFEMesh(surface_mesh);
+}
+
+void renderFEMesh(FEMesh* mesh)
+{
+	FE_GL_ERROR(glBindVertexArray(mesh->getVaoID()));
+	if ((mesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));
+	if ((mesh->vertexAttributes & FE_COLOR) == FE_COLOR) FE_GL_ERROR(glEnableVertexAttribArray(1));
+	if ((mesh->vertexAttributes & FE_NORMAL) == FE_NORMAL) FE_GL_ERROR(glEnableVertexAttribArray(2));
+	if ((mesh->vertexAttributes & FE_TANGENTS) == FE_TANGENTS) FE_GL_ERROR(glEnableVertexAttribArray(3));
+	if ((mesh->vertexAttributes & FE_UV) == FE_UV) FE_GL_ERROR(glEnableVertexAttribArray(4));
+
+	if ((mesh->vertexAttributes & FE_INDEX) == FE_INDEX)
+		FE_GL_ERROR(glDrawElements(GL_TRIANGLES, mesh->getVertexCount(), GL_UNSIGNED_INT, 0));
+	if ((mesh->vertexAttributes & FE_INDEX) != FE_INDEX)
+		FE_GL_ERROR(glDrawArrays(GL_TRIANGLES, 0, mesh->getVertexCount()));
+
+	glBindVertexArray(0);
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	//Surface_mesh surface_mesh;
+
+	//std::ifstream objFile("C:/Users/kandr/Downloads/sphere.obj");
+	//std::vector<Point_3> points;
+	//std::vector<Polygon_3> faces;
+
+	//bool result = CGAL::IO::read_OBJ(objFile, points, faces);
+
+
+	////PMP::orient_polygon_soup(points, faces); // optional if your mesh is not correctly oriented
+	//Surface_mesh sm;
+	//try
+	//{
+	//	PMP::polygon_soup_to_polygon_mesh(points, faces, sm);
+	//}
+	//catch (const std::exception& e)
+	//{
+	//	int y = 0;
+	//	y++;
+	//}
+	//
+	//// In this example, the simplification stops when the number of undirected edges
+	//// drops below 10% of the initial count
+	//double stop_ratio = 0.5;
+	//SMS::Count_ratio_stop_predicate<Surface_mesh> stop(stop_ratio);
+
+	//int r = SMS::edge_collapse(sm, stop);
+
+	
+
+	//saveSurfaceMeshToOBJFile("C:/Users/kandr/Downloads/sphereR_.obj", sm);
+
+	
+
 	APPLICATION.createWindow(1280, 720, "Rugosity Calculator");
 	APPLICATION.setDropCallback(dropCallback);
 	APPLICATION.setKeyCallback(keyButtonCallback);
@@ -296,6 +470,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	currentCamera = new FEFreeCamera("mainCamera");
 	currentCamera->setIsInputActive(false);
 	currentCamera->setAspectRatio(1280.0f / 720.0f);
+
+
+	/*FEMesh* test = surfaceMeshToFEMesh(sm);
+	loadedMesh = test;
+
+	saveSurfaceMeshToOBJFile("C:/Users/kandr/Downloads/sphereR_.obj", FEMeshTosurfaceMesh(test));*/
+
 
 	while (APPLICATION.isWindowOpened())
 	{
@@ -335,19 +516,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}
 
-			FE_GL_ERROR(glBindVertexArray(loadedMesh->getVaoID()));
-			if ((loadedMesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));
-			if ((loadedMesh->vertexAttributes & FE_COLOR) == FE_COLOR) FE_GL_ERROR(glEnableVertexAttribArray(1));
-			if ((loadedMesh->vertexAttributes & FE_NORMAL) == FE_NORMAL) FE_GL_ERROR(glEnableVertexAttribArray(2));
-			if ((loadedMesh->vertexAttributes & FE_TANGENTS) == FE_TANGENTS) FE_GL_ERROR(glEnableVertexAttribArray(3));
-			if ((loadedMesh->vertexAttributes & FE_UV) == FE_UV) FE_GL_ERROR(glEnableVertexAttribArray(4));
-			
-			if ((loadedMesh->vertexAttributes & FE_INDEX) == FE_INDEX)
-				FE_GL_ERROR(glDrawElements(GL_TRIANGLES, loadedMesh->getVertexCount(), GL_UNSIGNED_INT, 0));
-			if ((loadedMesh->vertexAttributes & FE_INDEX) != FE_INDEX)
-				FE_GL_ERROR(glDrawArrays(GL_TRIANGLES, 0, loadedMesh->getVertexCount()));
-
-			glBindVertexArray(0);
+			if (simplifiedMesh == nullptr)
+			{
+				renderFEMesh(loadedMesh);
+			}
+			else
+			{
+				renderFEMesh(simplifiedMesh);
+			}
+				
 
 
 			//APPLICATION.setWindowCaption("vertexCount: " + std::to_string(loadedMesh->getVertexCount()));
@@ -373,6 +550,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		testShader->getParameter("lightDirection")->updateData(position);
 
 		ImGui::Checkbox("Wireframe", &wireframeMode);
+
+		if (loadedMesh != nullptr)
+		{
+			/*if (simplifiedMesh == nullptr)
+			{*/
+				static float toLeave = 50;
+				ImGui::Text("Leave :");
+				ImGui::SetNextItemWidth(80);
+				ImGui::DragFloat("##Leave", &toLeave, 0.01f, 0.001f, 99.0f);
+				ImGui::SameLine();
+				ImGui::Text(" %% of vertices.");
+
+				if (ImGui::Button("Apply"))
+				{
+					simplifiedMesh = simplify(loadedMesh, toLeave / 100.0);
+				}
+			/*}
+			else
+			{
+
+			}*/
+		}
 		
 		
 		//ImGui::ShowDemoWindow();

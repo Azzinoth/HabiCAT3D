@@ -43,6 +43,8 @@ void FEObjLoader::readLine(std::stringstream& lineStream, FERawOBJData* data)
 	// if this line contains vertex texture coordinates
 	else if (sTemp[0] == 'v' && sTemp.size() == 2 && sTemp[1] == 't')
 	{
+		haveTextureCoord = true;
+
 		glm::vec2 newVec;
 		for (int i = 0; i <= 1; i++)
 		{
@@ -55,6 +57,8 @@ void FEObjLoader::readLine(std::stringstream& lineStream, FERawOBJData* data)
 	// if this line contains vertex texture coordinates
 	else if (sTemp[0] == 'v' && sTemp.size() == 2 && sTemp[1] == 'n')
 	{
+		haveNormalCoord = true;
+
 		glm::vec3 newVec;
 		for (int i = 0; i <= 2; i++)
 		{
@@ -147,6 +151,8 @@ void FEObjLoader::readLine(std::stringstream& lineStream, FERawOBJData* data)
 
 void FEObjLoader::readFile(const char* fileName)
 {
+	haveTextureCoord = false;
+	haveNormalCoord = false;
 	currentFilePath = fileName;
 	materialFileName = "";
 	currentMaterialObject = nullptr;
@@ -314,118 +320,160 @@ void FEObjLoader::calculateTangents(FERawOBJData* data)
 
 void FEObjLoader::processRawData(FERawOBJData* data)
 {
+	if (haveTextureCoord && haveNormalCoord)
+	{
 #ifdef FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
-	std::vector<FEObjLoader::vertexThatNeedDoubling> vertexList;
-	std::unordered_map<int, int> indexesMap;
+		std::vector<FEObjLoader::vertexThatNeedDoubling> vertexList;
+		std::unordered_map<int, int> indexesMap;
 
-	for (size_t i = 0; i < data->rawIndices.size(); i += 3)
-	{
-		indexesMap[data->rawIndices[i]] = int(i);
-	}
-
-	for (size_t i = 0; i < data->rawIndices.size(); i += 3)
-	{
-		if (indexesMap.find(data->rawIndices[i]) != indexesMap.end())
+		for (size_t i = 0; i < data->rawIndices.size(); i += 3)
 		{
-			size_t j = indexesMap.find(data->rawIndices[i])->second;
-			std::swap(i, j);
+			indexesMap[data->rawIndices[i]] = int(i);
+		}
 
-			bool TexD = data->rawIndices[i + 1] != data->rawIndices[j + 1];
-			bool NormD = data->rawIndices[i + 2] != data->rawIndices[j + 2];
-			if (data->rawIndices[i] == data->rawIndices[j] && (TexD || NormD))
+		for (size_t i = 0; i < data->rawIndices.size(); i += 3)
+		{
+			if (indexesMap.find(data->rawIndices[i]) != indexesMap.end())
 			{
-				// we do not need to add first appearance of vertex that we need to double
-				FEObjLoader::vertexThatNeedDoubling newVertex = FEObjLoader::vertexThatNeedDoubling(int(j), data->rawIndices[j], data->rawIndices[j + 1], data->rawIndices[j + 2]);
-				if (std::find(vertexList.begin(), vertexList.end(), newVertex) == vertexList.end())
+				size_t j = indexesMap.find(data->rawIndices[i])->second;
+				std::swap(i, j);
+
+				bool TexD = data->rawIndices[i + 1] != data->rawIndices[j + 1];
+				bool NormD = data->rawIndices[i + 2] != data->rawIndices[j + 2];
+				if (data->rawIndices[i] == data->rawIndices[j] && (TexD || NormD))
 				{
-					vertexList.push_back(newVertex);
+					// we do not need to add first appearance of vertex that we need to double
+					FEObjLoader::vertexThatNeedDoubling newVertex = FEObjLoader::vertexThatNeedDoubling(int(j), data->rawIndices[j], data->rawIndices[j + 1], data->rawIndices[j + 2]);
+					if (std::find(vertexList.begin(), vertexList.end(), newVertex) == vertexList.end())
+					{
+						vertexList.push_back(newVertex);
+					}
+				}
+
+				std::swap(i, j);
+			}
+		}
+
+		std::vector<std::pair<int, float>> doubledVertexMatIndecies;
+		for (auto& ver : vertexList)
+		{
+			if (ver.wasDone) continue;
+
+			data->rawVertexCoordinates.push_back(data->rawVertexCoordinates[ver.acctualIndex - 1]);
+
+			int newVertexIndex = int(data->rawVertexCoordinates.size());
+			data->rawIndices[ver.indexInArray] = newVertexIndex;
+			ver.wasDone = true;
+
+			// preserve matIndex!
+			for (size_t i = 0; i < data->materialRecords.size(); i++)
+			{
+				if (ver.acctualIndex >= (int(data->materialRecords[i].minVertexIndex + 1)) && ver.acctualIndex <= (int(data->materialRecords[i].maxVertexIndex + 1)))
+				{
+					doubledVertexMatIndecies.push_back(std::make_pair(newVertexIndex, float(i)));
 				}
 			}
 
-			std::swap(i, j);
-		}
-	}
-
-	std::vector<std::pair<int, float>> doubledVertexMatIndecies;
-	for (auto& ver : vertexList)
-	{
-		if (ver.wasDone) continue;
-
-		data->rawVertexCoordinates.push_back(data->rawVertexCoordinates[ver.acctualIndex - 1]);
-
-		int newVertexIndex = int(data->rawVertexCoordinates.size());
-		data->rawIndices[ver.indexInArray] = newVertexIndex;
-		ver.wasDone = true;
-
-		// preserve matIndex!
-		for (size_t i = 0; i < data->materialRecords.size(); i++)
-		{
-			if (ver.acctualIndex >= (int(data->materialRecords[i].minVertexIndex + 1)) && ver.acctualIndex <= (int(data->materialRecords[i].maxVertexIndex + 1)))
+			for (auto& verNext : vertexList)
 			{
-				doubledVertexMatIndecies.push_back(std::make_pair(newVertexIndex, float(i)));
+				if (verNext.wasDone) continue;
+				if (ver.indexInArray == verNext.indexInArray && (ver.texIndex == verNext.texIndex || ver.normIndex == verNext.normIndex))
+				{
+					data->rawIndices[verNext.indexInArray] = newVertexIndex;
+					verNext.wasDone = true;
+				}
 			}
 		}
-
-		for (auto& verNext : vertexList)
-		{
-			if (verNext.wasDone) continue;
-			if (ver.indexInArray == verNext.indexInArray && (ver.texIndex == verNext.texIndex || ver.normIndex == verNext.normIndex))
-			{
-				data->rawIndices[verNext.indexInArray] = newVertexIndex;
-				verNext.wasDone = true;
-			}
-		}
-	}
 #endif // FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
 
-	data->fVerC.resize(data->rawVertexCoordinates.size() * 3);
-	data->fTexC.resize(data->rawVertexCoordinates.size() * 2);
-	data->fNorC.resize(data->rawVertexCoordinates.size() * 3);
-	data->fTanC.resize(data->rawVertexCoordinates.size() * 3);
-	data->fInd.resize(0);
-	data->matIDs.resize(data->rawVertexCoordinates.size());
-	
-	for (size_t i = 0; i < data->rawIndices.size(); i += 3)
-	{
-		// faces index in OBJ file begins from 1 not 0.
-		int vIndex = data->rawIndices[i] - 1;
-		int tIndex = data->rawIndices[i + 1] - 1;
-		int nIndex = data->rawIndices[i + 2] - 1;
+		data->fVerC.resize(data->rawVertexCoordinates.size() * 3);
+		data->fTexC.resize(data->rawVertexCoordinates.size() * 2);
+		data->fNorC.resize(data->rawVertexCoordinates.size() * 3);
+		data->fTanC.resize(data->rawVertexCoordinates.size() * 3);
+		data->fInd.resize(0);
+		data->matIDs.resize(data->rawVertexCoordinates.size());
 
-		int shiftInVerArr = vIndex * 3;
-		int shiftInTexArr = vIndex * 2;
-
-		data->fVerC[shiftInVerArr] = data->rawVertexCoordinates[vIndex][0];
-		data->fVerC[shiftInVerArr + 1] = data->rawVertexCoordinates[vIndex][1];
-		data->fVerC[shiftInVerArr + 2] = data->rawVertexCoordinates[vIndex][2];
-
-		// saving material ID in vertex attribute array
-		for (size_t i = 0; i < data->materialRecords.size(); i++)
+		for (size_t i = 0; i < data->rawIndices.size(); i += 3)
 		{
-			if (vIndex >= int(data->materialRecords[i].minVertexIndex - 1) && vIndex <= int(data->materialRecords[i].maxVertexIndex - 1))
+			// faces index in OBJ file begins from 1 not 0.
+			int vIndex = data->rawIndices[i] - 1;
+			int tIndex = data->rawIndices[i + 1] - 1;
+			int nIndex = data->rawIndices[i + 2] - 1;
+
+			int shiftInVerArr = vIndex * 3;
+			int shiftInTexArr = vIndex * 2;
+
+			data->fVerC[shiftInVerArr] = data->rawVertexCoordinates[vIndex][0];
+			data->fVerC[shiftInVerArr + 1] = data->rawVertexCoordinates[vIndex][1];
+			data->fVerC[shiftInVerArr + 2] = data->rawVertexCoordinates[vIndex][2];
+
+			// saving material ID in vertex attribute array
+			for (size_t i = 0; i < data->materialRecords.size(); i++)
 			{
-				data->matIDs[vIndex] = float(i);
+				if (vIndex >= int(data->materialRecords[i].minVertexIndex - 1) && vIndex <= int(data->materialRecords[i].maxVertexIndex - 1))
+				{
+					data->matIDs[vIndex] = float(i);
+				}
 			}
+
+			data->fTexC[shiftInTexArr] = data->rawTextureCoordinates[tIndex][0];
+			data->fTexC[shiftInTexArr + 1] = 1 - data->rawTextureCoordinates[tIndex][1];
+
+			data->fNorC[shiftInVerArr] = data->rawNormalCoordinates[nIndex][0];
+			data->fNorC[shiftInVerArr + 1] = data->rawNormalCoordinates[nIndex][1];
+			data->fNorC[shiftInVerArr + 2] = data->rawNormalCoordinates[nIndex][2];
+	
+			data->fInd.push_back(vIndex);
 		}
-
-		data->fTexC[shiftInTexArr] = data->rawTextureCoordinates[tIndex][0];
-		data->fTexC[shiftInTexArr + 1] = 1 - data->rawTextureCoordinates[tIndex][1];
-
-		data->fNorC[shiftInVerArr] = data->rawNormalCoordinates[nIndex][0];
-		data->fNorC[shiftInVerArr + 1] = data->rawNormalCoordinates[nIndex][1];
-		data->fNorC[shiftInVerArr + 2] = data->rawNormalCoordinates[nIndex][2];
-
-		data->fInd.push_back(vIndex);
-	}
 
 #ifdef FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
-	for (size_t j = 0; j < doubledVertexMatIndecies.size(); j++)
-	{
-		data->matIDs[doubledVertexMatIndecies[j].first - 1] = doubledVertexMatIndecies[j].second;
-	}
+		for (size_t j = 0; j < doubledVertexMatIndecies.size(); j++)
+		{
+			data->matIDs[doubledVertexMatIndecies[j].first - 1] = doubledVertexMatIndecies[j].second;
+		}
 #endif // FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
 
-	calculateTangents(data);
+		calculateTangents(data);
+	}
+	else
+	{
+		data->fVerC.resize(data->rawVertexCoordinates.size() * 3);
+		data->fTexC.resize(0);
+		data->fNorC.resize(0);
+		data->fTanC.resize(0);
+		data->fInd.resize(0);
+		data->matIDs.resize(0);
+
+		for (size_t i = 0; i < data->rawIndices.size(); i++)
+		{
+			// faces index in OBJ file begins from 1 not 0.
+			int vIndex = data->rawIndices[i] - 1;
+			//int tIndex = data->rawIndices[i + 1] - 1;
+			//int nIndex = data->rawIndices[i + 2] - 1;
+
+			int shiftInVerArr = vIndex * 3;
+			//int shiftInTexArr = vIndex * 2;
+
+			if (vIndex == 1)
+			{
+				int y = 0;
+				y++;
+			}
+
+			data->fVerC[shiftInVerArr] = data->rawVertexCoordinates[vIndex][0];
+			data->fVerC[shiftInVerArr + 1] = data->rawVertexCoordinates[vIndex][1];
+			data->fVerC[shiftInVerArr + 2] = data->rawVertexCoordinates[vIndex][2];
+
+			//data->fTexC[shiftInTexArr] = data->rawTextureCoordinates[tIndex][0];
+			//data->fTexC[shiftInTexArr + 1] = 1 - data->rawTextureCoordinates[tIndex][1];
+
+			//data->fNorC[shiftInVerArr] = data->rawNormalCoordinates[nIndex][0];
+			//data->fNorC[shiftInVerArr + 1] = data->rawNormalCoordinates[nIndex][1];
+			//data->fNorC[shiftInVerArr + 2] = data->rawNormalCoordinates[nIndex][2];
+
+			data->fInd.push_back(vIndex);
+		}
+	}
 }
 
 void FEObjLoader::readMaterialFile(const char* originalOBJFile)
