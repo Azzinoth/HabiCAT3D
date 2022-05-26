@@ -130,6 +130,8 @@ FEMesh* rawDataToMesh(float* positions, int posSize,
 					  float* matIndexs, int matIndexsSize, int matCount,
 					  std::string Name)
 {
+	int vertexType = FE_POSITION | FE_INDEX;
+
 	GLuint vaoID;
 	FE_GL_ERROR(glGenVertexArrays(1, &vaoID));
 	FE_GL_ERROR(glBindVertexArray(vaoID));
@@ -148,31 +150,40 @@ FEMesh* rawDataToMesh(float* positions, int posSize,
 	FE_GL_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0));
 	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
 
-	GLuint normalsBufferID;
-	// normals
-	FE_GL_ERROR(glGenBuffers(1, &normalsBufferID));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, normalsBufferID));
-	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * normSize, normals, GL_STATIC_DRAW));
-	FE_GL_ERROR(glVertexAttribPointer(2/*FE_NORMAL*/, 3, GL_FLOAT, false, 0, 0));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	GLuint normalsBufferID = 0;
+	if (normals != nullptr)
+	{
+		vertexType |= FE_UV;	
+		// normals
+		FE_GL_ERROR(glGenBuffers(1, &normalsBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, normalsBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * normSize, normals, GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(2/*FE_NORMAL*/, 3, GL_FLOAT, false, 0, 0));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	}
 
-	GLuint tangentsBufferID;
-	// tangents
-	FE_GL_ERROR(glGenBuffers(1, &tangentsBufferID));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, tangentsBufferID));
-	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * tanSize, tangents, GL_STATIC_DRAW));
-	FE_GL_ERROR(glVertexAttribPointer(3/*FE_TANGENTS*/, 3, GL_FLOAT, false, 0, 0));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	GLuint tangentsBufferID = 0;
+	if (tangents != nullptr)
+	{
+		vertexType |= FE_TANGENTS;
+		// tangents
+		FE_GL_ERROR(glGenBuffers(1, &tangentsBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, tangentsBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * tanSize, tangents, GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(3/*FE_TANGENTS*/, 3, GL_FLOAT, false, 0, 0));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	}
 
-	GLuint UVBufferID;
-	// UV
-	FE_GL_ERROR(glGenBuffers(1, &UVBufferID));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, UVBufferID));
-	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * UVSize, UV, GL_STATIC_DRAW));
-	FE_GL_ERROR(glVertexAttribPointer(4/*FE_UV*/, 2, GL_FLOAT, false, 0, 0));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-
-	int vertexType = FE_POSITION | FE_UV | FE_NORMAL | FE_TANGENTS | FE_INDEX;
+	GLuint UVBufferID = 0;
+	if (UV != nullptr)
+	{
+		// UV
+		FE_GL_ERROR(glGenBuffers(1, &UVBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, UVBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * UVSize, UV, GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(4/*FE_UV*/, 2, GL_FLOAT, false, 0, 0));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	}
 
 	FEMesh* newMesh = new FEMesh(vaoID, indexSize, vertexType, Name);
 	newMesh->indicesCount = indexSize;
@@ -448,7 +459,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	
 
-	APPLICATION.createWindow(1280, 720, "Rugosity Calculator");
+	//APPLICATION.createWindow(1280, 720, "Rugosity Calculator");
+	APPLICATION.createWindow(1920, 1080, "Rugosity Calculator");
 	APPLICATION.setDropCallback(dropCallback);
 	APPLICATION.setKeyCallback(keyButtonCallback);
 	APPLICATION.setMouseMoveCallback(mouseMoveCallback);

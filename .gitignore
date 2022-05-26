@@ -18,8 +18,11 @@ imgui.ini
 *.txt
 cmake_install.cmake
 
-#Folders
+# Folders
 Debug/
 Release/
 .vs/
 CMakeFiles/
+
+# Folders to include
+!ThirdParty/boost/preprocessor/debug
