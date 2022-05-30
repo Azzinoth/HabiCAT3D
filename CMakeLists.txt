@@ -15,13 +15,13 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # *************** THIRD_PARTY ***************
 
 file(GLOB imgui_SRC
-	"FEBasicApplication/ThirdParty/imgui/imgui.cpp"
-	"FEBasicApplication/ThirdParty/imgui/imgui_demo.cpp"
-	"FEBasicApplication/ThirdParty/imgui/imgui_draw.cpp"
-	"FEBasicApplication/ThirdParty/imgui/imgui_impl_glfw.cpp"
-	"FEBasicApplication/ThirdParty/imgui/imgui_impl_opengl3.cpp"
-	"FEBasicApplication/ThirdParty/imgui/imgui_tables.cpp"
-	"FEBasicApplication/ThirdParty/imgui/imgui_widgets.cpp"
+	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui.cpp"
+	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_demo.cpp"
+	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_draw.cpp"
+	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_impl_glfw.cpp"
+	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_impl_opengl3.cpp"
+	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_tables.cpp"
+	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_widgets.cpp"
 )
 
 # *************** SUB_SYSTEM ***************
@@ -39,14 +39,14 @@ file(GLOB SubSystems_SRC
 	"SubSystems/FETransformComponent.h"
 )
 
-#file(GLOB BasicApplicationSubSystem_SRC
-#	"SubSystems/FEBasicApplication/FEBasicApplication.cpp"
-#	"SubSystems/FEBasicApplication/FEBasicApplication.h"
-#)
+file(GLOB BasicApplicationSubSystem_SRC
+	"SubSystems/FEBasicApplication/FEBasicApplication.cpp"
+	"SubSystems/FEBasicApplication/FEBasicApplication.h"
+	"SubSystems/FEBasicApplication/FETime.cpp"
+	"SubSystems/FEBasicApplication/FETime.h"
+)
 
 file(GLOB source_SRC
-	"FEBasicApplication/FEBasicApplication.cpp"
-	"FEBasicApplication/FEBasicApplication.h"
 	"FECoreIncludes.h"
 	"FEFileSystem.cpp"
 	"FEFileSystem.h"
@@ -57,15 +57,15 @@ file(GLOB source_SRC
 	"main.cpp"
 )
 
-link_directories("FEBasicApplication/ThirdParty/glew2/lib/$(PlatformTarget)")
-link_directories("FEBasicApplication/ThirdParty/GLFW/lib/$(PlatformTarget)")
+link_directories("SubSystems/FEBasicApplication/ThirdParty/glew2/lib/$(PlatformTarget)")
+link_directories("SubSystems/FEBasicApplication/ThirdParty/GLFW/lib/$(PlatformTarget)")
 
 # add the executable
 add_executable(RugosityCalculator WIN32
 								  ${source_SRC}
 								  # *************** SUB_SYSTEM ***************
 								  ${SubSystems_SRC}
-								  #${BasicApplicationSubSystem_SRC}
+								  ${BasicApplicationSubSystem_SRC}
 								  # *************** THIRD_PARTY ***************
 								  ${imgui_SRC}
 )
@@ -78,7 +78,7 @@ target_link_libraries(RugosityCalculator opengl32.lib)
 source_group("Source Files" FILES ${source_SRC})
 # *************** SUB_SYSTEM ***************
 source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
-#source_group("Source Files/SubSystems/BasicApplication" FILES ${BasicApplicationSubSystem_SRC})
+source_group("Source Files/SubSystems/BasicApplication" FILES ${BasicApplicationSubSystem_SRC})
 # *************** THIRD_PARTY ***************
 source_group("Source Files/ThirdParty/imgui" FILES ${imgui_SRC})
 
@@ -86,7 +86,7 @@ source_group("Source Files/ThirdParty/imgui" FILES ${imgui_SRC})
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT RugosityCalculator)
 
 include_directories(
-	"FEBasicApplication/ThirdParty/glew2/include"
-	"FEBasicApplication/ThirdParty/"
+	"SubSystems/FEBasicApplication/ThirdParty/glew2/include"
+	"SubSystems/FEBasicApplication/ThirdParty/"
 	"ThirdParty/"
 )
