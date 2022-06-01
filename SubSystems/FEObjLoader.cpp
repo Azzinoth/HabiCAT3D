@@ -454,12 +454,6 @@ void FEObjLoader::processRawData(FERawOBJData* data)
 			int shiftInVerArr = vIndex * 3;
 			//int shiftInTexArr = vIndex * 2;
 
-			if (vIndex == 1)
-			{
-				int y = 0;
-				y++;
-			}
-
 			data->fVerC[shiftInVerArr] = data->rawVertexCoordinates[vIndex][0];
 			data->fVerC[shiftInVerArr + 1] = data->rawVertexCoordinates[vIndex][1];
 			data->fVerC[shiftInVerArr + 2] = data->rawVertexCoordinates[vIndex][2];
