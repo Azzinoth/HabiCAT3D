@@ -14,12 +14,13 @@ FECGALWrapper::~FECGALWrapper()
 }
 
 FEMesh* FECGALWrapper::rawDataToMesh(float* positions, int posSize,
-									float* UV, int UVSize,
-									float* normals, int normSize,
-									float* tangents, int tanSize,
-									int* indices, int indexSize,
-									float* matIndexs, int matIndexsSize, int matCount,
-									std::string Name)
+									 float* colors, int colorSize,
+									 float* UV, int UVSize,
+									 float* normals, int normSize,
+									 float* tangents, int tanSize,
+									 int* indices, int indexSize,
+									 float* matIndexs, int matIndexsSize, int matCount,
+									 std::string Name)
 {
 	int vertexType = FE_POSITION | FE_INDEX;
 
@@ -41,10 +42,22 @@ FEMesh* FECGALWrapper::rawDataToMesh(float* positions, int posSize,
 	FE_GL_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0));
 	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
 
+	GLuint colorsBufferID = 0;
+	if (colors != nullptr)
+	{
+		vertexType |= FE_COLOR;
+		// colors
+		FE_GL_ERROR(glGenBuffers(1, &colorsBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, colorsBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * colorSize, colors, GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(1/*FE_COLOR*/, 3, GL_FLOAT, false, 0, 0));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	}
+
 	GLuint normalsBufferID = 0;
 	if (normals != nullptr)
 	{
-		vertexType |= FE_UV;
+		vertexType |= FE_NORMAL;
 		// normals
 		FE_GL_ERROR(glGenBuffers(1, &normalsBufferID));
 		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, normalsBufferID));
@@ -105,6 +118,7 @@ FEMesh* FECGALWrapper::importOBJ(const char* fileName, bool forceOneMesh)
 	if (objLoader.loadedObjects.size() > 0)
 	{
 		result = rawDataToMesh(objLoader.loadedObjects[0]->fVerC.data(), int(objLoader.loadedObjects[0]->fVerC.size()),
+			nullptr, 0,
 			objLoader.loadedObjects[0]->fTexC.data(), int(objLoader.loadedObjects[0]->fTexC.size()),
 			objLoader.loadedObjects[0]->fNorC.data(), int(objLoader.loadedObjects[0]->fNorC.size()),
 			objLoader.loadedObjects[0]->fTanC.data(), int(objLoader.loadedObjects[0]->fTanC.size()),
@@ -145,7 +159,7 @@ FEMesh* FECGALWrapper::surfaceMeshToFEMesh(Surface_mesh mesh)
 	}
 
 	result = rawDataToMesh(FEVertices.data(), int(FEVertices.size()),
-		nullptr, 0, nullptr, 0, nullptr, 0,
+		nullptr, 0, nullptr, 0, nullptr, 0, nullptr, 0,
 		FEIndices.data(), int(FEIndices.size()),
 		nullptr, 0, 0, "");
 
@@ -184,9 +198,13 @@ Surface_mesh FECGALWrapper::FEMeshToSurfaceMesh(FEMesh* mesh)
 
 	Surface_mesh result;
 
-	PMP::repair_polygon_soup(CGALPoints, CGALFaces);
-	PMP::polygon_soup_to_polygon_mesh(CGALPoints, CGALFaces, result);
+	if (!PMP::is_polygon_soup_a_polygon_mesh(CGALFaces))
+	{
+		PMP::repair_polygon_soup(CGALPoints, CGALFaces);
+		PMP::orient_polygon_soup(CGALPoints, CGALFaces);
+	}
 
+	PMP::polygon_soup_to_polygon_mesh(CGALPoints, CGALFaces, result);
 	return result;
 }
 
@@ -223,13 +241,28 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double ver
 {
 	Surface_mesh mesh = FEMeshToSurfaceMesh(originalMesh);
 
+	// output face proxy index property map
+	Face_proxy_pmap fpxmap = mesh.add_property_map<face_descriptor, std::size_t>("f:proxy_id", 0).first;
+	Face_proxy_pmap _map = mesh.add_property_map<face_descriptor, std::size_t>("f:partition_id", 0).first;
+
+	// The face <--> partition_id property map
+	typedef CGAL::Simple_cartesian<double>                           K;
+	typedef CGAL::Surface_mesh<K::Point_3>                           SM;
+	typedef SM::Property_map<SM::Face_index, std::size_t>            Face_id_map;
+	Face_id_map face_pid_map = mesh.add_property_map<SM::Face_index, std::size_t>("f:pid").first;
+
+	// output planar proxies
+	std::vector<Kernel::Vector_3> proxies;
+
 	// The output will be an indexed triangle mesh
 	std::vector<Kernel::Point_3> anchors;
 	std::vector<std::array<std::size_t, 3> > triangles;
 	// free function interface with named parameters
 	VSA::approximate_triangle_mesh(mesh,
 		CGAL::parameters::verbose_level(VSA::MAIN_STEPS).
-		max_number_of_proxies(1000).
+		max_number_of_proxies(30).
+		face_proxy_map(fpxmap).proxies(std::back_inserter(proxies)).	//face_partition_id_map(_map).
+
 		anchors(std::back_inserter(anchors)). // anchor points
 		triangles(std::back_inserter(triangles))); // indexed triangles
 
@@ -237,11 +270,311 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double ver
 	PMP::orient_polygon_soup(anchors, triangles);
 	Surface_mesh output;
 
+	std::vector<int> originalMeshToSegments;
+	auto iterator = fpxmap.begin();
+	while (iterator != fpxmap.end())
+	{
+		originalMeshToSegments.push_back(iterator._Ptr[0]);
+		iterator++;
+	}
+
+	//int max = -99;
+	//for (size_t i = 0; i < originalMeshToSegments.size(); i++)
+	//{
+	//	if (max < originalMeshToSegments[i])
+	//		max = originalMeshToSegments[i];
+	//}
+
+	std::vector<glm::vec3> anchorsVector;
+	for (size_t i = 0; i < anchors.size(); i++)
+	{
+		anchorsVector.push_back(glm::vec3(anchors[i].x(), anchors[i].y(), anchors[i].z()));
+	}
+
+	std::vector<glm::vec3> proxiesVector;
+	for (size_t i = 0; i < proxies.size(); i++)
+	{
+		proxiesVector.push_back(glm::vec3(proxies[i].x(), proxies[i].y(), proxies[i].z()));
+	}
+
 	PMP::polygon_soup_to_polygon_mesh(anchors, triangles, output);
 	if (CGAL::is_closed(output) && (!PMP::is_outward_oriented(output)))
 		PMP::reverse_face_orientations(output);
 
-	//saveSurfaceMeshToOBJFile("C:/Users/kandr/Downloads/simplified.obj", output);
 
-	return surfaceMeshToFEMesh(output);
+	//boost::writable_property_map_archetype
+	//Writable Property Map
+
+	//boost::property_map<boost::graph_traits<Surface_mesh>::face_descriptor, Kernel::Vector_3> face_normals;
+
+
+	Surface_mesh::Property_map<face_descriptor, Kernel::Vector_3 > face_normals =
+		output.add_property_map<face_descriptor, Kernel::Vector_3 >("f:normal").first;
+
+
+	CGAL::Polygon_mesh_processing::compute_face_normals(output, face_normals);
+
+	std::vector<int> normalsToProxies;
+	std::vector<glm::vec3> normals;
+	float maxMinDistance = -FLT_MAX;
+	float averageMinDistance = 0.0f;
+	for (size_t i = 0; i < triangles.size(); i++)
+	{
+		normals.push_back(glm::vec3(face_normals.data()[i].x(), face_normals.data()[i].y(), face_normals.data()[i].z()));
+
+		float minDistance = FLT_MAX;
+		int index = -1;
+		// Looking for closest proxy
+		for (size_t j = 0; j < proxiesVector.size(); j++)
+		{
+			float currentDistance = glm::distance(normals[i], proxiesVector[j]);
+			if (currentDistance < minDistance)
+			{
+				minDistance = currentDistance;
+				index = j;
+			}
+		}
+
+		if (maxMinDistance < minDistance)
+			maxMinDistance = minDistance;
+
+		averageMinDistance += minDistance;
+
+		normalsToProxies.push_back(index);
+	}
+
+
+	averageMinDistance /= triangles.size();
+
+	saveSurfaceMeshToOBJFile("C:/Users/Kindr/Downloads/simplified.obj", output);
+
+	//return surfaceMeshToFEMesh(output);
+
+
+	int posSize = originalMesh->getPositionsCount();
+	float* positions = new float[posSize];
+	FE_GL_ERROR(glGetNamedBufferSubData(originalMesh->getPositionsBufferID(), 0, sizeof(float) * posSize, positions));
+
+	int UVSize = originalMesh->getUVCount();
+	float* UV = new float[UVSize];
+	FE_GL_ERROR(glGetNamedBufferSubData(originalMesh->getUVBufferID(), 0, sizeof(float) * UVSize, UV));
+
+	int normSize = originalMesh->getNormalsCount();
+	float* normalsFloat = new float[normSize];
+	FE_GL_ERROR(glGetNamedBufferSubData(originalMesh->getNormalsBufferID(), 0, sizeof(float) * normSize, normalsFloat));
+
+	int tanSize = originalMesh->getTangentsCount();
+	float* tangents = new float[tanSize];
+	FE_GL_ERROR(glGetNamedBufferSubData(originalMesh->getTangentsBufferID(), 0, sizeof(float) * tanSize, tangents));
+
+	int indexSize = originalMesh->getIndicesCount();
+	int* indices = new int[indexSize];
+	FE_GL_ERROR(glGetNamedBufferSubData(originalMesh->getIndicesBufferID(), 0, sizeof(int) * indexSize, indices));
+
+
+
+	// 165 positions. 55 vertex with 3 x,y,z
+	std::vector<float> positionsVector;
+	for (size_t i = 0; i < posSize; i++)
+	{
+		positionsVector.push_back(positions[i]);
+	}
+
+	// 318 indexes. 106 facets with 3 vertex index per facet(triangle).
+	std::vector<int> indexVector;
+	for (size_t i = 0; i < indexSize; i++)
+	{
+		indexVector.push_back(indices[i]);
+	}
+
+	int colorSize = posSize;
+	float* colors = new float[posSize];
+	int vertexIndex = 0;
+
+
+	std::string outputString = "";
+	for (size_t i = 0; i < originalMeshToSegments.size(); i++)
+	{
+		outputString += "facet " + std::to_string(i) + ": " + std::to_string(originalMeshToSegments[i]) + "\n";
+	}
+
+	auto setColorOfVertex = [&](int index, glm::vec3 color) {
+		colors[index * 3] = color.x;
+		colors[index * 3 + 1] = color.y;
+		colors[index * 3 + 2] = color.z;
+	};
+
+	auto getVertexOfFace = [&](int faceIndex) {
+		std::vector<int> result;
+		result.push_back(indexVector[faceIndex * 3]);
+		result.push_back(indexVector[faceIndex * 3 + 1]);
+		result.push_back(indexVector[faceIndex * 3 + 2]);
+
+		return result;
+	};
+
+	auto setColorOfFace = [&](int faceIndex, glm::vec3 color) {
+		std::vector<int> faceVertex = getVertexOfFace(faceIndex);
+
+		for (size_t i = 0; i < faceVertex.size(); i++)
+		{
+			setColorOfVertex(faceVertex[i], color);
+		}
+	};
+
+	auto getMinDistanceToColorsInUse = [&](glm::vec3 colorToTest, std::vector<glm::vec3> colorsInUse) {
+		float minDistance = FLT_MAX;
+		for (size_t i = 0; i < colorsInUse.size(); i++)
+		{
+			float currentDistance = glm::distance(colorToTest, colorsInUse[i]);
+			if (currentDistance < minDistance)
+				minDistance = currentDistance;
+		}
+
+		return minDistance;
+	};
+
+	auto randColor = []() {
+		glm::vec3 result;
+
+		float randR = float(rand() % 100) / 100.0f;
+		float randG = float(rand() % 100) / 100.0f;
+		float randB = float(rand() % 100) / 100.0f;
+
+		result = glm::vec3(randR, randG, randB);
+		return result;
+	};
+
+	auto getRandColor = [&](std::vector<glm::vec3> colorsInUse) {
+		
+		glm::vec3 currentColor = randColor();
+
+		for (size_t i = 0; i < 1000; i++)
+		{
+			if (getMinDistanceToColorsInUse(currentColor, colorsInUse) > 0.2)
+				return currentColor;
+				
+			currentColor = randColor();
+		}
+		
+		return currentColor;
+	};
+
+	std::vector<glm::vec3> usedColors;
+	std::unordered_map<int, glm::vec3> segIDColors;
+	for (size_t i = 0; i < originalMeshToSegments.size(); i++)
+	{
+		if (segIDColors.find(originalMeshToSegments[i]) == segIDColors.end())
+		{
+			glm::vec3 newColor = getRandColor(usedColors);
+			segIDColors[originalMeshToSegments[i]] = newColor;
+			usedColors.push_back(newColor);
+		}
+
+		setColorOfFace(i, segIDColors[originalMeshToSegments[i]]);
+	}
+
+	// COLORS
+
+	std::unordered_map<int, double> originalTrianglesRugosity;
+	std::unordered_map<int, double> sectorRugositySum;
+	std::unordered_map<int, int> sectorsCount;
+	for (size_t i = 0; i < originalMeshToSegments.size(); i++)
+	{
+		glm::vec3 segmentNormal = proxiesVector[originalMeshToSegments[i]];
+		std::vector<int> points = getVertexOfFace(i);
+
+		Point_3 a = Point_3(positionsVector[points[0] * 3], positionsVector[points[0] * 3 + 1], positionsVector[points[0] * 3 + 2]);
+		Point_3 b = Point_3(positionsVector[points[1] * 3], positionsVector[points[1] * 3 + 1], positionsVector[points[1] * 3 + 2]);
+		Point_3 c = Point_3(positionsVector[points[2] * 3], positionsVector[points[2] * 3 + 1], positionsVector[points[2] * 3 + 2]);
+		double originalArea = sqrt(CGAL::squared_area(a, b, c));
+
+		Plane_3 segmentPlane = Plane_3(Point_3(0.0, 0.0, 0.0), Direction_3(segmentNormal.x, segmentNormal.y, segmentNormal.z));
+		Point_3 aProjection = segmentPlane.projection(a);
+		Point_3 bProjection = segmentPlane.projection(b);
+		Point_3 cProjection = segmentPlane.projection(c);
+
+		double projectionArea = sqrt(CGAL::squared_area(aProjection, bProjection, cProjection));
+		double rugosity = originalArea / projectionArea;
+
+		sectorRugositySum[originalMeshToSegments[i]] += rugosity;
+		sectorsCount[originalMeshToSegments[i]]++;
+
+		originalTrianglesRugosity[i] += rugosity;
+
+		/*if (rugosity < 2)
+		{
+			setColorOfFace(i, glm::vec3(0.0, 1.0, 0.0));
+		}
+		else
+		{
+			setColorOfFace(i, glm::vec3(1.0, 0.0, 0.0));
+		}*/
+	}
+
+	double minRugorsity = DBL_MAX;
+	double maxRugorsity = -DBL_MAX;
+	std::vector<double> sectorsRugorsity;
+	sectorsRugorsity.resize(proxiesVector.size());
+	auto it = sectorRugositySum.begin();
+	while (it != sectorRugositySum.end())
+	{
+		sectorsRugorsity[it->first] = it->second / sectorsCount[it->first];
+
+		if (sectorsRugorsity[it->first] > maxRugorsity)
+			maxRugorsity = sectorsRugorsity[it->first];
+
+		if (sectorsRugorsity[it->first] < minRugorsity)
+			minRugorsity = sectorsRugorsity[it->first];
+
+		it++;
+	}
+
+	glm::vec3 darkBlue = glm::vec3(0.0f, 0.0f, 0.4f);
+	glm::vec3 lightCyan = glm::vec3(27.0f / 255.0f, 213.0f / 255.0f, 200.0f / 255.0f);
+	glm::vec3 green = glm::vec3(0.0f / 255.0f, 255.0f / 255.0f, 64.0f / 255.0f);
+	glm::vec3 yellow = glm::vec3(225.0f / 255.0f, 225.0f / 255.0f, 0.0f / 255.0f);
+	glm::vec3 red = glm::vec3(225.0f / 255.0f, 0 / 255.0f, 0.0f / 255.0f);
+
+	for (size_t i = 0; i < originalMeshToSegments.size(); i++)
+	{
+		double normalizedRugorsity = (sectorsRugorsity[originalMeshToSegments[i]] - minRugorsity) / (maxRugorsity - minRugorsity);
+
+		if (normalizedRugorsity <= 0.2 && normalizedRugorsity > 0.0)
+		{
+			setColorOfFace(i, darkBlue);
+		}
+		else if (normalizedRugorsity <= 0.4 && normalizedRugorsity > 0.2)
+		{
+			setColorOfFace(i, lightCyan);
+		}
+		else if (normalizedRugorsity <= 0.6 && normalizedRugorsity > 0.4)
+		{
+			setColorOfFace(i, green);
+		}
+		else if (normalizedRugorsity <= 0.8 && normalizedRugorsity > 0.6)
+		{
+			setColorOfFace(i, yellow);
+		}
+		else if (normalizedRugorsity <= 1.0 && normalizedRugorsity > 0.8)
+		{
+			setColorOfFace(i, red);
+		}
+	}
+
+	// COLORS END
+
+	FEMesh* originalMeshWithSegments = rawDataToMesh(positions, posSize,
+										colors, colorSize,
+										UV, UVSize,
+										normalsFloat, normSize,
+										tangents, tanSize,
+										indices, indexSize,
+										nullptr, 0, 0,
+										"");
+
+	originalMeshWithSegments->minRugorsity = minRugorsity;
+	originalMeshWithSegments->maxRugorsity = maxRugorsity;
+
+	return originalMeshWithSegments;
 }

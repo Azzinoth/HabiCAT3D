@@ -31,6 +31,8 @@ namespace FocalEngine
 		GLuint getTangentsCount() const;
 		GLuint getUVBufferID() const;
 		GLuint getUVCount() const;
+		GLuint getColorBufferID() const;
+		GLuint getColorCount() const;
 	//private:
 		GLuint vaoID = -1;
 		GLuint indicesBufferID = -1;
@@ -43,9 +45,15 @@ namespace FocalEngine
 		unsigned int tangentsCount = -1;
 		GLuint UVBufferID = -1;
 		unsigned int UVCount = -1;
+		GLuint colorBufferID = -1;
+		unsigned int colorCount = -1;
 
 		unsigned int vertexCount;
 
 		int vertexAttributes = 1;
+
+		// NEW
+		double minRugorsity = DBL_MAX;
+		double maxRugorsity = -DBL_MAX;
 	};
 }

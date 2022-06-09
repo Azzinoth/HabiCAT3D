@@ -9,6 +9,8 @@ static const char* const sTestVS = R"(
 @In_Position@
 @In_Normal@
 
+@In_Color@
+
 @WorldMatrix@
 @ViewMatrix@
 @ProjectionMatrix@
@@ -21,6 +23,8 @@ out VS_OUT
 	mat3 TBN;
 	vec3 vertexNormal;
 	float materialIndex;
+
+	vec3 color;
 } vs_out;
 
 void main(void)
@@ -33,6 +37,8 @@ void main(void)
 	gl_Position = FEProjectionMatrix * vs_out.viewPosition;
 
 	vs_out.vertexNormal = normalize(vec3(FEWorldMatrix * vec4(FENormal, 0.0)));
+
+	vs_out.color = FEColor;
 }
 )";
 
@@ -45,6 +51,8 @@ in VS_OUT
 	mat3 TBN;
 	vec3 vertexNormal;
 	flat float materialIndex;
+
+	flat vec3 color;
 } FS_IN;
 
 @ViewMatrix@
@@ -56,9 +64,9 @@ layout (location = 0) out vec4 out_Color;
 
 void main(void)
 {
-	vec3 baseColor = vec3(0.0, 0.5, 1.0);
+	//vec3 baseColor = vec3(0.0, 0.5, 1.0);
+	vec3 baseColor = FS_IN.color;
 
-	//vec3 lightDirection = normalize(vec3(0.0, 1.0, 0.2));
 	float diffuseFactor = max(dot(FS_IN.vertexNormal, lightDirection), 0.15);
 	vec3 ambientColor = vec3(0.55f, 0.73f, 0.87f) * 2.8f;
 
@@ -199,7 +207,25 @@ void renderFEMesh(FEMesh* mesh)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	
+	/*Point_3 a = Point_3(1.0, 5.0, 1.0);
+	Point_3 b = Point_3(-2.0, 15.0, 4.0);
+	Point_3 c = Point_3(-2.0, 5.0, -2.0);
+
+	double area = sqrt(CGAL::squared_area(a, b, c));
+
+	Plane_3 testPlane = Plane_3(Point_3(0.0, 0.0, 0.0), Direction_3(0.0, 1.0, 0.0));
+
+	Point_3 aProjection = testPlane.projection(a);
+	Point_3 bProjection = testPlane.projection(b);
+	Point_3 cProjection = testPlane.projection(c);
+
+	double projectionArea = sqrt(CGAL::squared_area(aProjection, bProjection, cProjection));
+	double rugosity = area / projectionArea;
+
+
+	int y = 0;
+	y++;*/
+
 	//Surface_mesh surface_mesh;
 
 	//std::ifstream objFile("C:/Users/kandr/Downloads/sphere.obj");
@@ -258,12 +284,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	currentCamera->setIsInputActive(false);
 	currentCamera->setAspectRatio(1280.0f / 720.0f);
 
-
-	/*FEMesh* test = surfaceMeshToFEMesh(sm);
-	loadedMesh = test;
-
-	saveSurfaceMeshToOBJFile("C:/Users/kandr/Downloads/sphereR_.obj", FEMeshTosurfaceMesh(test));*/
-
+	//FEMesh* compareToMesh = CGALWrapper.importOBJ("C:/Users/kandr/Downloads/simplified.obj", true);
 
 	while (APPLICATION.isWindowOpened())
 	{
@@ -310,10 +331,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			else
 			{
 				renderFEMesh(simplifiedMesh);
+
+				if (simplifiedMesh->minRugorsity != DBL_MAX)
+				{
+					ImGui::Text(("minRugorsity: " + std::to_string(simplifiedMesh->minRugorsity)).c_str());
+				}
+
+				if (simplifiedMesh->maxRugorsity != -DBL_MAX)
+				{
+					ImGui::Text(("maxRugorsity: " + std::to_string(simplifiedMesh->maxRugorsity)).c_str());
+				}
 			}
-				
 
+			
 
+			/*FETransformComponent* newPosition = new FETransformComponent();
+			newPosition->setPosition(glm::vec3(0.0, 0.0, 5.0));
+			testShader->getParameter("FEWorldMatrix")->updateData(newPosition->getTransformMatrix());
+			testShader->loadDataToGPU();
+
+			renderFEMesh(compareToMesh);*/
+			
 			//APPLICATION.setWindowCaption("vertexCount: " + std::to_string(loadedMesh->getVertexCount()));
 
 			testShader->stop();
@@ -351,7 +389,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 				if (ImGui::Button("Apply"))
 				{
-					simplifiedMesh = CGALWrapper.SurfaceMeshSimplification(loadedMesh, toLeave / 100.0);
+					simplifiedMesh = CGALWrapper.SurfaceMeshApproximation(loadedMesh, toLeave / 100.0);
 				}
 			/*}
 			else

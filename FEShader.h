@@ -50,7 +50,8 @@ namespace FocalEngine
 		FE_UV = 1 << 4,
 		FE_INDEX = 1 << 5,
 		FE_MATINDEX = 1 << 6,
-		FE_INSTANCEDATA = 1 << 7
+		FE_INSTANCEDATA = 1 << 7,
+		FE_SEGMENTS_COLORS = 1 << 8
 	};
 
 	const int FE_MAX_TEXTURES_PER_MATERIAL = 16;

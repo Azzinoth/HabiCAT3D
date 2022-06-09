@@ -29,6 +29,18 @@ namespace PMP = CGAL::Polygon_mesh_processing;
 
 namespace VSA = CGAL::Surface_mesh_approximation;
 
+typedef boost::graph_traits<Surface_mesh>::face_descriptor face_descriptor;
+typedef Surface_mesh::Property_map<face_descriptor, std::size_t> Face_proxy_pmap;
+
+// Project triangle on plane
+#include <CGAL/Triangle_3.h>
+#include <CGAL/Plane_3.h>
+#include <CGAL/Direction_3.h>
+
+typedef Kernel::Plane_3 Plane_3;
+typedef Kernel::Direction_3 Direction_3;
+
+
 using namespace FocalEngine;
 
 namespace FocalEngine
@@ -50,6 +62,7 @@ namespace FocalEngine
 		SINGLETON_PRIVATE_PART(FECGALWrapper)
 
 		FEMesh* rawDataToMesh(float* positions, int posSize,
+							  float* colors, int colorSize,
 							  float* UV, int UVSize,
 							  float* normals, int normSize,
 							  float* tangents, int tanSize,

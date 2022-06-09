@@ -12,7 +12,7 @@ using namespace FocalEngine;
 
 namespace FocalEngine
 {
-#define FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
+//#define FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
 
 	struct materialRecord
 	{

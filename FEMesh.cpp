@@ -72,3 +72,13 @@ GLuint FEMesh::getUVCount() const
 {
 	return UVCount;
 }
+
+GLuint FEMesh::getColorBufferID() const
+{
+	return colorBufferID;
+}
+
+GLuint FEMesh::getColorCount() const
+{
+	return colorCount;
+}
