@@ -33,6 +33,9 @@ namespace FocalEngine
 		GLuint getUVCount() const;
 		GLuint getColorBufferID() const;
 		GLuint getColorCount() const;
+
+		void addColorToVertices(float* colors, int colorSize);
+		void addSegmentsColorToVertices(float* colors, int colorSize);
 	//private:
 		GLuint vaoID = -1;
 		GLuint indicesBufferID = -1;
@@ -47,6 +50,8 @@ namespace FocalEngine
 		unsigned int UVCount = -1;
 		GLuint colorBufferID = -1;
 		unsigned int colorCount = -1;
+		GLuint segmentsColorsBufferID = -1;
+		unsigned int segmentsColorsCount = -1;
 
 		unsigned int vertexCount;
 
@@ -55,5 +60,7 @@ namespace FocalEngine
 		// NEW
 		double minRugorsity = DBL_MAX;
 		double maxRugorsity = -DBL_MAX;
+
+		int colorMode = 0;
 	};
 }

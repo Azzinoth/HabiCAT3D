@@ -4,16 +4,20 @@ using namespace FocalEngine;
 
 FEFreeCamera* currentCamera = nullptr;
 bool wireframeMode = false;
+FEShader* meshShader = nullptr;
 
 static const char* const sTestVS = R"(
 @In_Position@
 @In_Normal@
 
 @In_Color@
+@In_Segments_colors@
 
 @WorldMatrix@
 @ViewMatrix@
 @ProjectionMatrix@
+
+uniform int colorMode;
 
 out VS_OUT
 {
@@ -25,6 +29,7 @@ out VS_OUT
 	float materialIndex;
 
 	vec3 color;
+	vec3 segmentsColors;
 } vs_out;
 
 void main(void)
@@ -38,7 +43,11 @@ void main(void)
 
 	vs_out.vertexNormal = normalize(vec3(FEWorldMatrix * vec4(FENormal, 0.0)));
 
-	vs_out.color = FEColor;
+	if (colorMode == 1)
+		vs_out.color = FEColor;
+
+	if (colorMode == 2)
+		vs_out.segmentsColors = FESegmentsColors;
 }
 )";
 
@@ -53,19 +62,26 @@ in VS_OUT
 	flat float materialIndex;
 
 	flat vec3 color;
+	flat vec3 segmentsColors;
 } FS_IN;
 
 @ViewMatrix@
 @ProjectionMatrix@
 
+uniform int colorMode;
 uniform vec3 lightDirection;
 
 layout (location = 0) out vec4 out_Color;
 
 void main(void)
 {
-	//vec3 baseColor = vec3(0.0, 0.5, 1.0);
-	vec3 baseColor = FS_IN.color;
+	vec3 baseColor = vec3(0.0, 0.5, 1.0);
+
+	if (colorMode == 1)
+		baseColor = FS_IN.color;
+
+	if (colorMode == 2)
+		baseColor = FS_IN.segmentsColors;
 
 	float diffuseFactor = max(dot(FS_IN.vertexNormal, lightDirection), 0.15);
 	vec3 ambientColor = vec3(0.55f, 0.73f, 0.87f) * 2.8f;
@@ -110,6 +126,7 @@ void renderTargetCenterForCamera()
 
 FEMesh* loadedMesh = nullptr;
 FEMesh* simplifiedMesh = nullptr;
+bool showSimplified = false;
 
 static void dropCallback(int count, const char** paths);
 void dropCallback(int count, const char** paths)
@@ -190,12 +207,16 @@ void mouseButtonCallback(int button, int action, int mods)
 
 void renderFEMesh(FEMesh* mesh)
 {
+	meshShader->getParameter("colorMode")->updateData(mesh->colorMode);
+
 	FE_GL_ERROR(glBindVertexArray(mesh->getVaoID()));
 	if ((mesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));
 	if ((mesh->vertexAttributes & FE_COLOR) == FE_COLOR) FE_GL_ERROR(glEnableVertexAttribArray(1));
 	if ((mesh->vertexAttributes & FE_NORMAL) == FE_NORMAL) FE_GL_ERROR(glEnableVertexAttribArray(2));
 	if ((mesh->vertexAttributes & FE_TANGENTS) == FE_TANGENTS) FE_GL_ERROR(glEnableVertexAttribArray(3));
 	if ((mesh->vertexAttributes & FE_UV) == FE_UV) FE_GL_ERROR(glEnableVertexAttribArray(4));
+
+	if ((mesh->vertexAttributes & FE_SEGMENTS_COLORS) == FE_SEGMENTS_COLORS) FE_GL_ERROR(glEnableVertexAttribArray(7));
 
 	if ((mesh->vertexAttributes & FE_INDEX) == FE_INDEX)
 		FE_GL_ERROR(glDrawElements(GL_TRIANGLES, mesh->getVertexCount(), GL_UNSIGNED_INT, 0));
@@ -204,6 +225,8 @@ void renderFEMesh(FEMesh* mesh)
 
 	glBindVertexArray(0);
 }
+
+void testFunction();
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -270,8 +293,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	glClearColor(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 1.0f);
 	FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
 
-	FEShader* testShader = new FEShader("mainShader", sTestVS, sTestFS);
-	testShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
+	meshShader = new FEShader("mainShader", sTestVS, sTestFS);
+	meshShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
 
 	static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
 	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
@@ -284,7 +307,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	currentCamera->setIsInputActive(false);
 	currentCamera->setAspectRatio(1280.0f / 720.0f);
 
-	//FEMesh* compareToMesh = CGALWrapper.importOBJ("C:/Users/kandr/Downloads/simplified.obj", true);
+	testFunction();
 
 	while (APPLICATION.isWindowOpened())
 	{
@@ -296,10 +319,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		if (loadedMesh != nullptr)
 		{
-			testShader->start();
+			meshShader->start();
 
-			auto iterator = testShader->parameters.begin();
-			while (iterator != testShader->parameters.end())
+			auto iterator = meshShader->parameters.begin();
+			while (iterator != meshShader->parameters.end())
 			{
 				if (iterator->second.nameHash == FEWorldMatrix_hash)
 					iterator->second.updateData(position->getTransformMatrix());
@@ -313,7 +336,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				iterator++;
 			}
 
-			testShader->loadDataToGPU();
+			meshShader->loadDataToGPU();
 
 			if (wireframeMode)
 			{
@@ -324,23 +347,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}
 
-			if (simplifiedMesh == nullptr)
+			if (simplifiedMesh == nullptr || !showSimplified)
 			{
 				renderFEMesh(loadedMesh);
 			}
-			else
+			else if (simplifiedMesh != nullptr && showSimplified)
 			{
 				renderFEMesh(simplifiedMesh);
-
-				if (simplifiedMesh->minRugorsity != DBL_MAX)
-				{
-					ImGui::Text(("minRugorsity: " + std::to_string(simplifiedMesh->minRugorsity)).c_str());
-				}
-
-				if (simplifiedMesh->maxRugorsity != -DBL_MAX)
-				{
-					ImGui::Text(("maxRugorsity: " + std::to_string(simplifiedMesh->maxRugorsity)).c_str());
-				}
 			}
 
 			
@@ -354,11 +367,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			
 			//APPLICATION.setWindowCaption("vertexCount: " + std::to_string(loadedMesh->getVertexCount()));
 
-			testShader->stop();
+			meshShader->stop();
 		}
 			
 		// ********************* LIGHT DIRECTION *********************
-		glm::vec3 position = *reinterpret_cast<glm::vec3*>(testShader->getParameter("lightDirection")->data);
+		glm::vec3 position = *reinterpret_cast<glm::vec3*>(meshShader->getParameter("lightDirection")->data);
 		ImGui::Text("Light direction : ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(50);
@@ -372,37 +385,131 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		ImGui::SetNextItemWidth(50);
 		ImGui::DragFloat((std::string("##Z pos : ")).c_str(), &position[2], 0.1f);
 	
-		testShader->getParameter("lightDirection")->updateData(position);
+		meshShader->getParameter("lightDirection")->updateData(position);
 
-		ImGui::Checkbox("Wireframe", &wireframeMode);
+		
+
+
+	
 
 		if (loadedMesh != nullptr)
 		{
-			/*if (simplifiedMesh == nullptr)
-			{*/
-				static float toLeave = 50;
-				ImGui::Text("Leave :");
-				ImGui::SetNextItemWidth(80);
-				ImGui::DragFloat("##Leave", &toLeave, 0.01f, 0.001f, 99.0f);
-				ImGui::SameLine();
-				ImGui::Text(" %% of vertices.");
+			ImGui::Checkbox("Wireframe", &wireframeMode);
 
-				if (ImGui::Button("Apply"))
-				{
-					simplifiedMesh = CGALWrapper.SurfaceMeshApproximation(loadedMesh, toLeave / 100.0);
-				}
-			/*}
-			else
+			if (simplifiedMesh == nullptr)
+				ImGui::BeginDisabled();
+
+			ImGui::Checkbox("Show simplified mesh", &showSimplified);
+
+			if (simplifiedMesh == nullptr)
+				ImGui::EndDisabled();
+
+			/*static float toLeave = 50;
+			ImGui::Text("Leave :");
+			ImGui::SetNextItemWidth(80);
+			ImGui::DragFloat("##Leave", &toLeave, 0.01f, 0.001f, 99.0f);
+			ImGui::SameLine();
+			ImGui::Text(" %% of vertices.");*/
+
+			static int maxSegments = 100;
+			ImGui::Text("Max Segments :");
+			ImGui::SetNextItemWidth(80);
+			ImGui::DragInt("##MaxSegments", &maxSegments, 0.01f, 0.001f, 99.0f);
+			ImGui::SameLine();
+			//ImGui::Text(" %% of vertices.");
+
+			if (ImGui::Button("Apply"))
 			{
+				simplifiedMesh = CGALWrapper.SurfaceMeshApproximation(loadedMesh, maxSegments);
+			}
 
-			}*/
+			if (loadedMesh->minRugorsity != DBL_MAX)
+				ImGui::Text(("minRugorsity: " + std::to_string(loadedMesh->minRugorsity)).c_str());
+
+			if (loadedMesh->maxRugorsity != -DBL_MAX)
+				ImGui::Text(("maxRugorsity: " + std::to_string(loadedMesh->maxRugorsity)).c_str());
+
+			if (loadedMesh->colorCount == unsigned int(-1))
+				ImGui::BeginDisabled();
+
+			bool showRugosity = loadedMesh->colorMode == 1;
+			if (ImGui::Checkbox("Show Rugosity", &showRugosity))
+			{
+				if (showRugosity)
+				{
+					loadedMesh->colorMode = 1;
+				}
+				else
+				{
+					loadedMesh->colorMode = 0;
+				}
+			}
+
+			if (loadedMesh->colorCount == unsigned int(-1))
+				ImGui::EndDisabled();
+
+			if (loadedMesh->segmentsColorsCount == unsigned int(-1))
+				ImGui::BeginDisabled();
+				
+			bool showSegments = loadedMesh->colorMode == 2;
+			if (ImGui::Checkbox("Show Segments", &showSegments))
+			{
+				if (showSegments)
+				{
+					loadedMesh->colorMode = 2;
+				}
+				else
+				{
+					loadedMesh->colorMode = 0;
+				}
+			}
+
+			if (loadedMesh->segmentsColorsCount == unsigned int(-1))
+				ImGui::EndDisabled();
 		}
 		
-		
-		//ImGui::ShowDemoWindow();
-
 		APPLICATION.endFrame();
 	}
 
 	return 0;
+}
+
+void testFunction()
+{
+	FEMesh* testMesh = CGALWrapper.importOBJ("C:/Users/kandr/Downloads/simplified_pickle_30.obj", true);
+
+	// Extracting data from FEMesh.
+	std::vector<float> FEVertices;
+	FEVertices.resize(testMesh->getPositionsCount());
+	FE_GL_ERROR(glGetNamedBufferSubData(testMesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
+
+	std::vector<int> FEIndices;
+	FEIndices.resize(testMesh->getIndicesCount());
+	FE_GL_ERROR(glGetNamedBufferSubData(testMesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
+
+
+	std::vector<float> distances;
+	std::vector<glm::vec3> triangleCeintroids;
+	for (size_t i = 0; i < FEIndices.size(); i+=3)
+	{
+		int vertexPosition = FEIndices[i] * 3;
+		glm::vec3 firstVertex = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+
+		vertexPosition = FEIndices[i + 1] * 3;
+		glm::vec3 secondVertex = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+
+		vertexPosition = FEIndices[i + 2] * 3;
+		glm::vec3 thirdVertex = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+		glm::vec3 currentCentroid = (firstVertex + secondVertex + thirdVertex) / 3.0f;
+		triangleCeintroids.push_back(currentCentroid);
+
+
+		distances.push_back(glm::distance(currentCentroid, glm::vec3(0.0)));
+	}
+
+	int y = 0;
+	y++;
+
+
+
 }

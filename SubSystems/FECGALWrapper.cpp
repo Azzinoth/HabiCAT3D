@@ -237,8 +237,11 @@ FEMesh* FECGALWrapper::SurfaceMeshSimplification(FEMesh* originalMesh, double ve
 	return surfaceMeshToFEMesh(surface_mesh);
 }
 
-FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double verticesLeftInPersent)
+FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, int segmentsMax)
 {
+	if (segmentsMax <= 0)
+		return nullptr;
+
 	Surface_mesh mesh = FEMeshToSurfaceMesh(originalMesh);
 
 	// output face proxy index property map
@@ -259,10 +262,11 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double ver
 	std::vector<std::array<std::size_t, 3> > triangles;
 	// free function interface with named parameters
 	VSA::approximate_triangle_mesh(mesh,
+		//CGAL::parameters::seeding_method(VSA::HIERARCHICAL).
 		CGAL::parameters::verbose_level(VSA::MAIN_STEPS).
-		max_number_of_proxies(30).
+		//CGAL::parameters::min_error_drop(0.95).
+		max_number_of_proxies(segmentsMax).
 		face_proxy_map(fpxmap).proxies(std::back_inserter(proxies)).	//face_partition_id_map(_map).
-
 		anchors(std::back_inserter(anchors)). // anchor points
 		triangles(std::back_inserter(triangles))); // indexed triangles
 
@@ -277,13 +281,6 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double ver
 		originalMeshToSegments.push_back(iterator._Ptr[0]);
 		iterator++;
 	}
-
-	//int max = -99;
-	//for (size_t i = 0; i < originalMeshToSegments.size(); i++)
-	//{
-	//	if (max < originalMeshToSegments[i])
-	//		max = originalMeshToSegments[i];
-	//}
 
 	std::vector<glm::vec3> anchorsVector;
 	for (size_t i = 0; i < anchors.size(); i++)
@@ -301,50 +298,49 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double ver
 	if (CGAL::is_closed(output) && (!PMP::is_outward_oriented(output)))
 		PMP::reverse_face_orientations(output);
 
-
-	//boost::writable_property_map_archetype
-	//Writable Property Map
-
-	//boost::property_map<boost::graph_traits<Surface_mesh>::face_descriptor, Kernel::Vector_3> face_normals;
-
-
 	Surface_mesh::Property_map<face_descriptor, Kernel::Vector_3 > face_normals =
 		output.add_property_map<face_descriptor, Kernel::Vector_3 >("f:normal").first;
 
-
 	CGAL::Polygon_mesh_processing::compute_face_normals(output, face_normals);
 
-	std::vector<int> normalsToProxies;
-	std::vector<glm::vec3> normals;
-	float maxMinDistance = -FLT_MAX;
-	float averageMinDistance = 0.0f;
+	std::vector<float> calculatedNormals;
 	for (size_t i = 0; i < triangles.size(); i++)
 	{
-		normals.push_back(glm::vec3(face_normals.data()[i].x(), face_normals.data()[i].y(), face_normals.data()[i].z()));
-
-		float minDistance = FLT_MAX;
-		int index = -1;
-		// Looking for closest proxy
-		for (size_t j = 0; j < proxiesVector.size(); j++)
-		{
-			float currentDistance = glm::distance(normals[i], proxiesVector[j]);
-			if (currentDistance < minDistance)
-			{
-				minDistance = currentDistance;
-				index = j;
-			}
-		}
-
-		if (maxMinDistance < minDistance)
-			maxMinDistance = minDistance;
-
-		averageMinDistance += minDistance;
-
-		normalsToProxies.push_back(index);
+		calculatedNormals.push_back(face_normals.data()[i].x());
+		calculatedNormals.push_back(face_normals.data()[i].y());
+		calculatedNormals.push_back(face_normals.data()[i].z());
 	}
 
+	//std::vector<int> normalsToProxies;
+	//std::vector<glm::vec3> normals;
+	//float maxMinDistance = -FLT_MAX;
+	//float averageMinDistance = 0.0f;
+	//for (size_t i = 0; i < triangles.size(); i++)
+	//{
+	//	normals.push_back(glm::vec3(face_normals.data()[i].x(), face_normals.data()[i].y(), face_normals.data()[i].z()));
 
-	averageMinDistance /= triangles.size();
+	//	float minDistance = FLT_MAX;
+	//	int index = -1;
+	//	// Looking for closest proxy
+	//	for (size_t j = 0; j < proxiesVector.size(); j++)
+	//	{
+	//		float currentDistance = glm::distance(normals[i], proxiesVector[j]);
+	//		if (currentDistance < minDistance)
+	//		{
+	//			minDistance = currentDistance;
+	//			index = j;
+	//		}
+	//	}
+
+	//	if (maxMinDistance < minDistance)
+	//		maxMinDistance = minDistance;
+
+	//	averageMinDistance += minDistance;
+
+	//	normalsToProxies.push_back(index);
+	//}
+
+	//averageMinDistance /= triangles.size();
 
 	saveSurfaceMeshToOBJFile("C:/Users/Kindr/Downloads/simplified.obj", output);
 
@@ -371,16 +367,12 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double ver
 	int* indices = new int[indexSize];
 	FE_GL_ERROR(glGetNamedBufferSubData(originalMesh->getIndicesBufferID(), 0, sizeof(int) * indexSize, indices));
 
-
-
-	// 165 positions. 55 vertex with 3 x,y,z
 	std::vector<float> positionsVector;
 	for (size_t i = 0; i < posSize; i++)
 	{
 		positionsVector.push_back(positions[i]);
 	}
 
-	// 318 indexes. 106 facets with 3 vertex index per facet(triangle).
 	std::vector<int> indexVector;
 	for (size_t i = 0; i < indexSize; i++)
 	{
@@ -390,7 +382,6 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double ver
 	int colorSize = posSize;
 	float* colors = new float[posSize];
 	int vertexIndex = 0;
-
 
 	std::string outputString = "";
 	for (size_t i = 0; i < originalMeshToSegments.size(); i++)
@@ -474,8 +465,15 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double ver
 		setColorOfFace(i, segIDColors[originalMeshToSegments[i]]);
 	}
 
-	// COLORS
+	int segmentsColorsSize = posSize;
+	float* segmentsColors = new float[posSize];
 
+	for (size_t i = 0; i < posSize; i++)
+	{
+		segmentsColors[i] = colors[i];
+	}
+
+	// COLORS
 	std::unordered_map<int, double> originalTrianglesRugosity;
 	std::unordered_map<int, double> sectorRugositySum;
 	std::unordered_map<int, int> sectorsCount;
@@ -501,15 +499,6 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double ver
 		sectorsCount[originalMeshToSegments[i]]++;
 
 		originalTrianglesRugosity[i] += rugosity;
-
-		/*if (rugosity < 2)
-		{
-			setColorOfFace(i, glm::vec3(0.0, 1.0, 0.0));
-		}
-		else
-		{
-			setColorOfFace(i, glm::vec3(1.0, 0.0, 0.0));
-		}*/
 	}
 
 	double minRugorsity = DBL_MAX;
@@ -538,25 +527,26 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double ver
 
 	for (size_t i = 0; i < originalMeshToSegments.size(); i++)
 	{
-		double normalizedRugorsity = (sectorsRugorsity[originalMeshToSegments[i]] - minRugorsity) / (maxRugorsity - minRugorsity);
+		//double normalizedRugorsity = (sectorsRugorsity[originalMeshToSegments[i]] - minRugorsity) / (maxRugorsity - minRugorsity);
+		double normalizedRugorsity = sectorsRugorsity[originalMeshToSegments[i]];
 
-		if (normalizedRugorsity <= 0.2 && normalizedRugorsity > 0.0)
+		if (normalizedRugorsity <= 1.2 && normalizedRugorsity > 1.0)
 		{
 			setColorOfFace(i, darkBlue);
 		}
-		else if (normalizedRugorsity <= 0.4 && normalizedRugorsity > 0.2)
+		else if (normalizedRugorsity <= 2.5 && normalizedRugorsity > 1.2)
 		{
 			setColorOfFace(i, lightCyan);
 		}
-		else if (normalizedRugorsity <= 0.6 && normalizedRugorsity > 0.4)
+		else if (normalizedRugorsity <= 3.5 && normalizedRugorsity > 2.5)
 		{
 			setColorOfFace(i, green);
 		}
-		else if (normalizedRugorsity <= 0.8 && normalizedRugorsity > 0.6)
+		else if (normalizedRugorsity <= 4.5 && normalizedRugorsity > 3.5)
 		{
 			setColorOfFace(i, yellow);
 		}
-		else if (normalizedRugorsity <= 1.0 && normalizedRugorsity > 0.8)
+		else if (normalizedRugorsity <= 10.0 && normalizedRugorsity > 4.5)
 		{
 			setColorOfFace(i, red);
 		}
@@ -564,17 +554,46 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, double ver
 
 	// COLORS END
 
-	FEMesh* originalMeshWithSegments = rawDataToMesh(positions, posSize,
-										colors, colorSize,
-										UV, UVSize,
-										normalsFloat, normSize,
-										tangents, tanSize,
-										indices, indexSize,
-										nullptr, 0, 0,
-										"");
+	originalMesh->addColorToVertices(colors, colorSize);
+	originalMesh->addSegmentsColorToVertices(segmentsColors, segmentsColorsSize);
 
-	originalMeshWithSegments->minRugorsity = minRugorsity;
-	originalMeshWithSegments->maxRugorsity = maxRugorsity;
+	originalMesh->minRugorsity = minRugorsity;
+	originalMesh->maxRugorsity = maxRugorsity;
 
-	return originalMeshWithSegments;
+	return surfaceMeshToFEMesh(output, calculatedNormals.data(), calculatedNormals.size());
+}
+
+FEMesh* FECGALWrapper::surfaceMeshToFEMesh(Surface_mesh mesh, float* normals, int normSize)
+{
+	FEMesh* result = nullptr;
+
+	// Extracting data from Surface_mesh.
+	std::vector<Point_3> extractedPoints;
+	std::vector<Polygon_3> extractedFaces;
+	PMP::polygon_mesh_to_polygon_soup(mesh, extractedPoints, extractedFaces);
+	PMP::repair_polygon_soup(extractedPoints, extractedFaces);
+
+	// Formating data to FE format.
+	std::vector<int> FEIndices;
+	for (size_t i = 0; i < extractedFaces.size(); i++)
+	{
+		FEIndices.push_back(int(extractedFaces[i][0]));
+		FEIndices.push_back(int(extractedFaces[i][1]));
+		FEIndices.push_back(int(extractedFaces[i][2]));
+	}
+
+	std::vector<float> FEVertices;
+	for (size_t i = 0; i < extractedPoints.size(); i++)
+	{
+		FEVertices.push_back(float(extractedPoints[i][0]));
+		FEVertices.push_back(float(extractedPoints[i][1]));
+		FEVertices.push_back(float(extractedPoints[i][2]));
+	}
+
+	result = rawDataToMesh(FEVertices.data(), int(FEVertices.size()),
+		nullptr, 0, nullptr, 0, normals, normSize, nullptr, 0,
+		FEIndices.data(), int(FEIndices.size()),
+		nullptr, 0, 0, "");
+
+	return result;
 }

@@ -780,6 +780,12 @@ std::string FEShader::parseShaderForMacro(const char* shaderText)
 		parsedShaderText.replace(index, strlen(FE_VERTEX_ATTRIBUTE_INSTANCEDATA), "layout (location = 6) in mat4 FEInstanceData;");
 		vertexAttributes |= FE_INSTANCEDATA;
 	}
+	index = parsedShaderText.find(FE_VERTEX_ATTRIBUTE_SEGMENTS_COLORS);
+	if (index != std::string::npos)
+	{
+		parsedShaderText.replace(index, strlen(FE_VERTEX_ATTRIBUTE_SEGMENTS_COLORS), "layout (location = 7) in vec3 FESegmentsColors;");
+		vertexAttributes |= FE_SEGMENTS_COLORS;
+	}
 
 	index = parsedShaderText.find(FE_WORLD_MATRIX_MACRO);
 	if (index != std::string::npos)

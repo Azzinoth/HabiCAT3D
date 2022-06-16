@@ -54,10 +54,11 @@ namespace FocalEngine
 		FEMesh* importOBJ(const char* fileName, bool forceOneMesh);
 
 		FEMesh* surfaceMeshToFEMesh(Surface_mesh mesh);
+		FEMesh* surfaceMeshToFEMesh(Surface_mesh mesh, float* normals, int normSize);
 		Surface_mesh FEMeshToSurfaceMesh(FEMesh* mesh);
 		void saveSurfaceMeshToOBJFile(std::string fileName, Surface_mesh mesh);
 		FEMesh* SurfaceMeshSimplification(FEMesh* originalMesh, double verticesLeftInPersent);
-		FEMesh* SurfaceMeshApproximation(FEMesh* originalMesh, double verticesLeftInPersent);
+		FEMesh* SurfaceMeshApproximation(FEMesh* originalMesh, int segmentsMax);
 	private:
 		SINGLETON_PRIVATE_PART(FECGALWrapper)
 

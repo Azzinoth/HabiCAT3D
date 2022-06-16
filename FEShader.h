@@ -9,6 +9,7 @@
 #define FE_VERTEX_ATTRIBUTE_UV "@In_UV@"
 #define FE_VERTEX_ATTRIBUTE_MATINDEX "@In_Material_Index@"
 #define FE_VERTEX_ATTRIBUTE_INSTANCEDATA "@In_Instance_Data@"
+#define FE_VERTEX_ATTRIBUTE_SEGMENTS_COLORS "@In_Segments_colors@"
 
 #define FE_WORLD_MATRIX_MACRO "@WorldMatrix@"
 #define FE_VIEW_MATRIX_MACRO "@ViewMatrix@"
