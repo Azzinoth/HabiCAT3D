@@ -474,21 +474,245 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	return 0;
 }
 
-void testFunction()
+struct SDFNode
 {
-	FEMesh* testMesh = CGALWrapper.importOBJ("C:/Users/kandr/Downloads/simplified_pickle_30.obj", true);
+	float value = 0.0f;
+	FEAABB AABB;
+};
 
-	// Extracting data from FEMesh.
+struct SDF
+{
+	std::vector< std::vector< std::vector<SDFNode*>>> data;
+};
+
+struct centroidData
+{
+	glm::vec3 centroid;
+	glm::vec3 normal;
+};
+
+std::vector<centroidData> getTrianglesCentroids(FEMesh* mesh)
+{
+	std::vector<centroidData> result;
+
+	if (mesh == nullptr)
+		return result;
+
 	std::vector<float> FEVertices;
-	FEVertices.resize(testMesh->getPositionsCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(testMesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
+	FEVertices.resize(mesh->getPositionsCount());
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
+
+	/*std::vector<float> FENormals;
+	FENormals.resize(mesh->getPositionsCount());
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));*/
 
 	std::vector<int> FEIndices;
-	FEIndices.resize(testMesh->getIndicesCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(testMesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
+	FEIndices.resize(mesh->getIndicesCount());
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
+
+	for (size_t i = 0; i < FEIndices.size(); i += 3)
+	{
+		int vertexPosition = FEIndices[i] * 3;
+		glm::vec3 firstVertex = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+
+		vertexPosition = FEIndices[i + 1] * 3;
+		glm::vec3 secondVertex = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+
+		vertexPosition = FEIndices[i + 2] * 3;
+		glm::vec3 thirdVertex = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+
+		glm::vec3 currentCentroid = (firstVertex + secondVertex + thirdVertex) / 3.0f;
+
+		centroidData data;
+		data.centroid = currentCentroid;
+		data.normal = currentCentroid;
+		result.push_back(data);
+	}
+
+	return result;
+}
+
+SDF* createSDF(FEMesh* mesh, int dimentions)
+{
+	if (dimentions < 1 || dimentions > 4096)
+		return nullptr;
+
+	float test = log2(dimentions);
+
+	int testInt = test;
+	if (test == testInt)
+	{
+		int y = 0;
+		y++;
+	}
+	else
+	{
+		int y = 0;
+		y++;
+	}
+
+	glm::vec3 center = mesh->AABB.getCenter();
+	FEAABB SDFAABB = FEAABB(center - glm::vec3(mesh->AABB.getSize() / 2.0f), center + glm::vec3(mesh->AABB.getSize() / 2.0f));
+
+	SDF* result = new SDF;
+	result->data.resize(dimentions);
+	for (size_t i = 0; i < dimentions; i++)
+	{
+		result->data[i].resize(dimentions);
+		for (size_t j = 0; j < dimentions; j++)
+		{
+			result->data[i][j].resize(dimentions);
+		}
+	}
+
+	glm::vec3 start = SDFAABB.getMin();
+	glm::vec3 currentAABBMin;
+	float cellSize = SDFAABB.getSize() / dimentions;
+
+	std::vector<centroidData> centroids = getTrianglesCentroids(mesh);
+
+	for (size_t i = 0; i < dimentions; i++)
+	{
+		for (size_t j = 0; j < dimentions; j++)
+		{
+			for (size_t k = 0; k < dimentions; k++)
+			{
+				currentAABBMin = start + glm::vec3(cellSize * i, cellSize * j, cellSize * k);
+
+				result->data[i][j][k] = new SDFNode();
+				result->data[i][j][k]->AABB = FEAABB(currentAABBMin, currentAABBMin + glm::vec3(cellSize));
+
+				float minDistance = FLT_MAX;
+				glm::vec3 cellCenter = result->data[i][j][k]->AABB.getCenter();
+				for (size_t p = 0; p < centroids.size(); p++)
+				{
+						float currentDistance = glm::distance(centroids[p].centroid, cellCenter);
+						if (currentDistance < minDistance)
+							minDistance = currentDistance;
+					
+				}
+
+				result->data[i][j][k]->value = minDistance;
+			}
+		}
+	}
 
 
-	std::vector<float> distances;
+
+
+
+	return result;
+}
+
+void testFunction()
+{
+	/*float index = 0.0f;
+	int dimentions = 3;
+	float*** SDF = new float**[dimentions];
+	for (size_t i = 0; i < dimentions; i++)
+	{
+		SDF[i] = new float* [dimentions];
+		for (size_t j = 0; j < dimentions; j++)
+		{
+			SDF[i][j] = new float[dimentions];
+
+			for (size_t k = 0; k < dimentions; k++)
+			{
+				SDF[i][j][k] = index++;
+			}
+		}
+	}
+
+	float test = SDF[2][2][2];*/
+
+	FEMesh* testMesh = CGALWrapper.importOBJ("C:/Users/Kindr/Downloads/simplified.obj", true);
+
+	//FEAABB testAABB = FEAABB(glm::vec3(0.0f), glm::vec3(1.0f));
+
+	SDF* testSDF = createSDF(testMesh, 256);
+
+	
+
+	int y = 0;
+	y++;
+
+
+
+
+
+
+
+
+
+	//glm::vec3 sizeVector = abs(testMesh->AABB.getMax() - testMesh->AABB.getMin());
+	//glm::vec3 center = testMesh->AABB.getMin() + sizeVector / 2.0f;
+
+	//// this is 1 x 1 x 1 3D texture.
+	//FEAABB newBox = FEAABB(center, testMesh->AABB.getSize());
+
+	//// this is 2 x 2 x 2 3D texture.
+	////FEAABB newBox = FEAABB(center, testMesh->AABB.getSize());
+
+	//FEAABB** childs = new FEAABB*[8];
+
+	//float size = newBox.getSize();
+
+	//// upper top left
+	//childs[0] = new FEAABB(center + glm::vec3(-size / 4.0f, size / 4.0f, -size / 4.0f), size / 2.0f);
+
+	//float minDistance_0 = FLT_MAX;
+	//for (size_t i = 0; i < triangleCeintroids.size(); i++)
+	//{
+	//	glm::vec3 sizeVector = abs(childs[0]->getMax() - childs[0]->getMin());
+	//	glm::vec3 currentCenter = childs[0]->getMin() + sizeVector / 2.0f;
+	//	float currentDistance = glm::distance(triangleCeintroids[i], currentCenter);
+	//	if (currentDistance < minDistance_0)
+	//		minDistance_0 = currentDistance;
+	//}
+
+
+	//// upper top right
+	//childs[1] = new FEAABB(center + glm::vec3(size / 4.0f, size / 4.0f, -size / 4.0f), size / 2.0f);
+
+
+	//float minDistance_1 = FLT_MAX;
+	//for (size_t i = 0; i < triangleCeintroids.size(); i++)
+	//{
+	//	glm::vec3 sizeVector = abs(childs[1]->getMax() - childs[1]->getMin());
+	//	glm::vec3 currentCenter = childs[1]->getMin() + sizeVector / 2.0f;
+	//	float currentDistance = glm::distance(triangleCeintroids[i], currentCenter);
+	//	if (currentDistance < minDistance_1)
+	//		minDistance_1 = currentDistance;
+	//}
+
+
+	//// upper bottom left
+	//childs[2] = new FEAABB(center + glm::vec3(-size / 4.0f, size / 4.0f, size / 4.0f), size / 2.0f);
+	//// upper bottom right
+	//childs[3] = new FEAABB(center + glm::vec3(size / 4.0f, size / 4.0f, size / 4.0f), size / 2.0f);
+
+	//// down top left
+	//childs[4] = new FEAABB(center + glm::vec3(-size / 4.0f, -size / 4.0f, -size / 4.0f), size / 2.0f);
+	//// down top right
+	//childs[5] = new FEAABB(center + glm::vec3(size / 4.0f, -size / 4.0f, -size / 4.0f), size / 2.0f);
+	//// down bottom left
+	//childs[6] = new FEAABB(center + glm::vec3(-size / 4.0f, -size / 4.0f, size / 4.0f), size / 2.0f);
+	//// down bottom right
+	//childs[7] = new FEAABB(center + glm::vec3(size / 4.0f, -size / 4.0f, size / 4.0f), size / 2.0f);
+
+
+
+
+
+
+
+
+
+
+	
+
+
+	/*std::vector<float> distances;
 	std::vector<glm::vec3> triangleCeintroids;
 	for (size_t i = 0; i < FEIndices.size(); i+=3)
 	{
@@ -505,11 +729,7 @@ void testFunction()
 
 
 		distances.push_back(glm::distance(currentCentroid, glm::vec3(0.0)));
-	}
-
-	int y = 0;
-	y++;
-
+	}*/
 
 
 }

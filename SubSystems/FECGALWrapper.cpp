@@ -105,6 +105,8 @@ FEMesh* FECGALWrapper::rawDataToMesh(float* positions, int posSize,
 	newMesh->UVCount = UVSize;
 	newMesh->UVBufferID = UVBufferID;
 
+	newMesh->AABB = FEAABB(positions, posSize);
+
 	return newMesh;
 }
 

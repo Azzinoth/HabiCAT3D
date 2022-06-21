@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FEShader.h"
+#include "SubSystems/FEGeometricTools.h"
 
 namespace FocalEngine
 {
@@ -56,6 +57,7 @@ namespace FocalEngine
 		unsigned int vertexCount;
 
 		int vertexAttributes = 1;
+		FEAABB AABB;
 
 		// NEW
 		double minRugorsity = DBL_MAX;

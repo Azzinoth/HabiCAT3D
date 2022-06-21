@@ -39,6 +39,8 @@ file(GLOB SubSystems_SRC
 	"SubSystems/FETransformComponent.h"
 	"SubSystems/FECGALWrapper.cpp"
 	"SubSystems/FECGALWrapper.h"
+	"SubSystems/FEGeometricTools.cpp"
+	"SubSystems/FEGeometricTools.h"
 )
 
 file(GLOB BasicApplicationSubSystem_SRC
