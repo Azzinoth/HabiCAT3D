@@ -251,7 +251,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	//Surface_mesh surface_mesh;
 
-	//std::ifstream objFile("C:/Users/kandr/Downloads/sphere.obj");
+	//std::ifstream objFile("C:/Users/kandr/Downloads/OBJ_Models/sphere.obj");
 	//std::vector<Point_3> points;
 	//std::vector<Polygon_3> faces;
 
@@ -279,7 +279,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	
 
-	//saveSurfaceMeshToOBJFile("C:/Users/kandr/Downloads/sphereR_.obj", sm);
+	//saveSurfaceMeshToOBJFile("C:/Users/kandr/Downloads/OBJ_Models/sphereR_.obj", sm);
 
 	
 
@@ -606,6 +606,36 @@ SDF* createSDF(FEMesh* mesh, int dimentions)
 
 void testFunction()
 {
+	FEMesh* cube = CGALWrapper.importOBJ("C:/Users/kandr/Downloads/OBJ_Models/cube.obj", true);
+	Surface_mesh surface_mesh;
+
+	surface_mesh = CGALWrapper.FEMeshToSurfaceMesh(cube);
+
+	std::vector<Point_3> extractedPoints;
+	std::vector<Polygon_3> extractedFaces;
+	PMP::polygon_mesh_to_polygon_soup(surface_mesh, extractedPoints, extractedFaces);
+	PMP::repair_polygon_soup(extractedPoints, extractedFaces);
+
+
+	Surface_mesh::Property_map<face_descriptor, Kernel::Vector_3 > face_normals =
+		surface_mesh.add_property_map<face_descriptor, Kernel::Vector_3 >("f:normal").first;
+
+
+	CGAL::Polygon_mesh_processing::compute_face_normals(surface_mesh, face_normals);
+
+	std::string normalsList;
+	for (size_t i = 0; i < extractedFaces.size(); i++)
+	{
+		normalsList += "vn " + std::to_string(face_normals.data()[i].x());
+		normalsList += " " + std::to_string(face_normals.data()[i].y());
+		normalsList += " " + std::to_string(face_normals.data()[i].z());
+		normalsList += "\n";
+	}
+
+
+	int y = 0;
+	y++;
+
 	/*float index = 0.0f;
 	int dimentions = 3;
 	float*** SDF = new float**[dimentions];
@@ -625,13 +655,12 @@ void testFunction()
 
 	float test = SDF[2][2][2];*/
 
-	//FEMesh* testMesh = CGALWrapper.importOBJ("C:/Users/Kindr/Downloads/simplified.obj", true);
+	//FEMesh* testMesh = CGALWrapper.importOBJ("C:/Users/Kindr/Downloads/OBJ_Models/simplified.obj", true);
 	//SDF* testSDF = createSDF(testMesh, 256);
 
 	
 
-	int y = 0;
-	y++;
+	
 
 
 

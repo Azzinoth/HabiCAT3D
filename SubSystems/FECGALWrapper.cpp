@@ -234,7 +234,7 @@ FEMesh* FECGALWrapper::SurfaceMeshSimplification(FEMesh* originalMesh, double ve
 
 	int r = SMS::edge_collapse(surface_mesh, stop);
 
-	//saveSurfaceMeshToOBJFile("C:/Users/kandr/Downloads/simplified.obj", surface_mesh);
+	//saveSurfaceMeshToOBJFile("C:/Users/kandr/Downloads/OBJ_Models/simplified.obj", surface_mesh);
 
 	return surfaceMeshToFEMesh(surface_mesh);
 }
@@ -356,21 +356,33 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, int segmen
 
 	glm::vec3 normal = glm::normalize(glm::cross(edge_0, edge_1));
 
+
+
+	std::string normalsList;
+
+	for (size_t i = 0; i < polygons.size(); i++)
+	{
+		normalsList += "vn " + std::to_string(face_normals.data()[i].x());
+		normalsList += " " + std::to_string(face_normals.data()[i].y());
+		normalsList += " " + std::to_string(face_normals.data()[i].z());
+		normalsList += "\n";
+	}
+
 	std::vector<float> calculatedNormals;
 	calculatedNormals.resize(anchors.size() * 3);
 	for (size_t i = 0; i < polygons.size(); i++)
 	{
-		int vertexIndex = polygons[i][0] * 3;
+		int vertexIndex = i/*polygons[i][0]*/ * 3;
 		calculatedNormals[vertexIndex + 0] = face_normals.data()[i].x();
 		calculatedNormals[vertexIndex + 1] = face_normals.data()[i].y();
 		calculatedNormals[vertexIndex + 2] = face_normals.data()[i].z();
 
-		vertexIndex = polygons[i][1] * 3;
+		//vertexIndex = polygons[i][1] * 3;
 		calculatedNormals[vertexIndex + 0] = face_normals.data()[i].x();
 		calculatedNormals[vertexIndex + 1] = face_normals.data()[i].y();
 		calculatedNormals[vertexIndex + 2] = face_normals.data()[i].z();
 
-		vertexIndex = polygons[i][2] * 3;
+		//vertexIndex = polygons[i][2] * 3;
 		calculatedNormals[vertexIndex + 0] = face_normals.data()[i].x();
 		calculatedNormals[vertexIndex + 1] = face_normals.data()[i].y();
 		calculatedNormals[vertexIndex + 2] = face_normals.data()[i].z();
@@ -378,7 +390,7 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, int segmen
 
 
 
-	saveSurfaceMeshToOBJFile("C:/Users/Kindr/Downloads/simplified.obj", output);
+	saveSurfaceMeshToOBJFile("C:/Users/Kindr/Downloads/OBJ_Models/simplified.obj", output);
 
 	//return surfaceMeshToFEMesh(output);
 
