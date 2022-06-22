@@ -274,7 +274,6 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, int segmen
 
 	// convert from soup to surface mesh
 	PMP::orient_polygon_soup(anchors, triangles);
-	Surface_mesh output;
 
 	std::vector<int> originalMeshToSegments;
 	auto iterator = fpxmap.begin();
@@ -283,6 +282,22 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, int segmen
 		originalMeshToSegments.push_back(iterator._Ptr[0]);
 		iterator++;
 	}
+
+	
+
+	Surface_mesh output;
+
+	std::vector<Polygon_3> polygons;
+	polygons.resize(triangles.size());
+	for (size_t i = 0; i < triangles.size(); i++)
+	{	
+		polygons[i].push_back(triangles[i][0]);
+		polygons[i].push_back(triangles[i][1]);
+		polygons[i].push_back(triangles[i][2]);
+	}
+	PMP::repair_polygon_soup(anchors, polygons);
+	PMP::orient_polygon_soup(anchors, polygons);
+
 
 	std::vector<glm::vec3> anchorsVector;
 	for (size_t i = 0; i < anchors.size(); i++)
@@ -296,53 +311,72 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, int segmen
 		proxiesVector.push_back(glm::vec3(proxies[i].x(), proxies[i].y(), proxies[i].z()));
 	}
 
-	PMP::polygon_soup_to_polygon_mesh(anchors, triangles, output);
+	//PMP::polygon_soup_to_polygon_mesh(anchors, triangles, output);
+	PMP::polygon_soup_to_polygon_mesh(anchors, polygons, output);
 	if (CGAL::is_closed(output) && (!PMP::is_outward_oriented(output)))
 		PMP::reverse_face_orientations(output);
+
+
+	
+
+	/*Surface_mesh tempMesh;
+	PMP::polygon_soup_to_polygon_mesh(anchors, triangles, tempMesh);
+	if (CGAL::is_closed(tempMesh) && (!PMP::is_outward_oriented(tempMesh)))
+		PMP::reverse_face_orientations(tempMesh);
+
+	
+	std::vector<Point_3> extractedPoints;
+	std::vector<Polygon_3> extractedFaces;
+	PMP::polygon_mesh_to_polygon_soup(tempMesh, extractedPoints, extractedFaces);
+	PMP::repair_polygon_soup(extractedPoints, extractedFaces);
+	PMP::orient_polygon_soup(extractedPoints, extractedFaces);
+
+	bool t = PMP::is_polygon_soup_a_polygon_mesh(extractedFaces);
+
+	Surface_mesh output;
+	PMP::polygon_soup_to_polygon_mesh(extractedPoints, extractedFaces, output);*/
+
 
 	Surface_mesh::Property_map<face_descriptor, Kernel::Vector_3 > face_normals =
 		output.add_property_map<face_descriptor, Kernel::Vector_3 >("f:normal").first;
 
+
 	CGAL::Polygon_mesh_processing::compute_face_normals(output, face_normals);
 
+	//std::vector<Point_3> extractedPoints;
+	//std::vector<Polygon_3> extractedFaces;
+	//PMP::polygon_mesh_to_polygon_soup(output, extractedPoints, extractedFaces);
+
+	glm::vec3 point_3 = glm::vec3(anchors[3][0], anchors[3][1], anchors[3][2]);
+	glm::vec3 point_2 = glm::vec3(anchors[2][0], anchors[2][1], anchors[2][2]);
+	glm::vec3 point_1 = glm::vec3(anchors[1][0], anchors[1][1], anchors[1][2]);
+
+	glm::vec3 edge_0 = point_3 - point_2;
+	glm::vec3 edge_1 = point_3 - point_1;
+
+	glm::vec3 normal = glm::normalize(glm::cross(edge_0, edge_1));
+
 	std::vector<float> calculatedNormals;
-	for (size_t i = 0; i < triangles.size(); i++)
+	calculatedNormals.resize(anchors.size() * 3);
+	for (size_t i = 0; i < polygons.size(); i++)
 	{
-		calculatedNormals.push_back(face_normals.data()[i].x());
-		calculatedNormals.push_back(face_normals.data()[i].y());
-		calculatedNormals.push_back(face_normals.data()[i].z());
+		int vertexIndex = polygons[i][0] * 3;
+		calculatedNormals[vertexIndex + 0] = face_normals.data()[i].x();
+		calculatedNormals[vertexIndex + 1] = face_normals.data()[i].y();
+		calculatedNormals[vertexIndex + 2] = face_normals.data()[i].z();
+
+		vertexIndex = polygons[i][1] * 3;
+		calculatedNormals[vertexIndex + 0] = face_normals.data()[i].x();
+		calculatedNormals[vertexIndex + 1] = face_normals.data()[i].y();
+		calculatedNormals[vertexIndex + 2] = face_normals.data()[i].z();
+
+		vertexIndex = polygons[i][2] * 3;
+		calculatedNormals[vertexIndex + 0] = face_normals.data()[i].x();
+		calculatedNormals[vertexIndex + 1] = face_normals.data()[i].y();
+		calculatedNormals[vertexIndex + 2] = face_normals.data()[i].z();
 	}
 
-	//std::vector<int> normalsToProxies;
-	//std::vector<glm::vec3> normals;
-	//float maxMinDistance = -FLT_MAX;
-	//float averageMinDistance = 0.0f;
-	//for (size_t i = 0; i < triangles.size(); i++)
-	//{
-	//	normals.push_back(glm::vec3(face_normals.data()[i].x(), face_normals.data()[i].y(), face_normals.data()[i].z()));
 
-	//	float minDistance = FLT_MAX;
-	//	int index = -1;
-	//	// Looking for closest proxy
-	//	for (size_t j = 0; j < proxiesVector.size(); j++)
-	//	{
-	//		float currentDistance = glm::distance(normals[i], proxiesVector[j]);
-	//		if (currentDistance < minDistance)
-	//		{
-	//			minDistance = currentDistance;
-	//			index = j;
-	//		}
-	//	}
-
-	//	if (maxMinDistance < minDistance)
-	//		maxMinDistance = minDistance;
-
-	//	averageMinDistance += minDistance;
-
-	//	normalsToProxies.push_back(index);
-	//}
-
-	//averageMinDistance /= triangles.size();
 
 	saveSurfaceMeshToOBJFile("C:/Users/Kindr/Downloads/simplified.obj", output);
 

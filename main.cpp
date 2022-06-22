@@ -625,11 +625,8 @@ void testFunction()
 
 	float test = SDF[2][2][2];*/
 
-	FEMesh* testMesh = CGALWrapper.importOBJ("C:/Users/Kindr/Downloads/simplified.obj", true);
-
-	//FEAABB testAABB = FEAABB(glm::vec3(0.0f), glm::vec3(1.0f));
-
-	SDF* testSDF = createSDF(testMesh, 256);
+	//FEMesh* testMesh = CGALWrapper.importOBJ("C:/Users/Kindr/Downloads/simplified.obj", true);
+	//SDF* testSDF = createSDF(testMesh, 256);
 
 	
 
