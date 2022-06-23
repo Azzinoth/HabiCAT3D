@@ -70,6 +70,9 @@ namespace FocalEngine
 							  int* indices, int indexSize,
 							  float* matIndexs, int matIndexsSize, int matCount,
 							  std::string Name);
+
+		void addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrianglesToSegments, std::vector<glm::vec3> segmentsNormals);
+		std::vector<float> calculateNormals(Surface_mesh mesh);
 	};
 
 	#define CGALWrapper FECGALWrapper::getInstance()
