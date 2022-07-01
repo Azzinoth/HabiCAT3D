@@ -41,6 +41,8 @@ file(GLOB SubSystems_SRC
 	"SubSystems/FECGALWrapper.h"
 	"SubSystems/FEGeometricTools.cpp"
 	"SubSystems/FEGeometricTools.h"
+	"SubSystems/FELinesRenderer.cpp"
+	"SubSystems/FELinesRenderer.h"
 )
 
 file(GLOB BasicApplicationSubSystem_SRC

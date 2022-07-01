@@ -370,6 +370,11 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 	std::unordered_map<int, double> originalTrianglesRugosity;
 	std::unordered_map<int, double> sectorRugositySum;
 	std::unordered_map<int, int> sectorsCount;
+	double totalArea = 0.0f;
+
+	double totalAreaTEST = 0.0f;
+	double totalAreaTEST1 = 0.0f;
+
 	for (size_t i = 0; i < originalTrianglesToSegments.size(); i++)
 	{
 		glm::vec3 segmentNormal = segmentsNormals[originalTrianglesToSegments[i]];
@@ -379,6 +384,7 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 		Point_3 b = Point_3(positionsVector[points[1] * 3], positionsVector[points[1] * 3 + 1], positionsVector[points[1] * 3 + 2]);
 		Point_3 c = Point_3(positionsVector[points[2] * 3], positionsVector[points[2] * 3 + 1], positionsVector[points[2] * 3 + 2]);
 		double originalArea = sqrt(CGAL::squared_area(a, b, c));
+		totalArea += originalArea;
 
 		Plane_3 segmentPlane = Plane_3(Point_3(0.0, 0.0, 0.0), Direction_3(segmentNormal.x, segmentNormal.y, segmentNormal.z));
 		Point_3 aProjection = segmentPlane.projection(a);
@@ -386,6 +392,37 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 		Point_3 cProjection = segmentPlane.projection(c);
 
 		double projectionArea = sqrt(CGAL::squared_area(aProjection, bProjection, cProjection));
+
+
+		double x1 = aProjection.x();
+		double x2 = bProjection.x();
+		double x3 = cProjection.x();
+
+		double y1 = aProjection.y();
+		double y2 = bProjection.y();
+		double y3 = cProjection.y();
+
+		double z1 = aProjection.z();
+		double z2 = bProjection.z();
+		double z3 = cProjection.z();
+
+		//double check = 0.5 * abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
+
+
+		double check = 0.5 * sqrt(pow(x2 * y1 - x3 * y1 - x1 * y2 + x3 * y2 + x1 * y3 - x2 * y3, 2.0) +
+			pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
+			pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
+
+		if (abs(projectionArea - check) > 0.01)
+		{
+			int y = 0;
+			y++;
+		}
+
+		totalAreaTEST += projectionArea;
+		totalAreaTEST1 += check;
+
+
 		double rugosity = originalArea / projectionArea;
 
 		sectorRugositySum[originalTrianglesToSegments[i]] += rugosity;
@@ -585,10 +622,50 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, int segmen
 		PMP::reverse_face_orientations(output);
 
 
+	std::vector<std::vector<glm::vec3>> trianglesNew;
+	std::vector<glm::vec3> normalsNew;
+	std::vector<int> newTrianglesToSegments;
+
+	for (size_t i = 0; i < polygons.size(); i++)
+	{
+		std::vector<glm::vec3> triangle;
+		triangle.push_back(anchorsVector[polygons[i][0]]);
+		triangle.push_back(anchorsVector[polygons[i][1]]);
+		triangle.push_back(anchorsVector[polygons[i][2]]);
+
+		trianglesNew.push_back(triangle);
+
+		glm::vec3 edge_0 = trianglesNew.back()[2] - trianglesNew.back()[1];
+		glm::vec3 edge_1 = trianglesNew.back()[2] - trianglesNew.back()[0];
+
+		glm::vec3 normal = glm::normalize(glm::cross(edge_0, edge_1));
+		normalsNew.push_back(normal);
+
+		double minError = 99999.0;
+		int minErrorIndex = -1;
+		for (size_t j = 0; j < proxies.size(); j++)
+		{
+			double currentError = glm::length(abs(proxiesVector[j] - normalsNew.back()));
+			if (currentError < minError)
+			{
+				minError = currentError;
+				minErrorIndex = j;
+			}
+		}
+
+		newTrianglesToSegments.push_back(minErrorIndex);
+	}
+
 	saveSurfaceMeshToOBJFile("C:/Users/Kindr/Downloads/OBJ_Models/simplified.obj", output);
 
 	addRugosityInfo(originalMesh, originalMeshToSegments, proxiesVector);
 	std::vector<float> calculatedNormals = calculateNormals(output);
+
+	std::vector<glm::vec3> normalsNewNEW;
+	for (size_t i = 0; i < calculatedNormals.size(); i+=3)
+	{
+		normalsNewNEW.push_back(glm::vec3(calculatedNormals[i], calculatedNormals[i + 1], calculatedNormals[i + 2]));
+	}
 
 	return surfaceMeshToFEMesh(output, calculatedNormals.data(), calculatedNormals.size());
 }

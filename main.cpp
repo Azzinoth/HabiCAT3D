@@ -6,6 +6,128 @@ FEFreeCamera* currentCamera = nullptr;
 bool wireframeMode = false;
 FEShader* meshShader = nullptr;
 
+double mouseX;
+double mouseY;
+
+glm::dvec3 mouseRay(double mouseX, double mouseY)
+{
+	int W, H;
+	APPLICATION.getWindowSize(&W, &H);
+
+	glm::dvec2 normalizedMouseCoords;
+	normalizedMouseCoords.x = (2.0f * mouseX) / W - 1;
+	normalizedMouseCoords.y = 1.0f - (2.0f * (mouseY)) / H;
+
+	glm::dvec4 clipCoords = glm::dvec4(normalizedMouseCoords.x, normalizedMouseCoords.y, -1.0, 1.0);
+	glm::dvec4 eyeCoords = glm::inverse(currentCamera->getProjectionMatrix()) * clipCoords;
+	eyeCoords.z = -1.0f;
+	eyeCoords.w = 0.0f;
+	glm::dvec3 worldRay = glm::inverse(currentCamera->getViewMatrix()) * eyeCoords;
+	worldRay = glm::normalize(worldRay);
+
+	return worldRay;
+}
+
+bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance)
+{
+	if (triangleVertices.size() != 3)
+		return false;
+
+	float a = RayDirection[0];
+	float b = triangleVertices[0][0] - triangleVertices[1][0];
+	float c = triangleVertices[0][0] - triangleVertices[2][0];
+
+	float d = RayDirection[1];
+	float e = triangleVertices[0][1] - triangleVertices[1][1];
+	float f = triangleVertices[0][1] - triangleVertices[2][1];
+
+	float g = RayDirection[2];
+	float h = triangleVertices[0][2] - triangleVertices[1][2];
+	float j = triangleVertices[0][2] - triangleVertices[2][2];
+
+	float k = triangleVertices[0][0] - RayOrigin[0];
+	float l = triangleVertices[0][1] - RayOrigin[1];
+	float m = triangleVertices[0][2] - RayOrigin[2];
+
+	glm::mat3 temp0 = glm::mat3(a, b, c,
+		d, e, f,
+		g, h, j);
+
+	float determinant0 = glm::determinant(temp0);
+
+	glm::mat3 temp1 = glm::mat3(k, b, c,
+		l, e, f,
+		m, h, j);
+
+	float determinant1 = glm::determinant(temp1);
+
+	float t = determinant1 / determinant0;
+
+
+	glm::mat3 temp2 = glm::mat3(a, k, c,
+		d, l, f,
+		g, m, j);
+
+	float determinant2 = glm::determinant(temp2);
+	float u = determinant2 / determinant0;
+
+	float determinant3 = glm::determinant(glm::mat3(a, b, k,
+		d, e, l,
+		g, h, m));
+
+	float v = determinant3 / determinant0;
+
+	if (t >= 0.00001 &&
+		u >= 0.00001 && v >= 0.00001 &&
+		u <= 1 && v <= 1 &&
+		u + v >= 0.00001 &&
+		u + v <= 1 && t > 0.00001)
+	{
+		//Point4 p = v1 + u * (v2 - v1) + v * (v3 - v1);
+		//hit = Hit(p, this->N, this, t);
+
+		distance = t;
+		return true;
+	}
+
+	return false;
+}
+
+struct meshTriangles
+{
+	std::vector<std::vector<glm::vec3>> triangles;
+};
+
+meshTriangles mainMeshData;
+
+void fillTrianglesData(FEMesh* mesh, meshTriangles* result)
+{
+	std::vector<float> FEVertices;
+	FEVertices.resize(mesh->getPositionsCount());
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
+
+	std::vector<int> FEIndices;
+	FEIndices.resize(mesh->getIndicesCount());
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
+
+	for (size_t i = 0; i < FEIndices.size(); i += 3)
+	{
+		std::vector<glm::vec3> triangle;
+		triangle.resize(3);
+
+		int vertexPosition = FEIndices[i] * 3;
+		triangle[0] = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+
+		vertexPosition = FEIndices[i + 1] * 3;
+		triangle[1] = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+
+		vertexPosition = FEIndices[i + 2] * 3;
+		triangle[2] = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+
+		result->triangles.push_back(triangle);
+	}
+}
+
 static const char* const sTestVS = R"(
 @In_Position@
 @In_Normal@
@@ -151,6 +273,17 @@ void dropCallback(int count, const char** paths)
 		if (fileExtention == ".obj")
 		{
 			loadedMesh = CGALWrapper.importOBJ(paths[i], true);
+			fillTrianglesData(loadedMesh, &mainMeshData);
+			
+			/*std::vector<std::vector<glm::vec3>> triangles;
+			for (size_t i = 0; i < mainMeshData.triangles.size(); i++)
+			{
+				LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[i][0], mainMeshData.triangles[i][1], glm::vec3(1.0f, 1.0f, 0.0f)));
+				LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[i][0], mainMeshData.triangles[i][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+				LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[i][1], mainMeshData.triangles[i][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+			}
+
+			LINE_RENDERER.SyncWithGPU();*/
 		}
 
 		//if (PROJECT_MANAGER.getCurrent() != nullptr)
@@ -180,6 +313,9 @@ void mouseMoveCallback(double xpos, double ypos)
 {
 	if (currentCamera != nullptr)
 		currentCamera->mouseMoveInput(xpos, ypos);
+
+	mouseX = xpos;
+	mouseY = ypos;
 }
 
 void keyButtonCallback(int key, int scancode, int action, int mods)
@@ -202,6 +338,42 @@ void mouseButtonCallback(int button, int action, int mods)
 	else if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_RELEASE)
 	{
 		currentCamera->setIsInputActive(false);
+	}
+
+	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE && loadedMesh != nullptr)
+	{
+		glm::dvec3 MouseRay = mouseRay(mouseX, mouseY);
+
+		float currentDistance = 0.0f;
+		float lastDistance = 9999.0f;
+		int triangleIndex = -1;
+		for (size_t i = 0; i < mainMeshData.triangles.size(); i++)
+		{
+			std::vector<glm::vec3> trianglePoints = mainMeshData.triangles[i];
+			/*for (size_t j = 0; j < trianglePoints.size(); j++)
+			{
+				trianglePoints[j] = choosenEntity->transform.getTransformMatrix() * glm::vec4(trianglePoints[j], 1.0f);
+			}*/
+
+			bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, trianglePoints, currentDistance);
+
+			if (hit && currentDistance < lastDistance)
+			{
+				lastDistance = currentDistance;
+				triangleIndex = i;
+			}
+		}
+
+		LINE_RENDERER.clearAll();
+
+		if (triangleIndex != -1)
+		{
+			LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[triangleIndex][0], mainMeshData.triangles[triangleIndex][1], glm::vec3(1.0f, 1.0f, 0.0f)));
+			LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[triangleIndex][0], mainMeshData.triangles[triangleIndex][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+			LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[triangleIndex][1], mainMeshData.triangles[triangleIndex][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+
+			LINE_RENDERER.SyncWithGPU();
+		}
 	}
 }
 
@@ -369,6 +541,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 			meshShader->stop();
 		}
+
+		LINE_RENDERER.Render(currentCamera);
 			
 		// ********************* LIGHT DIRECTION *********************
 		glm::vec3 position = *reinterpret_cast<glm::vec3*>(meshShader->getParameter("lightDirection")->data);
@@ -609,9 +783,9 @@ SDF* createSDF(FEMesh* mesh, int dimentions)
 
 void testFunction()
 {
-	FEMesh* testMesh = CGALWrapper.importOBJ("C:/Users/Kindr/Downloads/OBJ_Models/pickle_.obj", true);
-	SDF* testSDF = createSDF(testMesh, 8);
+	//FEMesh* testMesh = CGALWrapper.importOBJ("C:/Users/Kindr/Downloads/OBJ_Models/pickle_.obj", true);
+	//SDF* testSDF = createSDF(testMesh, 8);
 
-	int y = 0;
-	y++;
+	//int y = 0;
+	//y++;
 }
