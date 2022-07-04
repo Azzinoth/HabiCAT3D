@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../FEMesh.h"
-#include "../SubSystems/FELinesRenderer.h"
+//#include "../FEMesh.h"
+//#include "../SubSystems/FELinesRenderer.h"
+#include "../SubSystems/FESDF.h"
 
 #include "CGAL/Simple_cartesian.h"
 #include "CGAL/Surface_mesh.h"

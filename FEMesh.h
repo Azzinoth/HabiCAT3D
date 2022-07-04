@@ -64,5 +64,16 @@ namespace FocalEngine
 		double maxRugorsity = -DBL_MAX;
 
 		int colorMode = 0;
+
+		int TriangleSelected = -1;
+		std::vector<std::vector<glm::vec3>> Triangles;
+		std::vector<std::vector<glm::vec3>> TrianglesNormals;
+
+		std::vector<int> originalTrianglesToSegments;
+		std::vector<glm::vec3> segmentsNormals;
+
+		void fillTrianglesData();
+		bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance);
+		void SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera);
 	};
 }

@@ -191,7 +191,6 @@ Surface_mesh FECGALWrapper::FEMeshToSurfaceMesh(FEMesh* mesh)
 		count++;
 	}
 
-
 	std::vector<Point_3> CGALPoints;
 	for (size_t i = 0; i < FEVertices.size(); i += 3)
 	{
@@ -380,48 +379,19 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 		glm::vec3 segmentNormal = segmentsNormals[originalTrianglesToSegments[i]];
 		std::vector<int> points = getVertexOfFace(i);
 
-		Point_3 a = Point_3(positionsVector[points[0] * 3], positionsVector[points[0] * 3 + 1], positionsVector[points[0] * 3 + 2]);
-		Point_3 b = Point_3(positionsVector[points[1] * 3], positionsVector[points[1] * 3 + 1], positionsVector[points[1] * 3 + 2]);
-		Point_3 c = Point_3(positionsVector[points[2] * 3], positionsVector[points[2] * 3 + 1], positionsVector[points[2] * 3 + 2]);
-		double originalArea = sqrt(CGAL::squared_area(a, b, c));
+		glm::vec3 a = glm::vec3(positionsVector[points[0] * 3], positionsVector[points[0] * 3 + 1], positionsVector[points[0] * 3 + 2]);
+		glm::vec3 b = glm::vec3(positionsVector[points[1] * 3], positionsVector[points[1] * 3 + 1], positionsVector[points[1] * 3 + 2]);
+		glm::vec3 c = glm::vec3(positionsVector[points[2] * 3], positionsVector[points[2] * 3 + 1], positionsVector[points[2] * 3 + 2]);
+		double originalArea = SDF::TriangleArea(a, b, c);
 		totalArea += originalArea;
 
-		Plane_3 segmentPlane = Plane_3(Point_3(0.0, 0.0, 0.0), Direction_3(segmentNormal.x, segmentNormal.y, segmentNormal.z));
-		Point_3 aProjection = segmentPlane.projection(a);
-		Point_3 bProjection = segmentPlane.projection(b);
-		Point_3 cProjection = segmentPlane.projection(c);
+		FEPlane currentPlane = FEPlane(a, segmentNormal);
 
-		double projectionArea = sqrt(CGAL::squared_area(aProjection, bProjection, cProjection));
+		glm::vec3 aProjection = currentPlane.ProjectPoint(a);
+		glm::vec3 bProjection = currentPlane.ProjectPoint(b);
+		glm::vec3 cProjection = currentPlane.ProjectPoint(c);
 
-
-		double x1 = aProjection.x();
-		double x2 = bProjection.x();
-		double x3 = cProjection.x();
-
-		double y1 = aProjection.y();
-		double y2 = bProjection.y();
-		double y3 = cProjection.y();
-
-		double z1 = aProjection.z();
-		double z2 = bProjection.z();
-		double z3 = cProjection.z();
-
-		//double check = 0.5 * abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
-
-
-		double check = 0.5 * sqrt(pow(x2 * y1 - x3 * y1 - x1 * y2 + x3 * y2 + x1 * y3 - x2 * y3, 2.0) +
-			pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
-			pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
-
-		if (abs(projectionArea - check) > 0.01)
-		{
-			int y = 0;
-			y++;
-		}
-
-		totalAreaTEST += projectionArea;
-		totalAreaTEST1 += check;
-
+		double projectionArea = SDF::TriangleArea(aProjection, bProjection, cProjection);
 
 		double rugosity = originalArea / projectionArea;
 
@@ -487,6 +457,9 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 
 	mesh->minRugorsity = minRugorsity;
 	mesh->maxRugorsity = maxRugorsity;
+
+	mesh->originalTrianglesToSegments = originalTrianglesToSegments;
+	mesh->segmentsNormals = segmentsNormals;
 }
 
 std::vector<float> FECGALWrapper::calculateNormals(Surface_mesh mesh)

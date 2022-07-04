@@ -1,5 +1,4 @@
 #include "SubSystems/FECGALWrapper.h"
-#include "SubSystems/FEFreeCamera.h"
 using namespace FocalEngine;
 
 FEFreeCamera* currentCamera = nullptr;
@@ -26,106 +25,6 @@ glm::dvec3 mouseRay(double mouseX, double mouseY)
 	worldRay = glm::normalize(worldRay);
 
 	return worldRay;
-}
-
-bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance)
-{
-	if (triangleVertices.size() != 3)
-		return false;
-
-	float a = RayDirection[0];
-	float b = triangleVertices[0][0] - triangleVertices[1][0];
-	float c = triangleVertices[0][0] - triangleVertices[2][0];
-
-	float d = RayDirection[1];
-	float e = triangleVertices[0][1] - triangleVertices[1][1];
-	float f = triangleVertices[0][1] - triangleVertices[2][1];
-
-	float g = RayDirection[2];
-	float h = triangleVertices[0][2] - triangleVertices[1][2];
-	float j = triangleVertices[0][2] - triangleVertices[2][2];
-
-	float k = triangleVertices[0][0] - RayOrigin[0];
-	float l = triangleVertices[0][1] - RayOrigin[1];
-	float m = triangleVertices[0][2] - RayOrigin[2];
-
-	glm::mat3 temp0 = glm::mat3(a, b, c,
-		d, e, f,
-		g, h, j);
-
-	float determinant0 = glm::determinant(temp0);
-
-	glm::mat3 temp1 = glm::mat3(k, b, c,
-		l, e, f,
-		m, h, j);
-
-	float determinant1 = glm::determinant(temp1);
-
-	float t = determinant1 / determinant0;
-
-
-	glm::mat3 temp2 = glm::mat3(a, k, c,
-		d, l, f,
-		g, m, j);
-
-	float determinant2 = glm::determinant(temp2);
-	float u = determinant2 / determinant0;
-
-	float determinant3 = glm::determinant(glm::mat3(a, b, k,
-		d, e, l,
-		g, h, m));
-
-	float v = determinant3 / determinant0;
-
-	if (t >= 0.00001 &&
-		u >= 0.00001 && v >= 0.00001 &&
-		u <= 1 && v <= 1 &&
-		u + v >= 0.00001 &&
-		u + v <= 1 && t > 0.00001)
-	{
-		//Point4 p = v1 + u * (v2 - v1) + v * (v3 - v1);
-		//hit = Hit(p, this->N, this, t);
-
-		distance = t;
-		return true;
-	}
-
-	return false;
-}
-
-struct meshTriangles
-{
-	std::vector<std::vector<glm::vec3>> triangles;
-};
-
-meshTriangles mainMeshData;
-
-void fillTrianglesData(FEMesh* mesh, meshTriangles* result)
-{
-	std::vector<float> FEVertices;
-	FEVertices.resize(mesh->getPositionsCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
-
-	std::vector<int> FEIndices;
-	FEIndices.resize(mesh->getIndicesCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
-
-	for (size_t i = 0; i < FEIndices.size(); i += 3)
-	{
-		std::vector<glm::vec3> triangle;
-		triangle.resize(3);
-
-		int vertexPosition = FEIndices[i] * 3;
-		triangle[0] = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
-
-		vertexPosition = FEIndices[i + 1] * 3;
-		triangle[1] = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
-
-		vertexPosition = FEIndices[i + 2] * 3;
-		triangle[2] = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
-
-		result->triangles.push_back(triangle);
-	}
 }
 
 static const char* const sTestVS = R"(
@@ -250,6 +149,8 @@ FEMesh* loadedMesh = nullptr;
 FEMesh* simplifiedMesh = nullptr;
 bool showSimplified = false;
 
+FEMesh* currentMesh = nullptr;
+
 static void dropCallback(int count, const char** paths);
 void dropCallback(int count, const char** paths)
 {
@@ -273,17 +174,7 @@ void dropCallback(int count, const char** paths)
 		if (fileExtention == ".obj")
 		{
 			loadedMesh = CGALWrapper.importOBJ(paths[i], true);
-			fillTrianglesData(loadedMesh, &mainMeshData);
-			
-			/*std::vector<std::vector<glm::vec3>> triangles;
-			for (size_t i = 0; i < mainMeshData.triangles.size(); i++)
-			{
-				LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[i][0], mainMeshData.triangles[i][1], glm::vec3(1.0f, 1.0f, 0.0f)));
-				LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[i][0], mainMeshData.triangles[i][2], glm::vec3(1.0f, 1.0f, 0.0f)));
-				LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[i][1], mainMeshData.triangles[i][2], glm::vec3(1.0f, 1.0f, 0.0f)));
-			}
-
-			LINE_RENDERER.SyncWithGPU();*/
+			currentMesh = loadedMesh;
 		}
 
 		//if (PROJECT_MANAGER.getCurrent() != nullptr)
@@ -340,39 +231,46 @@ void mouseButtonCallback(int button, int action, int mods)
 		currentCamera->setIsInputActive(false);
 	}
 
-	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE && loadedMesh != nullptr)
+	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
 	{
-		glm::dvec3 MouseRay = mouseRay(mouseX, mouseY);
-
-		float currentDistance = 0.0f;
-		float lastDistance = 9999.0f;
-		int triangleIndex = -1;
-		for (size_t i = 0; i < mainMeshData.triangles.size(); i++)
+		if (currentMesh != nullptr)
 		{
-			std::vector<glm::vec3> trianglePoints = mainMeshData.triangles[i];
-			/*for (size_t j = 0; j < trianglePoints.size(); j++)
-			{
-				trianglePoints[j] = choosenEntity->transform.getTransformMatrix() * glm::vec4(trianglePoints[j], 1.0f);
-			}*/
+			currentMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
+			LINE_RENDERER.clearAll();
 
-			bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, trianglePoints, currentDistance);
-
-			if (hit && currentDistance < lastDistance)
+			if (currentMesh->TriangleSelected != -1)
 			{
-				lastDistance = currentDistance;
-				triangleIndex = i;
+				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][1], glm::vec3(1.0f, 1.0f, 0.0f)));
+				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][1], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+
+				if (!currentMesh->TrianglesNormals.empty())
+				{
+					glm::vec3 Point = currentMesh->Triangles[currentMesh->TriangleSelected][0];
+					glm::vec3 Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][0];
+					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+
+					Point = currentMesh->Triangles[currentMesh->TriangleSelected][1];
+					Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][1];
+					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+
+					Point = currentMesh->Triangles[currentMesh->TriangleSelected][2];
+					Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][2];
+					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+				}
+
+				if (!currentMesh->originalTrianglesToSegments.empty() && !currentMesh->segmentsNormals.empty())
+				{
+					glm::vec3 Centroid = (currentMesh->Triangles[currentMesh->TriangleSelected][0] +
+										  currentMesh->Triangles[currentMesh->TriangleSelected][1] +
+										  currentMesh->Triangles[currentMesh->TriangleSelected][2]) / 3.0f;
+					
+					glm::vec3 Normal = currentMesh->segmentsNormals[currentMesh->originalTrianglesToSegments[currentMesh->TriangleSelected]];
+					LINE_RENDERER.AddLineToBuffer(FELine(Centroid, Centroid + Normal, glm::vec3(1.0f, 0.0f, 0.0f)));
+				}
+
+				LINE_RENDERER.SyncWithGPU();
 			}
-		}
-
-		LINE_RENDERER.clearAll();
-
-		if (triangleIndex != -1)
-		{
-			LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[triangleIndex][0], mainMeshData.triangles[triangleIndex][1], glm::vec3(1.0f, 1.0f, 0.0f)));
-			LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[triangleIndex][0], mainMeshData.triangles[triangleIndex][2], glm::vec3(1.0f, 1.0f, 0.0f)));
-			LINE_RENDERER.AddLineToBuffer(FELine(mainMeshData.triangles[triangleIndex][1], mainMeshData.triangles[triangleIndex][2], glm::vec3(1.0f, 1.0f, 0.0f)));
-
-			LINE_RENDERER.SyncWithGPU();
 		}
 	}
 }
@@ -399,6 +297,19 @@ void renderFEMesh(FEMesh* mesh)
 }
 
 void testFunction();
+SDF* currentSDF = nullptr;
+
+void calculateSDF(FEMesh* mesh, int dimentions)
+{
+	FEAABB finalAABB = mesh->AABB;
+
+	currentSDF = new SDF(mesh, dimentions, finalAABB, currentCamera);
+
+	currentSDF->fillCellsWithTriangleInfo();
+	currentSDF->calculateRugosity();
+
+	currentSDF->fillMeshWithRugosityData();
+}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -489,7 +400,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		renderTargetCenterForCamera();
 		currentCamera->move(10);
 
-		if (loadedMesh != nullptr)
+		if (currentMesh != nullptr)
 		{
 			meshShader->start();
 
@@ -519,16 +430,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}
 
-			if (simplifiedMesh == nullptr || !showSimplified)
-			{
-				renderFEMesh(loadedMesh);
-			}
-			else if (simplifiedMesh != nullptr && showSimplified)
-			{
-				renderFEMesh(simplifiedMesh);
-			}
-
-			
+			renderFEMesh(currentMesh);
 
 			/*FETransformComponent* newPosition = new FETransformComponent();
 			newPosition->setPosition(glm::vec3(0.0, 0.0, 5.0));
@@ -566,14 +468,30 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	
 
-		if (loadedMesh != nullptr)
+		if (currentMesh != nullptr)
 		{
 			ImGui::Checkbox("Wireframe", &wireframeMode);
 
 			if (simplifiedMesh == nullptr)
 				ImGui::BeginDisabled();
 
-			ImGui::Checkbox("Show simplified mesh", &showSimplified);
+			if (ImGui::Checkbox("Show simplified mesh", &showSimplified))
+			{
+				if (currentMesh != nullptr)
+				{
+					currentMesh->TriangleSelected = -1;
+					LINE_RENDERER.clearAll();
+				}
+
+				if (showSimplified)
+				{
+					currentMesh = simplifiedMesh;
+				}
+				else
+				{
+					currentMesh = loadedMesh;
+				}
+			}
 
 			if (simplifiedMesh == nullptr)
 				ImGui::EndDisabled();
@@ -584,6 +502,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			ImGui::DragFloat("##Leave", &toLeave, 0.01f, 0.001f, 99.0f);
 			ImGui::SameLine();
 			ImGui::Text(" %% of vertices.");*/
+
+			if (currentMesh == simplifiedMesh)
+				ImGui::BeginDisabled();
 
 			static int maxSegments = 100;
 			ImGui::Text("Max Segments :");
@@ -597,188 +518,131 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				simplifiedMesh = CGALWrapper.SurfaceMeshApproximation(loadedMesh, maxSegments);
 			}
 
-			if (loadedMesh->minRugorsity != DBL_MAX)
-				ImGui::Text(("minRugorsity: " + std::to_string(loadedMesh->minRugorsity)).c_str());
+			if (currentMesh == simplifiedMesh)
+				ImGui::EndDisabled();
 
-			if (loadedMesh->maxRugorsity != -DBL_MAX)
-				ImGui::Text(("maxRugorsity: " + std::to_string(loadedMesh->maxRugorsity)).c_str());
+			if (currentMesh->minRugorsity != DBL_MAX)
+				ImGui::Text(("minRugorsity: " + std::to_string(currentMesh->minRugorsity)).c_str());
 
-			if (loadedMesh->colorCount == unsigned int(-1))
+			if (currentMesh->maxRugorsity != -DBL_MAX)
+				ImGui::Text(("maxRugorsity: " + std::to_string(currentMesh->maxRugorsity)).c_str());
+
+			if (currentMesh->colorCount == unsigned int(-1))
 				ImGui::BeginDisabled();
 
-			bool showRugosity = loadedMesh->colorMode == 1;
+			bool showRugosity = currentMesh->colorMode == 1;
 			if (ImGui::Checkbox("Show Rugosity", &showRugosity))
 			{
 				if (showRugosity)
 				{
-					loadedMesh->colorMode = 1;
+					currentMesh->colorMode = 1;
 				}
 				else
 				{
-					loadedMesh->colorMode = 0;
+					currentMesh->colorMode = 0;
 				}
 			}
 
-			if (loadedMesh->colorCount == unsigned int(-1))
+			if (currentMesh->colorCount == unsigned int(-1))
 				ImGui::EndDisabled();
 
-			if (loadedMesh->segmentsColorsCount == unsigned int(-1))
+			if (currentMesh->segmentsColorsCount == unsigned int(-1))
 				ImGui::BeginDisabled();
 				
-			bool showSegments = loadedMesh->colorMode == 2;
+			bool showSegments = currentMesh->colorMode == 2;
 			if (ImGui::Checkbox("Show Segments", &showSegments))
 			{
 				if (showSegments)
 				{
-					loadedMesh->colorMode = 2;
+					currentMesh->colorMode = 2;
 				}
 				else
 				{
-					loadedMesh->colorMode = 0;
+					currentMesh->colorMode = 0;
 				}
 			}
 
-			if (loadedMesh->segmentsColorsCount == unsigned int(-1))
+			if (currentMesh->segmentsColorsCount == unsigned int(-1))
 				ImGui::EndDisabled();
+
+
+			if (currentMesh->TriangleSelected != -1)
+			{
+				ImGui::Separator();
+				ImGui::Text("Selected triangle information :");
+
+				std::string Text = "Index : " + std::to_string(currentMesh->TriangleSelected);
+				ImGui::Text(Text.c_str());
+
+				Text = "First vertex : ";
+				Text += "x: " + std::to_string(currentMesh->Triangles[currentMesh->TriangleSelected][0].x);
+				Text += " y: " + std::to_string(currentMesh->Triangles[currentMesh->TriangleSelected][0].y);
+				Text += " z: " + std::to_string(currentMesh->Triangles[currentMesh->TriangleSelected][0].z);
+				ImGui::Text(Text.c_str());
+
+				Text = "Second vertex : ";
+				Text += "x: " + std::to_string(currentMesh->Triangles[currentMesh->TriangleSelected][1].x);
+				Text += " y: " + std::to_string(currentMesh->Triangles[currentMesh->TriangleSelected][1].y);
+				Text += " z: " + std::to_string(currentMesh->Triangles[currentMesh->TriangleSelected][1].z);
+				ImGui::Text(Text.c_str());
+
+				Text = "Third vertex : ";
+				Text += "x: " + std::to_string(currentMesh->Triangles[currentMesh->TriangleSelected][2].x);
+				Text += " y: " + std::to_string(currentMesh->Triangles[currentMesh->TriangleSelected][2].y);
+				Text += " z: " + std::to_string(currentMesh->Triangles[currentMesh->TriangleSelected][2].z);
+				ImGui::Text(Text.c_str());
+
+				Text = "Segment ID : ";
+				if (!currentMesh->originalTrianglesToSegments.empty())
+				{
+					Text += std::to_string(currentMesh->originalTrianglesToSegments[currentMesh->TriangleSelected]);
+				}
+				else
+				{
+					Text += "No information.";
+				}
+				ImGui::Text(Text.c_str());
+
+				Text = "Segment normal : ";
+				if (!currentMesh->originalTrianglesToSegments.empty() && !currentMesh->segmentsNormals.empty())
+				{
+					glm::vec3 normal = currentMesh->segmentsNormals[currentMesh->originalTrianglesToSegments[currentMesh->TriangleSelected]];
+
+					Text += "x: " + std::to_string(normal.x);
+					Text += " y: " + std::to_string(normal.y);
+					Text += " z: " + std::to_string(normal.z);
+				}
+				else
+				{
+					Text += "No information.";
+				}
+				ImGui::Text(Text.c_str());
+			}
+
+
+
+			if (ImGui::Button("Generate SDF"))
+			{
+				calculateSDF(currentMesh, 32);
+			}
+
+			if (currentSDF != nullptr)
+			{
+				if (showRugosity)
+				{
+					currentMesh->colorMode = 1;
+				}
+				else
+				{
+					currentMesh->colorMode = 0;
+				}
+			}
 		}
 		
 		APPLICATION.endFrame();
 	}
 
 	return 0;
-}
-
-struct SDFNode
-{
-	float value = 0.0f;
-	FEAABB AABB;
-};
-
-struct SDF
-{
-	std::vector< std::vector< std::vector<SDFNode*>>> data;
-};
-
-struct centroidData
-{
-	glm::vec3 centroid;
-	glm::vec3 normal;
-};
-
-std::vector<centroidData> getTrianglesCentroids(FEMesh* mesh)
-{
-	std::vector<centroidData> result;
-
-	if (mesh == nullptr)
-		return result;
-
-	std::vector<float> FEVertices;
-	FEVertices.resize(mesh->getPositionsCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
-
-	std::vector<float> FENormals;
-	FENormals.resize(mesh->getPositionsCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getNormalsBufferID(), 0, sizeof(float) * FENormals.size(), FENormals.data()));
-
-	std::vector<int> FEIndices;
-	FEIndices.resize(mesh->getIndicesCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
-
-	for (size_t i = 0; i < FEIndices.size(); i += 3)
-	{
-		int vertexPosition = FEIndices[i] * 3;
-		glm::vec3 firstVertex = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
-
-		vertexPosition = FEIndices[i + 1] * 3;
-		glm::vec3 secondVertex = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
-
-		vertexPosition = FEIndices[i + 2] * 3;
-		glm::vec3 thirdVertex = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
-
-		glm::vec3 currentCentroid = (firstVertex + secondVertex + thirdVertex) / 3.0f;
-
-		// We are taking index of last vertex because all verticies of triangle should have same normal.
-		glm::vec3 triangleNormal = glm::vec3(FENormals[vertexPosition], FENormals[vertexPosition + 1], FENormals[vertexPosition + 2]);
-
-		centroidData data;
-		data.centroid = currentCentroid;
-		data.normal = triangleNormal;
-		result.push_back(data);
-	}
-
-	return result;
-}
-
-SDF* createSDF(FEMesh* mesh, int dimentions)
-{
-	if (dimentions < 1 || dimentions > 4096)
-		return nullptr;
-
-	// If dimentions is not power of 2, we can't continue.
-	if (log2(dimentions) != int(log2(dimentions)))
-		return nullptr;
-
-	glm::vec3 center = mesh->AABB.getCenter();
-	FEAABB SDFAABB = FEAABB(center - glm::vec3(mesh->AABB.getSize() / 2.0f), center + glm::vec3(mesh->AABB.getSize() / 2.0f));
-
-	SDF* result = new SDF;
-	result->data.resize(dimentions);
-	for (size_t i = 0; i < dimentions; i++)
-	{
-		result->data[i].resize(dimentions);
-		for (size_t j = 0; j < dimentions; j++)
-		{
-			result->data[i][j].resize(dimentions);
-		}
-	}
-
-	glm::vec3 start = SDFAABB.getMin();
-	glm::vec3 currentAABBMin;
-	float cellSize = SDFAABB.getSize() / dimentions;
-
-	std::vector<centroidData> centroids = getTrianglesCentroids(mesh);
-
-	for (size_t i = 0; i < dimentions; i++)
-	{
-		for (size_t j = 0; j < dimentions; j++)
-		{
-			for (size_t k = 0; k < dimentions; k++)
-			{
-				currentAABBMin = start + glm::vec3(cellSize * i, cellSize * j, cellSize * k);
-
-				result->data[i][j][k] = new SDFNode();
-				result->data[i][j][k]->AABB = FEAABB(currentAABBMin, currentAABBMin + glm::vec3(cellSize));
-
-				float minDistance = FLT_MAX;
-				int centroidIndex = -1;
-				glm::vec3 cellCenter = result->data[i][j][k]->AABB.getCenter();
-				for (size_t p = 0; p < centroids.size(); p++)
-				{
-					float currentDistance = glm::distance(centroids[p].centroid, cellCenter);
-					if (currentDistance < minDistance)
-					{
-						minDistance = currentDistance;
-						centroidIndex = p;
-					}
-				}
-
-				if (centroidIndex != -1)
-				{
-					glm::vec3 vectorToCentroid = centroids[centroidIndex].centroid - cellCenter;
-
-					float test = glm::dot(vectorToCentroid, centroids[centroidIndex].normal);
-					if (test >= 0)
-					{
-						minDistance = -minDistance;
-					}
-				}
-
-				result->data[i][j][k]->value = minDistance;
-			}
-		}
-	}
-
-	return result;
 }
 
 void testFunction()
