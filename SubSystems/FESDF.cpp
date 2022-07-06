@@ -156,6 +156,8 @@ SDF::SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
 	if (log2(dimentions) != int(log2(dimentions)))
 		return;
 
+	TIME.beginTimeStamp("SDF Generation");
+
 	currentCamera = camera;
 	this->mesh = mesh;
 
@@ -176,13 +178,13 @@ SDF::SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
 	glm::vec3 currentAABBMin;
 	float cellSize = SDFAABB.getSize() / dimentions;
 
-	std::vector<triangleData> centroids = getTrianglesData(mesh);
+	/*std::vector<triangleData> centroids = getTrianglesData(mesh);
 	averageNormal = glm::vec3(0.0f);
 	for (size_t i = 0; i < centroids.size(); i++)
 	{
 		averageNormal += centroids[i].normal;
 	}
-	averageNormal /= centroids.size();
+	averageNormal /= centroids.size();*/
 
 	for (size_t i = 0; i < dimentions; i++)
 	{
@@ -194,65 +196,63 @@ SDF::SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
 
 				data[i][j][k].AABB = FEAABB(currentAABBMin, currentAABBMin + glm::vec3(cellSize));
 
-				float minDistanceToCentroid = FLT_MAX;
-				int centroidIndex = -1;
-				glm::vec3 cellCenter = data[i][j][k].AABB.getCenter();
-				for (size_t p = 0; p < centroids.size(); p++)
-				{
-					float currentDistance = glm::distance(centroids[p].centroid, cellCenter);
-					if (currentDistance < minDistanceToCentroid)
-					{
-						minDistanceToCentroid = currentDistance;
-						centroidIndex = p;
-					}
-				}
+				//float minDistanceToCentroid = FLT_MAX;
+				//int centroidIndex = -1;
+				//glm::vec3 cellCenter = data[i][j][k].AABB.getCenter();
+				//for (size_t p = 0; p < centroids.size(); p++)
+				//{
+				//	float currentDistance = glm::distance(centroids[p].centroid, cellCenter);
+				//	if (currentDistance < minDistanceToCentroid)
+				//	{
+				//		minDistanceToCentroid = currentDistance;
+				//		centroidIndex = p;
+				//	}
+				//}
 
-				if (centroidIndex != -1)
-				{
-					glm::vec3 vectorToCentroid = centroids[centroidIndex].centroid - cellCenter;
+				//if (centroidIndex != -1)
+				//{
+				//	glm::vec3 vectorToCentroid = centroids[centroidIndex].centroid - cellCenter;
 
-					// Test whether cell is inside or outside of mesh
-					if (glm::dot(vectorToCentroid, centroids[centroidIndex].normal) >= 0)
-					{
-						minDistanceToCentroid = -minDistanceToCentroid;
-					}
+				//	// Test whether cell is inside or outside of mesh
+				//	if (glm::dot(vectorToCentroid, centroids[centroidIndex].normal) >= 0)
+				//	{
+				//		minDistanceToCentroid = -minDistanceToCentroid;
+				//	}
 
-					// https://mathinsight.org/distance_point_plane
-					// Normal of plane
-					glm::vec3 N = centroids[centroidIndex].normal;
-					// Point on plane
-					glm::vec3 C = centroids[centroidIndex].centroid;
-					glm::vec3 P = cellCenter;
+				//	// https://mathinsight.org/distance_point_plane
+				//	// Normal of plane
+				//	glm::vec3 N = centroids[centroidIndex].normal;
+				//	// Point on plane
+				//	glm::vec3 C = centroids[centroidIndex].centroid;
+				//	glm::vec3 P = cellCenter;
 
-					float D = -N.x * C.x - N.y * C.y - N.z * C.z;
-					float distance = abs(N.x * P.x + N.y * P.y + N.z * P.z + D) / glm::length(N);
+				//	float D = -N.x * C.x - N.y * C.y - N.z * C.z;
+				//	float distance = abs(N.x * P.x + N.y * P.y + N.z * P.z + D) / glm::length(N);
 
-					//if (i == 30 && j == 2 && k == 28)
-					//{
-					//	int y = 0;
-					//	y++;
-					//}
+				//	// Distance to plane could be a lot greater than distance to triangle
+				//	data[i][j][k].distanceToTrianglePlane = distance;
+				//	if (abs(minDistanceToCentroid) > centroids[centroidIndex].maxSideLength / 2.0f)
+				//	{
+				//		data[i][j][k].distanceToTrianglePlane = FLT_MAX;
+				//		if (minDistanceToCentroid < 0.0f)
+				//			minDistanceToCentroid = -minDistanceToCentroid;
+				//	}
+				//}
 
-					// Distance to plane could be a lot greater than distance to triangle
-					data[i][j][k].distanceToTrianglePlane = distance;
-					if (abs(minDistanceToCentroid) > centroids[centroidIndex].maxSideLength / 2.0f)
-					{
-						data[i][j][k].distanceToTrianglePlane = FLT_MAX;
-						if (minDistanceToCentroid < 0.0f)
-							minDistanceToCentroid = -minDistanceToCentroid;
-					}
-				}
-
-				data[i][j][k].value = minDistanceToCentroid;
+				//data[i][j][k].value = minDistanceToCentroid;
 			}
 		}
 	}
+
+	TimeTookToGenerateInMS = TIME.endTimeStamp("SDF Generation");
 }
 
 void SDF::fillCellsWithTriangleInfo()
 {
 	if (mesh->Triangles.empty())
 		mesh->fillTrianglesData();
+
+	TIME.beginTimeStamp("Fill cells with triangle info");
 
 	for (size_t l = 0; l < mesh->Triangles.size(); l++)
 	{
@@ -272,12 +272,16 @@ void SDF::fillCellsWithTriangleInfo()
 			}
 		}
 	}
+
+	TimeTookFillCellsWithTriangleInfo = TIME.endTimeStamp("Fill cells with triangle info");
 }
 
 void SDF::calculateRugosity()
 {
 	if (mesh->Triangles.empty())
 		mesh->fillTrianglesData();
+
+	TIME.beginTimeStamp("Calculate rugosity");
 
 	for (size_t i = 0; i < data.size(); i++)
 	{
@@ -289,6 +293,8 @@ void SDF::calculateRugosity()
 			}
 		}
 	}
+
+	TimeTookCalculateRugosity = TIME.endTimeStamp("Calculate rugosity");
 }
 
 void SDF::mouseClick(double mouseX, double mouseY, glm::mat4 transformMat)
@@ -339,6 +345,8 @@ void SDF::fillMeshWithRugosityData()
 {
 	if (mesh == nullptr)
 		return;
+
+	TIME.beginTimeStamp("FillMeshWithRugosityData");
 
 	int posSize = mesh->getPositionsCount();
 	float* positions = new float[posSize];
@@ -580,6 +588,8 @@ void SDF::fillMeshWithRugosityData()
 
 	mesh->minRugorsity = minRugorsity;
 	mesh->maxRugorsity = maxRugorsity;
+
+	TimeTookFillMeshWithRugosityData = TIME.endTimeStamp("FillMeshWithRugosityData");
 }
 
 void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)

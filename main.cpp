@@ -85,6 +85,111 @@ void main(void)
 }
 )";
 
+
+void showTransformConfiguration(std::string name, FETransformComponent* transform)
+{
+	// ********************* POSITION *********************
+	glm::vec3 position = transform->getPosition();
+	ImGui::Text("Position : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##X pos : ") + name).c_str(), &position[0], 0.1f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Y pos : ") + name).c_str(), &position[1], 0.1f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Z pos : ") + name).c_str(), &position[2], 0.1f);
+	transform->setPosition(position);
+
+	// ********************* ROTATION *********************
+	glm::vec3 rotation = transform->getRotation();
+	ImGui::Text("Rotation : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##X rot : ") + name).c_str(), &rotation[0], 0.1f, -360.0f, 360.0f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Y rot : ") + name).c_str(), &rotation[1], 0.1f, -360.0f, 360.0f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Z rot : ") + name).c_str(), &rotation[2], 0.1f, -360.0f, 360.0f);
+	transform->setRotation(rotation);
+
+	// ********************* SCALE *********************
+	ImGui::Checkbox("Uniform scaling", &transform->uniformScaling);
+	glm::vec3 scale = transform->getScale();
+	ImGui::Text("Scale : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##X scale : ") + name).c_str(), &scale[0], 0.01f, 0.01f, 1000.0f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Y scale : ") + name).c_str(), &scale[1], 0.01f, 0.01f, 1000.0f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Z scale : ") + name).c_str(), &scale[2], 0.01f, 0.01f, 1000.0f);
+
+	glm::vec3 oldScale = transform->getScale();
+	transform->changeXScaleBy(scale[0] - oldScale[0]);
+	transform->changeYScaleBy(scale[1] - oldScale[1]);
+	transform->changeZScaleBy(scale[2] - oldScale[2]);
+}
+
+void showCameraTransform(FEFreeCamera* camera)
+{
+	// ********* POSITION *********
+	glm::vec3 cameraPosition = camera->getPosition();
+
+	ImGui::Text("Position : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(90);
+	ImGui::DragFloat("##X pos", &cameraPosition[0], 0.1f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(90);
+	ImGui::DragFloat("##Y pos", &cameraPosition[1], 0.1f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(90);
+	ImGui::DragFloat("##Z pos", &cameraPosition[2], 0.1f);
+
+	camera->setPosition(cameraPosition);
+
+	// ********* ROTATION *********
+	glm::vec3 cameraRotation = glm::vec3(camera->getYaw(), camera->getPitch(), camera->getRoll());
+
+	ImGui::Text("Rotation : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(90);
+	ImGui::DragFloat("##X rot", &cameraRotation[0], 0.1f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(90);
+	ImGui::DragFloat("##Y rot", &cameraRotation[1], 0.1f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(90);
+	ImGui::DragFloat("##Z rot", &cameraRotation[2], 0.1f);
+
+	camera->setYaw(cameraRotation[0]);
+	camera->setPitch(cameraRotation[1]);
+	camera->setRoll(cameraRotation[2]);
+
+	float cameraSpeed = camera->getMovementSpeed();
+	ImGui::Text("Camera speed in m/s : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(70);
+	ImGui::DragFloat("##Camera_speed", &cameraSpeed, 0.01f, 0.01f, 100.0f);
+	camera->setMovementSpeed(cameraSpeed);
+}
+
 FEFreeCamera* currentCamera = nullptr;
 bool wireframeMode = false;
 FEShader* meshShader = nullptr;
@@ -195,6 +300,8 @@ FEMesh* simplifiedMesh = nullptr;
 bool showSimplified = false;
 
 FEMesh* currentMesh = nullptr;
+std::vector<std::string> dimentionsList;
+int SDFDimention = 16;
 
 static void dropCallback(int count, const char** paths);
 void dropCallback(int count, const char** paths)
@@ -447,6 +554,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	currentCamera->setIsInputActive(false);
 	currentCamera->setAspectRatio(1280.0f / 720.0f);
 
+	dimentionsList.push_back("4");
+	dimentionsList.push_back("8");
+	dimentionsList.push_back("16");
+	dimentionsList.push_back("32");
+	dimentionsList.push_back("64");
+	dimentionsList.push_back("128");
+	dimentionsList.push_back("256");
+	dimentionsList.push_back("512");
+	dimentionsList.push_back("1024");
+	dimentionsList.push_back("2048");
+	dimentionsList.push_back("4096");
+
 	while (APPLICATION.isWindowOpened())
 	{
 		FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
@@ -519,6 +638,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		meshShader->getParameter("lightDirection")->updateData(position);
 
 		
+
+
+
+		showCameraTransform(currentCamera);
+
+
 
 
 	
@@ -674,13 +799,66 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				ImGui::Text(Text.c_str());
 			}
 
-			if (ImGui::Button("Generate SDF"))
+			if (currentSDF == nullptr)
 			{
-				calculateSDF(currentMesh, 32);
+				if (ImGui::Button("Generate SDF"))
+					calculateSDF(currentMesh, SDFDimention);
+			}
+			else if (currentSDF != nullptr)
+			{
+				if (ImGui::Button("Delete SDF"))
+				{
+					//currentSDF->mesh clear all rugosity info
+					delete currentSDF;
+					currentSDF = nullptr;
+				}
+			}
+
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(128);
+			if (ImGui::BeginCombo("##ChooseSDFDimention", std::to_string(SDFDimention).c_str(), ImGuiWindowFlags_None))
+			{
+				for (size_t i = 0; i < dimentionsList.size(); i++)
+				{
+					bool is_selected = (std::to_string(SDFDimention) == dimentionsList[i]);
+					if (ImGui::Selectable(dimentionsList[i].c_str(), is_selected))
+					{
+						SDFDimention = atoi(dimentionsList[i].c_str());
+					}
+
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
 			}
 
 			if (currentSDF != nullptr)
 			{
+				float TotalTime = 0.0f;
+
+				std::string debugTimers = "Building of SDF grid : " + std::to_string(currentSDF->TimeTookToGenerateInMS) + " ms";
+				debugTimers += "\n";
+				TotalTime += currentSDF->TimeTookToGenerateInMS;
+
+				debugTimers += "Fill cells with triangle info : " + std::to_string(currentSDF->TimeTookFillCellsWithTriangleInfo) + " ms";
+				debugTimers += "\n";
+				TotalTime += currentSDF->TimeTookFillCellsWithTriangleInfo;
+
+				debugTimers += "Calculate rugosity : " + std::to_string(currentSDF->TimeTookCalculateRugosity) + " ms";
+				debugTimers += "\n";
+				TotalTime += currentSDF->TimeTookCalculateRugosity;
+
+				debugTimers += "Assign colors to mesh : " + std::to_string(currentSDF->TimeTookFillMeshWithRugosityData) + " ms";
+				debugTimers += "\n";
+				TotalTime += currentSDF->TimeTookFillMeshWithRugosityData;
+
+				debugTimers += "Total time : " + std::to_string(TotalTime) + " ms";
+				debugTimers += "\n";
+
+				ImGui::Text((debugTimers).c_str());
+
+
+
 				if (showRugosity)
 				{
 					currentMesh->colorMode = 1;

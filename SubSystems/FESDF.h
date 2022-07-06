@@ -81,6 +81,11 @@ namespace FocalEngine
 
 		void calculateCellRugosity(SDFNode* node, std::string* debugInfo = nullptr);
 
+		float TimeTookToGenerateInMS = 0.0f;
+		float TimeTookFillCellsWithTriangleInfo = 0.0f;
+		float TimeTookCalculateRugosity = 0.0f;
+		float TimeTookFillMeshWithRugosityData = 0.0f;
+
 		~SDF()
 		{
 			data.clear();
