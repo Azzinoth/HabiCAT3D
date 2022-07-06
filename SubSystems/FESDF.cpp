@@ -20,7 +20,7 @@ glm::dvec3 mouseRay(double mouseX, double mouseY, FEFreeCamera* currentCamera)
 	return worldRay;
 }
 
-double SDF::TriangleArea(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 PointC)
+double SDF::TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC)
 {
 	double x1 = PointA.x;
 	double x2 = PointB.x;
@@ -35,8 +35,8 @@ double SDF::TriangleArea(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 PointC)
 	double z3 = PointC.z;
 
 	return 0.5 * sqrt(pow(x2 * y1 - x3 * y1 - x1 * y2 + x3 * y2 + x1 * y3 - x2 * y3, 2.0) +
-		pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
-		pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
+					  pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
+					  pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
 }
 
 bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance)
@@ -285,47 +285,7 @@ void SDF::calculateRugosity()
 		{
 			for (size_t k = 0; k < data[i][j].size(); k++)
 			{
-				if (data[i][j][k].trianglesInCell.size() != 0)
-				{
-					for (size_t l = 0; l < data[i][j][k].trianglesInCell.size(); l++)
-					{
-						std::vector<glm::vec3> currentTriangle = mesh->Triangles[data[i][j][k].trianglesInCell[l]];
-						std::vector<glm::vec3> currentTriangleNormals = mesh->TrianglesNormals[data[i][j][k].trianglesInCell[l]];
-
-						data[i][j][k].averageCellNormal += currentTriangleNormals[0];
-						data[i][j][k].averageCellNormal += currentTriangleNormals[1];
-						data[i][j][k].averageCellNormal += currentTriangleNormals[2];
-
-						data[i][j][k].CellTrianglesCentroid += currentTriangle[0];
-						data[i][j][k].CellTrianglesCentroid += currentTriangle[1];
-						data[i][j][k].CellTrianglesCentroid += currentTriangle[2];
-					}
-
-					data[i][j][k].averageCellNormal /= data[i][j][k].trianglesInCell.size() * 3;
-					data[i][j][k].CellTrianglesCentroid /= data[i][j][k].trianglesInCell.size() * 3;
-
-					if (data[i][j][k].approximateProjectionPlane != nullptr)
-						delete data[i][j][k].approximateProjectionPlane;
-
-					data[i][j][k].approximateProjectionPlane = new FEPlane(data[i][j][k].CellTrianglesCentroid, data[i][j][k].averageCellNormal);
-
-					for (size_t l = 0; l < data[i][j][k].trianglesInCell.size(); l++)
-					{
-						std::vector<glm::vec3> currentTriangle = mesh->Triangles[data[i][j][k].trianglesInCell[l]];
-
-						double originalArea = TriangleArea(currentTriangle[0], currentTriangle[1], currentTriangle[2]);
-
-						glm::vec3 aProjection = data[i][j][k].approximateProjectionPlane->ProjectPoint(currentTriangle[0]);
-						glm::vec3 bProjection = data[i][j][k].approximateProjectionPlane->ProjectPoint(currentTriangle[1]);
-						glm::vec3 cProjection = data[i][j][k].approximateProjectionPlane->ProjectPoint(currentTriangle[2]);
-
-						double projectionArea = TriangleArea(aProjection, bProjection, cProjection);
-
-						data[i][j][k].rugosity += originalArea / projectionArea;
-					}
-
-					data[i][j][k].rugosity /= data[i][j][k].trianglesInCell.size();
-				}
+				calculateCellRugosity(&data[i][j][k]);
 			}
 		}
 	}
@@ -470,24 +430,12 @@ void SDF::fillMeshWithRugosityData()
 		{
 			for (size_t k = 0; k < data[i][j].size(); k++)
 			{
-				
-					for (size_t l = 0; l < data[i][j][k].trianglesInCell.size(); l++)
-					{
-						int TriangleIndex = data[i][j][k].trianglesInCell[l];
-						TrianglesRugosityCount[TriangleIndex]++;
-						TrianglesRugosity[TriangleIndex] += data[i][j][k].rugosity;
-
-						/*std::vector<glm::vec3> currentTriangle = mesh->Triangles[data[i][j][k].trianglesInCell[l]];
-						std::vector<glm::vec3> currentTriangleNormals = mesh->TrianglesNormals[data[i][j][k].trianglesInCell[l]];
-
-						data[i][j][k].averageCellNormal += currentTriangleNormals[0];
-						data[i][j][k].averageCellNormal += currentTriangleNormals[1];
-						data[i][j][k].averageCellNormal += currentTriangleNormals[2];
-
-						data[i][j][k].CellTrianglesCentroid += currentTriangle[0];
-						data[i][j][k].CellTrianglesCentroid += currentTriangle[1];
-						data[i][j][k].CellTrianglesCentroid += currentTriangle[2];*/
-					}
+				for (size_t l = 0; l < data[i][j][k].trianglesInCell.size(); l++)
+				{
+					int TriangleIndex = data[i][j][k].trianglesInCell[l];
+					TrianglesRugosityCount[TriangleIndex]++;
+					TrianglesRugosity[TriangleIndex] += data[i][j][k].rugosity;
+				}
 			}
 		}
 	}
@@ -547,7 +495,7 @@ void SDF::fillMeshWithRugosityData()
 
 
 
-		double normalizedRugorsity = (TrianglesRugosity[i] - minRugorsity) / (maxRugorsity - minRugorsity);
+		/*double normalizedRugorsity = (TrianglesRugosity[i] - minRugorsity) / (maxRugorsity - minRugorsity);
 
 		if (normalizedRugorsity <= 0.125 && normalizedRugorsity > 0.0)
 		{
@@ -568,6 +516,62 @@ void SDF::fillMeshWithRugosityData()
 		else
 		{
 			setColorOfFace(i, red);
+		}*/
+
+
+		double normalizedRugorsity = (TrianglesRugosity[i] - minRugorsity) / (maxRugorsity - minRugorsity);
+
+		if (normalizedRugorsity <= 0.125 && normalizedRugorsity > 0.0)
+		{
+			float DistanceToLower = abs(normalizedRugorsity - 0.0);
+			float DistanceToUpper = abs(normalizedRugorsity - 0.125);
+
+			float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.125 - 0.0);
+			float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.125 - 0.0);
+
+			glm::vec3 mix = darkBlue * DistanceToLowerCof + lightCyan * DistanceToUpperCof;
+
+			setColorOfFace(i, mix);
+		}
+		else if (normalizedRugorsity <= 0.25 && normalizedRugorsity > 0.125)
+		{
+			float DistanceToLower = abs(normalizedRugorsity - 0.125);
+			float DistanceToUpper = abs(normalizedRugorsity - 0.25);
+
+			float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.25 - 0.125);
+			float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.25 - 0.125);
+
+			glm::vec3 mix = lightCyan * DistanceToLowerCof + green * DistanceToUpperCof;
+
+			setColorOfFace(i, mix);
+		}
+		else if (normalizedRugorsity <= 0.5 && normalizedRugorsity > 0.25)
+		{
+			float DistanceToLower = abs(normalizedRugorsity - 0.25);
+			float DistanceToUpper = abs(normalizedRugorsity - 0.5);
+
+			float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.5 - 0.25);
+			float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.5 - 0.25);
+
+			glm::vec3 mix = green * DistanceToLowerCof + yellow * DistanceToUpperCof;
+
+			setColorOfFace(i, mix);
+		}
+		else if (normalizedRugorsity <= 0.75 && normalizedRugorsity > 0.5)
+		{
+			float DistanceToLower = abs(normalizedRugorsity - 0.5);
+			float DistanceToUpper = abs(normalizedRugorsity - 0.75);
+
+			float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.75 - 0.5);
+			float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.75 - 0.5);
+
+			glm::vec3 mix = yellow * DistanceToLowerCof + red * DistanceToUpperCof;
+
+			setColorOfFace(i, mix);
+		}
+		else
+		{
+			setColorOfFace(i, red);
 		}
 	}
 
@@ -576,4 +580,152 @@ void SDF::fillMeshWithRugosityData()
 
 	mesh->minRugorsity = minRugorsity;
 	mesh->maxRugorsity = maxRugorsity;
+}
+
+void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
+{
+	if (node->trianglesInCell.size() != 0)
+	{
+		if (debugInfo)
+		{
+			*debugInfo += "Triangles count: " + std::to_string(node->trianglesInCell.size());
+			*debugInfo += "\n";
+		}
+
+		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+		{
+			std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
+			std::vector<glm::vec3> currentTriangleNormals = mesh->TrianglesNormals[node->trianglesInCell[l]];
+
+			node->averageCellNormal += currentTriangleNormals[0];
+			node->averageCellNormal += currentTriangleNormals[1];
+			node->averageCellNormal += currentTriangleNormals[2];
+
+			node->CellTrianglesCentroid += currentTriangle[0];
+			node->CellTrianglesCentroid += currentTriangle[1];
+			node->CellTrianglesCentroid += currentTriangle[2];
+		}
+
+		node->averageCellNormal /= node->trianglesInCell.size() * 3;
+		node->CellTrianglesCentroid /= node->trianglesInCell.size() * 3;
+
+		if (debugInfo)
+		{
+			*debugInfo += "Average normal x:" + std::to_string(node->averageCellNormal.x);
+			*debugInfo += " y:" + std::to_string(node->averageCellNormal.y);
+			*debugInfo += " z:" + std::to_string(node->averageCellNormal.z);
+			*debugInfo += "\n";
+		}
+
+		if (node->approximateProjectionPlane != nullptr)
+			delete node->approximateProjectionPlane;
+
+		node->approximateProjectionPlane = new FEPlane(node->CellTrianglesCentroid, node->averageCellNormal);
+
+		std::vector<float> originalAreas;
+		std::vector<float> rugosities;
+		float totalArea = 0.0f;
+
+		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+		{
+			if (debugInfo)
+			{
+				*debugInfo += "\n";
+				*debugInfo += "Triangle index : " + std::to_string(node->trianglesInCell[l]);
+				*debugInfo += "\n";
+				*debugInfo += "Triangle cell index " + std::to_string(l) + " info: ";
+				*debugInfo += "\n";
+			}
+
+			std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
+
+			if (debugInfo)
+			{
+				if (l == 12)
+				{
+					*debugInfo += "First vertex:";
+					*debugInfo += " x:" + std::to_string(currentTriangle[0].x);
+					*debugInfo += " y:" + std::to_string(currentTriangle[0].y);
+					*debugInfo += " z:" + std::to_string(currentTriangle[0].z);
+					*debugInfo += "\n";
+
+					*debugInfo += "Second vertex:";
+					*debugInfo += " x:" + std::to_string(currentTriangle[1].x);
+					*debugInfo += " y:" + std::to_string(currentTriangle[1].y);
+					*debugInfo += " z:" + std::to_string(currentTriangle[1].z);
+					*debugInfo += "\n";
+
+					*debugInfo += "Third vertex:";
+					*debugInfo += " x:" + std::to_string(currentTriangle[2].x);
+					*debugInfo += " y:" + std::to_string(currentTriangle[2].y);
+					*debugInfo += " z:" + std::to_string(currentTriangle[2].z);
+					*debugInfo += "\n";
+				}
+				
+			}
+
+			double originalArea = TriangleArea(currentTriangle[0], currentTriangle[1], currentTriangle[2]);
+			originalAreas.push_back(originalArea);
+			totalArea += originalArea;
+
+			if (debugInfo)
+			{
+				*debugInfo += "Original area:" + std::to_string(originalArea);
+				*debugInfo += "\n";
+			}
+
+			glm::vec3 aProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[0]);
+			glm::vec3 bProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[1]);
+			glm::vec3 cProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[2]);
+
+			if (debugInfo)
+			{
+				if (l == 12)
+				{
+					*debugInfo += "Projected first vertex:";
+					*debugInfo += " x:" + std::to_string(aProjection.x);
+					*debugInfo += " y:" + std::to_string(aProjection.y);
+					*debugInfo += " z:" + std::to_string(aProjection.z);
+					*debugInfo += "\n";
+
+					*debugInfo += "Projected second vertex:";
+					*debugInfo += " x:" + std::to_string(bProjection.x);
+					*debugInfo += " y:" + std::to_string(bProjection.y);
+					*debugInfo += " z:" + std::to_string(bProjection.z);
+					*debugInfo += "\n";
+
+					*debugInfo += "Projected third vertex:";
+					*debugInfo += " x:" + std::to_string(cProjection.x);
+					*debugInfo += " y:" + std::to_string(cProjection.y);
+					*debugInfo += " z:" + std::to_string(cProjection.z);
+					*debugInfo += "\n";
+				}
+			}
+
+			double projectionArea = TriangleArea(aProjection, bProjection, cProjection);
+
+			if (debugInfo)
+			{
+				*debugInfo += "Projected area:" + std::to_string(projectionArea);
+				*debugInfo += "\n";
+			}
+
+			rugosities.push_back(originalArea / projectionArea);
+			//node->rugosity += originalArea / projectionArea;
+
+			if (debugInfo)
+			{
+				*debugInfo += "Rugosity:" + std::to_string(originalArea / projectionArea);
+				*debugInfo += "\n";
+			}
+		}
+
+		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+		{
+			float currentTriangleCoef = originalAreas[l] / totalArea;
+			node->rugosity += rugosities[l] * currentTriangleCoef;
+		}
+
+		//node->rugosity /= node->trianglesInCell.size();
+	}
 }

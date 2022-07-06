@@ -57,6 +57,8 @@ namespace FocalEngine
 		void AddLineToBuffer(FELine LineToAdd);
 		void SyncWithGPU();
 
+		void RenderAABB(FEAABB AABB, glm::vec3 color);
+
 		void clearAll();
 	private:
 		SINGLETON_PRIVATE_PART(FELinesRenderer)

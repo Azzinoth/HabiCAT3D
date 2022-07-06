@@ -94,3 +94,24 @@ void FELinesRenderer::clearAll()
 	PointsToRender = 0;
 	LinePointVector.clear();
 }
+
+void FELinesRenderer::RenderAABB(FEAABB AABB, glm::vec3 color)
+{
+	// bottom plane
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()), glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMin()[2]), color));
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()), glm::vec3(AABB.getMin()[0], AABB.getMin()[1], AABB.getMax()[2]), color));
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMin()[2]), glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMax()[2]), color));
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMax()[2]), glm::vec3(AABB.getMin()[0], AABB.getMin()[1], AABB.getMax()[2]), color));
+
+	// upper plane
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMin()[2]), glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMin()[2]), color));
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMin()[2]), glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMax()[2]), color));
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMin()[2]), glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMax()[2]), color));
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMax()[2]), glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMax()[2]), color));
+
+	// conect two planes
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMin()[2]), glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMin()[2]), color));
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()[0], AABB.getMin()[1], AABB.getMax()[2]), glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMax()[2]), color));
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMax()[2]), glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMax()[2]), color));
+	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()[0], AABB.getMin()[1], AABB.getMin()[2]), glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMin()[2]), color));
+}

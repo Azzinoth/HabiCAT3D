@@ -1,32 +1,6 @@
 #include "SubSystems/FECGALWrapper.h"
 using namespace FocalEngine;
 
-FEFreeCamera* currentCamera = nullptr;
-bool wireframeMode = false;
-FEShader* meshShader = nullptr;
-
-double mouseX;
-double mouseY;
-
-glm::dvec3 mouseRay(double mouseX, double mouseY)
-{
-	int W, H;
-	APPLICATION.getWindowSize(&W, &H);
-
-	glm::dvec2 normalizedMouseCoords;
-	normalizedMouseCoords.x = (2.0f * mouseX) / W - 1;
-	normalizedMouseCoords.y = 1.0f - (2.0f * (mouseY)) / H;
-
-	glm::dvec4 clipCoords = glm::dvec4(normalizedMouseCoords.x, normalizedMouseCoords.y, -1.0, 1.0);
-	glm::dvec4 eyeCoords = glm::inverse(currentCamera->getProjectionMatrix()) * clipCoords;
-	eyeCoords.z = -1.0f;
-	eyeCoords.w = 0.0f;
-	glm::dvec3 worldRay = glm::inverse(currentCamera->getViewMatrix()) * eyeCoords;
-	worldRay = glm::normalize(worldRay);
-
-	return worldRay;
-}
-
 static const char* const sTestVS = R"(
 @In_Position@
 @In_Normal@
@@ -111,6 +85,36 @@ void main(void)
 }
 )";
 
+FEFreeCamera* currentCamera = nullptr;
+bool wireframeMode = false;
+FEShader* meshShader = nullptr;
+
+double mouseX;
+double mouseY;
+
+SDF* currentSDF = nullptr;
+bool showCellsWithTriangles = false;
+bool showTrianglesInCells = true;
+
+glm::dvec3 mouseRay(double mouseX, double mouseY)
+{
+	int W, H;
+	APPLICATION.getWindowSize(&W, &H);
+
+	glm::dvec2 normalizedMouseCoords;
+	normalizedMouseCoords.x = (2.0f * mouseX) / W - 1;
+	normalizedMouseCoords.y = 1.0f - (2.0f * (mouseY)) / H;
+
+	glm::dvec4 clipCoords = glm::dvec4(normalizedMouseCoords.x, normalizedMouseCoords.y, -1.0, 1.0);
+	glm::dvec4 eyeCoords = glm::inverse(currentCamera->getProjectionMatrix()) * clipCoords;
+	eyeCoords.z = -1.0f;
+	eyeCoords.w = 0.0f;
+	glm::dvec3 worldRay = glm::inverse(currentCamera->getViewMatrix()) * eyeCoords;
+	worldRay = glm::normalize(worldRay);
+
+	return worldRay;
+}
+
 void renderTargetCenterForCamera()
 {
 	int centerX, centerY = 0;
@@ -143,6 +147,47 @@ void renderTargetCenterForCamera()
 
 	currentCamera->setRenderTargetShiftX(shiftX);
 	currentCamera->setRenderTargetShiftY(shiftY);
+}
+
+void addLinesOFSDF(SDF* SDF)
+{
+	for (size_t i = 0; i < SDF->data.size(); i++)
+	{
+		for (size_t j = 0; j < SDF->data[i].size(); j++)
+		{
+			for (size_t k = 0; k < SDF->data[i][j].size(); k++)
+			{
+				bool render = false;
+				SDF->data[i][j][k].wasRenderedLastFrame = false;
+
+				if (SDF->data[i][j][k].trianglesInCell.size() > 0)
+					render = true;
+
+				if (render)
+				{
+					glm::vec3 color = glm::vec3(0.1f, 0.6f, 0.1f);
+					if (SDF->data[i][j][k].selected)
+						color = glm::vec3(0.9f, 0.1f, 0.1f);
+
+					LINE_RENDERER.RenderAABB(SDF->data[i][j][k].AABB, color);
+
+					SDF->data[i][j][k].wasRenderedLastFrame = true;
+
+					if (showTrianglesInCells && SDF->data[i][j][k].selected)
+					{
+						for (size_t l = 0; l < SDF->data[i][j][k].trianglesInCell.size(); l++)
+						{
+							auto currentTriangle = SDF->mesh->Triangles[SDF->data[i][j][k].trianglesInCell[l]];
+							
+							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[0], currentTriangle[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[0], currentTriangle[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[1], currentTriangle[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 FEMesh* loadedMesh = nullptr;
@@ -235,42 +280,57 @@ void mouseButtonCallback(int button, int action, int mods)
 	{
 		if (currentMesh != nullptr)
 		{
-			currentMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
-			LINE_RENDERER.clearAll();
-
-			if (currentMesh->TriangleSelected != -1)
+			if (!showCellsWithTriangles)
 			{
-				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][1], glm::vec3(1.0f, 1.0f, 0.0f)));
-				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
-				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][1], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+				currentMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
+				LINE_RENDERER.clearAll();
 
-				if (!currentMesh->TrianglesNormals.empty())
+				if (currentMesh->TriangleSelected != -1)
 				{
-					glm::vec3 Point = currentMesh->Triangles[currentMesh->TriangleSelected][0];
-					glm::vec3 Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][0];
-					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+					LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][1], glm::vec3(1.0f, 1.0f, 0.0f)));
+					LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+					LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][1], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
 
-					Point = currentMesh->Triangles[currentMesh->TriangleSelected][1];
-					Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][1];
-					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+					if (!currentMesh->TrianglesNormals.empty())
+					{
+						glm::vec3 Point = currentMesh->Triangles[currentMesh->TriangleSelected][0];
+						glm::vec3 Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][0];
+						LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
-					Point = currentMesh->Triangles[currentMesh->TriangleSelected][2];
-					Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][2];
-					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+						Point = currentMesh->Triangles[currentMesh->TriangleSelected][1];
+						Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][1];
+						LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+
+						Point = currentMesh->Triangles[currentMesh->TriangleSelected][2];
+						Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][2];
+						LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+					}
+
+					if (!currentMesh->originalTrianglesToSegments.empty() && !currentMesh->segmentsNormals.empty())
+					{
+						glm::vec3 Centroid = (currentMesh->Triangles[currentMesh->TriangleSelected][0] +
+							currentMesh->Triangles[currentMesh->TriangleSelected][1] +
+							currentMesh->Triangles[currentMesh->TriangleSelected][2]) / 3.0f;
+
+						glm::vec3 Normal = currentMesh->segmentsNormals[currentMesh->originalTrianglesToSegments[currentMesh->TriangleSelected]];
+						LINE_RENDERER.AddLineToBuffer(FELine(Centroid, Centroid + Normal, glm::vec3(1.0f, 0.0f, 0.0f)));
+					}
+
+					LINE_RENDERER.SyncWithGPU();
 				}
+			}
+			else
+			{
+				currentSDF->mouseClick(mouseX, mouseY);
 
-				if (!currentMesh->originalTrianglesToSegments.empty() && !currentMesh->segmentsNormals.empty())
-				{
-					glm::vec3 Centroid = (currentMesh->Triangles[currentMesh->TriangleSelected][0] +
-										  currentMesh->Triangles[currentMesh->TriangleSelected][1] +
-										  currentMesh->Triangles[currentMesh->TriangleSelected][2]) / 3.0f;
-					
-					glm::vec3 Normal = currentMesh->segmentsNormals[currentMesh->originalTrianglesToSegments[currentMesh->TriangleSelected]];
-					LINE_RENDERER.AddLineToBuffer(FELine(Centroid, Centroid + Normal, glm::vec3(1.0f, 0.0f, 0.0f)));
-				}
+				LINE_RENDERER.clearAll();
+
+				if (showCellsWithTriangles)
+					addLinesOFSDF(currentSDF);
 
 				LINE_RENDERER.SyncWithGPU();
 			}
+			
 		}
 	}
 }
@@ -295,9 +355,6 @@ void renderFEMesh(FEMesh* mesh)
 
 	glBindVertexArray(0);
 }
-
-void testFunction();
-SDF* currentSDF = nullptr;
 
 void calculateSDF(FEMesh* mesh, int dimentions)
 {
@@ -389,8 +446,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	currentCamera = new FEFreeCamera("mainCamera");
 	currentCamera->setIsInputActive(false);
 	currentCamera->setAspectRatio(1280.0f / 720.0f);
-
-	testFunction();
 
 	while (APPLICATION.isWindowOpened())
 	{
@@ -619,8 +674,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				ImGui::Text(Text.c_str());
 			}
 
-
-
 			if (ImGui::Button("Generate SDF"))
 			{
 				calculateSDF(currentMesh, 32);
@@ -636,6 +689,76 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				{
 					currentMesh->colorMode = 0;
 				}
+
+				
+				//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
+				if (ImGui::Checkbox("Show cells with triangles", &showCellsWithTriangles))
+				{
+					LINE_RENDERER.clearAll();
+
+					if (showCellsWithTriangles)
+						addLinesOFSDF(currentSDF);
+
+					LINE_RENDERER.SyncWithGPU();
+				}
+				
+			}
+
+			ImGui::Separator();
+			if (currentSDF != nullptr && currentSDF->selectedCell != glm::vec3(0.0))
+			{
+				SDFNode currentlySelectedCell = currentSDF->data[currentSDF->selectedCell.x][currentSDF->selectedCell.y][currentSDF->selectedCell.z];
+
+				//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
+				ImGui::Text("Selected cell info: ");
+
+				std::string indexes = "i: " + std::to_string(currentSDF->selectedCell.x);
+				indexes += " j: " + std::to_string(currentSDF->selectedCell.y);
+				indexes += " k: " + std::to_string(currentSDF->selectedCell.z);
+				//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
+				ImGui::Text((indexes).c_str());
+
+				//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
+				ImGui::Text(("value: " + std::to_string(currentlySelectedCell.value)).c_str());
+
+				//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
+				ImGui::Text(("distanceToTrianglePlane: " + std::to_string(currentlySelectedCell.distanceToTrianglePlane)).c_str());
+
+				ImGui::Separator();
+
+				//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
+				ImGui::Text("Rugosity info: ");
+
+				std::string text = "averageCellNormal x: " + std::to_string(currentlySelectedCell.averageCellNormal.x);
+				text += " y: " + std::to_string(currentlySelectedCell.averageCellNormal.y);
+				text += " z: " + std::to_string(currentlySelectedCell.averageCellNormal.z);
+				//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
+				ImGui::Text((text).c_str());
+
+
+				text = "CellTrianglesCentroid x: " + std::to_string(currentlySelectedCell.CellTrianglesCentroid.x);
+				text += " y: " + std::to_string(currentlySelectedCell.CellTrianglesCentroid.y);
+				text += " z: " + std::to_string(currentlySelectedCell.CellTrianglesCentroid.z);
+				//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
+				ImGui::Text((text).c_str());
+
+				if (currentlySelectedCell.approximateProjectionPlane != nullptr)
+				{
+					//glm::vec3 NormalStart = currentlySelectedCell.approximateProjectionPlane->PointOnPlane + choosenEntity->transform.getPosition();
+					//glm::vec3 NormalEnd = NormalStart + currentlySelectedCell.approximateProjectionPlane->Normal;
+					//RENDERER.drawLine(NormalStart, NormalEnd, glm::vec3(0.1f, 0.1f, 0.9f), 0.25f);
+				}
+
+				ImGui::Text(("Rugosity : " + std::to_string(currentlySelectedCell.rugosity)).c_str());
+
+				static std::string debugText;
+
+				if (ImGui::Button("Show debug info"))
+				{
+					currentSDF->calculateCellRugosity(&currentSDF->data[currentSDF->selectedCell.x][currentSDF->selectedCell.y][currentSDF->selectedCell.z], &debugText);
+				}
+
+				ImGui::Text(debugText.c_str());
 			}
 		}
 		
@@ -643,13 +766,4 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	return 0;
-}
-
-void testFunction()
-{
-	//FEMesh* testMesh = CGALWrapper.importOBJ("C:/Users/Kindr/Downloads/OBJ_Models/pickle_.obj", true);
-	//SDF* testSDF = createSDF(testMesh, 8);
-
-	//int y = 0;
-	//y++;
 }

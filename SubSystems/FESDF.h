@@ -75,9 +75,11 @@ namespace FocalEngine
 
 		void mouseClick(double mouseX, double mouseY, glm::mat4 transformMat = glm::identity<glm::mat4>());
 
-		static double TriangleArea(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 PointC);
+		static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
 
 		void fillMeshWithRugosityData();
+
+		void calculateCellRugosity(SDFNode* node, std::string* debugInfo = nullptr);
 
 		~SDF()
 		{
