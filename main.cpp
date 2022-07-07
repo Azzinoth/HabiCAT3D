@@ -857,6 +857,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 				ImGui::Text((debugTimers).c_str());
 
+				ImGui::Text(("debugTotalTrianglesInCells: " + std::to_string(currentSDF->debugTotalTrianglesInCells)).c_str());
+				
+
 
 
 				if (showRugosity)

@@ -254,19 +254,69 @@ void SDF::fillCellsWithTriangleInfo()
 
 	TIME.beginTimeStamp("Fill cells with triangle info");
 
+	float cellSize = data[0][0][0].AABB.getSize();
+	glm::vec3 gridMin = data[0][0][0].AABB.getMin();
+	glm::vec3 gridMax = data[data.size() - 1][data.size() - 1][data.size() - 1].AABB.getMax();
+
+	float distance = 0.0f;
+	debugTotalTrianglesInCells = 0;
+
 	for (size_t l = 0; l < mesh->Triangles.size(); l++)
 	{
 		FEAABB triangleAABB = FEAABB(mesh->Triangles[l]);
 
-		for (size_t i = 0; i < data.size(); i++)
+		int XBegin = 0;
+		int XEnd = data.size();
+
+		distance = sqrt(pow(triangleAABB.getMin().x - gridMin.x, 2.0));
+		XBegin = int(distance / cellSize) - 1;
+		if (XBegin < 0)
+			XBegin = 0;
+
+		distance = sqrt(pow(triangleAABB.getMax().x - gridMax.x, 2.0));
+		XEnd -= int(distance / cellSize);
+		XEnd++;
+		if (XEnd > data.size())
+			XEnd = data.size();
+
+		for (size_t i = XBegin; i < XEnd; i++)
 		{
-			for (size_t j = 0; j < data[i].size(); j++)
+			int YBegin = 0;
+			int YEnd = data.size();
+
+			distance = sqrt(pow(triangleAABB.getMin().y - gridMin.y, 2.0));
+			YBegin = int(distance / cellSize) - 1;
+			if (YBegin < 0)
+				YBegin = 0;
+
+			distance = sqrt(pow(triangleAABB.getMax().y - gridMax.y, 2.0));
+			YEnd -= int(distance / cellSize);
+			YEnd++;
+			if (YEnd > data.size())
+				YEnd = data.size();
+
+			for (size_t j = YBegin; j < YEnd; j++)
 			{
-				for (size_t k = 0; k < data[i][j].size(); k++)
+				int ZBegin = 0;
+				int ZEnd = data.size();
+
+				distance = sqrt(pow(triangleAABB.getMin().z - gridMin.z, 2.0));
+				ZBegin = int(distance / cellSize) - 1;
+				if (ZBegin < 0)
+					ZBegin = 0;
+
+				distance = sqrt(pow(triangleAABB.getMax().z - gridMax.z, 2.0));
+				ZEnd -= int(distance / cellSize);
+				ZEnd++;
+				if (ZEnd > data.size())
+					ZEnd = data.size();
+
+				for (size_t k = ZBegin; k < ZEnd; k++)
 				{
 					if (data[i][j][k].AABB.AABBIntersect(triangleAABB))
 					{
 						data[i][j][k].trianglesInCell.push_back(l);
+						debugTotalTrianglesInCells++;
 					}
 				}
 			}
@@ -449,6 +499,22 @@ void SDF::fillMeshWithRugosityData()
 	}
 
 
+	
+	/*std::vector<float> TrianglesRugositySorted = TrianglesRugosity;
+	std::sort(TrianglesRugositySorted.begin(), TrianglesRugositySorted.end(), [](float lhs,
+		float rhs) { return rhs < lhs; });
+
+	int numbOfPoints = int(TrianglesRugositySorted.size() * 0.05f);
+	float mean = 0.0f;
+	for (size_t i = 0; i < numbOfPoints; i++)
+	{
+		mean += TrianglesRugositySorted[i];
+	}
+
+	if (numbOfPoints != 0)
+		mean /= numbOfPoints;*/
+
+
 	double minRugorsity = DBL_MAX;
 	double maxRugorsity = -DBL_MAX;
 	for (size_t i = 0; i < TrianglesRugosity.size(); i++)
@@ -467,8 +533,8 @@ void SDF::fillMeshWithRugosityData()
 
 
 
-
-
+	maxRugorsity = 3.0f;
+	//maxRugorsity = mean;
 
 	glm::vec3 darkBlue = glm::vec3(0.0f, 0.0f, 0.4f);
 	glm::vec3 lightCyan = glm::vec3(27.0f / 255.0f, 213.0f / 255.0f, 200.0f / 255.0f);
@@ -596,27 +662,55 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 {
 	if (node->trianglesInCell.size() != 0)
 	{
-		if (debugInfo)
+		/*if (debugInfo)
 		{
 			*debugInfo += "Triangles count: " + std::to_string(node->trianglesInCell.size());
 			*debugInfo += "\n";
+		}*/
+
+		std::vector<float> originalAreas;
+		float totalArea = 0.0f;
+		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+		{
+			std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
+			double originalArea = TriangleArea(currentTriangle[0], currentTriangle[1], currentTriangle[2]);
+			originalAreas.push_back(originalArea);
+			totalArea += originalArea;
 		}
+
+		bool weightedNormals = false;
+		bool normalizedNormals = false;
 
 		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
 		{
 			std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
 			std::vector<glm::vec3> currentTriangleNormals = mesh->TrianglesNormals[node->trianglesInCell[l]];
 
-			node->averageCellNormal += currentTriangleNormals[0];
-			node->averageCellNormal += currentTriangleNormals[1];
-			node->averageCellNormal += currentTriangleNormals[2];
+			if (weightedNormals)
+			{
+				float currentTriangleCoef = originalAreas[l] / totalArea;
+
+				node->averageCellNormal += currentTriangleNormals[0] * currentTriangleCoef;
+				node->averageCellNormal += currentTriangleNormals[1] * currentTriangleCoef;
+				node->averageCellNormal += currentTriangleNormals[2] * currentTriangleCoef;
+			}
+			else
+			{
+				node->averageCellNormal += currentTriangleNormals[0];
+				node->averageCellNormal += currentTriangleNormals[1];
+				node->averageCellNormal += currentTriangleNormals[2];
+			}
 
 			node->CellTrianglesCentroid += currentTriangle[0];
 			node->CellTrianglesCentroid += currentTriangle[1];
 			node->CellTrianglesCentroid += currentTriangle[2];
 		}
 
-		node->averageCellNormal /= node->trianglesInCell.size() * 3;
+		if (!weightedNormals)
+			node->averageCellNormal /= node->trianglesInCell.size() * 3;
+
+		if (normalizedNormals)
+			node->averageCellNormal = glm::normalize(node->averageCellNormal);
 		node->CellTrianglesCentroid /= node->trianglesInCell.size() * 3;
 
 		if (debugInfo)
@@ -632,63 +726,62 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 
 		node->approximateProjectionPlane = new FEPlane(node->CellTrianglesCentroid, node->averageCellNormal);
 
-		std::vector<float> originalAreas;
+		//std::vector<float> originalAreas;
 		std::vector<float> rugosities;
-		float totalArea = 0.0f;
+		//float totalArea = 0.0f;
 
 		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
 		{
-			if (debugInfo)
+			/*if (debugInfo)
 			{
 				*debugInfo += "\n";
 				*debugInfo += "Triangle index : " + std::to_string(node->trianglesInCell[l]);
 				*debugInfo += "\n";
 				*debugInfo += "Triangle cell index " + std::to_string(l) + " info: ";
 				*debugInfo += "\n";
-			}
+			}*/
 
 			std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
 
-			if (debugInfo)
-			{
-				if (l == 12)
-				{
-					*debugInfo += "First vertex:";
-					*debugInfo += " x:" + std::to_string(currentTriangle[0].x);
-					*debugInfo += " y:" + std::to_string(currentTriangle[0].y);
-					*debugInfo += " z:" + std::to_string(currentTriangle[0].z);
-					*debugInfo += "\n";
+			//if (debugInfo)
+			//{
+			//	if (l == 12)
+			//	{
+			//		*debugInfo += "First vertex:";
+			//		*debugInfo += " x:" + std::to_string(currentTriangle[0].x);
+			//		*debugInfo += " y:" + std::to_string(currentTriangle[0].y);
+			//		*debugInfo += " z:" + std::to_string(currentTriangle[0].z);
+			//		*debugInfo += "\n";
 
-					*debugInfo += "Second vertex:";
-					*debugInfo += " x:" + std::to_string(currentTriangle[1].x);
-					*debugInfo += " y:" + std::to_string(currentTriangle[1].y);
-					*debugInfo += " z:" + std::to_string(currentTriangle[1].z);
-					*debugInfo += "\n";
+			//		*debugInfo += "Second vertex:";
+			//		*debugInfo += " x:" + std::to_string(currentTriangle[1].x);
+			//		*debugInfo += " y:" + std::to_string(currentTriangle[1].y);
+			//		*debugInfo += " z:" + std::to_string(currentTriangle[1].z);
+			//		*debugInfo += "\n";
 
-					*debugInfo += "Third vertex:";
-					*debugInfo += " x:" + std::to_string(currentTriangle[2].x);
-					*debugInfo += " y:" + std::to_string(currentTriangle[2].y);
-					*debugInfo += " z:" + std::to_string(currentTriangle[2].z);
-					*debugInfo += "\n";
-				}
-				
-			}
+			//		*debugInfo += "Third vertex:";
+			//		*debugInfo += " x:" + std::to_string(currentTriangle[2].x);
+			//		*debugInfo += " y:" + std::to_string(currentTriangle[2].y);
+			//		*debugInfo += " z:" + std::to_string(currentTriangle[2].z);
+			//		*debugInfo += "\n";
+			//	}
+			//}
 
-			double originalArea = TriangleArea(currentTriangle[0], currentTriangle[1], currentTriangle[2]);
-			originalAreas.push_back(originalArea);
-			totalArea += originalArea;
+			//double originalArea = TriangleArea(currentTriangle[0], currentTriangle[1], currentTriangle[2]);
+			//originalAreas.push_back(originalArea);
+			//totalArea += originalArea;
 
-			if (debugInfo)
+			/*if (debugInfo)
 			{
 				*debugInfo += "Original area:" + std::to_string(originalArea);
 				*debugInfo += "\n";
-			}
+			}*/
 
 			glm::vec3 aProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[0]);
 			glm::vec3 bProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[1]);
 			glm::vec3 cProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[2]);
 
-			if (debugInfo)
+			/*if (debugInfo)
 			{
 				if (l == 12)
 				{
@@ -710,24 +803,23 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 					*debugInfo += " z:" + std::to_string(cProjection.z);
 					*debugInfo += "\n";
 				}
-			}
+			}*/
 
 			double projectionArea = TriangleArea(aProjection, bProjection, cProjection);
 
-			if (debugInfo)
+			/*if (debugInfo)
 			{
 				*debugInfo += "Projected area:" + std::to_string(projectionArea);
 				*debugInfo += "\n";
-			}
+			}*/
 
-			rugosities.push_back(originalArea / projectionArea);
-			//node->rugosity += originalArea / projectionArea;
+			rugosities.push_back(originalAreas[l] / projectionArea);
 
-			if (debugInfo)
+			/*if (debugInfo)
 			{
 				*debugInfo += "Rugosity:" + std::to_string(originalArea / projectionArea);
 				*debugInfo += "\n";
-			}
+			}*/
 		}
 
 		for (size_t l = 0; l < node->trianglesInCell.size(); l++)

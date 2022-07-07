@@ -86,6 +86,8 @@ namespace FocalEngine
 		float TimeTookCalculateRugosity = 0.0f;
 		float TimeTookFillMeshWithRugosityData = 0.0f;
 
+		int debugTotalTrianglesInCells = 0;
+
 		~SDF()
 		{
 			data.clear();
