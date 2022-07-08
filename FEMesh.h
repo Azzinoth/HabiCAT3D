@@ -64,6 +64,7 @@ namespace FocalEngine
 		// NEW
 		double minRugorsity = DBL_MAX;
 		double maxRugorsity = -DBL_MAX;
+		bool showRugosity = false;
 
 		int colorMode = 0;
 

@@ -402,18 +402,6 @@ void SDF::fillMeshWithRugosityData()
 	float* positions = new float[posSize];
 	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getPositionsBufferID(), 0, sizeof(float) * posSize, positions));
 
-	/*int UVSize = mesh->getUVCount();
-	float* UV = new float[UVSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getUVBufferID(), 0, sizeof(float) * UVSize, UV));
-
-	int normSize = mesh->getNormalsCount();
-	float* normalsFloat = new float[normSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getNormalsBufferID(), 0, sizeof(float) * normSize, normalsFloat));
-
-	int tanSize = mesh->getTangentsCount();
-	float* tangents = new float[tanSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getTangentsBufferID(), 0, sizeof(float) * tanSize, tangents));*/
-
 	int indexSize = mesh->getIndicesCount();
 	int* indices = new int[indexSize];
 	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getIndicesBufferID(), 0, sizeof(int) * indexSize, indices));
@@ -514,7 +502,6 @@ void SDF::fillMeshWithRugosityData()
 	if (numbOfPoints != 0)
 		mean /= numbOfPoints;*/
 
-
 	double minRugorsity = DBL_MAX;
 	double maxRugorsity = -DBL_MAX;
 	for (size_t i = 0; i < TrianglesRugosity.size(); i++)
@@ -528,15 +515,10 @@ void SDF::fillMeshWithRugosityData()
 			minRugorsity = TrianglesRugosity[i];
 	}
 
-
-
-
-
-
 	maxRugorsity = 3.0f;
 	//maxRugorsity = mean;
 
-	glm::vec3 darkBlue = glm::vec3(0.0f, 0.0f, 0.4f);
+	/*glm::vec3 darkBlue = glm::vec3(0.0f, 0.0f, 0.4f);
 	glm::vec3 lightCyan = glm::vec3(27.0f / 255.0f, 213.0f / 255.0f, 200.0f / 255.0f);
 	glm::vec3 green = glm::vec3(0.0f / 255.0f, 255.0f / 255.0f, 64.0f / 255.0f);
 	glm::vec3 yellow = glm::vec3(225.0f / 255.0f, 225.0f / 255.0f, 0.0f / 255.0f);
@@ -544,55 +526,6 @@ void SDF::fillMeshWithRugosityData()
 
 	for (size_t i = 0; i < mesh->Triangles.size(); i++)
 	{
-		/*double normalizedRugorsity = TrianglesRugosity[i];
-
-		if (normalizedRugorsity <= 1.1 && normalizedRugorsity > 1.0)
-		{
-			setColorOfFace(i, darkBlue);
-		}
-		else if (normalizedRugorsity <= 1.2 && normalizedRugorsity > 1.1)
-		{
-			setColorOfFace(i, lightCyan);
-		}
-		else if (normalizedRugorsity <= 1.3 && normalizedRugorsity > 1.2)
-		{
-			setColorOfFace(i, green);
-		}
-		else if (normalizedRugorsity <= 1.4 && normalizedRugorsity > 1.3)
-		{
-			setColorOfFace(i, yellow);
-		}
-		else
-		{
-			setColorOfFace(i, red);
-		}*/
-
-
-
-		/*double normalizedRugorsity = (TrianglesRugosity[i] - minRugorsity) / (maxRugorsity - minRugorsity);
-
-		if (normalizedRugorsity <= 0.125 && normalizedRugorsity > 0.0)
-		{
-			setColorOfFace(i, darkBlue);
-		}
-		else if (normalizedRugorsity <= 0.25 && normalizedRugorsity > 0.125)
-		{
-			setColorOfFace(i, lightCyan);
-		}
-		else if (normalizedRugorsity <= 0.5 && normalizedRugorsity > 0.25)
-		{
-			setColorOfFace(i, green);
-		}
-		else if (normalizedRugorsity <= 0.75 && normalizedRugorsity > 0.5)
-		{
-			setColorOfFace(i, yellow);
-		}
-		else
-		{
-			setColorOfFace(i, red);
-		}*/
-
-
 		double normalizedRugorsity = (TrianglesRugosity[i] - minRugorsity) / (maxRugorsity - minRugorsity);
 
 		if (normalizedRugorsity <= 0.125 && normalizedRugorsity > 0.0)
@@ -649,8 +582,7 @@ void SDF::fillMeshWithRugosityData()
 		}
 	}
 
-	mesh->addColorToVertices(colors, colorSize);
-	//mesh->addSegmentsColorToVertices(segmentsColors, segmentsColorsSize);
+	mesh->addColorToVertices(colors, colorSize);*/
 
 	mesh->minRugorsity = minRugorsity;
 	mesh->maxRugorsity = maxRugorsity;
@@ -673,7 +605,7 @@ void SDF::fillMeshWithRugosityData()
 
 
 
-	// NEW
+	// addRugosityToVertices
 	mesh->rugosityData.resize(posSize);
 
 
@@ -693,16 +625,10 @@ void SDF::fillMeshWithRugosityData()
 		}
 	};
 
-	/*for (size_t i = 0; i < mesh->rugosityData.size(); i++)
-	{
-		mesh->rugosityData[i] = i * 0.01f;
-	}*/
-
 	for (size_t i = 0; i < mesh->Triangles.size(); i++)
 	{
 		setRugosityOfFace(i, TrianglesRugosity[i]);
 	}
-	
 
 	FE_GL_ERROR(glBindVertexArray(mesh->vaoID));
 
@@ -714,9 +640,6 @@ void SDF::fillMeshWithRugosityData()
 	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mesh->rugosityData.size(), mesh->rugosityData.data(), GL_STATIC_DRAW));
 	FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, 0));
 	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-
-
-
 
 	TimeTookFillMeshWithRugosityData = TIME.endTimeStamp("FillMeshWithRugosityData");
 }
