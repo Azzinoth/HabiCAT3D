@@ -437,7 +437,7 @@ void SDF::fillMeshWithRugosityData()
 	float* colors = new float[posSize];
 	int vertexIndex = 0;
 
-
+	
 
 	auto setColorOfVertex = [&](int index, glm::vec3 color) {
 		colors[index * 3] = color.x;
@@ -654,6 +654,69 @@ void SDF::fillMeshWithRugosityData()
 
 	mesh->minRugorsity = minRugorsity;
 	mesh->maxRugorsity = maxRugorsity;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+	// NEW
+	mesh->rugosityData.resize(posSize);
+
+
+	auto setRugosityOfVertex = [&](int index, float value) {
+		mesh->rugosityData[index * 3] = value;
+		mesh->rugosityData[index * 3 + 1] = value;
+		mesh->rugosityData[index * 3 + 2] = value;
+	};
+
+
+	auto setRugosityOfFace = [&](int faceIndex, float value) {
+		std::vector<int> faceVertex = getVertexOfFace(faceIndex);
+
+		for (size_t i = 0; i < faceVertex.size(); i++)
+		{
+			setRugosityOfVertex(faceVertex[i], value);
+		}
+	};
+
+	/*for (size_t i = 0; i < mesh->rugosityData.size(); i++)
+	{
+		mesh->rugosityData[i] = i * 0.01f;
+	}*/
+
+	for (size_t i = 0; i < mesh->Triangles.size(); i++)
+	{
+		setRugosityOfFace(i, TrianglesRugosity[i]);
+	}
+	
+
+	FE_GL_ERROR(glBindVertexArray(mesh->vaoID));
+
+	//colorCount = colorSize;
+	mesh->rugosityBufferID = 0;
+	//vertexAttributes |= FE_COLOR;
+	FE_GL_ERROR(glGenBuffers(1, &mesh->rugosityBufferID));
+	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, mesh->colorBufferID));
+	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mesh->rugosityData.size(), mesh->rugosityData.data(), GL_STATIC_DRAW));
+	FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, 0));
+	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+
+
+
 
 	TimeTookFillMeshWithRugosityData = TIME.endTimeStamp("FillMeshWithRugosityData");
 }

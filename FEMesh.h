@@ -53,6 +53,8 @@ namespace FocalEngine
 		unsigned int colorCount = -1;
 		GLuint segmentsColorsBufferID = -1;
 		unsigned int segmentsColorsCount = -1;
+		GLuint rugosityBufferID = -1;
+		unsigned int rugosityColorsCount = -1;
 
 		unsigned int vertexCount;
 
@@ -71,6 +73,8 @@ namespace FocalEngine
 
 		std::vector<int> originalTrianglesToSegments;
 		std::vector<glm::vec3> segmentsNormals;
+
+		std::vector<float> rugosityData;
 
 		void fillTrianglesData();
 		bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance);

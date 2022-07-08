@@ -5,6 +5,8 @@ static const char* const sTestVS = R"(
 @In_Position@
 @In_Normal@
 
+layout (location = 8) in float RugosityData;
+
 @In_Color@
 @In_Segments_colors@
 
@@ -25,6 +27,8 @@ out VS_OUT
 
 	vec3 color;
 	vec3 segmentsColors;
+
+	float Rugosity;
 } vs_out;
 
 void main(void)
@@ -43,6 +47,8 @@ void main(void)
 
 	if (colorMode == 2)
 		vs_out.segmentsColors = FESegmentsColors;
+
+	vs_out.Rugosity = RugosityData;
 }
 )";
 
@@ -58,6 +64,8 @@ in VS_OUT
 
 	flat vec3 color;
 	flat vec3 segmentsColors;
+
+	float Rugosity;
 } FS_IN;
 
 @ViewMatrix@
@@ -66,7 +74,16 @@ in VS_OUT
 uniform int colorMode;
 uniform vec3 lightDirection;
 
+uniform float minRugorsity;
+uniform float maxRugorsity;
+
 layout (location = 0) out vec4 out_Color;
+
+vec3 darkBlue = vec3(0.0f, 0.0f, 0.4f);
+vec3 lightCyan = vec3(27.0f / 255.0f, 213.0f / 255.0f, 200.0f / 255.0f);
+vec3 green = vec3(0.0f / 255.0f, 255.0f / 255.0f, 64.0f / 255.0f);
+vec3 yellow = vec3(225.0f / 255.0f, 225.0f / 255.0f, 0.0f / 255.0f);
+vec3 red = vec3(225.0f / 255.0f, 0 / 255.0f, 0.0f / 255.0f);
 
 void main(void)
 {
@@ -77,6 +94,71 @@ void main(void)
 
 	if (colorMode == 2)
 		baseColor = FS_IN.segmentsColors;
+
+
+	float normalizedRugorsity = (FS_IN.Rugosity - minRugorsity) / (maxRugorsity - minRugorsity);
+	
+
+	if (normalizedRugorsity <= 0.125 && normalizedRugorsity > 0.0)
+	{
+		float DistanceToLower = abs(normalizedRugorsity - 0.0);
+		float DistanceToUpper = abs(normalizedRugorsity - 0.125);
+
+		float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.125 - 0.0);
+		float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.125 - 0.0);
+
+		vec3 mix = darkBlue * DistanceToLowerCof + lightCyan * DistanceToUpperCof;
+
+		baseColor = mix;
+		//setColorOfFace(i, mix);
+	}
+	else if (normalizedRugorsity <= 0.25 && normalizedRugorsity > 0.125)
+	{
+		float DistanceToLower = abs(normalizedRugorsity - 0.125);
+		float DistanceToUpper = abs(normalizedRugorsity - 0.25);
+
+		float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.25 - 0.125);
+		float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.25 - 0.125);
+
+		vec3 mix = lightCyan * DistanceToLowerCof + green * DistanceToUpperCof;
+
+		baseColor = mix;
+		//setColorOfFace(i, mix);
+	}
+	else if (normalizedRugorsity <= 0.5 && normalizedRugorsity > 0.25)
+	{
+		float DistanceToLower = abs(normalizedRugorsity - 0.25);
+		float DistanceToUpper = abs(normalizedRugorsity - 0.5);
+
+		float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.5 - 0.25);
+		float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.5 - 0.25);
+
+		vec3 mix = green * DistanceToLowerCof + yellow * DistanceToUpperCof;
+
+		baseColor = mix;
+		//setColorOfFace(i, mix);
+	}
+	else if (normalizedRugorsity <= 0.75 && normalizedRugorsity > 0.5)
+	{
+		float DistanceToLower = abs(normalizedRugorsity - 0.5);
+		float DistanceToUpper = abs(normalizedRugorsity - 0.75);
+
+		float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.75 - 0.5);
+		float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.75 - 0.5);
+
+		vec3 mix = yellow * DistanceToLowerCof + red * DistanceToUpperCof;
+
+		baseColor = mix;
+		//setColorOfFace(i, mix);
+	}
+	else
+	{
+		baseColor = red;
+		//setColorOfFace(i, red);
+	}
+
+
+
 
 	float diffuseFactor = max(dot(FS_IN.vertexNormal, lightDirection), 0.15);
 	vec3 ambientColor = vec3(0.55f, 0.73f, 0.87f) * 2.8f;
@@ -446,6 +528,9 @@ void renderFEMesh(FEMesh* mesh)
 {
 	meshShader->getParameter("colorMode")->updateData(mesh->colorMode);
 
+	meshShader->getParameter("minRugorsity")->updateData(float(mesh->minRugorsity));
+	meshShader->getParameter("maxRugorsity")->updateData(float(mesh->maxRugorsity));
+
 	FE_GL_ERROR(glBindVertexArray(mesh->getVaoID()));
 	if ((mesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));
 	if ((mesh->vertexAttributes & FE_COLOR) == FE_COLOR) FE_GL_ERROR(glEnableVertexAttribArray(1));
@@ -454,6 +539,9 @@ void renderFEMesh(FEMesh* mesh)
 	if ((mesh->vertexAttributes & FE_UV) == FE_UV) FE_GL_ERROR(glEnableVertexAttribArray(4));
 
 	if ((mesh->vertexAttributes & FE_SEGMENTS_COLORS) == FE_SEGMENTS_COLORS) FE_GL_ERROR(glEnableVertexAttribArray(7));
+	// Rugosity
+	if (!mesh->rugosityData.empty())
+		FE_GL_ERROR(glEnableVertexAttribArray(8));
 
 	if ((mesh->vertexAttributes & FE_INDEX) == FE_INDEX)
 		FE_GL_ERROR(glDrawElements(GL_TRIANGLES, mesh->getVertexCount(), GL_UNSIGNED_INT, 0));
@@ -834,6 +922,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 			if (currentSDF != nullptr)
 			{
+				float maxRugorsity = currentMesh->maxRugorsity;
+				ImGui::DragFloat("Max rugorsity", &maxRugorsity, 0.01f);
+				if (maxRugorsity < currentMesh->minRugorsity)
+					maxRugorsity = currentMesh->minRugorsity + 0.1f;
+				currentMesh->maxRugorsity = maxRugorsity;
+
 				float TotalTime = 0.0f;
 
 				std::string debugTimers = "Building of SDF grid : " + std::to_string(currentSDF->TimeTookToGenerateInMS) + " ms";
