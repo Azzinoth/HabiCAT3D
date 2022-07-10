@@ -518,72 +518,6 @@ void SDF::fillMeshWithRugosityData()
 	maxRugorsity = 3.0f;
 	//maxRugorsity = mean;
 
-	/*glm::vec3 darkBlue = glm::vec3(0.0f, 0.0f, 0.4f);
-	glm::vec3 lightCyan = glm::vec3(27.0f / 255.0f, 213.0f / 255.0f, 200.0f / 255.0f);
-	glm::vec3 green = glm::vec3(0.0f / 255.0f, 255.0f / 255.0f, 64.0f / 255.0f);
-	glm::vec3 yellow = glm::vec3(225.0f / 255.0f, 225.0f / 255.0f, 0.0f / 255.0f);
-	glm::vec3 red = glm::vec3(225.0f / 255.0f, 0 / 255.0f, 0.0f / 255.0f);
-
-	for (size_t i = 0; i < mesh->Triangles.size(); i++)
-	{
-		double normalizedRugorsity = (TrianglesRugosity[i] - minRugorsity) / (maxRugorsity - minRugorsity);
-
-		if (normalizedRugorsity <= 0.125 && normalizedRugorsity > 0.0)
-		{
-			float DistanceToLower = abs(normalizedRugorsity - 0.0);
-			float DistanceToUpper = abs(normalizedRugorsity - 0.125);
-
-			float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.125 - 0.0);
-			float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.125 - 0.0);
-
-			glm::vec3 mix = darkBlue * DistanceToLowerCof + lightCyan * DistanceToUpperCof;
-
-			setColorOfFace(i, mix);
-		}
-		else if (normalizedRugorsity <= 0.25 && normalizedRugorsity > 0.125)
-		{
-			float DistanceToLower = abs(normalizedRugorsity - 0.125);
-			float DistanceToUpper = abs(normalizedRugorsity - 0.25);
-
-			float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.25 - 0.125);
-			float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.25 - 0.125);
-
-			glm::vec3 mix = lightCyan * DistanceToLowerCof + green * DistanceToUpperCof;
-
-			setColorOfFace(i, mix);
-		}
-		else if (normalizedRugorsity <= 0.5 && normalizedRugorsity > 0.25)
-		{
-			float DistanceToLower = abs(normalizedRugorsity - 0.25);
-			float DistanceToUpper = abs(normalizedRugorsity - 0.5);
-
-			float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.5 - 0.25);
-			float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.5 - 0.25);
-
-			glm::vec3 mix = green * DistanceToLowerCof + yellow * DistanceToUpperCof;
-
-			setColorOfFace(i, mix);
-		}
-		else if (normalizedRugorsity <= 0.75 && normalizedRugorsity > 0.5)
-		{
-			float DistanceToLower = abs(normalizedRugorsity - 0.5);
-			float DistanceToUpper = abs(normalizedRugorsity - 0.75);
-
-			float DistanceToLowerCof = 1.0f - DistanceToLower / abs(0.75 - 0.5);
-			float DistanceToUpperCof = 1.0f - DistanceToUpper / abs(0.75 - 0.5);
-
-			glm::vec3 mix = yellow * DistanceToLowerCof + red * DistanceToUpperCof;
-
-			setColorOfFace(i, mix);
-		}
-		else
-		{
-			setColorOfFace(i, red);
-		}
-	}
-
-	mesh->addColorToVertices(colors, colorSize);*/
-
 	mesh->minRugorsity = minRugorsity;
 	mesh->maxRugorsity = maxRugorsity;
 
@@ -603,11 +537,19 @@ void SDF::fillMeshWithRugosityData()
 	
 
 
-
+	//bool bFirstTime = true;
 
 	// addRugosityToVertices
-	mesh->rugosityData.resize(posSize);
+	//std::vector<float> oldData;
+	//if (!mesh->rugosityData.empty())
+	//{
+		//bFirstTime = false;
+		//mesh->jitteredData.push_back(mesh->rugosityData);
 
+		//oldData = mesh->rugosityData;
+	//}
+
+	mesh->rugosityData.resize(posSize);
 
 	auto setRugosityOfVertex = [&](int index, float value) {
 		mesh->rugosityData[index * 3] = value;
@@ -630,16 +572,34 @@ void SDF::fillMeshWithRugosityData()
 		setRugosityOfFace(i, TrianglesRugosity[i]);
 	}
 
-	FE_GL_ERROR(glBindVertexArray(mesh->vaoID));
+	std::vector<float> tempRugosity = mesh->rugosityData;
+	if (!mesh->jitteredData.empty())
+	{
+		for (size_t i = 0; i < mesh->rugosityData.size(); i++)
+		{
+			for (size_t j = 0; j < mesh->jitteredData.size(); j++)
+			{
+				mesh->rugosityData[i] += mesh->jitteredData[j][i];
+			}
 
-	//colorCount = colorSize;
-	mesh->rugosityBufferID = 0;
-	//vertexAttributes |= FE_COLOR;
-	FE_GL_ERROR(glGenBuffers(1, &mesh->rugosityBufferID));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, mesh->colorBufferID));
-	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mesh->rugosityData.size(), mesh->rugosityData.data(), GL_STATIC_DRAW));
-	FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, 0));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+			mesh->rugosityData[i] /= mesh->jitteredData.size() + 1;
+		}
+	}
+	mesh->jitteredData.push_back(tempRugosity);
+
+	if (bFinalJitter)
+	{
+		FE_GL_ERROR(glBindVertexArray(mesh->vaoID));
+
+		//colorCount = colorSize;
+		mesh->rugosityBufferID = 0;
+		//vertexAttributes |= FE_COLOR;
+		FE_GL_ERROR(glGenBuffers(1, &mesh->rugosityBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, mesh->colorBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mesh->rugosityData.size(), mesh->rugosityData.data(), GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, 0));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	}
 
 	TimeTookFillMeshWithRugosityData = TIME.endTimeStamp("FillMeshWithRugosityData");
 }
@@ -664,15 +624,12 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 			totalArea += originalArea;
 		}
 
-		bool weightedNormals = false;
-		bool normalizedNormals = false;
-
 		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
 		{
 			std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
 			std::vector<glm::vec3> currentTriangleNormals = mesh->TrianglesNormals[node->trianglesInCell[l]];
 
-			if (weightedNormals)
+			if (bWeightedNormals)
 			{
 				float currentTriangleCoef = originalAreas[l] / totalArea;
 
@@ -692,10 +649,10 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 			node->CellTrianglesCentroid += currentTriangle[2];
 		}
 
-		if (!weightedNormals)
+		if (!bWeightedNormals)
 			node->averageCellNormal /= node->trianglesInCell.size() * 3;
 
-		if (normalizedNormals)
+		if (bNormalizedNormals)
 			node->averageCellNormal = glm::normalize(node->averageCellNormal);
 		node->CellTrianglesCentroid /= node->trianglesInCell.size() * 3;
 

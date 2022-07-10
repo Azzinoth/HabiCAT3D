@@ -59,7 +59,7 @@ in VS_OUT
 	vec3 worldPosition;
 	vec4 viewPosition;
 	mat3 TBN;
-	flat vec3 vertexNormal;
+	vec3 vertexNormal;
 	flat float materialIndex;
 
 	flat vec3 color;
@@ -345,13 +345,18 @@ void showCameraTransform(FEFreeCamera* camera)
 FEFreeCamera* currentCamera = nullptr;
 bool wireframeMode = false;
 FEShader* meshShader = nullptr;
+bool bWeightedNormals = false;
+bool bNormalizedNormals = false;
 
 double mouseX;
 double mouseY;
 
+float TimeTookToJitter = 0.0f;
+
 SDF* currentSDF = nullptr;
-bool showCellsWithTriangles = false;
 bool showTrianglesInCells = true;
+
+int SDFRenderingMode = 0;
 
 glm::dvec3 mouseRay(double mouseX, double mouseY)
 {
@@ -417,7 +422,7 @@ void addLinesOFSDF(SDF* SDF)
 				bool render = false;
 				SDF->data[i][j][k].wasRenderedLastFrame = false;
 
-				if (SDF->data[i][j][k].trianglesInCell.size() > 0)
+				if (!SDF->data[i][j][k].trianglesInCell.empty() || SDFRenderingMode == 2)
 					render = true;
 
 				if (render)
@@ -567,7 +572,7 @@ void mouseButtonCallback(int button, int action, int mods)
 	{
 		if (currentMesh != nullptr)
 		{
-			if (!showCellsWithTriangles)
+			if (SDFRenderingMode == 0)
 			{
 				currentMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
 				LINE_RENDERER.clearAll();
@@ -611,10 +616,7 @@ void mouseButtonCallback(int button, int action, int mods)
 				currentSDF->mouseClick(mouseX, mouseY);
 
 				LINE_RENDERER.clearAll();
-
-				if (showCellsWithTriangles)
-					addLinesOFSDF(currentSDF);
-
+				addLinesOFSDF(currentSDF);
 				LINE_RENDERER.SyncWithGPU();
 			}
 			
@@ -651,11 +653,44 @@ void renderFEMesh(FEMesh* mesh)
 	glBindVertexArray(0);
 }
 
-void calculateSDF(FEMesh* mesh, int dimentions)
+float shiftX = 0.0f;
+float shiftY = 0.0f;
+float shiftZ = 0.0f;
+
+float GridScale = 2.5f;
+glm::vec3 GridCenterDeviation = glm::vec3(0.0f);
+
+void calculateSDF(FEMesh* mesh, int dimentions, bool IsItFinalJitter = false, bool UseJitterExpandedAABB = false)
 {
 	FEAABB finalAABB = mesh->AABB;
 
+	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
+	if (UseJitterExpandedAABB)
+	{
+		transformMatrix = glm::scale(transformMatrix, glm::vec3(GridScale));
+		finalAABB = finalAABB.transform(transformMatrix);
+	}
+
+	glm::vec3 center = mesh->AABB.getCenter();
+	FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
+	float cellSize = SDFAABB.getSize() / dimentions;
+
+	finalAABB = SDFAABB;
+
+
+	//transformMatrix = glm::translate(glm::identity<glm::mat4>(), glm::vec3(finalAABB.getSize() / 2.0f));
+	//finalAABB = finalAABB.transform(transformMatrix);
+
+	/*if (UseJitterExpandedAABB)
+	{
+		transformMatrix = glm::translate(glm::identity<glm::mat4>(), glm::vec3(cellSize * shiftX, cellSize * shiftY, cellSize * shiftZ));
+		finalAABB = finalAABB.transform(transformMatrix);
+	}*/
+
 	currentSDF = new SDF(mesh, dimentions, finalAABB, currentCamera);
+	currentSDF->bFinalJitter = IsItFinalJitter;
+	currentSDF->bWeightedNormals = bWeightedNormals;
+	currentSDF->bNormalizedNormals = bNormalizedNormals;
 
 	currentSDF->fillCellsWithTriangleInfo();
 	currentSDF->calculateRugosity();
@@ -898,35 +933,105 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			if (currentSDF == nullptr)
 			{
 				if (ImGui::Button("Generate SDF"))
-					calculateSDF(currentMesh, SDFDimention);
+				{
+					currentMesh->jitteredData.clear();
+					calculateSDF(currentMesh, SDFDimention, true, false);
+				}
+
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(128);
+				if (ImGui::BeginCombo("##ChooseSDFDimention", std::to_string(SDFDimention).c_str(), ImGuiWindowFlags_None))
+				{
+					for (size_t i = 0; i < dimentionsList.size(); i++)
+					{
+						bool is_selected = (std::to_string(SDFDimention) == dimentionsList[i]);
+						if (ImGui::Selectable(dimentionsList[i].c_str(), is_selected))
+						{
+							SDFDimention = atoi(dimentionsList[i].c_str());
+						}
+
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+
+				ImGui::Checkbox("Weighted normals", &bWeightedNormals);
+				ImGui::Checkbox("Normalized normals", &bNormalizedNormals);
+
+				static int SmoothingFactor = 20;
+
+				if (ImGui::Button("Generate SDF with Jitter"))
+				{
+					TIME.beginTimeStamp("TimeTookToJitter");
+
+					currentMesh->jitteredData.clear();
+					calculateSDF(currentMesh, SDFDimention, false, true);
+
+					// In cells
+					float kernelSize = 2.0;
+					kernelSize *= 2.0f;
+					kernelSize *= 100.0f;
+
+					for (size_t i = 0; i < SmoothingFactor - 1; i++)
+					{
+						delete currentSDF;
+						currentSDF = nullptr;
+
+						shiftX = rand() % int(kernelSize);
+						shiftX -= kernelSize / 2.0f;
+						shiftX /= 100.0f;
+
+						shiftY = rand() % int(kernelSize);
+						shiftY -= kernelSize / 2.0f;
+						shiftY /= 100.0f;
+
+						shiftZ = rand() % int(kernelSize);
+						shiftZ -= kernelSize / 2.0f;
+						shiftZ /= 100.0f;
+
+						/*GridScale = 2.5f;
+						float TempGridScale = rand() % 100;
+						TempGridScale -= 50;
+						TempGridScale /= 100.0f;
+						GridScale += TempGridScale;*/
+
+						GridScale = 1.0f;
+						float TempGridScale = rand() % 200;
+						TempGridScale /= 100.0f;
+						GridScale += TempGridScale;
+
+						bool bFinal = false;
+						if (i == SmoothingFactor - 2)
+							bFinal = true;
+
+						calculateSDF(currentMesh, SDFDimention, bFinal, true);
+					}
+
+					TimeTookToJitter = TIME.endTimeStamp("TimeTookToJitter");
+				}
+
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(100);
+				ImGui::DragInt("Smoothing factor", &SmoothingFactor);
+				if (SmoothingFactor < 2)
+					SmoothingFactor = 2;
 			}
 			else if (currentSDF != nullptr)
 			{
 				if (ImGui::Button("Delete SDF"))
 				{
 					//currentSDF->mesh clear all rugosity info
+
+					LINE_RENDERER.clearAll();
+					LINE_RENDERER.SyncWithGPU();
+
 					delete currentSDF;
 					currentSDF = nullptr;
 				}
 			}
 
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(128);
-			if (ImGui::BeginCombo("##ChooseSDFDimention", std::to_string(SDFDimention).c_str(), ImGuiWindowFlags_None))
-			{
-				for (size_t i = 0; i < dimentionsList.size(); i++)
-				{
-					bool is_selected = (std::to_string(SDFDimention) == dimentionsList[i]);
-					if (ImGui::Selectable(dimentionsList[i].c_str(), is_selected))
-					{
-						SDFDimention = atoi(dimentionsList[i].c_str());
-					}
-
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-			}
+			
 
 			if (currentSDF != nullptr)
 			{
@@ -993,21 +1098,43 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				debugTimers += "Total time : " + std::to_string(TotalTime) + " ms";
 				debugTimers += "\n";
 
+				debugTimers += "TimeTookToJitter : " + std::to_string(TimeTookToJitter) + " ms";
+				debugTimers += "\n";
+
 				ImGui::Text((debugTimers).c_str());
 
 				ImGui::Text(("debugTotalTrianglesInCells: " + std::to_string(currentSDF->debugTotalTrianglesInCells)).c_str());
-				
-				//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
-				if (ImGui::Checkbox("Show cells with triangles", &showCellsWithTriangles))
+
+				ImGui::Separator();
+				ImGui::Text("Visualization of SDF:");
+
+				if (ImGui::RadioButton("Do not draw", &SDFRenderingMode, 0))
 				{
+					SDFRenderingMode = 0;
+
 					LINE_RENDERER.clearAll();
-
-					if (showCellsWithTriangles)
-						addLinesOFSDF(currentSDF);
-
 					LINE_RENDERER.SyncWithGPU();
 				}
-				
+
+				if (ImGui::RadioButton("Show cells with triangles", &SDFRenderingMode, 1))
+				{
+					SDFRenderingMode = 1;
+
+					LINE_RENDERER.clearAll();
+					addLinesOFSDF(currentSDF);
+					LINE_RENDERER.SyncWithGPU();
+				}
+
+				if (ImGui::RadioButton("Show all cells", &SDFRenderingMode, 2))
+				{
+					SDFRenderingMode = 2;
+
+					LINE_RENDERER.clearAll();
+					addLinesOFSDF(currentSDF);
+					LINE_RENDERER.SyncWithGPU();
+				}
+
+				ImGui::Separator();
 			}
 
 			ImGui::Separator();

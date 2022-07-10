@@ -87,6 +87,10 @@ namespace FocalEngine
 		float TimeTookFillMeshWithRugosityData = 0.0f;
 
 		int debugTotalTrianglesInCells = 0;
+		bool bFinalJitter = false;
+		bool bWeightedNormals = false;
+		bool bNormalizedNormals = false;
+		//std::vector<std::vector<float>> jitteredData;
 
 		~SDF()
 		{
