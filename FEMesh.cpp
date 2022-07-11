@@ -260,3 +260,68 @@ void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 		}
 	}
 }
+
+void FEMesh::fillRugosityDataToGPU()
+{
+	int posSize = getPositionsCount();
+	float* positions = new float[posSize];
+	FE_GL_ERROR(glGetNamedBufferSubData(getPositionsBufferID(), 0, sizeof(float) * posSize, positions));
+
+	int indexSize = getIndicesCount();
+	int* indices = new int[indexSize];
+	FE_GL_ERROR(glGetNamedBufferSubData(getIndicesBufferID(), 0, sizeof(int) * indexSize, indices));
+
+	std::vector<float> positionsVector;
+	for (size_t i = 0; i < posSize; i++)
+	{
+		positionsVector.push_back(positions[i]);
+	}
+
+	std::vector<int> indexVector;
+	for (size_t i = 0; i < indexSize; i++)
+	{
+		indexVector.push_back(indices[i]);
+	}
+
+	delete positions;
+	delete indices;
+
+	rugosityData.resize(posSize);
+	auto getVertexOfFace = [&](int faceIndex) {
+		std::vector<int> result;
+		result.push_back(indexVector[faceIndex * 3]);
+		result.push_back(indexVector[faceIndex * 3 + 1]);
+		result.push_back(indexVector[faceIndex * 3 + 2]);
+
+		return result;
+	};
+
+	auto setRugosityOfVertex = [&](int index, float value) {
+		rugosityData[index * 3] = value;
+		rugosityData[index * 3 + 1] = value;
+		rugosityData[index * 3 + 2] = value;
+	};
+
+	auto setRugosityOfFace = [&](int faceIndex, float value) {
+		std::vector<int> faceVertex = getVertexOfFace(faceIndex);
+
+		for (size_t i = 0; i < faceVertex.size(); i++)
+		{
+			setRugosityOfVertex(faceVertex[i], value);
+		}
+	};
+
+	for (size_t i = 0; i < Triangles.size(); i++)
+	{
+		setRugosityOfFace(i, TrianglesRugosity[i]);
+	}
+
+	FE_GL_ERROR(glBindVertexArray(vaoID));
+
+	rugosityBufferID = 0;
+	FE_GL_ERROR(glGenBuffers(1, &rugosityBufferID));
+	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, colorBufferID));
+	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * rugosityData.size(), rugosityData.data(), GL_STATIC_DRAW));
+	FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, 0));
+	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+}

@@ -464,7 +464,6 @@ void SDF::fillMeshWithRugosityData()
 
 
 
-	std::vector<float> TrianglesRugosity;
 	std::vector<int> TrianglesRugosityCount;
 	TrianglesRugosity.resize(mesh->Triangles.size());
 	TrianglesRugosityCount.resize(mesh->Triangles.size());
@@ -549,8 +548,7 @@ void SDF::fillMeshWithRugosityData()
 		//oldData = mesh->rugosityData;
 	//}
 
-	mesh->rugosityData.resize(posSize);
-
+	/*mesh->rugosityData.resize(posSize);
 	auto setRugosityOfVertex = [&](int index, float value) {
 		mesh->rugosityData[index * 3] = value;
 		mesh->rugosityData[index * 3 + 1] = value;
@@ -570,9 +568,16 @@ void SDF::fillMeshWithRugosityData()
 	for (size_t i = 0; i < mesh->Triangles.size(); i++)
 	{
 		setRugosityOfFace(i, TrianglesRugosity[i]);
-	}
+	}*/
 
-	std::vector<float> tempRugosity = mesh->rugosityData;
+
+
+
+
+
+
+
+	/*std::vector<float> tempRugosity = mesh->rugosityData;
 	if (!mesh->jitteredData.empty())
 	{
 		for (size_t i = 0; i < mesh->rugosityData.size(); i++)
@@ -585,21 +590,19 @@ void SDF::fillMeshWithRugosityData()
 			mesh->rugosityData[i] /= mesh->jitteredData.size() + 1;
 		}
 	}
-	mesh->jitteredData.push_back(tempRugosity);
+	mesh->jitteredData.push_back(tempRugosity);*/
 
-	if (bFinalJitter)
+	/*if (bFinalJitter)
 	{
 		FE_GL_ERROR(glBindVertexArray(mesh->vaoID));
 
-		//colorCount = colorSize;
 		mesh->rugosityBufferID = 0;
-		//vertexAttributes |= FE_COLOR;
 		FE_GL_ERROR(glGenBuffers(1, &mesh->rugosityBufferID));
 		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, mesh->colorBufferID));
 		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mesh->rugosityData.size(), mesh->rugosityData.data(), GL_STATIC_DRAW));
 		FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, 0));
 		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-	}
+	}*/
 
 	TimeTookFillMeshWithRugosityData = TIME.endTimeStamp("FillMeshWithRugosityData");
 }

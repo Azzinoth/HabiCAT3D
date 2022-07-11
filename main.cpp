@@ -660,7 +660,7 @@ float shiftZ = 0.0f;
 float GridScale = 2.5f;
 glm::vec3 GridCenterDeviation = glm::vec3(0.0f);
 
-void calculateSDF(FEMesh* mesh, int dimentions, bool IsItFinalJitter = false, bool UseJitterExpandedAABB = false)
+void calculateSDF(FEMesh* mesh, int dimentions, bool UseJitterExpandedAABB = false)
 {
 	FEAABB finalAABB = mesh->AABB;
 
@@ -671,10 +671,11 @@ void calculateSDF(FEMesh* mesh, int dimentions, bool IsItFinalJitter = false, bo
 		finalAABB = finalAABB.transform(transformMatrix);
 	}
 
-	glm::vec3 center = mesh->AABB.getCenter();
-	FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
-	float cellSize = SDFAABB.getSize() / dimentions;
+	float cellSize = finalAABB.getSize() / dimentions;
 
+	//glm::vec3 center = mesh->AABB.getCenter();
+	glm::vec3 center = mesh->AABB.getCenter() + glm::vec3(shiftX, shiftY, shiftZ) * cellSize;
+	FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
 	finalAABB = SDFAABB;
 
 
@@ -688,7 +689,6 @@ void calculateSDF(FEMesh* mesh, int dimentions, bool IsItFinalJitter = false, bo
 	}*/
 
 	currentSDF = new SDF(mesh, dimentions, finalAABB, currentCamera);
-	currentSDF->bFinalJitter = IsItFinalJitter;
 	currentSDF->bWeightedNormals = bWeightedNormals;
 	currentSDF->bNormalizedNormals = bNormalizedNormals;
 
@@ -696,6 +696,32 @@ void calculateSDF(FEMesh* mesh, int dimentions, bool IsItFinalJitter = false, bo
 	currentSDF->calculateRugosity();
 
 	currentSDF->fillMeshWithRugosityData();
+}
+
+int jitterCounter = 0;
+void MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter = true)
+{
+	if (SDF == nullptr || SDF->TrianglesRugosity.empty())
+		return;
+
+	if (SDF->mesh->TrianglesRugosity.size() != SDF->TrianglesRugosity.size())
+		SDF->mesh->TrianglesRugosity.resize(SDF->TrianglesRugosity.size());
+
+	for (size_t i = 0; i < SDF->mesh->TrianglesRugosity.size(); i++)
+	{
+		SDF->mesh->TrianglesRugosity[i] += SDF->TrianglesRugosity[i];
+	}
+	jitterCounter++;
+
+	if (bFinalJitter)
+	{
+		for (size_t i = 0; i < SDF->mesh->TrianglesRugosity.size(); i++)
+		{
+			SDF->mesh->TrianglesRugosity[i] /= jitterCounter;
+		}
+
+		SDF->mesh->fillRugosityDataToGPU();
+	}
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -934,8 +960,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			{
 				if (ImGui::Button("Generate SDF"))
 				{
-					currentMesh->jitteredData.clear();
-					calculateSDF(currentMesh, SDFDimention, true, false);
+					jitterCounter = 0;
+					currentMesh->TrianglesRugosity.clear();
+					currentMesh->rugosityData.clear();
+
+					calculateSDF(currentMesh, SDFDimention);
+					MoveRugosityInfoToMesh(currentSDF, true);
 				}
 
 				ImGui::SameLine();
@@ -965,11 +995,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				{
 					TIME.beginTimeStamp("TimeTookToJitter");
 
-					currentMesh->jitteredData.clear();
-					calculateSDF(currentMesh, SDFDimention, false, true);
+					jitterCounter = 0;
+					currentMesh->TrianglesRugosity.clear();
+					currentMesh->rugosityData.clear();
+
+					calculateSDF(currentMesh, SDFDimention, true);
+					MoveRugosityInfoToMesh(currentSDF, false);
 
 					// In cells
-					float kernelSize = 2.0;
+					float kernelSize = 0.5;
 					kernelSize *= 2.0f;
 					kernelSize *= 100.0f;
 
@@ -1005,7 +1039,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 						if (i == SmoothingFactor - 2)
 							bFinal = true;
 
-						calculateSDF(currentMesh, SDFDimention, bFinal, true);
+						calculateSDF(currentMesh, SDFDimention, true);
+						MoveRugosityInfoToMesh(currentSDF, bFinal);
 					}
 
 					TimeTookToJitter = TIME.endTimeStamp("TimeTookToJitter");
@@ -1031,15 +1066,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				}
 			}
 
-			
-
 			if (currentSDF != nullptr)
 			{
 				if (ImGui::Checkbox("Show Rugosity", &currentMesh->showRugosity))
 				{
 					if (currentMesh->showRugosity)
 					{
-						currentMesh->colorMode = 3;
+						currentMesh->colorMode = 5;
 					}
 					else
 					{
