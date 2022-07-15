@@ -1,7 +1,7 @@
 #include "FEObjLoader.h"
 using namespace FocalEngine;
 
-FEObjLoader* FEObjLoader::_instance = nullptr;
+FEObjLoader* FEObjLoader::Instance = nullptr;
 
 FEObjLoader::FEObjLoader()
 {

@@ -31,21 +31,21 @@
 
 #define ANGLE_TORADIANS_COF glm::pi<float>() / 180.0f
 
-#define SINGLETON_PUBLIC_PART(CLASS_NAME)  \
-static CLASS_NAME& getInstance()           \
-{										   \
-	if (!_instance)                        \
-		_instance = new CLASS_NAME();      \
-	return *_instance;				       \
-}                                          \
-										   \
-~CLASS_NAME();
-
-#define SINGLETON_PRIVATE_PART(CLASS_NAME) \
-static CLASS_NAME* _instance;              \
-CLASS_NAME();                              \
-CLASS_NAME(const CLASS_NAME &);            \
-void operator= (const CLASS_NAME &);
+//#define SINGLETON_PUBLIC_PART(CLASS_NAME)  \
+//static CLASS_NAME& getInstance()           \
+//{										   \
+//	if (!_instance)                        \
+//		_instance = new CLASS_NAME();      \
+//	return *_instance;				       \
+//}                                          \
+//										   \
+//~CLASS_NAME();
+//
+//#define SINGLETON_PRIVATE_PART(CLASS_NAME) \
+//static CLASS_NAME* _instance;              \
+//CLASS_NAME();                              \
+//CLASS_NAME(const CLASS_NAME &);            \
+//void operator= (const CLASS_NAME &);
 
 #ifdef FE_DEBUG_ENABLED
 	#define FE_GL_ERROR(glCall)            \

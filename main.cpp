@@ -361,7 +361,7 @@ int SDFRenderingMode = 0;
 glm::dvec3 mouseRay(double mouseX, double mouseY)
 {
 	int W, H;
-	APPLICATION.getWindowSize(&W, &H);
+	APPLICATION.GetWindowSize(&W, &H);
 
 	glm::dvec2 normalizedMouseCoords;
 	normalizedMouseCoords.x = (2.0f * mouseX) / W - 1;
@@ -383,12 +383,12 @@ void renderTargetCenterForCamera()
 	int shiftX, shiftY = 0;
 
 	int xpos, ypos;
-	APPLICATION.getWindowPosition(&xpos, &ypos);
+	APPLICATION.GetWindowPosition(&xpos, &ypos);
 
 	//if (renderTargetMode == FE_GLFW_MODE)
 	//{
 		int windowW, windowH = 0;
-		APPLICATION.getWindowSize(&windowW, &windowH);
+		APPLICATION.GetWindowSize(&windowW, &windowH);
 		centerX = xpos + (windowW / 2);
 		centerY = ypos + (windowH / 2);
 
@@ -698,6 +698,29 @@ void calculateSDF(FEMesh* mesh, int dimentions, bool UseJitterExpandedAABB = fal
 	currentSDF->fillMeshWithRugosityData();
 }
 
+struct SDFInitData
+{
+	FEMesh* mesh = nullptr;
+	int dimentions = 4;
+	bool UseJitterExpandedAABB = false;
+};
+
+void calculateSDFAsync(void* InputData, void* OutputData)
+{
+	SDFInitData* Input = reinterpret_cast<SDFInitData*>(InputData);
+	//SDF* Output = reinterpret_cast<SDF*>(OutputData);
+
+	OutputData = new SDFInitData();
+}
+
+void calculateSDFCallback(void* OutputData)
+{
+	SDFInitData* Input = reinterpret_cast<SDFInitData*>(OutputData);
+	
+	int y = 0;
+	y++;
+}
+
 int jitterCounter = 0;
 void MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter = true)
 {
@@ -780,11 +803,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	
 
 	//APPLICATION.createWindow(1280, 720, "Rugosity Calculator");
-	APPLICATION.createWindow(1920, 1080, "Rugosity Calculator");
-	APPLICATION.setDropCallback(dropCallback);
-	APPLICATION.setKeyCallback(keyButtonCallback);
-	APPLICATION.setMouseMoveCallback(mouseMoveCallback);
-	APPLICATION.setMouseButtonCallback(mouseButtonCallback);
+	APPLICATION.InitWindow(1920, 1080, "Rugosity Calculator");
+	APPLICATION.SetDropCallback(dropCallback);
+	APPLICATION.SetKeyCallback(keyButtonCallback);
+	APPLICATION.SetMouseMoveCallback(mouseMoveCallback);
+	APPLICATION.SetMouseButtonCallback(mouseButtonCallback);
 
 	glClearColor(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 1.0f);
 	FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
@@ -819,10 +842,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	colorSchemesList.push_back("Rainbow");
 	colorSchemesList.push_back("Turbo colormap");
 
-	while (APPLICATION.isWindowOpened())
+	while (APPLICATION.IsWindowOpened())
 	{
 		FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-		APPLICATION.beginFrame();
+		APPLICATION.BeginFrame();
+
+		// Include it in APPLICATION.BeginFrame() ?
+		THREAD_POOL.Update();
 
 		renderTargetCenterForCamera();
 		currentCamera->move(10);
@@ -964,6 +990,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					currentMesh->TrianglesRugosity.clear();
 					currentMesh->rugosityData.clear();
 
+					//SDFInitData* InputData = new SDFInitData();
+					//InputData->dimentions = SDFDimention;
+					//InputData->mesh = currentMesh;
+
+					////SDF* OutputData = new SDF
+
+					//THREAD_POOL.Execute(calculateSDFAsync, InputData, nullptr, calculateSDFCallback);
 					calculateSDF(currentMesh, SDFDimention);
 					MoveRugosityInfoToMesh(currentSDF, true);
 				}
@@ -993,7 +1026,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 				if (ImGui::Button("Generate SDF with Jitter"))
 				{
-					TIME.beginTimeStamp("TimeTookToJitter");
+					TIME.BeginTimeStamp("TimeTookToJitter");
 
 					jitterCounter = 0;
 					currentMesh->TrianglesRugosity.clear();
@@ -1043,7 +1076,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 						MoveRugosityInfoToMesh(currentSDF, bFinal);
 					}
 
-					TimeTookToJitter = TIME.endTimeStamp("TimeTookToJitter");
+					TimeTookToJitter = TIME.EndTimeStamp("TimeTookToJitter");
 				}
 
 				ImGui::SameLine();
@@ -1228,7 +1261,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 		}
 		
-		APPLICATION.endFrame();
+		APPLICATION.EndFrame();
 	}
 
 	return 0;

@@ -1,7 +1,7 @@
 #include "FELinesRenderer.h"
 using namespace FocalEngine;
 
-FELinesRenderer* FELinesRenderer::_instance = nullptr;
+FELinesRenderer* FELinesRenderer::Instance = nullptr;
 
 FELine::FELine(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 Color)
 {

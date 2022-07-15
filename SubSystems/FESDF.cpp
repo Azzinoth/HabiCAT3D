@@ -4,7 +4,7 @@ using namespace FocalEngine;
 glm::dvec3 mouseRay(double mouseX, double mouseY, FEFreeCamera* currentCamera)
 {
 	int W, H;
-	APPLICATION.getWindowSize(&W, &H);
+	APPLICATION.GetWindowSize(&W, &H);
 
 	glm::dvec2 normalizedMouseCoords;
 	normalizedMouseCoords.x = (2.0f * mouseX) / W - 1;
@@ -156,7 +156,7 @@ SDF::SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
 	if (log2(dimentions) != int(log2(dimentions)))
 		return;
 
-	TIME.beginTimeStamp("SDF Generation");
+	TIME.BeginTimeStamp("SDF Generation");
 
 	currentCamera = camera;
 	this->mesh = mesh;
@@ -244,7 +244,7 @@ SDF::SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
 		}
 	}
 
-	TimeTookToGenerateInMS = TIME.endTimeStamp("SDF Generation");
+	TimeTookToGenerateInMS = TIME.EndTimeStamp("SDF Generation");
 }
 
 void SDF::fillCellsWithTriangleInfo()
@@ -252,7 +252,7 @@ void SDF::fillCellsWithTriangleInfo()
 	if (mesh->Triangles.empty())
 		mesh->fillTrianglesData();
 
-	TIME.beginTimeStamp("Fill cells with triangle info");
+	TIME.BeginTimeStamp("Fill cells with triangle info");
 
 	float cellSize = data[0][0][0].AABB.getSize();
 	glm::vec3 gridMin = data[0][0][0].AABB.getMin();
@@ -323,7 +323,7 @@ void SDF::fillCellsWithTriangleInfo()
 		}
 	}
 
-	TimeTookFillCellsWithTriangleInfo = TIME.endTimeStamp("Fill cells with triangle info");
+	TimeTookFillCellsWithTriangleInfo = TIME.EndTimeStamp("Fill cells with triangle info");
 }
 
 void SDF::calculateRugosity()
@@ -331,7 +331,7 @@ void SDF::calculateRugosity()
 	if (mesh->Triangles.empty())
 		mesh->fillTrianglesData();
 
-	TIME.beginTimeStamp("Calculate rugosity");
+	TIME.BeginTimeStamp("Calculate rugosity");
 
 	for (size_t i = 0; i < data.size(); i++)
 	{
@@ -344,7 +344,7 @@ void SDF::calculateRugosity()
 		}
 	}
 
-	TimeTookCalculateRugosity = TIME.endTimeStamp("Calculate rugosity");
+	TimeTookCalculateRugosity = TIME.EndTimeStamp("Calculate rugosity");
 }
 
 void SDF::mouseClick(double mouseX, double mouseY, glm::mat4 transformMat)
@@ -396,7 +396,7 @@ void SDF::fillMeshWithRugosityData()
 	if (mesh == nullptr)
 		return;
 
-	TIME.beginTimeStamp("FillMeshWithRugosityData");
+	TIME.BeginTimeStamp("FillMeshWithRugosityData");
 
 	int posSize = mesh->getPositionsCount();
 	float* positions = new float[posSize];
@@ -604,7 +604,7 @@ void SDF::fillMeshWithRugosityData()
 		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
 	}*/
 
-	TimeTookFillMeshWithRugosityData = TIME.endTimeStamp("FillMeshWithRugosityData");
+	TimeTookFillMeshWithRugosityData = TIME.EndTimeStamp("FillMeshWithRugosityData");
 }
 
 void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)

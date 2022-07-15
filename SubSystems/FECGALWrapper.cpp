@@ -1,7 +1,7 @@
 #include "FECGALWrapper.h"
 using namespace FocalEngine;
 
-FECGALWrapper* FECGALWrapper::_instance = nullptr;
+FECGALWrapper* FECGALWrapper::Instance = nullptr;
 
 FECGALWrapper::FECGALWrapper()
 {

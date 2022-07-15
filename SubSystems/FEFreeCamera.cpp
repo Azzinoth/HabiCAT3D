@@ -83,7 +83,7 @@ void FEFreeCamera::reset()
 
 void FEFreeCamera::setCursorToCenter()
 {
-	if (APPLICATION.isWindowInFocus())
+	if (APPLICATION.IsWindowInFocus())
 	{
 		lastMouseX = renderTargetCenterX;
 		lastMouseY = renderTargetCenterY;
