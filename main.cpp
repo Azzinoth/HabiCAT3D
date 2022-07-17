@@ -709,6 +709,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	APPLICATION.SetMouseMoveCallback(mouseMoveCallback);
 	APPLICATION.SetMouseButtonCallback(mouseButtonCallback);
 
+	THREAD_POOL.SetConcurrentThreadCount(8);
+
 	glClearColor(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 1.0f);
 	FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
 
@@ -748,9 +750,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	{
 		FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 		APPLICATION.BeginFrame();
-
-		// Include it in APPLICATION.BeginFrame() ?
-		THREAD_POOL.Update();
 
 		renderTargetCenterForCamera();
 		currentCamera->move(10);
