@@ -45,6 +45,8 @@ file(GLOB SubSystems_SRC
 	"SubSystems/FELinesRenderer.h"
 	"SubSystems/FESDF.cpp"
 	"SubSystems/FESDF.h"
+	"SubSystems/RugosityManager.cpp"
+	"SubSystems/RugosityManager.h"
 )
 
 file(GLOB BasicApplicationSubSystem_SRC

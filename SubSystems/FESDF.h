@@ -65,7 +65,11 @@ namespace FocalEngine
 		FEMesh* mesh;
 
 		std::vector<triangleData> getTrianglesData(FEMesh* mesh);
+		SDF();
 		SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera);
+
+		void Init(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera);
+
 		glm::vec3 selectedCell = glm::vec3(0.0);
 
 		void fillCellsWithTriangleInfo();
@@ -91,7 +95,10 @@ namespace FocalEngine
 		bool bWeightedNormals = false;
 		bool bNormalizedNormals = false;
 		std::vector<float> TrianglesRugosity;
-		//std::vector<std::vector<float>> jitteredData;
+		
+
+
+		bool bFullyLoaded = false;
 
 		~SDF()
 		{

@@ -147,7 +147,112 @@ std::vector<triangleData> SDF::getTrianglesData(FEMesh* mesh)
 	return result;
 }
 
+SDF::SDF()
+{
+
+}
+
 SDF::SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
+{
+	if (dimentions < 1 || dimentions > 4096)
+		return;
+
+	// If dimentions is not power of 2, we can't continue.
+	if (log2(dimentions) != int(log2(dimentions)))
+		return;
+
+	TIME.BeginTimeStamp("SDF Generation");
+
+	currentCamera = camera;
+	this->mesh = mesh;
+
+	glm::vec3 center = AABB.getCenter();
+	FEAABB SDFAABB = FEAABB(center - glm::vec3(AABB.getSize() / 2.0f), center + glm::vec3(AABB.getSize() / 2.0f));
+
+	data.resize(dimentions);
+	for (size_t i = 0; i < dimentions; i++)
+	{
+		data[i].resize(dimentions);
+		for (size_t j = 0; j < dimentions; j++)
+		{
+			data[i][j].resize(dimentions);
+		}
+	}
+
+	glm::vec3 start = SDFAABB.getMin();
+	glm::vec3 currentAABBMin;
+	float cellSize = SDFAABB.getSize() / dimentions;
+
+	/*std::vector<triangleData> centroids = getTrianglesData(mesh);
+	averageNormal = glm::vec3(0.0f);
+	for (size_t i = 0; i < centroids.size(); i++)
+	{
+		averageNormal += centroids[i].normal;
+	}
+	averageNormal /= centroids.size();*/
+
+	for (size_t i = 0; i < dimentions; i++)
+	{
+		for (size_t j = 0; j < dimentions; j++)
+		{
+			for (size_t k = 0; k < dimentions; k++)
+			{
+				currentAABBMin = start + glm::vec3(cellSize * i, cellSize * j, cellSize * k);
+
+				data[i][j][k].AABB = FEAABB(currentAABBMin, currentAABBMin + glm::vec3(cellSize));
+
+				//float minDistanceToCentroid = FLT_MAX;
+				//int centroidIndex = -1;
+				//glm::vec3 cellCenter = data[i][j][k].AABB.getCenter();
+				//for (size_t p = 0; p < centroids.size(); p++)
+				//{
+				//	float currentDistance = glm::distance(centroids[p].centroid, cellCenter);
+				//	if (currentDistance < minDistanceToCentroid)
+				//	{
+				//		minDistanceToCentroid = currentDistance;
+				//		centroidIndex = p;
+				//	}
+				//}
+
+				//if (centroidIndex != -1)
+				//{
+				//	glm::vec3 vectorToCentroid = centroids[centroidIndex].centroid - cellCenter;
+
+				//	// Test whether cell is inside or outside of mesh
+				//	if (glm::dot(vectorToCentroid, centroids[centroidIndex].normal) >= 0)
+				//	{
+				//		minDistanceToCentroid = -minDistanceToCentroid;
+				//	}
+
+				//	// https://mathinsight.org/distance_point_plane
+				//	// Normal of plane
+				//	glm::vec3 N = centroids[centroidIndex].normal;
+				//	// Point on plane
+				//	glm::vec3 C = centroids[centroidIndex].centroid;
+				//	glm::vec3 P = cellCenter;
+
+				//	float D = -N.x * C.x - N.y * C.y - N.z * C.z;
+				//	float distance = abs(N.x * P.x + N.y * P.y + N.z * P.z + D) / glm::length(N);
+
+				//	// Distance to plane could be a lot greater than distance to triangle
+				//	data[i][j][k].distanceToTrianglePlane = distance;
+				//	if (abs(minDistanceToCentroid) > centroids[centroidIndex].maxSideLength / 2.0f)
+				//	{
+				//		data[i][j][k].distanceToTrianglePlane = FLT_MAX;
+				//		if (minDistanceToCentroid < 0.0f)
+				//			minDistanceToCentroid = -minDistanceToCentroid;
+				//	}
+				//}
+
+				//data[i][j][k].value = minDistanceToCentroid;
+			}
+		}
+	}
+
+	TimeTookToGenerateInMS = TIME.EndTimeStamp("SDF Generation");
+}
+
+void SDF::Init(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
 {
 	if (dimentions < 1 || dimentions > 4096)
 		return;
@@ -249,9 +354,6 @@ SDF::SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
 
 void SDF::fillCellsWithTriangleInfo()
 {
-	if (mesh->Triangles.empty())
-		mesh->fillTrianglesData();
-
 	TIME.BeginTimeStamp("Fill cells with triangle info");
 
 	float cellSize = data[0][0][0].AABB.getSize();

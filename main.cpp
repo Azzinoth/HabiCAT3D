@@ -345,15 +345,11 @@ void showCameraTransform(FEFreeCamera* camera)
 FEFreeCamera* currentCamera = nullptr;
 bool wireframeMode = false;
 FEShader* meshShader = nullptr;
-bool bWeightedNormals = false;
-bool bNormalizedNormals = false;
 
 double mouseX;
 double mouseY;
 
 float TimeTookToJitter = 0.0f;
-
-SDF* currentSDF = nullptr;
 bool showTrianglesInCells = true;
 
 int SDFRenderingMode = 0;
@@ -456,8 +452,6 @@ FEMesh* loadedMesh = nullptr;
 FEMesh* currentMesh = nullptr;
 std::vector<std::string> dimentionsList;
 std::vector<std::string> colorSchemesList;
-
-int SDFDimention = 16;
 
 std::string colorSchemeIndexToString(int index)
 {
@@ -613,10 +607,10 @@ void mouseButtonCallback(int button, int action, int mods)
 			}
 			else
 			{
-				currentSDF->mouseClick(mouseX, mouseY);
+				RUGOSITY_MANAGER.currentSDF->mouseClick(mouseX, mouseY);
 
 				LINE_RENDERER.clearAll();
-				addLinesOFSDF(currentSDF);
+				addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
 				LINE_RENDERER.SyncWithGPU();
 			}
 			
@@ -651,100 +645,6 @@ void renderFEMesh(FEMesh* mesh)
 		FE_GL_ERROR(glDrawArrays(GL_TRIANGLES, 0, mesh->getVertexCount()));
 
 	glBindVertexArray(0);
-}
-
-float shiftX = 0.0f;
-float shiftY = 0.0f;
-float shiftZ = 0.0f;
-
-float GridScale = 2.5f;
-glm::vec3 GridCenterDeviation = glm::vec3(0.0f);
-
-void calculateSDF(FEMesh* mesh, int dimentions, bool UseJitterExpandedAABB = false)
-{
-	FEAABB finalAABB = mesh->AABB;
-
-	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
-	if (UseJitterExpandedAABB)
-	{
-		transformMatrix = glm::scale(transformMatrix, glm::vec3(GridScale));
-		finalAABB = finalAABB.transform(transformMatrix);
-	}
-
-	float cellSize = finalAABB.getSize() / dimentions;
-
-	//glm::vec3 center = mesh->AABB.getCenter();
-	glm::vec3 center = mesh->AABB.getCenter() + glm::vec3(shiftX, shiftY, shiftZ) * cellSize;
-	FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
-	finalAABB = SDFAABB;
-
-
-	//transformMatrix = glm::translate(glm::identity<glm::mat4>(), glm::vec3(finalAABB.getSize() / 2.0f));
-	//finalAABB = finalAABB.transform(transformMatrix);
-
-	/*if (UseJitterExpandedAABB)
-	{
-		transformMatrix = glm::translate(glm::identity<glm::mat4>(), glm::vec3(cellSize * shiftX, cellSize * shiftY, cellSize * shiftZ));
-		finalAABB = finalAABB.transform(transformMatrix);
-	}*/
-
-	currentSDF = new SDF(mesh, dimentions, finalAABB, currentCamera);
-	currentSDF->bWeightedNormals = bWeightedNormals;
-	currentSDF->bNormalizedNormals = bNormalizedNormals;
-
-	currentSDF->fillCellsWithTriangleInfo();
-	currentSDF->calculateRugosity();
-
-	currentSDF->fillMeshWithRugosityData();
-}
-
-struct SDFInitData
-{
-	FEMesh* mesh = nullptr;
-	int dimentions = 4;
-	bool UseJitterExpandedAABB = false;
-};
-
-void calculateSDFAsync(void* InputData, void* OutputData)
-{
-	SDFInitData* Input = reinterpret_cast<SDFInitData*>(InputData);
-	//SDF* Output = reinterpret_cast<SDF*>(OutputData);
-
-	OutputData = new SDFInitData();
-}
-
-void calculateSDFCallback(void* OutputData)
-{
-	SDFInitData* Input = reinterpret_cast<SDFInitData*>(OutputData);
-	
-	int y = 0;
-	y++;
-}
-
-int jitterCounter = 0;
-void MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter = true)
-{
-	if (SDF == nullptr || SDF->TrianglesRugosity.empty())
-		return;
-
-	if (SDF->mesh->TrianglesRugosity.size() != SDF->TrianglesRugosity.size())
-		SDF->mesh->TrianglesRugosity.resize(SDF->TrianglesRugosity.size());
-
-	for (size_t i = 0; i < SDF->mesh->TrianglesRugosity.size(); i++)
-	{
-		SDF->mesh->TrianglesRugosity[i] += SDF->TrianglesRugosity[i];
-	}
-	jitterCounter++;
-
-	if (bFinalJitter)
-	{
-		for (size_t i = 0; i < SDF->mesh->TrianglesRugosity.size(); i++)
-		{
-			SDF->mesh->TrianglesRugosity[i] /= jitterCounter;
-		}
-
-		SDF->mesh->fillRugosityDataToGPU();
-	}
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -825,6 +725,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	currentCamera = new FEFreeCamera("mainCamera");
 	currentCamera->setIsInputActive(false);
 	currentCamera->setAspectRatio(1280.0f / 720.0f);
+
+	RUGOSITY_MANAGER.currentCamera = currentCamera;
 
 	dimentionsList.push_back("4");
 	dimentionsList.push_back("8");
@@ -982,35 +884,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 
 			ImGui::Separator();
-			if (currentSDF == nullptr)
+			if (RUGOSITY_MANAGER.currentSDF == nullptr)
 			{
 				if (ImGui::Button("Generate SDF"))
 				{
-					jitterCounter = 0;
+					RUGOSITY_MANAGER.JitterCounter = 0;
 					currentMesh->TrianglesRugosity.clear();
 					currentMesh->rugosityData.clear();
 
-					//SDFInitData* InputData = new SDFInitData();
-					//InputData->dimentions = SDFDimention;
-					//InputData->mesh = currentMesh;
+					RUGOSITY_MANAGER.bLastJitter = true;
+					RUGOSITY_MANAGER.RunCreationOfSDFAsync(currentMesh);
 
-					////SDF* OutputData = new SDF
-
-					//THREAD_POOL.Execute(calculateSDFAsync, InputData, nullptr, calculateSDFCallback);
-					calculateSDF(currentMesh, SDFDimention);
-					MoveRugosityInfoToMesh(currentSDF, true);
+					//calculateSDF(currentMesh, SDFDimention);
+					//MoveRugosityInfoToMesh(currentSDF, true);
 				}
 
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(128);
-				if (ImGui::BeginCombo("##ChooseSDFDimention", std::to_string(SDFDimention).c_str(), ImGuiWindowFlags_None))
+				if (ImGui::BeginCombo("##ChooseSDFDimention", std::to_string(RUGOSITY_MANAGER.SDFDimention).c_str(), ImGuiWindowFlags_None))
 				{
 					for (size_t i = 0; i < dimentionsList.size(); i++)
 					{
-						bool is_selected = (std::to_string(SDFDimention) == dimentionsList[i]);
+						bool is_selected = (std::to_string(RUGOSITY_MANAGER.SDFDimention) == dimentionsList[i]);
 						if (ImGui::Selectable(dimentionsList[i].c_str(), is_selected))
 						{
-							SDFDimention = atoi(dimentionsList[i].c_str());
+							RUGOSITY_MANAGER.SDFDimention = atoi(dimentionsList[i].c_str());
 						}
 
 						if (is_selected)
@@ -1019,73 +917,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					ImGui::EndCombo();
 				}
 
-				ImGui::Checkbox("Weighted normals", &bWeightedNormals);
-				ImGui::Checkbox("Normalized normals", &bNormalizedNormals);
-
-				static int SmoothingFactor = 20;
+				ImGui::Checkbox("Weighted normals", &RUGOSITY_MANAGER.bWeightedNormals);
+				ImGui::Checkbox("Normalized normals", &RUGOSITY_MANAGER.bNormalizedNormals);
 
 				if (ImGui::Button("Generate SDF with Jitter"))
 				{
 					TIME.BeginTimeStamp("TimeTookToJitter");
 
-					jitterCounter = 0;
-					currentMesh->TrianglesRugosity.clear();
-					currentMesh->rugosityData.clear();
-
-					calculateSDF(currentMesh, SDFDimention, true);
-					MoveRugosityInfoToMesh(currentSDF, false);
-
-					// In cells
-					float kernelSize = 0.5;
-					kernelSize *= 2.0f;
-					kernelSize *= 100.0f;
-
-					for (size_t i = 0; i < SmoothingFactor - 1; i++)
-					{
-						delete currentSDF;
-						currentSDF = nullptr;
-
-						shiftX = rand() % int(kernelSize);
-						shiftX -= kernelSize / 2.0f;
-						shiftX /= 100.0f;
-
-						shiftY = rand() % int(kernelSize);
-						shiftY -= kernelSize / 2.0f;
-						shiftY /= 100.0f;
-
-						shiftZ = rand() % int(kernelSize);
-						shiftZ -= kernelSize / 2.0f;
-						shiftZ /= 100.0f;
-
-						/*GridScale = 2.5f;
-						float TempGridScale = rand() % 100;
-						TempGridScale -= 50;
-						TempGridScale /= 100.0f;
-						GridScale += TempGridScale;*/
-
-						GridScale = 1.0f;
-						float TempGridScale = rand() % 200;
-						TempGridScale /= 100.0f;
-						GridScale += TempGridScale;
-
-						bool bFinal = false;
-						if (i == SmoothingFactor - 2)
-							bFinal = true;
-
-						calculateSDF(currentMesh, SDFDimention, true);
-						MoveRugosityInfoToMesh(currentSDF, bFinal);
-					}
+					RUGOSITY_MANAGER.calculateRugorsityWithJitterAsyn(currentMesh);
 
 					TimeTookToJitter = TIME.EndTimeStamp("TimeTookToJitter");
 				}
 
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(100);
-				ImGui::DragInt("Smoothing factor", &SmoothingFactor);
-				if (SmoothingFactor < 2)
-					SmoothingFactor = 2;
+				ImGui::DragInt("Smoothing factor", &RUGOSITY_MANAGER.SmoothingFactor);
+				if (RUGOSITY_MANAGER.SmoothingFactor < 2)
+					RUGOSITY_MANAGER.SmoothingFactor = 2;
 			}
-			else if (currentSDF != nullptr)
+			else if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
 			{
 				if (ImGui::Button("Delete SDF"))
 				{
@@ -1094,12 +944,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					LINE_RENDERER.clearAll();
 					LINE_RENDERER.SyncWithGPU();
 
-					delete currentSDF;
-					currentSDF = nullptr;
+					delete RUGOSITY_MANAGER.currentSDF;
+					RUGOSITY_MANAGER.currentSDF = nullptr;
 				}
 			}
 
-			if (currentSDF != nullptr)
+			if (RUGOSITY_MANAGER.newSDFSeen > 0 && RUGOSITY_MANAGER.newSDFSeen < RUGOSITY_MANAGER.SmoothingFactor)
+			{
+				std::string Text = "Progress: " + std::to_string(RUGOSITY_MANAGER.newSDFSeen) + " out of " + std::to_string(RUGOSITY_MANAGER.SmoothingFactor);
+				ImGui::Text(Text.c_str());
+			}
+
+			if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
 			{
 				if (ImGui::Checkbox("Show Rugosity", &currentMesh->showRugosity))
 				{
@@ -1145,21 +1001,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 				float TotalTime = 0.0f;
 
-				std::string debugTimers = "Building of SDF grid : " + std::to_string(currentSDF->TimeTookToGenerateInMS) + " ms";
+				std::string debugTimers = "Building of SDF grid : " + std::to_string(RUGOSITY_MANAGER.currentSDF->TimeTookToGenerateInMS) + " ms";
 				debugTimers += "\n";
-				TotalTime += currentSDF->TimeTookToGenerateInMS;
+				TotalTime += RUGOSITY_MANAGER.currentSDF->TimeTookToGenerateInMS;
 
-				debugTimers += "Fill cells with triangle info : " + std::to_string(currentSDF->TimeTookFillCellsWithTriangleInfo) + " ms";
+				debugTimers += "Fill cells with triangle info : " + std::to_string(RUGOSITY_MANAGER.currentSDF->TimeTookFillCellsWithTriangleInfo) + " ms";
 				debugTimers += "\n";
-				TotalTime += currentSDF->TimeTookFillCellsWithTriangleInfo;
+				TotalTime += RUGOSITY_MANAGER.currentSDF->TimeTookFillCellsWithTriangleInfo;
 
-				debugTimers += "Calculate rugosity : " + std::to_string(currentSDF->TimeTookCalculateRugosity) + " ms";
+				debugTimers += "Calculate rugosity : " + std::to_string(RUGOSITY_MANAGER.currentSDF->TimeTookCalculateRugosity) + " ms";
 				debugTimers += "\n";
-				TotalTime += currentSDF->TimeTookCalculateRugosity;
+				TotalTime += RUGOSITY_MANAGER.currentSDF->TimeTookCalculateRugosity;
 
-				debugTimers += "Assign colors to mesh : " + std::to_string(currentSDF->TimeTookFillMeshWithRugosityData) + " ms";
+				debugTimers += "Assign colors to mesh : " + std::to_string(RUGOSITY_MANAGER.currentSDF->TimeTookFillMeshWithRugosityData) + " ms";
 				debugTimers += "\n";
-				TotalTime += currentSDF->TimeTookFillMeshWithRugosityData;
+				TotalTime += RUGOSITY_MANAGER.currentSDF->TimeTookFillMeshWithRugosityData;
 
 				debugTimers += "Total time : " + std::to_string(TotalTime) + " ms";
 				debugTimers += "\n";
@@ -1169,7 +1025,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 				ImGui::Text((debugTimers).c_str());
 
-				ImGui::Text(("debugTotalTrianglesInCells: " + std::to_string(currentSDF->debugTotalTrianglesInCells)).c_str());
+				ImGui::Text(("debugTotalTrianglesInCells: " + std::to_string(RUGOSITY_MANAGER.currentSDF->debugTotalTrianglesInCells)).c_str());
 
 				ImGui::Separator();
 				ImGui::Text("Visualization of SDF:");
@@ -1187,7 +1043,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					SDFRenderingMode = 1;
 
 					LINE_RENDERER.clearAll();
-					addLinesOFSDF(currentSDF);
+					addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
 					LINE_RENDERER.SyncWithGPU();
 				}
 
@@ -1196,24 +1052,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					SDFRenderingMode = 2;
 
 					LINE_RENDERER.clearAll();
-					addLinesOFSDF(currentSDF);
+					addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
 					LINE_RENDERER.SyncWithGPU();
 				}
 
 				ImGui::Separator();
 			}
+			else if (RUGOSITY_MANAGER.currentSDF != nullptr && !RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+			{
+				ImGui::Text("Creating SDF...");
+			}
 
 			ImGui::Separator();
-			if (currentSDF != nullptr && currentSDF->selectedCell != glm::vec3(0.0))
+			if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->selectedCell != glm::vec3(0.0))
 			{
-				SDFNode currentlySelectedCell = currentSDF->data[currentSDF->selectedCell.x][currentSDF->selectedCell.y][currentSDF->selectedCell.z];
+				SDFNode currentlySelectedCell = RUGOSITY_MANAGER.currentSDF->data[RUGOSITY_MANAGER.currentSDF->selectedCell.x][RUGOSITY_MANAGER.currentSDF->selectedCell.y][RUGOSITY_MANAGER.currentSDF->selectedCell.z];
 
 				//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
 				ImGui::Text("Selected cell info: ");
 
-				std::string indexes = "i: " + std::to_string(currentSDF->selectedCell.x);
-				indexes += " j: " + std::to_string(currentSDF->selectedCell.y);
-				indexes += " k: " + std::to_string(currentSDF->selectedCell.z);
+				std::string indexes = "i: " + std::to_string(RUGOSITY_MANAGER.currentSDF->selectedCell.x);
+				indexes += " j: " + std::to_string(RUGOSITY_MANAGER.currentSDF->selectedCell.y);
+				indexes += " k: " + std::to_string(RUGOSITY_MANAGER.currentSDF->selectedCell.z);
 				//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
 				ImGui::Text((indexes).c_str());
 
@@ -1254,7 +1114,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 				if (ImGui::Button("Show debug info"))
 				{
-					currentSDF->calculateCellRugosity(&currentSDF->data[currentSDF->selectedCell.x][currentSDF->selectedCell.y][currentSDF->selectedCell.z], &debugText);
+					RUGOSITY_MANAGER.currentSDF->calculateCellRugosity(&RUGOSITY_MANAGER.currentSDF->
+						data[RUGOSITY_MANAGER.currentSDF->selectedCell.x][RUGOSITY_MANAGER.currentSDF->selectedCell.y][RUGOSITY_MANAGER.currentSDF->selectedCell.z], &debugText);
 				}
 
 				ImGui::Text(debugText.c_str());

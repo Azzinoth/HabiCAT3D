@@ -320,7 +320,7 @@ void FEMesh::fillRugosityDataToGPU()
 
 	rugosityBufferID = 0;
 	FE_GL_ERROR(glGenBuffers(1, &rugosityBufferID));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, colorBufferID));
+	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, rugosityBufferID));
 	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * rugosityData.size(), rugosityData.data(), GL_STATIC_DRAW));
 	FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, 0));
 	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
