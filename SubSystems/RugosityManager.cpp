@@ -3,7 +3,25 @@ using namespace FocalEngine;
 
 RugosityManager* RugosityManager::Instance = nullptr;
 
-RugosityManager::RugosityManager() {}
+RugosityManager::RugosityManager()
+{
+	dimentionsList.push_back("4");
+	dimentionsList.push_back("8");
+	dimentionsList.push_back("16");
+	dimentionsList.push_back("32");
+	dimentionsList.push_back("64");
+	dimentionsList.push_back("128");
+	dimentionsList.push_back("256");
+	dimentionsList.push_back("512");
+	dimentionsList.push_back("1024");
+	dimentionsList.push_back("2048");
+	dimentionsList.push_back("4096");
+
+	colorSchemesList.push_back("Default");
+	colorSchemesList.push_back("Rainbow");
+	colorSchemesList.push_back("Turbo colormap");
+}
+
 RugosityManager::~RugosityManager() {}
 
 void RugosityManager::MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter)
@@ -17,6 +35,11 @@ void RugosityManager::MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter)
 	for (size_t i = 0; i < SDF->mesh->TrianglesRugosity.size(); i++)
 	{
 		SDF->mesh->TrianglesRugosity[i] += SDF->TrianglesRugosity[i];
+		if (SDF->mesh->TrianglesRugosity[i] <= 0.0f)
+		{
+			SDF->mesh->TrianglesRugosity[i] += 0.000000001f;
+			bWeightedNormals = true;
+		}
 	}
 	JitterCounter++;
 
@@ -202,3 +225,32 @@ void RugosityManager::calculateRugorsityWithJitterAsyn(FEMesh* mesh)
 		RunCreationOfSDFAsync(mesh);
 	}
 }
+
+std::string RugosityManager::colorSchemeIndexToString(int index)
+{
+	switch (index)
+	{
+	case 3:
+		return colorSchemesList[0];
+	case 4:
+		return colorSchemesList[1];
+	case 5:
+		return colorSchemesList[2];
+	}
+
+	return "Default";
+}
+
+int RugosityManager::colorSchemeIndexFromString(std::string name)
+{
+	if (name == colorSchemesList[0])
+		return 3;
+
+	if (name == colorSchemesList[1])
+		return 4;
+
+	if (name == colorSchemesList[2])
+		return 5;
+
+	return 3;
+};

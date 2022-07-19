@@ -46,6 +46,12 @@ namespace FocalEngine
 		static void calculateSDFCallback(void* OutputData);
 		void RunCreationOfSDFAsync(FEMesh* mesh, bool bJitter = false);
 		void calculateRugorsityWithJitterAsyn(FEMesh* mesh);
+
+		std::vector<std::string> dimentionsList;
+		std::vector<std::string> colorSchemesList;
+
+		std::string colorSchemeIndexToString(int index);
+		int colorSchemeIndexFromString(std::string name);
 	private:
 		SINGLETON_PRIVATE_PART(RugosityManager)
 

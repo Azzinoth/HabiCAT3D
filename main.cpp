@@ -450,37 +450,6 @@ void addLinesOFSDF(SDF* SDF)
 
 FEMesh* loadedMesh = nullptr;
 FEMesh* currentMesh = nullptr;
-std::vector<std::string> dimentionsList;
-std::vector<std::string> colorSchemesList;
-
-std::string colorSchemeIndexToString(int index)
-{
-	switch (index)
-	{
-		case 3:
-			return colorSchemesList[0];
-		case 4:
-			return colorSchemesList[1];
-		case 5:
-			return colorSchemesList[2];
-	}
-
-	return "Default";
-}
-
-int colorSchemeIndexFromString(std::string name)
-{
-	if (name == colorSchemesList[0])
-		return 3;
-
-	if (name == colorSchemesList[1])
-		return 4;
-
-	if (name == colorSchemesList[2])
-		return 5;
-
-	return 3;
-};
 
 static void dropCallback(int count, const char** paths);
 void dropCallback(int count, const char** paths)
@@ -730,22 +699,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	RUGOSITY_MANAGER.currentCamera = currentCamera;
 
-	dimentionsList.push_back("4");
-	dimentionsList.push_back("8");
-	dimentionsList.push_back("16");
-	dimentionsList.push_back("32");
-	dimentionsList.push_back("64");
-	dimentionsList.push_back("128");
-	dimentionsList.push_back("256");
-	dimentionsList.push_back("512");
-	dimentionsList.push_back("1024");
-	dimentionsList.push_back("2048");
-	dimentionsList.push_back("4096");
-
-	colorSchemesList.push_back("Default");
-	colorSchemesList.push_back("Rainbow");
-	colorSchemesList.push_back("Turbo colormap");
-
 	while (APPLICATION.IsWindowOpened())
 	{
 		FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
@@ -902,12 +855,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				ImGui::SetNextItemWidth(128);
 				if (ImGui::BeginCombo("##ChooseSDFDimention", std::to_string(RUGOSITY_MANAGER.SDFDimention).c_str(), ImGuiWindowFlags_None))
 				{
-					for (size_t i = 0; i < dimentionsList.size(); i++)
+					for (size_t i = 0; i < RUGOSITY_MANAGER.dimentionsList.size(); i++)
 					{
-						bool is_selected = (std::to_string(RUGOSITY_MANAGER.SDFDimention) == dimentionsList[i]);
-						if (ImGui::Selectable(dimentionsList[i].c_str(), is_selected))
+						bool is_selected = (std::to_string(RUGOSITY_MANAGER.SDFDimention) == RUGOSITY_MANAGER.dimentionsList[i]);
+						if (ImGui::Selectable(RUGOSITY_MANAGER.dimentionsList[i].c_str(), is_selected))
 						{
-							RUGOSITY_MANAGER.SDFDimention = atoi(dimentionsList[i].c_str());
+							RUGOSITY_MANAGER.SDFDimention = atoi(RUGOSITY_MANAGER.dimentionsList[i].c_str());
 						}
 
 						if (is_selected)
@@ -971,14 +924,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				ImGui::Text("Color scheme: ");
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(128);
-				if (ImGui::BeginCombo("##ChooseColorScheme", (colorSchemeIndexToString(currentMesh->colorMode)).c_str(), ImGuiWindowFlags_None))
+				if (ImGui::BeginCombo("##ChooseColorScheme", (RUGOSITY_MANAGER.colorSchemeIndexToString(currentMesh->colorMode)).c_str(), ImGuiWindowFlags_None))
 				{
-					for (size_t i = 0; i < colorSchemesList.size(); i++)
+					for (size_t i = 0; i < RUGOSITY_MANAGER.colorSchemesList.size(); i++)
 					{
-						bool is_selected = ((colorSchemeIndexToString(currentMesh->colorMode)).c_str() == colorSchemesList[i]);
-						if (ImGui::Selectable(colorSchemesList[i].c_str(), is_selected))
+						bool is_selected = ((RUGOSITY_MANAGER.colorSchemeIndexToString(currentMesh->colorMode)).c_str() == RUGOSITY_MANAGER.colorSchemesList[i]);
+						if (ImGui::Selectable(RUGOSITY_MANAGER.colorSchemesList[i].c_str(), is_selected))
 						{
-							currentMesh->colorMode = colorSchemeIndexFromString(colorSchemesList[i]);
+							currentMesh->colorMode = RUGOSITY_MANAGER.colorSchemeIndexFromString(RUGOSITY_MANAGER.colorSchemesList[i]);
 						}
 
 						if (is_selected)

@@ -861,7 +861,41 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 				*debugInfo += "\n";
 			}*/
 
+			
 			rugosities.push_back(originalAreas[l] / projectionArea);
+
+			if (originalAreas[l] == 0.0 || projectionArea == 0.0)
+				rugosities.back() = 1.0f;
+
+			if (rugosities.back() > 100.0f)
+				rugosities.back() = 100.0f;
+
+			/*if (rugosities.back() > 10000.0f)
+			{
+				bNormalizedNormals = true;
+
+				double x1 = aProjection.x;
+				double x2 = bProjection.x;
+				double x3 = cProjection.x;
+
+				double y1 = aProjection.y;
+				double y2 = bProjection.y;
+				double y3 = cProjection.y;
+
+				double z1 = aProjection.z;
+				double z2 = bProjection.z;
+				double z3 = cProjection.z;
+
+				double proArea =  0.5 * sqrt(pow(x2 * y1 - x3 * y1 - x1 * y2 + x3 * y2 + x1 * y3 - x2 * y3, 2.0) +
+					pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
+					pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
+
+				double orig = originalAreas[l];
+				double test = originalAreas[l] / projectionArea + proArea + orig;
+
+
+				rugosities.back() = test + 0.01f;
+			}*/
 
 			/*if (debugInfo)
 			{
@@ -870,6 +904,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 			}*/
 		}
 
+		// Weighted by triangle area rugosity.
 		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
 		{
 			float currentTriangleCoef = originalAreas[l] / totalArea;
