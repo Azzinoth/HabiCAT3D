@@ -35,8 +35,8 @@ namespace FocalEngine
 
 		float GridScale = 2.5f;
 
-		bool bWeightedNormals = false;
-		bool bNormalizedNormals = false;
+		bool bWeightedNormals = true;
+		bool bNormalizedNormals = true;
 
 		int SDFDimention = 16;
 		bool bLastJitter = true;

@@ -210,8 +210,8 @@ void RugosityManager::calculateRugorsityWithJitterAsyn(FEMesh* mesh)
 		TempGridScale /= 100.0f;
 		GridScale += TempGridScale;*/
 
-		RUGOSITY_MANAGER.GridScale = 1.0f;
-		float TempGridScale = rand() % 200;
+		RUGOSITY_MANAGER.GridScale = 1.25f;
+		float TempGridScale = rand() % 25;
 		TempGridScale /= 100.0f;
 		RUGOSITY_MANAGER.GridScale += TempGridScale;
 
@@ -222,7 +222,7 @@ void RugosityManager::calculateRugorsityWithJitterAsyn(FEMesh* mesh)
 		calculateSDF(currentMesh, SDFDimention, true);
 		MoveRugosityInfoToMesh(currentSDF, bFinal);*/
 
-		RunCreationOfSDFAsync(mesh);
+		RunCreationOfSDFAsync(mesh, true);
 	}
 }
 
