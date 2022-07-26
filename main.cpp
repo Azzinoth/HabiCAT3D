@@ -6,6 +6,7 @@ static const char* const sTestVS = R"(
 @In_Normal@
 
 layout (location = 8) in float RugosityData;
+layout (location = 9) in float RugosityDataAdditional;
 
 @In_Color@
 @In_Segments_colors@
@@ -29,6 +30,7 @@ out VS_OUT
 	vec3 segmentsColors;
 
 	float Rugosity;
+	float RugosityAdditional;
 } vs_out;
 
 void main(void)
@@ -49,6 +51,7 @@ void main(void)
 		vs_out.segmentsColors = FESegmentsColors;
 
 	vs_out.Rugosity = RugosityData;
+	vs_out.RugosityAdditional = RugosityDataAdditional;
 }
 )";
 
@@ -66,6 +69,7 @@ in VS_OUT
 	flat vec3 segmentsColors;
 
 	float Rugosity;
+	float RugosityAdditional;
 } FS_IN;
 
 @ViewMatrix@

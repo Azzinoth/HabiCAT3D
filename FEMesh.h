@@ -77,8 +77,10 @@ namespace FocalEngine
 
 		std::vector<float> rugosityData;
 		std::vector<float> TrianglesRugosity;
+		std::vector<float> rugosityDataAdditional;
+		std::vector<float> TrianglesRugosityAdditional;
 		void fillRugosityDataToGPU();
-		//std::vector<std::vector<float>> jitteredData;
+
 
 		void fillTrianglesData();
 		bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance);
