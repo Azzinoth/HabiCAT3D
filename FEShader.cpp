@@ -773,7 +773,6 @@ std::string FEShader::parseShaderForMacro(const char* shaderText)
 		parsedShaderText.replace(index, strlen(FE_VERTEX_ATTRIBUTE_MATINDEX), "layout (location = 5) in float FEMatIndex;");
 		vertexAttributes |= FE_MATINDEX;
 	}
-
 	index = parsedShaderText.find(FE_VERTEX_ATTRIBUTE_INSTANCEDATA);
 	if (index != std::string::npos)
 	{
@@ -785,6 +784,18 @@ std::string FEShader::parseShaderForMacro(const char* shaderText)
 	{
 		parsedShaderText.replace(index, strlen(FE_VERTEX_ATTRIBUTE_SEGMENTS_COLORS), "layout (location = 7) in vec3 FESegmentsColors;");
 		vertexAttributes |= FE_SEGMENTS_COLORS;
+	}
+	index = parsedShaderText.find(FE_VERTEX_ATTRIBUTE_RUGOSITY_FIRST);
+	if (index != std::string::npos)
+	{
+		parsedShaderText.replace(index, strlen(FE_VERTEX_ATTRIBUTE_RUGOSITY_FIRST), "layout (location = 8) in float RugosityData;");
+		vertexAttributes |= FE_RUGOSITY_FIRST;
+	}
+	index = parsedShaderText.find(FE_VERTEX_ATTRIBUTE_RUGOSITY_SECOND);
+	if (index != std::string::npos)
+	{
+		parsedShaderText.replace(index, strlen(FE_VERTEX_ATTRIBUTE_RUGOSITY_SECOND), "layout (location = 9) in float RugosityDataAdditional;");
+		vertexAttributes |= FE_RUGOSITY_SECOND;
 	}
 
 	index = parsedShaderText.find(FE_WORLD_MATRIX_MACRO);

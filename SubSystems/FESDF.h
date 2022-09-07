@@ -96,13 +96,18 @@ namespace FocalEngine
 		bool bNormalizedNormals = false;
 		std::vector<float> TrianglesRugosity;
 		
-
-
 		bool bFullyLoaded = false;
+
+		int RenderingMode = 0;
+		bool showTrianglesInCells = true;
+		void UpdateRenderLines();
 
 		~SDF()
 		{
 			data.clear();
 		}
+
+	private:
+		void addLinesOFSDF();
 	};
 }

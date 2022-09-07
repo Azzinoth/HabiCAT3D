@@ -10,6 +10,8 @@
 #define FE_VERTEX_ATTRIBUTE_MATINDEX "@In_Material_Index@"
 #define FE_VERTEX_ATTRIBUTE_INSTANCEDATA "@In_Instance_Data@"
 #define FE_VERTEX_ATTRIBUTE_SEGMENTS_COLORS "@In_Segments_colors@"
+#define FE_VERTEX_ATTRIBUTE_RUGOSITY_FIRST "@In_Rugosity@"
+#define FE_VERTEX_ATTRIBUTE_RUGOSITY_SECOND "@In_Rugosity_Second@"
 
 #define FE_WORLD_MATRIX_MACRO "@WorldMatrix@"
 #define FE_VIEW_MATRIX_MACRO "@ViewMatrix@"
@@ -52,7 +54,9 @@ namespace FocalEngine
 		FE_INDEX = 1 << 5,
 		FE_MATINDEX = 1 << 6,
 		FE_INSTANCEDATA = 1 << 7,
-		FE_SEGMENTS_COLORS = 1 << 8
+		FE_SEGMENTS_COLORS = 1 << 8,
+		FE_RUGOSITY_FIRST = 1 << 9,
+		FE_RUGOSITY_SECOND = 1 << 10
 	};
 
 	const int FE_MAX_TEXTURES_PER_MATERIAL = 16;

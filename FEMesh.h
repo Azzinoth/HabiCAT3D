@@ -55,6 +55,8 @@ namespace FocalEngine
 		unsigned int segmentsColorsCount = -1;
 		GLuint rugosityBufferID = -1;
 		unsigned int rugosityColorsCount = -1;
+		GLuint rugositySecondBufferID = -1;
+		unsigned int rugositySecondColorsCount = -1;
 
 		unsigned int vertexCount;
 
@@ -79,7 +81,7 @@ namespace FocalEngine
 		std::vector<float> TrianglesRugosity;
 		std::vector<float> rugosityDataAdditional;
 		std::vector<float> TrianglesRugosityAdditional;
-		void fillRugosityDataToGPU();
+		void fillRugosityDataToGPU(int RugosityLayerIndex = 0);
 
 
 		void fillTrianglesData();

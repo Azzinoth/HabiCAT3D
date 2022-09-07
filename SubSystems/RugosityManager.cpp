@@ -50,7 +50,7 @@ void RugosityManager::MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter)
 			SDF->mesh->TrianglesRugosity[i] /= JitterCounter;
 		}
 
-		SDF->mesh->fillRugosityDataToGPU();
+		SDF->mesh->fillRugosityDataToGPU(RUGOSITY_MANAGER.RugosityLayerIndex);
 	}
 }
 
@@ -170,9 +170,10 @@ void RugosityManager::RunCreationOfSDFAsync(FEMesh* mesh, bool bJitter)
 	THREAD_POOL.Execute(calculateSDFAsync, InputData, OutputData, calculateSDFCallback);
 }
 
-void RugosityManager::calculateRugorsityWithJitterAsyn(FEMesh* mesh)
+void RugosityManager::calculateRugorsityWithJitterAsyn(FEMesh* mesh, int RugosityLayerIndex)
 {
 	RUGOSITY_MANAGER.JitterCounter = 0;
+	RUGOSITY_MANAGER.RugosityLayerIndex = RugosityLayerIndex;
 	newSDFSeen = 0;
 	mesh->TrianglesRugosity.clear();
 	mesh->rugosityData.clear();

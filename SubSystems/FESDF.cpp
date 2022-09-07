@@ -914,3 +914,52 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 		//node->rugosity /= node->trianglesInCell.size();
 	}
 }
+
+void SDF::addLinesOFSDF()
+{
+	for (size_t i = 0; i < data.size(); i++)
+	{
+		for (size_t j = 0; j < data[i].size(); j++)
+		{
+			for (size_t k = 0; k < data[i][j].size(); k++)
+			{
+				bool render = false;
+				data[i][j][k].wasRenderedLastFrame = false;
+
+				if (!data[i][j][k].trianglesInCell.empty() || RenderingMode == 2)
+					render = true;
+
+				if (render)
+				{
+					glm::vec3 color = glm::vec3(0.1f, 0.6f, 0.1f);
+					if (data[i][j][k].selected)
+						color = glm::vec3(0.9f, 0.1f, 0.1f);
+
+					LINE_RENDERER.RenderAABB(data[i][j][k].AABB, color);
+
+					data[i][j][k].wasRenderedLastFrame = true;
+
+					if (showTrianglesInCells && data[i][j][k].selected)
+					{
+						for (size_t l = 0; l < data[i][j][k].trianglesInCell.size(); l++)
+						{
+							auto currentTriangle = mesh->Triangles[data[i][j][k].trianglesInCell[l]];
+
+							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[0], currentTriangle[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[0], currentTriangle[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[1], currentTriangle[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void SDF::UpdateRenderLines()
+{
+	LINE_RENDERER.clearAll();
+	if (RenderingMode != 0)
+		addLinesOFSDF();
+	LINE_RENDERER.SyncWithGPU();
+}

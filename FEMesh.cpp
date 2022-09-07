@@ -261,7 +261,7 @@ void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 	}
 }
 
-void FEMesh::fillRugosityDataToGPU()
+void FEMesh::fillRugosityDataToGPU(int RugosityLayerIndex)
 {
 	int posSize = getPositionsCount();
 	float* positions = new float[posSize];
@@ -318,10 +318,24 @@ void FEMesh::fillRugosityDataToGPU()
 
 	FE_GL_ERROR(glBindVertexArray(vaoID));
 
-	rugosityBufferID = 0;
-	FE_GL_ERROR(glGenBuffers(1, &rugosityBufferID));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, rugosityBufferID));
-	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * rugosityData.size(), rugosityData.data(), GL_STATIC_DRAW));
-	FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, 0));
+	if (RugosityLayerIndex == 0)
+	{
+		rugosityBufferID = 0;
+		vertexAttributes |= FE_RUGOSITY_FIRST;
+		FE_GL_ERROR(glGenBuffers(1, &rugosityBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, rugosityBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * rugosityData.size(), rugosityData.data(), GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, 0));
+	}
+	else
+	{
+		rugositySecondBufferID = 0;
+		vertexAttributes |= FE_RUGOSITY_SECOND;
+		FE_GL_ERROR(glGenBuffers(1, &rugositySecondBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, rugositySecondBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * rugosityData.size(), rugosityData.data(), GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(9, 3, GL_FLOAT, false, 0, 0));
+	}
+
 	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
 }

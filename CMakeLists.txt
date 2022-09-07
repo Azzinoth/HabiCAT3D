@@ -47,6 +47,8 @@ file(GLOB SubSystems_SRC
 	"SubSystems/FESDF.h"
 	"SubSystems/RugosityManager.cpp"
 	"SubSystems/RugosityManager.h"
+	"SubSystems/UIManager.cpp"
+	"SubSystems/UIManager.h"
 )
 
 file(GLOB BasicApplicationSubSystem_SRC
