@@ -20,6 +20,8 @@ namespace FocalEngine
 		bool GetWireFrameMode();
 		void SetWireFrameMode(bool NewValue);
 
+		bool GetDeveloperMode();
+		void SetDeveloperMode(bool NewValue);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 
@@ -28,6 +30,8 @@ namespace FocalEngine
 
 		bool wireframeMode = false;
 		float TimeTookToJitter = 0.0f;
+
+		bool DeveloperMode = false;
 	};
 
 	#define UI UIManager::getInstance()

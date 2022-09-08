@@ -7,6 +7,9 @@ set(CMAKE_CONFIGURATION_TYPES Debug Release)
 # set the project name
 project(RugosityCalculator LANGUAGES CXX)
 
+set(CMAKE_CXX_FLAGS_DEBUG "/MP /Zi /INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF")
+set(CMAKE_CXX_FLAGS_RELEASE "/MP")
+
 # Turn on the ability to create folders to organize projects (.vcproj)
 # It creates "CMakePredefinedTargets" folder by default and adds CMake
 # defined projects like INSTALL.vcproj and ZERO_CHECK.vcproj

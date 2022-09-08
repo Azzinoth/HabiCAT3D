@@ -438,7 +438,7 @@ void mouseButtonCallback(int button, int action, int mods)
 
 	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
 	{
-		if (currentMesh != nullptr)
+		if (currentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr)
 		{
 			if (RUGOSITY_MANAGER.currentSDF->RenderingMode == 0)
 			{
