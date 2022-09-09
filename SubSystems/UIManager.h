@@ -22,6 +22,12 @@ namespace FocalEngine
 
 		bool GetDeveloperMode();
 		void SetDeveloperMode(bool NewValue);
+
+		std::string CameraPositionToStr();
+		void StrToCameraPosition(std::string text);
+
+		std::string CameraRotationToStr();
+		void StrToCameraRotation(std::string text);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 

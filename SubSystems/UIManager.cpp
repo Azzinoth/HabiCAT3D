@@ -67,41 +67,70 @@ void UIManager::showCameraTransform()
 
 	ImGui::Text("Position : ");
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(90);
+	ImGui::SetNextItemWidth(70);
 	ImGui::DragFloat("##X pos", &cameraPosition[0], 0.1f);
 
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(90);
+	ImGui::SetNextItemWidth(70);
 	ImGui::DragFloat("##Y pos", &cameraPosition[1], 0.1f);
 
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(90);
+	ImGui::SetNextItemWidth(70);
 	ImGui::DragFloat("##Z pos", &cameraPosition[2], 0.1f);
 
 	currentCamera->setPosition(cameraPosition);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(40);
+	//ImGui::push
+	if (ImGui::Button("Copy##Position"))
+	{
+		APPLICATION.SetClipboardText(CameraPositionToStr());
+	}
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(40);
+	if (ImGui::Button("Paste##Position"))
+	{
+		StrToCameraPosition(APPLICATION.GetClipboardText());
+	}
 
 	// ********* ROTATION *********
 	glm::vec3 cameraRotation = glm::vec3(currentCamera->getYaw(), currentCamera->getPitch(), currentCamera->getRoll());
 
 	ImGui::Text("Rotation : ");
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(90);
+	ImGui::SetNextItemWidth(70);
 	ImGui::DragFloat("##X rot", &cameraRotation[0], 0.1f);
 
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(90);
+	ImGui::SetNextItemWidth(70);
 	ImGui::DragFloat("##Y rot", &cameraRotation[1], 0.1f);
 
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(90);
+	ImGui::SetNextItemWidth(70);
 	ImGui::DragFloat("##Z rot", &cameraRotation[2], 0.1f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(40);
+	if (ImGui::Button("Copy##Rotation"))
+	{
+		APPLICATION.SetClipboardText(CameraRotationToStr());
+	}
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(40);
+	if (ImGui::Button("Paste##Rotation"))
+	{
+		StrToCameraRotation(APPLICATION.GetClipboardText());
+	}
 
 	currentCamera->setYaw(cameraRotation[0]);
 	currentCamera->setPitch(cameraRotation[1]);
 	currentCamera->setRoll(cameraRotation[2]);
 
 	float cameraSpeed = currentCamera->getMovementSpeed();
-	ImGui::Text("Camera speed in m/s : ");
+	ImGui::Text("Camera speed: ");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(70);
 	ImGui::DragFloat("##Camera_speed", &cameraSpeed, 0.01f, 0.01f, 100.0f);
@@ -488,12 +517,17 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 
 			ImGui::Text("Scale of features:");
 			static int SmallScaleFeatures = 0;
-			if (ImGui::RadioButton("Small", &SmallScaleFeatures, 0))
+			if (ImGui::RadioButton("Small (Grid size - 128)", &SmallScaleFeatures, 0))
 			{
 
 			}
 
-			if (ImGui::RadioButton("Large", &SmallScaleFeatures, 1))
+			if (ImGui::RadioButton("Large (Grid size - 16)", &SmallScaleFeatures, 1))
+			{
+
+			}
+
+			if (ImGui::RadioButton("Custom", &SmallScaleFeatures, 3))
 			{
 
 			}
@@ -502,9 +536,28 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 			{
 				RUGOSITY_MANAGER.SDFDimention = 128;
 			}
-			else
+			else if (SmallScaleFeatures == 1)
 			{
 				RUGOSITY_MANAGER.SDFDimention = 16;
+			}
+			else
+			{
+				ImGui::SetNextItemWidth(128);
+				if (ImGui::BeginCombo("##ChooseSDFDimention", std::to_string(RUGOSITY_MANAGER.SDFDimention).c_str(), ImGuiWindowFlags_None))
+				{
+					for (size_t i = 0; i < RUGOSITY_MANAGER.dimentionsList.size(); i++)
+					{
+						bool is_selected = (std::to_string(RUGOSITY_MANAGER.SDFDimention) == RUGOSITY_MANAGER.dimentionsList[i]);
+						if (ImGui::Selectable(RUGOSITY_MANAGER.dimentionsList[i].c_str(), is_selected))
+						{
+							RUGOSITY_MANAGER.SDFDimention = atoi(RUGOSITY_MANAGER.dimentionsList[i].c_str());
+						}
+
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
 			}
 
 			float maxRugorsity = currentMesh->maxRugorsity;
@@ -534,4 +587,142 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 			}
 		}
 	}
+}
+
+std::string UIManager::CameraPositionToStr()
+{
+	glm::vec3 CameraPosition = currentCamera->getPosition();
+	return "( X:" + std::to_string(CameraPosition.x) + " Y:" + std::to_string(CameraPosition.y) + " Z:" + std::to_string(CameraPosition.z) + " )";
+}
+
+void UIManager::StrToCameraPosition(std::string text)
+{
+	size_t StartPosition = text.find("( X:");
+	if (StartPosition == std::string::npos)
+		return;
+
+	size_t EndPosition = text.find(" Y:");
+	if (EndPosition == std::string::npos)
+		return;
+
+	if (StartPosition + strlen("( X:") < 0 ||
+		StartPosition + strlen("( X:") + EndPosition - (StartPosition + strlen("( X:")) >= text.size())
+		return;
+
+	std::string temp = text.substr(StartPosition + strlen("( X:"), EndPosition - (StartPosition + strlen("( X:")));
+
+	if (temp.empty())
+		return;
+
+	float X = atof(temp.c_str());
+
+	StartPosition = text.find("Y:");
+	if (StartPosition == std::string::npos)
+		return;
+
+	EndPosition = text.find(" Z:");
+	if (EndPosition == std::string::npos)
+		return;
+
+	if (StartPosition + strlen("Y:") < 0 ||
+		StartPosition + strlen("Y:") + EndPosition - (StartPosition + strlen("Y:")) >= text.size())
+		return;
+
+	temp = text.substr(StartPosition + strlen("Y:"), EndPosition - (StartPosition + strlen("Y:")));
+
+	if (temp.empty())
+		return;
+
+	float Y = atof(temp.c_str());
+
+	StartPosition = text.find("Z:");
+	if (StartPosition == std::string::npos)
+		return;
+
+	EndPosition = text.find(" )");
+	if (EndPosition == std::string::npos)
+		return;
+
+	if (StartPosition + strlen("Z:") < 0 ||
+		StartPosition + strlen("Z:") + EndPosition - (StartPosition + strlen("Z:")) >= text.size())
+		return;
+
+	temp = text.substr(StartPosition + strlen("Z:"), EndPosition - (StartPosition + strlen("Z:")));
+
+	if (temp.empty())
+		return;
+
+	float Z = atof(temp.c_str());
+
+	currentCamera->setPosition(glm::vec3(X, Y, Z));
+}
+
+std::string UIManager::CameraRotationToStr()
+{
+	glm::vec3 CameraRotation = glm::vec3(currentCamera->getYaw(), currentCamera->getPitch(), currentCamera->getRoll());
+	return "( X:" + std::to_string(CameraRotation.x) + " Y:" + std::to_string(CameraRotation.y) + " Z:" + std::to_string(CameraRotation.z) + " )";
+}
+
+void UIManager::StrToCameraRotation(std::string text)
+{
+	size_t StartPosition = text.find("( X:");
+	if (StartPosition == std::string::npos)
+		return;
+
+	size_t EndPosition = text.find(" Y:");
+	if (EndPosition == std::string::npos)
+		return;
+
+	if (StartPosition + strlen("( X:") < 0 ||
+		StartPosition + strlen("( X:") + EndPosition - (StartPosition + strlen("( X:")) >= text.size())
+		return;
+
+	std::string temp = text.substr(StartPosition + strlen("( X:"), EndPosition - (StartPosition + strlen("( X:")));
+
+	if (temp.empty())
+		return;
+
+	float X = atof(temp.c_str());
+
+	StartPosition = text.find("Y:");
+	if (StartPosition == std::string::npos)
+		return;
+
+	EndPosition = text.find(" Z:");
+	if (EndPosition == std::string::npos)
+		return;
+
+	if (StartPosition + strlen("Y:") < 0 ||
+		StartPosition + strlen("Y:") + EndPosition - (StartPosition + strlen("Y:")) >= text.size())
+		return;
+
+	temp = text.substr(StartPosition + strlen("Y:"), EndPosition - (StartPosition + strlen("Y:")));
+
+	if (temp.empty())
+		return;
+
+	float Y = atof(temp.c_str());
+
+	StartPosition = text.find("Z:");
+	if (StartPosition == std::string::npos)
+		return;
+
+	EndPosition = text.find(" )");
+	if (EndPosition == std::string::npos)
+		return;
+
+	if (StartPosition + strlen("Z:") < 0 ||
+		StartPosition + strlen("Z:") + EndPosition - (StartPosition + strlen("Z:")) >= text.size())
+		return;
+
+	temp = text.substr(StartPosition + strlen("Z:"), EndPosition - (StartPosition + strlen("Z:")));
+
+	if (temp.empty())
+		return;
+
+	float Z = atof(temp.c_str());
+
+	currentCamera->setYaw(X);
+	currentCamera->setPitch(Y);
+	currentCamera->setRoll(Z);
 }

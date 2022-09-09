@@ -524,6 +524,14 @@ void renderFEMesh(FEMesh* mesh)
 	glBindVertexArray(0);
 }
 
+void windowResizeCallback(int width, int height)
+{
+	int W, H;
+	APPLICATION.GetWindowSize(&W, &H);
+
+	currentCamera->setAspectRatio(float(W) / float(H));
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	/*Point_3 a = Point_3(1.0, 5.0, 1.0);
@@ -579,12 +587,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	
 
-	//APPLICATION.createWindow(1280, 720, "Rugosity Calculator");
-	APPLICATION.InitWindow(1920, 1080, "Rugosity Calculator");
+	APPLICATION.InitWindow(1280, 720, "Rugosity Calculator");
+	//APPLICATION.InitWindow(1920, 1080, "Rugosity Calculator");
 	APPLICATION.SetDropCallback(dropCallback);
 	APPLICATION.SetKeyCallback(keyButtonCallback);
 	APPLICATION.SetMouseMoveCallback(mouseMoveCallback);
 	APPLICATION.SetMouseButtonCallback(mouseButtonCallback);
+	APPLICATION.SetWindowResizeCallback(windowResizeCallback);
 
 	THREAD_POOL.SetConcurrentThreadCount(8);
 
