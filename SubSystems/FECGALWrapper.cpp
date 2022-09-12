@@ -96,6 +96,9 @@ FEMesh* FECGALWrapper::rawDataToMesh(float* positions, int posSize,
 	newMesh->positionsCount = posSize;
 	newMesh->positionsBufferID = positionsBufferID;
 
+	newMesh->colorCount = colorSize;
+	newMesh->colorBufferID = colorsBufferID;
+
 	newMesh->normalsCount = normSize;
 	newMesh->normalsBufferID = normalsBufferID;
 
@@ -120,7 +123,7 @@ FEMesh* FECGALWrapper::importOBJ(const char* fileName, bool forceOneMesh)
 	if (objLoader.loadedObjects.size() > 0)
 	{
 		result = rawDataToMesh(objLoader.loadedObjects[0]->fVerC.data(), int(objLoader.loadedObjects[0]->fVerC.size()),
-			nullptr, 0,
+			objLoader.loadedObjects[0]->fColorsC.data(), int(objLoader.loadedObjects[0]->fColorsC.size()),
 			objLoader.loadedObjects[0]->fTexC.data(), int(objLoader.loadedObjects[0]->fTexC.size()),
 			objLoader.loadedObjects[0]->fNorC.data(), int(objLoader.loadedObjects[0]->fNorC.size()),
 			objLoader.loadedObjects[0]->fTanC.data(), int(objLoader.loadedObjects[0]->fTanC.size()),

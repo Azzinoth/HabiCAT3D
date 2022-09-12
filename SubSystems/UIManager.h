@@ -28,6 +28,8 @@ namespace FocalEngine
 
 		std::string CameraRotationToStr();
 		void StrToCameraRotation(std::string text);
+
+		void updateCurrentMesh(FEMesh* NewMesh);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 
@@ -38,6 +40,7 @@ namespace FocalEngine
 		float TimeTookToJitter = 0.0f;
 
 		bool DeveloperMode = false;
+		FEMesh* currentMesh = nullptr;
 	};
 
 	#define UI UIManager::getInstance()

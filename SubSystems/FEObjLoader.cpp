@@ -39,6 +39,22 @@ void FEObjLoader::readLine(std::stringstream& lineStream, FERawOBJData* data)
 		}
 
 		data->rawVertexCoordinates.push_back(newVec);
+
+		// File could contain RGB.
+		if (!lineStream.eof())
+		{
+			for (int i = 0; i <= 2; i++)
+			{
+				lineStream >> sTemp;
+				if (sTemp == "")
+					break;
+
+				newVec[i] = std::stof(sTemp);
+				haveColors = true;
+			}
+
+			data->rawVertexColors.push_back(newVec);
+		}
 	}
 	// if this line contains vertex texture coordinates
 	else if (sTemp[0] == 'v' && sTemp.size() == 2 && sTemp[1] == 't')
@@ -151,6 +167,7 @@ void FEObjLoader::readLine(std::stringstream& lineStream, FERawOBJData* data)
 
 void FEObjLoader::readFile(const char* fileName)
 {
+	haveColors = false;
 	haveTextureCoord = false;
 	haveNormalCoord = false;
 	currentFilePath = fileName;
@@ -257,6 +274,42 @@ void FEObjLoader::readFile(const char* fileName)
 	}
 }
 
+glm::vec3 FEObjLoader::calculateNormal(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2)
+{
+	glm::vec3 edge_0 = v2 - v1;
+	glm::vec3 edge_1 = v2 - v0;
+
+	glm::vec3 normal = glm::normalize(glm::cross(edge_1, edge_0));
+
+	return normal;
+}
+
+void FEObjLoader::calculateNormals(FERawOBJData* data)
+{
+	int IndexShift = 3;
+	// We assume that there were no normals info read.
+	for (size_t i = 0; i < data->fInd.size() - 1; i+=3)
+	{
+		glm::vec3 v0 = { data->fVerC[data->fInd[i] * IndexShift], data->fVerC[data->fInd[i] * IndexShift + 1], data->fVerC[data->fInd[i] * IndexShift + 2] };
+		glm::vec3 v1 = { data->fVerC[data->fInd[i + 1] * IndexShift], data->fVerC[data->fInd[i + 1] * IndexShift + 1], data->fVerC[data->fInd[i + 1] * IndexShift + 2] };
+		glm::vec3 v2 = { data->fVerC[data->fInd[i + 2] * IndexShift], data->fVerC[data->fInd[i + 2] * IndexShift + 1], data->fVerC[data->fInd[i + 2] * IndexShift + 2] };
+
+		glm::vec3 normal = calculateNormal(v0, v1, v2);
+
+		data->fNorC[data->fInd[i] * IndexShift] = normal.x;
+		data->fNorC[data->fInd[i] * IndexShift + 1] = normal.y;
+		data->fNorC[data->fInd[i] * IndexShift + 2] = normal.z;
+
+		data->fNorC[data->fInd[i + 1] * IndexShift] = normal.x;
+		data->fNorC[data->fInd[i + 1] * IndexShift + 1] = normal.y;
+		data->fNorC[data->fInd[i + 1] * IndexShift + 2] = normal.z;
+
+		data->fNorC[data->fInd[i + 2] * IndexShift] = normal.x;
+		data->fNorC[data->fInd[i + 2] * IndexShift + 1] = normal.y;
+		data->fNorC[data->fInd[i + 2] * IndexShift + 2] = normal.z;
+	}
+}
+
 glm::vec3 FEObjLoader::calculateTangent(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, std::vector<glm::vec2>&& textures)
 {
 	glm::vec3 q1 = v1 - v0;
@@ -318,8 +371,48 @@ void FEObjLoader::calculateTangents(FERawOBJData* data)
 	}
 }
 
+void FEObjLoader::NormilizeVertexPositions(FERawOBJData* data)
+{
+	float MinX = FLT_MAX;
+	float MaxX = -FLT_MAX;
+	float MinY = FLT_MAX;
+	float MaxY = -FLT_MAX;
+	float MinZ = FLT_MAX;
+	float MaxZ = -FLT_MAX;
+
+	for (size_t i = 0; i < data->rawVertexCoordinates.size(); i++)
+	{
+		if (MinX > data->rawVertexCoordinates[i].x)
+			MinX = data->rawVertexCoordinates[i].x;
+
+		if (MaxX < data->rawVertexCoordinates[i].x)
+			MaxX = data->rawVertexCoordinates[i].x;
+
+		if (MinY > data->rawVertexCoordinates[i].y)
+			MinY = data->rawVertexCoordinates[i].y;
+
+		if (MaxY < data->rawVertexCoordinates[i].y)
+			MaxY = data->rawVertexCoordinates[i].y;
+
+		if (MinZ > data->rawVertexCoordinates[i].z)
+			MinZ = data->rawVertexCoordinates[i].z;
+
+		if (MaxZ < data->rawVertexCoordinates[i].z)
+			MaxZ = data->rawVertexCoordinates[i].z;
+	}
+
+	for (size_t i = 0; i < data->rawVertexCoordinates.size(); i++)
+	{
+		data->rawVertexCoordinates[i].x -= MinX;
+		data->rawVertexCoordinates[i].y -= MinY;
+		data->rawVertexCoordinates[i].z -= MinZ;
+	}
+}
+
 void FEObjLoader::processRawData(FERawOBJData* data)
 {
+	NormilizeVertexPositions(data);
+
 	if (haveTextureCoord && haveNormalCoord)
 	{
 #ifdef FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
@@ -435,6 +528,56 @@ void FEObjLoader::processRawData(FERawOBJData* data)
 
 		calculateTangents(data);
 	}
+	else if (haveTextureCoord)
+	{
+		data->fVerC.resize(data->rawVertexCoordinates.size() * 3);
+		data->fTexC.resize(data->rawVertexCoordinates.size() * 2);
+		data->fNorC.resize(data->rawVertexCoordinates.size() * 3);
+		data->fTanC.resize(data->rawVertexCoordinates.size() * 3);
+		data->fInd.resize(0);
+		data->matIDs.resize(data->rawVertexCoordinates.size());
+
+		if (haveColors)
+			data->fColorsC.resize(data->rawVertexCoordinates.size() * 3);
+
+		for (size_t i = 0; i < data->rawIndices.size(); i += 2)
+		{
+			// faces index in OBJ file begins from 1 not 0.
+			int vIndex = data->rawIndices[i] - 1;
+			int tIndex = data->rawIndices[i + 1] - 1;
+
+			int shiftInVerArr = vIndex * 3;
+			int shiftInTexArr = vIndex * 2;
+
+			data->fVerC[shiftInVerArr] = data->rawVertexCoordinates[vIndex][0];
+			data->fVerC[shiftInVerArr + 1] = data->rawVertexCoordinates[vIndex][1];
+			data->fVerC[shiftInVerArr + 2] = data->rawVertexCoordinates[vIndex][2];
+
+			if (haveColors)
+			{
+				data->fColorsC[shiftInVerArr] = data->rawVertexColors[vIndex][0];
+				data->fColorsC[shiftInVerArr + 1] = data->rawVertexColors[vIndex][1];
+				data->fColorsC[shiftInVerArr + 2] = data->rawVertexColors[vIndex][2];
+			}
+
+			// saving material ID in vertex attribute array
+			for (size_t i = 0; i < data->materialRecords.size(); i++)
+			{
+				if (vIndex >= int(data->materialRecords[i].minVertexIndex - 1) && vIndex <= int(data->materialRecords[i].maxVertexIndex - 1))
+				{
+					data->matIDs[vIndex] = float(i);
+				}
+			}
+
+			data->fTexC[shiftInTexArr] = data->rawTextureCoordinates[tIndex][0];
+			data->fTexC[shiftInTexArr + 1] = 1 - data->rawTextureCoordinates[tIndex][1];
+
+			data->fInd.push_back(vIndex);
+		}
+
+		calculateNormals(data);
+		calculateTangents(data);
+	}
 	else
 	{
 		data->fVerC.resize(data->rawVertexCoordinates.size() * 3);
@@ -468,6 +611,21 @@ void FEObjLoader::processRawData(FERawOBJData* data)
 			data->fInd.push_back(vIndex);
 		}
 	}
+
+	/*if (haveColors)
+	{
+		data->fColorsC.resize(data->rawVertexCoordinates.size() * 3);
+
+		for (size_t i = 0; i < data->rawIndices.size(); i++)
+		{
+			int vIndex = data->rawIndices[i] - 1;
+			int shiftInVerArr = vIndex * 3;
+
+			data->fColorsC[shiftInVerArr] = data->rawVertexColors[vIndex][0];
+			data->fColorsC[shiftInVerArr + 1] = data->rawVertexColors[vIndex][1];
+			data->fColorsC[shiftInVerArr + 2] = data->rawVertexColors[vIndex][2];
+		}
+	}*/
 }
 
 void FEObjLoader::readMaterialFile(const char* originalOBJFile)

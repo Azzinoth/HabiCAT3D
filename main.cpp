@@ -66,7 +66,7 @@ in VS_OUT
 	vec3 vertexNormal;
 	flat float materialIndex;
 
-	flat vec3 color;
+	vec3 color;
 	flat vec3 segmentsColors;
 
 	float Rugosity;
@@ -216,6 +216,9 @@ vec3 getCorrectColor()
 
 	switch (colorMode)
     {
+		case 1:
+                result = FS_IN.color;
+                break;
         case 2:
                 result = FS_IN.segmentsColors;
                 break;
@@ -228,6 +231,9 @@ vec3 getCorrectColor()
 		case 5:
 				result = getTurboColormapValue(normalizedRugorsity);
                 break;
+		//case 6:
+		//		result = getTurboColormapValue(normalizedRugorsity);
+        //        break;
     }
 
 	return result;
@@ -239,6 +245,9 @@ void main(void)
 	vec3 ambientColor = vec3(0.55f, 0.73f, 0.87f) * 2.8f;
 
 	vec3 firstRugosityLayer = getCorrectColor();
+
+	//if (colorMode == 6)
+	//	firstRugosityLayer = mix(FS_IN.color, firstRugosityLayer, 0.5);
 
 	vec3 magenta = vec3(1.0, 0.0, 1.0);
 	float normalizedRugorsity = (FS_IN.RugosityAdditional - minRugorsity) / (maxRugorsity - minRugorsity);
@@ -312,47 +321,6 @@ void renderTargetCenterForCamera()
 	currentCamera->setRenderTargetShiftY(shiftY);
 }
 
-//void addLinesOFSDF(SDF* SDF)
-//{
-//	for (size_t i = 0; i < SDF->data.size(); i++)
-//	{
-//		for (size_t j = 0; j < SDF->data[i].size(); j++)
-//		{
-//			for (size_t k = 0; k < SDF->data[i][j].size(); k++)
-//			{
-//				bool render = false;
-//				SDF->data[i][j][k].wasRenderedLastFrame = false;
-//
-//				if (!SDF->data[i][j][k].trianglesInCell.empty() || RUGOSITY_MANAGER.currentSDF->RenderingMode == 2)
-//					render = true;
-//
-//				if (render)
-//				{
-//					glm::vec3 color = glm::vec3(0.1f, 0.6f, 0.1f);
-//					if (SDF->data[i][j][k].selected)
-//						color = glm::vec3(0.9f, 0.1f, 0.1f);
-//
-//					LINE_RENDERER.RenderAABB(SDF->data[i][j][k].AABB, color);
-//
-//					SDF->data[i][j][k].wasRenderedLastFrame = true;
-//
-//					if (showTrianglesInCells && SDF->data[i][j][k].selected)
-//					{
-//						for (size_t l = 0; l < SDF->data[i][j][k].trianglesInCell.size(); l++)
-//						{
-//							auto currentTriangle = SDF->mesh->Triangles[SDF->data[i][j][k].trianglesInCell[l]];
-//							
-//							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[0], currentTriangle[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-//							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[0], currentTriangle[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-//							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[1], currentTriangle[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
-//}
-
 FEMesh* loadedMesh = nullptr;
 FEMesh* currentMesh = nullptr;
 
@@ -380,7 +348,16 @@ void dropCallback(int count, const char** paths)
 		{
 			loadedMesh = CGALWrapper.importOBJ(paths[i], true);
 			currentMesh = loadedMesh;
+			UI.updateCurrentMesh(currentMesh);
 		}
+
+		glm::vec3 directionTo = glm::normalize(currentMesh->AABB.getCenter() - currentCamera->getPosition());
+
+		float distance = glm::distance(currentMesh->AABB.getCenter(), currentCamera->getPosition());
+		if (distance > 100)
+			currentCamera->setPosition(currentMesh->AABB.getCenter() + directionTo * 100.0f);
+
+		currentCamera->setLookAt(currentMesh->AABB.getCenter());
 
 		//if (PROJECT_MANAGER.getCurrent() != nullptr)
 		//{
@@ -438,12 +415,52 @@ void mouseButtonCallback(int button, int action, int mods)
 
 	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
 	{
+		if (currentMesh != nullptr)
+		{
+			currentMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
+
+			LINE_RENDERER.clearAll();
+
+			if (currentMesh->TriangleSelected != -1)
+			{
+				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][1], glm::vec3(1.0f, 1.0f, 0.0f)));
+				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][1], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+
+				if (!currentMesh->TrianglesNormals.empty())
+				{
+					glm::vec3 Point = currentMesh->Triangles[currentMesh->TriangleSelected][0];
+					glm::vec3 Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][0];
+					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+
+					Point = currentMesh->Triangles[currentMesh->TriangleSelected][1];
+					Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][1];
+					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+
+					Point = currentMesh->Triangles[currentMesh->TriangleSelected][2];
+					Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][2];
+					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+				}
+
+				if (!currentMesh->originalTrianglesToSegments.empty() && !currentMesh->segmentsNormals.empty())
+				{
+					glm::vec3 Centroid = (currentMesh->Triangles[currentMesh->TriangleSelected][0] +
+						currentMesh->Triangles[currentMesh->TriangleSelected][1] +
+						currentMesh->Triangles[currentMesh->TriangleSelected][2]) / 3.0f;
+
+					glm::vec3 Normal = currentMesh->segmentsNormals[currentMesh->originalTrianglesToSegments[currentMesh->TriangleSelected]];
+					LINE_RENDERER.AddLineToBuffer(FELine(Centroid, Centroid + Normal, glm::vec3(1.0f, 0.0f, 0.0f)));
+				}
+
+				LINE_RENDERER.SyncWithGPU();
+			}
+		}
+
 		if (currentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr)
 		{
 			if (RUGOSITY_MANAGER.currentSDF->RenderingMode == 0)
 			{
-				currentMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
-				LINE_RENDERER.clearAll();
+				/*LINE_RENDERER.clearAll();
 
 				if (currentMesh->TriangleSelected != -1)
 				{
@@ -477,7 +494,7 @@ void mouseButtonCallback(int button, int action, int mods)
 					}
 
 					LINE_RENDERER.SyncWithGPU();
-				}
+				}*/
 			}
 			else
 			{
@@ -496,8 +513,16 @@ void mouseButtonCallback(int button, int action, int mods)
 void renderFEMesh(FEMesh* mesh)
 {
 	meshShader->getParameter("colorMode")->updateData(mesh->colorMode);
+	//if (mesh->colorMode == 5 && mesh->getColorCount() != 0)
+	//	meshShader->getParameter("colorMode")->updateData(6);
+
 	if (!mesh->showRugosity)
+	{
 		meshShader->getParameter("colorMode")->updateData(0);
+
+		if (mesh->getColorCount() != 0)
+			meshShader->getParameter("colorMode")->updateData(1);
+	}
 
 	meshShader->getParameter("minRugorsity")->updateData(float(mesh->minRugorsity));
 	meshShader->getParameter("maxRugorsity")->updateData(float(mesh->maxRugorsity));

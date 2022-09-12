@@ -62,6 +62,27 @@ void UIManager::showTransformConfiguration(std::string name, FETransformComponen
 
 void UIManager::showCameraTransform()
 {
+	/*glm::vec3 ViewDirection = currentCamera->getForward();
+	std::string Text = "ViewDirection : X - ";
+	Text += std::to_string(ViewDirection.x);
+	Text += " Y - ";
+	Text += std::to_string(ViewDirection.y);
+	Text += " Z - ";
+	Text += std::to_string(ViewDirection.z);
+	ImGui::Text(Text.c_str());
+
+	if (currentMesh != nullptr)
+	{
+		glm::vec3 ToMeshDirection = glm::normalize(currentMesh->AABB.getCenter() - currentCamera->getPosition());
+		Text = "ToMeshDirection : X - ";
+		Text += std::to_string(ToMeshDirection.x);
+		Text += " Y - ";
+		Text += std::to_string(ToMeshDirection.y);
+		Text += " Z - ";
+		Text += std::to_string(ToMeshDirection.z);
+		ImGui::Text(Text.c_str());
+	}*/
+
 	// ********* POSITION *********
 	glm::vec3 cameraPosition = currentCamera->getPosition();
 
@@ -570,7 +591,7 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 			currentMesh->maxRugorsity = maxRugorsity;
 
 			ImGui::SetNextWindowSize(ImVec2(300, 50));
-;			if (ImGui::BeginPopupModal("Calculating...", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+			if (ImGui::BeginPopupModal("Calculating...", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 			{
 				float persentFinished = float(RUGOSITY_MANAGER.newSDFSeen) / float(RUGOSITY_MANAGER.SmoothingFactor);
 				std::string ProgressText = "Progress: " + std::to_string(persentFinished * 100.0f);
@@ -584,6 +605,35 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 				}
 
 				ImGui::EndPopup();
+			}
+
+			if (ImGui::Checkbox("Show Rugosity", &currentMesh->showRugosity))
+			{
+				if (currentMesh->showRugosity)
+				{
+					currentMesh->colorMode = 5;
+				}
+				else
+				{
+					currentMesh->colorMode = 0;
+				}
+			}
+
+			if (currentMesh->TriangleSelected != -1)
+			{
+				ImGui::Separator();
+				ImGui::Text("Selected triangle information :");
+
+				std::string Text = "Triangle rugosity : ";
+				if (!currentMesh->TrianglesRugosity.empty())
+				{
+					Text += std::to_string(currentMesh->TrianglesRugosity[currentMesh->TriangleSelected]);
+				}
+				else
+				{
+					Text += "No information.";
+				}
+				ImGui::Text(Text.c_str());
 			}
 		}
 	}
@@ -725,4 +775,9 @@ void UIManager::StrToCameraRotation(std::string text)
 	currentCamera->setYaw(X);
 	currentCamera->setPitch(Y);
 	currentCamera->setRoll(Z);
+}
+
+void UIManager::updateCurrentMesh(FEMesh* NewMesh)
+{
+	currentMesh = NewMesh;
 }

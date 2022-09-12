@@ -43,12 +43,15 @@ namespace FocalEngine
 	struct FERawOBJData
 	{
 		std::vector<glm::vec3> rawVertexCoordinates;
+		std::vector<glm::vec3> rawVertexColors;
 		std::vector<glm::vec2> rawTextureCoordinates;
 		std::vector<glm::vec3> rawNormalCoordinates;
 		std::vector<int> rawIndices;
 
 		// final vertex coordinates
 		std::vector<float> fVerC;
+		// final colors
+		std::vector<float> fColorsC;
 		// final texture coordinates
 		std::vector<float> fTexC;
 		// final normal coordinates
@@ -81,6 +84,9 @@ namespace FocalEngine
 		void readLine(std::stringstream& lineStream, FERawOBJData* data);
 		void processRawData(FERawOBJData* data);
 
+		glm::vec3 calculateNormal(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2);
+		void calculateNormals(FERawOBJData* data);
+
 		glm::vec3 calculateTangent(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, std::vector<glm::vec2>&& textures);
 		void calculateTangents(FERawOBJData* data);
 
@@ -90,8 +96,11 @@ namespace FocalEngine
 		FERawOBJData* currentMaterialObject = nullptr;
 		bool checkCurrentMaterialObject();
 
+		bool haveColors = false;
 		bool haveTextureCoord = false;
 		bool haveNormalCoord = false;
+
+		void NormilizeVertexPositions(FERawOBJData* data);
 
 #ifdef FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
 		struct vertexThatNeedDoubling
