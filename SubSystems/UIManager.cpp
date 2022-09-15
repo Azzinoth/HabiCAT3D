@@ -297,14 +297,14 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(128);
-				if (ImGui::BeginCombo("##ChooseSDFDimention", std::to_string(RUGOSITY_MANAGER.SDFDimention).c_str(), ImGuiWindowFlags_None))
+				if (ImGui::BeginCombo("##ChooseSDFDimention", RUGOSITY_MANAGER.ResolutionToString(RUGOSITY_MANAGER.ResolutonInM).c_str(), ImGuiWindowFlags_None))
 				{
-					for (size_t i = 0; i < RUGOSITY_MANAGER.dimentionsList.size(); i++)
+					for (size_t i = 0; i < RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList.size(); i++)
 					{
-						bool is_selected = (std::to_string(RUGOSITY_MANAGER.SDFDimention) == RUGOSITY_MANAGER.dimentionsList[i]);
-						if (ImGui::Selectable(RUGOSITY_MANAGER.dimentionsList[i].c_str(), is_selected))
+						bool is_selected = (RUGOSITY_MANAGER.ResolutonInM == RUGOSITY_MANAGER.ResolutionNameToFloat(RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList[i]));
+						if (ImGui::Selectable(RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList[i].c_str(), is_selected))
 						{
-							RUGOSITY_MANAGER.SDFDimention = atoi(RUGOSITY_MANAGER.dimentionsList[i].c_str());
+							RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.ResolutionNameToFloat(RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList[i]);
 						}
 
 						if (is_selected)
@@ -536,14 +536,14 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 				ImGui::OpenPopup("Calculating...");
 			}
 
-			ImGui::Text("Scale of features:");
+			ImGui::Text("Grid size:");
 			static int SmallScaleFeatures = 0;
-			if (ImGui::RadioButton("Small (Grid size - 128)", &SmallScaleFeatures, 0))
+			if (ImGui::RadioButton(("Small (Grid size - " + RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList[0] + ")").c_str(), &SmallScaleFeatures, 0))
 			{
 
 			}
 
-			if (ImGui::RadioButton("Large (Grid size - 16)", &SmallScaleFeatures, 1))
+			if (ImGui::RadioButton(("Large (Grid size - " + RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList.back() + ")").c_str(), &SmallScaleFeatures, 1))
 			{
 
 			}
@@ -555,23 +555,23 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 
 			if (SmallScaleFeatures == 0)
 			{
-				RUGOSITY_MANAGER.SDFDimention = 128;
+				RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.ResolutionNameToFloat(RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList[0]);
 			}
 			else if (SmallScaleFeatures == 1)
 			{
-				RUGOSITY_MANAGER.SDFDimention = 16;
+				RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.ResolutionNameToFloat(RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList.back());
 			}
 			else
 			{
 				ImGui::SetNextItemWidth(128);
-				if (ImGui::BeginCombo("##ChooseSDFDimention", std::to_string(RUGOSITY_MANAGER.SDFDimention).c_str(), ImGuiWindowFlags_None))
+				if (ImGui::BeginCombo("##ChooseSDFDimention", RUGOSITY_MANAGER.ResolutionToString(RUGOSITY_MANAGER.ResolutonInM).c_str(), ImGuiWindowFlags_None))
 				{
-					for (size_t i = 0; i < RUGOSITY_MANAGER.dimentionsList.size(); i++)
+					for (size_t i = 0; i < RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList.size(); i++)
 					{
-						bool is_selected = (std::to_string(RUGOSITY_MANAGER.SDFDimention) == RUGOSITY_MANAGER.dimentionsList[i]);
-						if (ImGui::Selectable(RUGOSITY_MANAGER.dimentionsList[i].c_str(), is_selected))
+						bool is_selected = (RUGOSITY_MANAGER.ResolutonInM == RUGOSITY_MANAGER.ResolutionNameToFloat(RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList[i]));
+						if (ImGui::Selectable(RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList[i].c_str(), is_selected))
 						{
-							RUGOSITY_MANAGER.SDFDimention = atoi(RUGOSITY_MANAGER.dimentionsList[i].c_str());
+							RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.ResolutionNameToFloat(RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList[i]);
 						}
 
 						if (is_selected)
@@ -581,14 +581,46 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 				}
 			}
 
-			float maxRugorsity = currentMesh->maxRugorsity;
-			ImGui::Text("Max rugorsity for color scaling: ");
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(128);
-			ImGui::DragFloat("##MaxRugorsity", &maxRugorsity, 0.01f);
-			if (maxRugorsity < currentMesh->minRugorsity)
-				maxRugorsity = currentMesh->minRugorsity + 0.1f;
-			currentMesh->maxRugorsity = maxRugorsity;
+			if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+			{
+				float maxRugorsity = currentMesh->maxRugorsity;
+				ImGui::Text("Heat map sensitivity: ");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(128);
+				ImGui::DragFloat("##MaxRugorsity", &maxRugorsity, 0.01f);
+				if (maxRugorsity < currentMesh->minRugorsity)
+					maxRugorsity = currentMesh->minRugorsity + 0.1f;
+				currentMesh->maxRugorsity = maxRugorsity;
+
+				if (ImGui::Checkbox("Show Rugosity", &currentMesh->showRugosity))
+				{
+					if (currentMesh->showRugosity)
+					{
+						currentMesh->colorMode = 5;
+					}
+					else
+					{
+						currentMesh->colorMode = 0;
+					}
+				}
+
+				if (currentMesh->TriangleSelected != -1)
+				{
+					ImGui::Separator();
+					ImGui::Text("Selected triangle information :");
+
+					std::string Text = "Triangle rugosity : ";
+					if (!currentMesh->TrianglesRugosity.empty())
+					{
+						Text += std::to_string(currentMesh->TrianglesRugosity[currentMesh->TriangleSelected]);
+					}
+					else
+					{
+						Text += "No information.";
+					}
+					ImGui::Text(Text.c_str());
+				}
+			}
 
 			ImGui::SetNextWindowSize(ImVec2(300, 50));
 			if (ImGui::BeginPopupModal("Calculating...", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
@@ -605,35 +637,6 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 				}
 
 				ImGui::EndPopup();
-			}
-
-			if (ImGui::Checkbox("Show Rugosity", &currentMesh->showRugosity))
-			{
-				if (currentMesh->showRugosity)
-				{
-					currentMesh->colorMode = 5;
-				}
-				else
-				{
-					currentMesh->colorMode = 0;
-				}
-			}
-
-			if (currentMesh->TriangleSelected != -1)
-			{
-				ImGui::Separator();
-				ImGui::Text("Selected triangle information :");
-
-				std::string Text = "Triangle rugosity : ";
-				if (!currentMesh->TrianglesRugosity.empty())
-				{
-					Text += std::to_string(currentMesh->TrianglesRugosity[currentMesh->TriangleSelected]);
-				}
-				else
-				{
-					Text += "No information.";
-				}
-				ImGui::Text(Text.c_str());
 			}
 		}
 	}

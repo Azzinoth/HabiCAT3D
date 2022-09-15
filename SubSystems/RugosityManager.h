@@ -4,6 +4,9 @@ using namespace FocalEngine;
 
 namespace FocalEngine
 {
+#define DEFAULT_GRID_SIZE 1.25f
+#define GRID_VARIANCE 25
+
 	struct SDFInitData
 	{
 		FEMesh* mesh = nullptr;
@@ -33,7 +36,7 @@ namespace FocalEngine
 		float shiftY = 0.0f;
 		float shiftZ = 0.0f;
 
-		float GridScale = 2.5f;
+		float GridScale = 1.25f;
 
 		bool bWeightedNormals = true;
 		bool bNormalizedNormals = true;
@@ -48,6 +51,13 @@ namespace FocalEngine
 		void calculateRugorsityWithJitterAsyn(FEMesh* mesh, int RugosityLayerIndex = 0);
 
 		std::vector<std::string> dimentionsList;
+
+		float ResolutonInM = 1.0f;
+		std::vector<std::string> ResolutionsList;
+		float ResolutionNameToFloat(std::string ResolutionName);
+		std::string ResolutionToString(float Resolution);
+		std::vector<std::string> ResolutionsAvailableToCurrentMeshList;
+		void CheckAcceptableResolutions(FEMesh* NewMesh);
 		std::vector<std::string> colorSchemesList;
 
 		std::string colorSchemeIndexToString(int index);

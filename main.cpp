@@ -349,15 +349,15 @@ void dropCallback(int count, const char** paths)
 			loadedMesh = CGALWrapper.importOBJ(paths[i], true);
 			currentMesh = loadedMesh;
 			UI.updateCurrentMesh(currentMesh);
+			RUGOSITY_MANAGER.CheckAcceptableResolutions(currentMesh);
+
+			currentMesh->Position->setPosition(-currentMesh->AABB.getCenter());
 		}
 
-		glm::vec3 directionTo = glm::normalize(currentMesh->AABB.getCenter() - currentCamera->getPosition());
-
-		float distance = glm::distance(currentMesh->AABB.getCenter(), currentCamera->getPosition());
-		if (distance > 100)
-			currentCamera->setPosition(currentMesh->AABB.getCenter() + directionTo * 100.0f);
-
-		currentCamera->setLookAt(currentMesh->AABB.getCenter());
+		currentCamera->setPosition(glm::vec3(0.0f, 0.0f, currentMesh->AABB.getSize() * 1.5f));
+		currentCamera->setYaw(0.0f);
+		currentCamera->setPitch(0.0f);
+		currentCamera->setRoll(0.0f);
 
 		//if (PROJECT_MANAGER.getCurrent() != nullptr)
 		//{
@@ -423,30 +423,36 @@ void mouseButtonCallback(int button, int action, int mods)
 
 			if (currentMesh->TriangleSelected != -1)
 			{
-				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][1], glm::vec3(1.0f, 1.0f, 0.0f)));
-				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
-				LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][1], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+				std::vector<glm::vec3> TranformedTrianglePoints = currentMesh->Triangles[currentMesh->TriangleSelected];
+				for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+				{
+					TranformedTrianglePoints[j] = currentMesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+				}
+
+				LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+				LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+				LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 
 				if (!currentMesh->TrianglesNormals.empty())
 				{
-					glm::vec3 Point = currentMesh->Triangles[currentMesh->TriangleSelected][0];
+					glm::vec3 Point = TranformedTrianglePoints[0];
 					glm::vec3 Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][0];
 					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
-					Point = currentMesh->Triangles[currentMesh->TriangleSelected][1];
+					Point = TranformedTrianglePoints[1];
 					Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][1];
 					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
-					Point = currentMesh->Triangles[currentMesh->TriangleSelected][2];
+					Point = TranformedTrianglePoints[2];
 					Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][2];
 					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 				}
 
 				if (!currentMesh->originalTrianglesToSegments.empty() && !currentMesh->segmentsNormals.empty())
 				{
-					glm::vec3 Centroid = (currentMesh->Triangles[currentMesh->TriangleSelected][0] +
-						currentMesh->Triangles[currentMesh->TriangleSelected][1] +
-						currentMesh->Triangles[currentMesh->TriangleSelected][2]) / 3.0f;
+					glm::vec3 Centroid = (TranformedTrianglePoints[0] +
+										  TranformedTrianglePoints[1] +
+										  TranformedTrianglePoints[2]) / 3.0f;
 
 					glm::vec3 Normal = currentMesh->segmentsNormals[currentMesh->originalTrianglesToSegments[currentMesh->TriangleSelected]];
 					LINE_RENDERER.AddLineToBuffer(FELine(Centroid, Centroid + Normal, glm::vec3(1.0f, 0.0f, 0.0f)));
@@ -537,9 +543,6 @@ void renderFEMesh(FEMesh* mesh)
 	if ((mesh->vertexAttributes & FE_SEGMENTS_COLORS) == FE_SEGMENTS_COLORS) FE_GL_ERROR(glEnableVertexAttribArray(7));
 	if ((mesh->vertexAttributes & FE_RUGOSITY_FIRST) == FE_RUGOSITY_FIRST) FE_GL_ERROR(glEnableVertexAttribArray(8));
 	if ((mesh->vertexAttributes & FE_RUGOSITY_SECOND) == FE_RUGOSITY_SECOND) FE_GL_ERROR(glEnableVertexAttribArray(9));
-	//// Rugosity
-	//if (!mesh->rugosityData.empty())
-	//	FE_GL_ERROR(glEnableVertexAttribArray(8));
 
 	if ((mesh->vertexAttributes & FE_INDEX) == FE_INDEX)
 		FE_GL_ERROR(glDrawElements(GL_TRIANGLES, mesh->getVertexCount(), GL_UNSIGNED_INT, 0));
@@ -633,9 +636,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
 	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
 
-	FETransformComponent* position = new FETransformComponent();
-
-
 	currentCamera = new FEFreeCamera("mainCamera");
 	currentCamera->setIsInputActive(false);
 	currentCamera->setAspectRatio(1280.0f / 720.0f);
@@ -661,7 +661,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			while (iterator != meshShader->parameters.end())
 			{
 				if (iterator->second.nameHash == FEWorldMatrix_hash)
-					iterator->second.updateData(position->getTransformMatrix());
+					iterator->second.updateData(currentMesh->Position->getTransformMatrix());
 
 				if (iterator->second.nameHash == FEViewMatrix_hash)
 					iterator->second.updateData(currentCamera->getViewMatrix());

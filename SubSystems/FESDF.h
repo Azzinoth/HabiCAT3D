@@ -68,7 +68,7 @@ namespace FocalEngine
 		SDF();
 		SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera);
 
-		void Init(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera);
+		void Init(FEMesh* mesh, int dimensions, FEAABB AABB, FEFreeCamera* camera, float ResolutionInM = 0.0f);
 
 		glm::vec3 selectedCell = glm::vec3(0.0);
 

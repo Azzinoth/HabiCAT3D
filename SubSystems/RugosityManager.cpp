@@ -17,12 +17,79 @@ RugosityManager::RugosityManager()
 	dimentionsList.push_back("2048");
 	dimentionsList.push_back("4096");
 
+	float CurrentResolution = 0.125f;
+	for (size_t i = 0; i < 10; i++)
+	{
+		ResolutionsList.push_back(ResolutionToString(CurrentResolution));
+		CurrentResolution *= 2.0f;
+	}
+
+	ResolutionsAvailableToCurrentMeshList = ResolutionsList;
+
 	colorSchemesList.push_back("Default");
 	colorSchemesList.push_back("Rainbow");
 	colorSchemesList.push_back("Turbo colormap");
 }
 
 RugosityManager::~RugosityManager() {}
+
+float RugosityManager::ResolutionNameToFloat(std::string ResolutionName)
+{
+	if (ResolutionName.empty())
+		return 0.0f;
+
+	ResolutionName.erase(ResolutionName.size() - 2, 2);
+	const float Result = atof(ResolutionName.c_str());
+
+	return Result;
+}
+
+std::string RugosityManager::ResolutionToString(float Resolution)
+{
+	std::string result;
+	if (Resolution <= 0.0f)
+		return result;
+
+	if (Resolution > 128.0f)
+		return result;
+
+	result = std::to_string(Resolution) + " m";
+
+	for (size_t i = 0; i < result.size(); i++)
+	{
+		if (result[i] == '0')
+		{
+			if (i > 1 && result[i - 1] == '.')
+				continue;
+
+			if (i < result.size() - 2 && result[i + 1] == '.')
+				continue;
+
+			result.erase(i, 1);
+			i--;
+		}
+	}
+
+	return result;
+}
+
+void RugosityManager::CheckAcceptableResolutions(FEMesh* NewMesh)
+{
+	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
+	transformMatrix = glm::scale(transformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
+	FEAABB finalAABB = NewMesh->AABB.transform(transformMatrix);
+
+	float MaxMeshAABBSize = finalAABB.getSize();
+	ResolutionsAvailableToCurrentMeshList.clear();
+	for (size_t i = 0; i < ResolutionsList.size(); i++)
+	{
+		int ApproximateDimentions = MaxMeshAABBSize / ResolutionNameToFloat(ResolutionsList[i]);
+		if (ApproximateDimentions >= 8 && ApproximateDimentions <= 128)
+		{
+			ResolutionsAvailableToCurrentMeshList.push_back(ResolutionsList[i]);
+		}
+	}
+}
 
 void RugosityManager::MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter)
 {
@@ -136,7 +203,7 @@ void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
 	FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
 	finalAABB = SDFAABB;
 
-	Output->Init(Input->mesh, Input->dimentions, finalAABB, RUGOSITY_MANAGER.currentCamera);
+	Output->Init(Input->mesh, 0/*Input->dimentions*/, finalAABB, RUGOSITY_MANAGER.currentCamera, RUGOSITY_MANAGER.ResolutonInM);
 	//currentSDF = new SDF(mesh, dimentions, finalAABB, currentCamera);
 	Output->bWeightedNormals = RUGOSITY_MANAGER.bWeightedNormals;
 	Output->bNormalizedNormals = RUGOSITY_MANAGER.bNormalizedNormals;
@@ -205,14 +272,8 @@ void RugosityManager::calculateRugorsityWithJitterAsyn(FEMesh* mesh, int Rugosit
 		RUGOSITY_MANAGER.shiftZ -= kernelSize / 2.0f;
 		RUGOSITY_MANAGER.shiftZ /= 100.0f;
 
-		/*GridScale = 2.5f;
-		float TempGridScale = rand() % 100;
-		TempGridScale -= 50;
-		TempGridScale /= 100.0f;
-		GridScale += TempGridScale;*/
-
-		RUGOSITY_MANAGER.GridScale = 1.25f;
-		float TempGridScale = rand() % 25;
+		RUGOSITY_MANAGER.GridScale = DEFAULT_GRID_SIZE;
+		float TempGridScale = rand() % GRID_VARIANCE;
 		TempGridScale /= 100.0f;
 		RUGOSITY_MANAGER.GridScale += TempGridScale;
 

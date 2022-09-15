@@ -64,6 +64,8 @@ namespace FocalEngine
 		FEAABB AABB;
 
 		// NEW
+		FETransformComponent* Position = new FETransformComponent();
+
 		double minRugorsity = DBL_MAX;
 		double maxRugorsity = -DBL_MAX;
 		bool showRugosity = false;

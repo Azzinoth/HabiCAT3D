@@ -245,13 +245,13 @@ void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
-		std::vector<glm::vec3> trianglePoints = Triangles[i];
-		/*for (size_t j = 0; j < trianglePoints.size(); j++)
+		std::vector<glm::vec3> TranformedTrianglePoints = Triangles[i];
+		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
-			trianglePoints[j] = choosenEntity->transform.getTransformMatrix() * glm::vec4(trianglePoints[j], 1.0f);
-		}*/
+			TranformedTrianglePoints[j] = Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+		}
 
-		bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, Triangles[i], currentDistance);
+		bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, TranformedTrianglePoints, currentDistance);
 
 		if (hit && currentDistance < lastDistance)
 		{

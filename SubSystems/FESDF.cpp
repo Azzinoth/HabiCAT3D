@@ -252,50 +252,69 @@ SDF::SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
 	TimeTookToGenerateInMS = TIME.EndTimeStamp("SDF Generation");
 }
 
-void SDF::Init(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
+int DimensionsToPOWDimentions(int Dimentions)
 {
-	if (dimentions < 1 || dimentions > 4096)
-		return;
+	for (size_t i = 0; i < 12; i++)
+	{
+		if (Dimentions > pow(2.0, i))
+			continue;
 
-	// If dimentions is not power of 2, we can't continue.
-	if (log2(dimentions) != int(log2(dimentions)))
-		return;
+		if (Dimentions <= pow(2.0, i))
+			return pow(2.0, i);
+	}
 
+	return 0;
+}
+
+void SDF::Init(FEMesh* mesh, int dimensions, FEAABB AABB, FEFreeCamera* camera, float ResolutionInM)
+{
 	TIME.BeginTimeStamp("SDF Generation");
 
 	currentCamera = camera;
 	this->mesh = mesh;
 
 	glm::vec3 center = AABB.getCenter();
-	FEAABB SDFAABB = FEAABB(center - glm::vec3(AABB.getSize() / 2.0f), center + glm::vec3(AABB.getSize() / 2.0f));
 
-	data.resize(dimentions);
-	for (size_t i = 0; i < dimentions; i++)
+	//ResolutionInM = 1.0f;
+	int MinDimensions = AABB.getSize() / ResolutionInM;
+	dimensions = DimensionsToPOWDimentions(MinDimensions);
+
+	if (dimensions < 1 || dimensions > 4096)
+		return;
+
+	// If dimensions is not power of 2, we can't continue.
+	if (log2(dimensions) != int(log2(dimensions)))
+		return;
+
+	data.resize(dimensions);
+	for (size_t i = 0; i < dimensions; i++)
 	{
-		data[i].resize(dimentions);
-		for (size_t j = 0; j < dimentions; j++)
+		data[i].resize(dimensions);
+		for (size_t j = 0; j < dimensions; j++)
 		{
-			data[i][j].resize(dimentions);
+			data[i][j].resize(dimensions);
 		}
+	}
+
+	FEAABB SDFAABB;
+	if (ResolutionInM != 0.0f)
+	{
+		SDFAABB = FEAABB(center - glm::vec3(ResolutionInM * dimensions / 2.0f), center + glm::vec3(ResolutionInM * dimensions / 2.0f));
+	}
+	else
+	{
+		SDFAABB = FEAABB(center - glm::vec3(AABB.getSize() / 2.0f), center + glm::vec3(AABB.getSize() / 2.0f));
 	}
 
 	glm::vec3 start = SDFAABB.getMin();
 	glm::vec3 currentAABBMin;
-	float cellSize = SDFAABB.getSize() / dimentions;
+	float cellSize = SDFAABB.getSize() / dimensions;
 
-	/*std::vector<triangleData> centroids = getTrianglesData(mesh);
-	averageNormal = glm::vec3(0.0f);
-	for (size_t i = 0; i < centroids.size(); i++)
+	for (size_t i = 0; i < dimensions; i++)
 	{
-		averageNormal += centroids[i].normal;
-	}
-	averageNormal /= centroids.size();*/
-
-	for (size_t i = 0; i < dimentions; i++)
-	{
-		for (size_t j = 0; j < dimentions; j++)
+		for (size_t j = 0; j < dimensions; j++)
 		{
-			for (size_t k = 0; k < dimentions; k++)
+			for (size_t k = 0; k < dimensions; k++)
 			{
 				currentAABBMin = start + glm::vec3(cellSize * i, cellSize * j, cellSize * k);
 
@@ -476,7 +495,7 @@ void SDF::mouseClick(double mouseX, double mouseY, glm::mat4 transformMat)
 				if (!data[i][j][k].wasRenderedLastFrame)
 					continue;
 
-				FEAABB FinalAABB = data[i][j][k].AABB.transform(transformMat);
+				FEAABB FinalAABB = data[i][j][k].AABB.transform(transformMat).transform(mesh->Position->getTransformMatrix());
 				if (FinalAABB.rayIntersect(currentCamera->getPosition(), mouseRay(mouseX, mouseY, currentCamera), distanceToCell))
 				{
 					if (lastDistanceToCell > distanceToCell)
@@ -935,7 +954,7 @@ void SDF::addLinesOFSDF()
 					if (data[i][j][k].selected)
 						color = glm::vec3(0.9f, 0.1f, 0.1f);
 
-					LINE_RENDERER.RenderAABB(data[i][j][k].AABB, color);
+					LINE_RENDERER.RenderAABB(data[i][j][k].AABB.transform(mesh->Position->getTransformMatrix()), color);
 
 					data[i][j][k].wasRenderedLastFrame = true;
 
@@ -945,9 +964,15 @@ void SDF::addLinesOFSDF()
 						{
 							auto currentTriangle = mesh->Triangles[data[i][j][k].trianglesInCell[l]];
 
-							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[0], currentTriangle[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[0], currentTriangle[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-							LINE_RENDERER.AddLineToBuffer(FELine(currentTriangle[1], currentTriangle[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+							std::vector<glm::vec3> TranformedTrianglePoints = currentTriangle;
+							for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+							{
+								TranformedTrianglePoints[j] = mesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+							}
+
+							LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+							LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+							LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 						}
 					}
 				}
