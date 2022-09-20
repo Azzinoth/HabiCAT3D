@@ -30,6 +30,12 @@ namespace FocalEngine
 		void StrToCameraRotation(std::string text);
 
 		void updateCurrentMesh(FEMesh* NewMesh);
+
+		float GetAreaToMeasureRugosity();
+		void SetAreaToMeasureRugosity(float NewValue);
+
+		int GetRugositySelectionMode();
+		void SetRugositySelectionMode(int NewValue);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 
@@ -41,6 +47,9 @@ namespace FocalEngine
 
 		bool DeveloperMode = false;
 		FEMesh* currentMesh = nullptr;
+
+		float AreaToMeasureRugosity = 1.0f;
+		int RugositySelectionMode = 0;
 	};
 
 	#define UI UIManager::getInstance()

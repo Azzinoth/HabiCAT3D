@@ -17,61 +17,12 @@ RugosityManager::RugosityManager()
 	dimentionsList.push_back("2048");
 	dimentionsList.push_back("4096");
 
-	float CurrentResolution = 0.125f;
-	for (size_t i = 0; i < 10; i++)
-	{
-		ResolutionsList.push_back(ResolutionToString(CurrentResolution));
-		CurrentResolution *= 2.0f;
-	}
-
-	ResolutionsAvailableToCurrentMeshList = ResolutionsList;
-
 	colorSchemesList.push_back("Default");
 	colorSchemesList.push_back("Rainbow");
 	colorSchemesList.push_back("Turbo colormap");
 }
 
 RugosityManager::~RugosityManager() {}
-
-float RugosityManager::ResolutionNameToFloat(std::string ResolutionName)
-{
-	if (ResolutionName.empty())
-		return 0.0f;
-
-	ResolutionName.erase(ResolutionName.size() - 2, 2);
-	const float Result = atof(ResolutionName.c_str());
-
-	return Result;
-}
-
-std::string RugosityManager::ResolutionToString(float Resolution)
-{
-	std::string result;
-	if (Resolution <= 0.0f)
-		return result;
-
-	if (Resolution > 128.0f)
-		return result;
-
-	result = std::to_string(Resolution) + " m";
-
-	for (size_t i = 0; i < result.size(); i++)
-	{
-		if (result[i] == '0')
-		{
-			if (i > 1 && result[i - 1] == '.')
-				continue;
-
-			if (i < result.size() - 2 && result[i + 1] == '.')
-				continue;
-
-			result.erase(i, 1);
-			i--;
-		}
-	}
-
-	return result;
-}
 
 void RugosityManager::CheckAcceptableResolutions(FEMesh* NewMesh)
 {
@@ -80,15 +31,11 @@ void RugosityManager::CheckAcceptableResolutions(FEMesh* NewMesh)
 	FEAABB finalAABB = NewMesh->AABB.transform(transformMatrix);
 
 	float MaxMeshAABBSize = finalAABB.getSize();
-	ResolutionsAvailableToCurrentMeshList.clear();
-	for (size_t i = 0; i < ResolutionsList.size(); i++)
-	{
-		int ApproximateDimentions = MaxMeshAABBSize / ResolutionNameToFloat(ResolutionsList[i]);
-		if (ApproximateDimentions >= 8 && ApproximateDimentions <= 128)
-		{
-			ResolutionsAvailableToCurrentMeshList.push_back(ResolutionsList[i]);
-		}
-	}
+
+	LowestResolution = MaxMeshAABBSize / 120;
+	HigestResolution = MaxMeshAABBSize / 9;
+
+	ResolutonInM = LowestResolution;
 }
 
 void RugosityManager::MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter)

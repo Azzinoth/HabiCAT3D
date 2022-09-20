@@ -53,10 +53,8 @@ namespace FocalEngine
 		std::vector<std::string> dimentionsList;
 
 		float ResolutonInM = 1.0f;
-		std::vector<std::string> ResolutionsList;
-		float ResolutionNameToFloat(std::string ResolutionName);
-		std::string ResolutionToString(float Resolution);
-		std::vector<std::string> ResolutionsAvailableToCurrentMeshList;
+		float LowestResolution = -1.0f;
+		float HigestResolution = -1.0f;
 		void CheckAcceptableResolutions(FEMesh* NewMesh);
 		std::vector<std::string> colorSchemesList;
 

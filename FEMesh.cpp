@@ -216,6 +216,7 @@ void FEMesh::fillTrianglesData()
 		triangle[2] = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
 
 		Triangles.push_back(triangle);
+		TrianglesCentroids.push_back((triangle[0] + triangle[1] + triangle[2]) / 3.0f);
 
 		if (!FENormals.empty())
 		{
@@ -238,7 +239,7 @@ void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 	float currentDistance = 0.0f;
 	float lastDistance = 9999.0f;
 
-	TriangleSelected = -1;
+	TriangleSelected.clear();
 
 	if (Triangles.empty())
 		fillTrianglesData();
@@ -256,7 +257,32 @@ void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 		if (hit && currentDistance < lastDistance)
 		{
 			lastDistance = currentDistance;
-			TriangleSelected = i;
+			TriangleSelected.push_back(i);
+			break;
+		}
+	}
+}
+
+void FEMesh::SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius)
+{
+	SelectTriangle(MouseRay, currentCamera);
+
+	if (TriangleSelected.size() == 0)
+		return;
+
+	LastMeasuredRugosityAreaRadius = Radius;
+	LastMeasuredRugosityAreaCenter = Position->getTransformMatrix() * glm::vec4(TrianglesCentroids[TriangleSelected[0]], 1.0f);
+
+	glm::vec3 FirstSelectedTriangleCentroid = TrianglesCentroids[TriangleSelected[0]];
+
+	for (size_t i = 0; i < Triangles.size(); i++)
+	{
+		if (i == TriangleSelected[0])
+			continue;
+
+		if (glm::distance(FirstSelectedTriangleCentroid, TrianglesCentroids[i]) <= Radius)
+		{
+			TriangleSelected.push_back(i);
 		}
 	}
 }

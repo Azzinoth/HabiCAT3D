@@ -82,6 +82,9 @@ uniform vec3 lightDirection;
 uniform float minRugorsity;
 uniform float maxRugorsity;
 
+uniform vec3 MeasuredRugosityAreaCenter;
+uniform float MeasuredRugosityAreaRadius;
+
 layout (location = 0) out vec4 out_Color;
 
 // Copyright 2019 Google LLC.
@@ -258,6 +261,13 @@ void main(void)
 	if (normalizedRugorsity > 0.7)
 		finalBaseColor = secondRugosityLayer;
 
+	if (MeasuredRugosityAreaRadius > 0.0)
+	{
+		float distanceTo = distance(MeasuredRugosityAreaCenter, FS_IN.worldPosition);
+		if (distanceTo > MeasuredRugosityAreaRadius - 0.05 && distanceTo < MeasuredRugosityAreaRadius + 0.05)
+			finalBaseColor = vec3(0.8f, 0.0f, 0.8f);
+	}
+
 	out_Color = vec4(ambientColor * diffuseFactor * finalBaseColor, 1.0f);
 }
 )";
@@ -396,6 +406,68 @@ void keyButtonCallback(int key, int scancode, int action, int mods)
 	currentCamera->keyboardInput(key, scancode, action, mods);
 }
 
+void UpdateMeshSelectedTrianglesRendering(FEMesh* mesh)
+{
+	LINE_RENDERER.clearAll();
+
+	if (mesh->TriangleSelected.size() == 1)
+	{
+		std::vector<glm::vec3> TranformedTrianglePoints = mesh->Triangles[mesh->TriangleSelected[0]];
+		for (size_t i = 0; i < TranformedTrianglePoints.size(); i++)
+		{
+			TranformedTrianglePoints[i] = mesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
+		}
+
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+
+		if (!mesh->TrianglesNormals.empty())
+		{
+			glm::vec3 Point = TranformedTrianglePoints[0];
+			glm::vec3 Normal = mesh->TrianglesNormals[mesh->TriangleSelected[0]][0];
+			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+
+			Point = TranformedTrianglePoints[1];
+			Normal = mesh->TrianglesNormals[mesh->TriangleSelected[0]][1];
+			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+
+			Point = TranformedTrianglePoints[2];
+			Normal = mesh->TrianglesNormals[mesh->TriangleSelected[0]][2];
+			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+		}
+
+		/*if (!mesh->originalTrianglesToSegments.empty() && !mesh->segmentsNormals.empty())
+		{
+			glm::vec3 Centroid = (TranformedTrianglePoints[0] +
+				TranformedTrianglePoints[1] +
+				TranformedTrianglePoints[2]) / 3.0f;
+
+			glm::vec3 Normal = mesh->segmentsNormals[mesh->originalTrianglesToSegments[mesh->TriangleSelected[0]]];
+			LINE_RENDERER.AddLineToBuffer(FELine(Centroid, Centroid + Normal, glm::vec3(1.0f, 0.0f, 0.0f)));
+		}*/
+
+		LINE_RENDERER.SyncWithGPU();
+	}
+	else if (mesh->TriangleSelected.size() > 1)
+	{
+		for (size_t i = 0; i < mesh->TriangleSelected.size(); i++)
+		{
+			std::vector<glm::vec3> TranformedTrianglePoints = mesh->Triangles[mesh->TriangleSelected[i]];
+			for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+			{
+				TranformedTrianglePoints[j] = mesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+			}
+
+			LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+			LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+			LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+		}
+
+		LINE_RENDERER.SyncWithGPU();
+	}
+}
+
 void mouseButtonCallback(int button, int action, int mods)
 {
 	if (ImGui::GetIO().WantCaptureMouse)
@@ -417,49 +489,16 @@ void mouseButtonCallback(int button, int action, int mods)
 	{
 		if (currentMesh != nullptr)
 		{
-			currentMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
-
-			LINE_RENDERER.clearAll();
-
-			if (currentMesh->TriangleSelected != -1)
+			if (UI.GetRugositySelectionMode() == 1)
 			{
-				std::vector<glm::vec3> TranformedTrianglePoints = currentMesh->Triangles[currentMesh->TriangleSelected];
-				for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
-				{
-					TranformedTrianglePoints[j] = currentMesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
-				}
-
-				LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-				LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-				LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-
-				if (!currentMesh->TrianglesNormals.empty())
-				{
-					glm::vec3 Point = TranformedTrianglePoints[0];
-					glm::vec3 Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][0];
-					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
-
-					Point = TranformedTrianglePoints[1];
-					Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][1];
-					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
-
-					Point = TranformedTrianglePoints[2];
-					Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][2];
-					LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
-				}
-
-				if (!currentMesh->originalTrianglesToSegments.empty() && !currentMesh->segmentsNormals.empty())
-				{
-					glm::vec3 Centroid = (TranformedTrianglePoints[0] +
-										  TranformedTrianglePoints[1] +
-										  TranformedTrianglePoints[2]) / 3.0f;
-
-					glm::vec3 Normal = currentMesh->segmentsNormals[currentMesh->originalTrianglesToSegments[currentMesh->TriangleSelected]];
-					LINE_RENDERER.AddLineToBuffer(FELine(Centroid, Centroid + Normal, glm::vec3(1.0f, 0.0f, 0.0f)));
-				}
-
-				LINE_RENDERER.SyncWithGPU();
+				currentMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
 			}
+			else if (UI.GetRugositySelectionMode() == 2)
+			{
+				currentMesh->SelectTrianglesInRadius(mouseRay(mouseX, mouseY), currentCamera, UI.GetAreaToMeasureRugosity());
+			}
+
+			UpdateMeshSelectedTrianglesRendering(currentMesh);
 		}
 
 		if (currentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr)
@@ -532,6 +571,16 @@ void renderFEMesh(FEMesh* mesh)
 
 	meshShader->getParameter("minRugorsity")->updateData(float(mesh->minRugorsity));
 	meshShader->getParameter("maxRugorsity")->updateData(float(mesh->maxRugorsity));
+
+	if (mesh->TriangleSelected.size() > 1 && UI.GetRugositySelectionMode() == 2)
+	{
+		meshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(mesh->LastMeasuredRugosityAreaRadius);
+		meshShader->getParameter("MeasuredRugosityAreaCenter")->updateData(mesh->LastMeasuredRugosityAreaCenter/*glm::vec3(0.0f)*/);
+	}
+	else
+	{
+		meshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(-1.0f);
+	}
 
 	FE_GL_ERROR(glBindVertexArray(mesh->getVaoID()));
 	if ((mesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));

@@ -72,9 +72,12 @@ namespace FocalEngine
 
 		int colorMode = 0;
 
-		int TriangleSelected = -1;
+		std::vector<int> TriangleSelected;
+		float LastMeasuredRugosityAreaRadius = -1.0f;
+		glm::vec3 LastMeasuredRugosityAreaCenter = glm::vec3(0.0f);
 		std::vector<std::vector<glm::vec3>> Triangles;
 		std::vector<std::vector<glm::vec3>> TrianglesNormals;
+		std::vector<glm::vec3> TrianglesCentroids;
 
 		std::vector<int> originalTrianglesToSegments;
 		std::vector<glm::vec3> segmentsNormals;
@@ -89,5 +92,6 @@ namespace FocalEngine
 		void fillTrianglesData();
 		bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance);
 		void SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera);
+		void SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius);
 	};
 }
