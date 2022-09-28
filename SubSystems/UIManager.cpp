@@ -534,12 +534,12 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 
 			ImGui::Text("Grid size:");
 			static int SmallScaleFeatures = 0;
-			if (ImGui::RadioButton(("Small (Grid size - " + std::to_string(RUGOSITY_MANAGER.LowestResolution)/*RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList[0]*/ + ")").c_str(), &SmallScaleFeatures, 0))
+			if (ImGui::RadioButton(("Small (Grid size - " + std::to_string(RUGOSITY_MANAGER.LowestResolution) + " m)").c_str(), &SmallScaleFeatures, 0))
 			{
 
 			}
 
-			if (ImGui::RadioButton(("Large (Grid size - " + std::to_string(RUGOSITY_MANAGER.HigestResolution)/*RUGOSITY_MANAGER.ResolutionsAvailableToCurrentMeshList.back()*/ + ")").c_str(), &SmallScaleFeatures, 1))
+			if (ImGui::RadioButton(("Large (Grid size - " + std::to_string(RUGOSITY_MANAGER.HigestResolution) + " m)").c_str(), &SmallScaleFeatures, 1))
 			{
 
 			}

@@ -94,6 +94,8 @@ namespace FocalEngine
 		//bool bFinalJitter = false;
 		bool bWeightedNormals = false;
 		bool bNormalizedNormals = false;
+		bool bFindSmallestRugosity = true;
+
 		std::vector<float> TrianglesRugosity;
 		
 		bool bFullyLoaded = false;

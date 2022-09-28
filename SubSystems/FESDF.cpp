@@ -732,12 +732,6 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 {
 	if (node->trianglesInCell.size() != 0)
 	{
-		/*if (debugInfo)
-		{
-			*debugInfo += "Triangles count: " + std::to_string(node->trianglesInCell.size());
-			*debugInfo += "\n";
-		}*/
-
 		std::vector<float> originalAreas;
 		float totalArea = 0.0f;
 		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
@@ -748,189 +742,150 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 			totalArea += originalArea;
 		}
 
-		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+		if (bFindSmallestRugosity)
 		{
-			std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
-			std::vector<glm::vec3> currentTriangleNormals = mesh->TrianglesNormals[node->trianglesInCell[l]];
+			std::unordered_map<int, float> TriangleNormalsToRugosity;
+			for (size_t i = 0; i < node->trianglesInCell.size(); i++)
+			{
+				node->rugosity = 0.0;
+				std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[i]];
+				std::vector<glm::vec3> currentTriangleNormals = mesh->TrianglesNormals[node->trianglesInCell[i]];
 
-			if (bWeightedNormals)
+				node->averageCellNormal = currentTriangleNormals[0];
+				node->averageCellNormal = currentTriangleNormals[1];
+				node->averageCellNormal = currentTriangleNormals[2];
+				
+				node->CellTrianglesCentroid = currentTriangle[0];
+				node->CellTrianglesCentroid = currentTriangle[1];
+				node->CellTrianglesCentroid = currentTriangle[2];
+
+				if (node->approximateProjectionPlane != nullptr)
+					delete node->approximateProjectionPlane;
+
+				node->approximateProjectionPlane = new FEPlane(node->CellTrianglesCentroid, node->averageCellNormal);
+
+				std::vector<float> rugosities;
+				for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+				{
+					std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
+
+					glm::vec3 aProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[0]);
+					glm::vec3 bProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[1]);
+					glm::vec3 cProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[2]);
+
+					double projectionArea = TriangleArea(aProjection, bProjection, cProjection);
+
+					rugosities.push_back(originalAreas[l] / projectionArea);
+
+					if (originalAreas[l] == 0.0 || projectionArea == 0.0)
+						rugosities.back() = 1.0f;
+
+					if (rugosities.back() > 100.0f)
+						rugosities.back() = 100.0f;
+				}
+
+				// Weighted by triangle area rugosity.
+				for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+				{
+					float currentTriangleCoef = originalAreas[l] / totalArea;
+					node->rugosity += rugosities[l] * currentTriangleCoef;
+				}
+
+				TriangleNormalsToRugosity[i] = node->rugosity;
+			}
+
+			double Min = FLT_MAX;
+			double Max = -FLT_MAX;
+			auto MapIt = TriangleNormalsToRugosity.begin();
+			while (MapIt != TriangleNormalsToRugosity.end())
+			{
+				if (MapIt->second < Min)
+				{
+					Min = MapIt->second;
+					node->rugosity = Min;
+				}
+
+				MapIt++;
+			}
+
+			int y = 0;
+			y++;
+		}
+		else
+		{
+			for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+			{
+				std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
+				std::vector<glm::vec3> currentTriangleNormals = mesh->TrianglesNormals[node->trianglesInCell[l]];
+
+				if (bWeightedNormals)
+				{
+					float currentTriangleCoef = originalAreas[l] / totalArea;
+
+					node->averageCellNormal += currentTriangleNormals[0] * currentTriangleCoef;
+					node->averageCellNormal += currentTriangleNormals[1] * currentTriangleCoef;
+					node->averageCellNormal += currentTriangleNormals[2] * currentTriangleCoef;
+				}
+				else
+				{
+					node->averageCellNormal += currentTriangleNormals[0];
+					node->averageCellNormal += currentTriangleNormals[1];
+					node->averageCellNormal += currentTriangleNormals[2];
+				}
+
+				node->CellTrianglesCentroid += currentTriangle[0];
+				node->CellTrianglesCentroid += currentTriangle[1];
+				node->CellTrianglesCentroid += currentTriangle[2];
+			}
+
+			if (!bWeightedNormals)
+				node->averageCellNormal /= node->trianglesInCell.size() * 3;
+
+			if (bNormalizedNormals)
+				node->averageCellNormal = glm::normalize(node->averageCellNormal);
+			node->CellTrianglesCentroid /= node->trianglesInCell.size() * 3;
+
+			if (debugInfo)
+			{
+				*debugInfo += "Average normal x:" + std::to_string(node->averageCellNormal.x);
+				*debugInfo += " y:" + std::to_string(node->averageCellNormal.y);
+				*debugInfo += " z:" + std::to_string(node->averageCellNormal.z);
+				*debugInfo += "\n";
+			}
+
+			if (node->approximateProjectionPlane != nullptr)
+				delete node->approximateProjectionPlane;
+
+			node->approximateProjectionPlane = new FEPlane(node->CellTrianglesCentroid, node->averageCellNormal);
+
+			std::vector<float> rugosities;
+			for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+			{
+				std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
+
+				glm::vec3 aProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[0]);
+				glm::vec3 bProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[1]);
+				glm::vec3 cProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[2]);
+
+				double projectionArea = TriangleArea(aProjection, bProjection, cProjection);
+
+				rugosities.push_back(originalAreas[l] / projectionArea);
+
+				if (originalAreas[l] == 0.0 || projectionArea == 0.0)
+					rugosities.back() = 1.0f;
+
+				if (rugosities.back() > 100.0f)
+					rugosities.back() = 100.0f;
+			}
+
+			// Weighted by triangle area rugosity.
+			for (size_t l = 0; l < node->trianglesInCell.size(); l++)
 			{
 				float currentTriangleCoef = originalAreas[l] / totalArea;
-
-				node->averageCellNormal += currentTriangleNormals[0] * currentTriangleCoef;
-				node->averageCellNormal += currentTriangleNormals[1] * currentTriangleCoef;
-				node->averageCellNormal += currentTriangleNormals[2] * currentTriangleCoef;
+				node->rugosity += rugosities[l] * currentTriangleCoef;
 			}
-			else
-			{
-				node->averageCellNormal += currentTriangleNormals[0];
-				node->averageCellNormal += currentTriangleNormals[1];
-				node->averageCellNormal += currentTriangleNormals[2];
-			}
-
-			node->CellTrianglesCentroid += currentTriangle[0];
-			node->CellTrianglesCentroid += currentTriangle[1];
-			node->CellTrianglesCentroid += currentTriangle[2];
 		}
 
-		if (!bWeightedNormals)
-			node->averageCellNormal /= node->trianglesInCell.size() * 3;
-
-		if (bNormalizedNormals)
-			node->averageCellNormal = glm::normalize(node->averageCellNormal);
-		node->CellTrianglesCentroid /= node->trianglesInCell.size() * 3;
-
-		if (debugInfo)
-		{
-			*debugInfo += "Average normal x:" + std::to_string(node->averageCellNormal.x);
-			*debugInfo += " y:" + std::to_string(node->averageCellNormal.y);
-			*debugInfo += " z:" + std::to_string(node->averageCellNormal.z);
-			*debugInfo += "\n";
-		}
-
-		if (node->approximateProjectionPlane != nullptr)
-			delete node->approximateProjectionPlane;
-
-		node->approximateProjectionPlane = new FEPlane(node->CellTrianglesCentroid, node->averageCellNormal);
-
-		//std::vector<float> originalAreas;
-		std::vector<float> rugosities;
-		//float totalArea = 0.0f;
-
-		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
-		{
-			/*if (debugInfo)
-			{
-				*debugInfo += "\n";
-				*debugInfo += "Triangle index : " + std::to_string(node->trianglesInCell[l]);
-				*debugInfo += "\n";
-				*debugInfo += "Triangle cell index " + std::to_string(l) + " info: ";
-				*debugInfo += "\n";
-			}*/
-
-			std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
-
-			//if (debugInfo)
-			//{
-			//	if (l == 12)
-			//	{
-			//		*debugInfo += "First vertex:";
-			//		*debugInfo += " x:" + std::to_string(currentTriangle[0].x);
-			//		*debugInfo += " y:" + std::to_string(currentTriangle[0].y);
-			//		*debugInfo += " z:" + std::to_string(currentTriangle[0].z);
-			//		*debugInfo += "\n";
-
-			//		*debugInfo += "Second vertex:";
-			//		*debugInfo += " x:" + std::to_string(currentTriangle[1].x);
-			//		*debugInfo += " y:" + std::to_string(currentTriangle[1].y);
-			//		*debugInfo += " z:" + std::to_string(currentTriangle[1].z);
-			//		*debugInfo += "\n";
-
-			//		*debugInfo += "Third vertex:";
-			//		*debugInfo += " x:" + std::to_string(currentTriangle[2].x);
-			//		*debugInfo += " y:" + std::to_string(currentTriangle[2].y);
-			//		*debugInfo += " z:" + std::to_string(currentTriangle[2].z);
-			//		*debugInfo += "\n";
-			//	}
-			//}
-
-			//double originalArea = TriangleArea(currentTriangle[0], currentTriangle[1], currentTriangle[2]);
-			//originalAreas.push_back(originalArea);
-			//totalArea += originalArea;
-
-			/*if (debugInfo)
-			{
-				*debugInfo += "Original area:" + std::to_string(originalArea);
-				*debugInfo += "\n";
-			}*/
-
-			glm::vec3 aProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[0]);
-			glm::vec3 bProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[1]);
-			glm::vec3 cProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[2]);
-
-			/*if (debugInfo)
-			{
-				if (l == 12)
-				{
-					*debugInfo += "Projected first vertex:";
-					*debugInfo += " x:" + std::to_string(aProjection.x);
-					*debugInfo += " y:" + std::to_string(aProjection.y);
-					*debugInfo += " z:" + std::to_string(aProjection.z);
-					*debugInfo += "\n";
-
-					*debugInfo += "Projected second vertex:";
-					*debugInfo += " x:" + std::to_string(bProjection.x);
-					*debugInfo += " y:" + std::to_string(bProjection.y);
-					*debugInfo += " z:" + std::to_string(bProjection.z);
-					*debugInfo += "\n";
-
-					*debugInfo += "Projected third vertex:";
-					*debugInfo += " x:" + std::to_string(cProjection.x);
-					*debugInfo += " y:" + std::to_string(cProjection.y);
-					*debugInfo += " z:" + std::to_string(cProjection.z);
-					*debugInfo += "\n";
-				}
-			}*/
-
-			double projectionArea = TriangleArea(aProjection, bProjection, cProjection);
-
-			/*if (debugInfo)
-			{
-				*debugInfo += "Projected area:" + std::to_string(projectionArea);
-				*debugInfo += "\n";
-			}*/
-
-			
-			rugosities.push_back(originalAreas[l] / projectionArea);
-
-			if (originalAreas[l] == 0.0 || projectionArea == 0.0)
-				rugosities.back() = 1.0f;
-
-			if (rugosities.back() > 100.0f)
-				rugosities.back() = 100.0f;
-
-			/*if (rugosities.back() > 10000.0f)
-			{
-				bNormalizedNormals = true;
-
-				double x1 = aProjection.x;
-				double x2 = bProjection.x;
-				double x3 = cProjection.x;
-
-				double y1 = aProjection.y;
-				double y2 = bProjection.y;
-				double y3 = cProjection.y;
-
-				double z1 = aProjection.z;
-				double z2 = bProjection.z;
-				double z3 = cProjection.z;
-
-				double proArea =  0.5 * sqrt(pow(x2 * y1 - x3 * y1 - x1 * y2 + x3 * y2 + x1 * y3 - x2 * y3, 2.0) +
-					pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
-					pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
-
-				double orig = originalAreas[l];
-				double test = originalAreas[l] / projectionArea + proArea + orig;
-
-
-				rugosities.back() = test + 0.01f;
-			}*/
-
-			/*if (debugInfo)
-			{
-				*debugInfo += "Rugosity:" + std::to_string(originalArea / projectionArea);
-				*debugInfo += "\n";
-			}*/
-		}
-
-		// Weighted by triangle area rugosity.
-		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
-		{
-			float currentTriangleCoef = originalAreas[l] / totalArea;
-			node->rugosity += rugosities[l] * currentTriangleCoef;
-		}
-
-		//node->rugosity /= node->trianglesInCell.size();
 	}
 }
 

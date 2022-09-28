@@ -186,6 +186,44 @@ void FEObjLoader::readFile(const char* fileName)
 		return;
 	}
 
+	//std::ifstream testFile(fileName, std::ios::binary);
+	//const auto begin = testFile.tellg();
+	//testFile.seekg(0, std::ios::end);
+	//const auto end = testFile.tellg();
+	//const auto fsize = (end - begin);
+
+	//testFile.seekg(0, 0);
+
+
+
+	//std::string NewLine;
+	//std::string CurrentLine;
+	//for (size_t i = 0; i < fsize; i++)
+	//{
+	//	char NewChar;
+	//	testFile.read(&NewChar, 1);
+	//	CurrentLine += NewChar;
+	//		
+	//	if (NewChar == '\n')
+	//	{
+	//		NewLine = CurrentLine;
+	//		CurrentLine = "";
+	//	}
+
+
+	//	//char* b = new char[100];
+	//	//testFile.read(b, 100);
+	//	//testString = b;
+	//}
+	//
+
+	//std::fstream file_;
+
+	//file_.open(fileName, std::ios::in | std::ios::binary);
+	//std::streamsize fileSize = file_.tellg();
+
+	//file_.close();
+
 	std::ifstream file;
 	file.open(fileName);
 
@@ -199,6 +237,8 @@ void FEObjLoader::readFile(const char* fileName)
 	// read file to fileData and close it.
 	fileData << file.rdbuf();
 	file.close();
+
+	//size_t testCount = fileData.str().size();
 
 	std::string line;
 	while (std::getline(fileData, line))
