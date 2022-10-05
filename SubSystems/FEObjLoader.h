@@ -42,7 +42,7 @@ namespace FocalEngine
 
 	struct FERawOBJData
 	{
-		std::vector<glm::vec3> rawVertexCoordinates;
+		std::vector<glm::dvec3> rawVertexCoordinates;
 		std::vector<glm::vec3> rawVertexColors;
 		std::vector<glm::vec2> rawTextureCoordinates;
 		std::vector<glm::vec3> rawNormalCoordinates;

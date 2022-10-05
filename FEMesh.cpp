@@ -117,7 +117,7 @@ void FEMesh::addSegmentsColorToVertices(float* colors, int colorSize)
 	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
 }
 
-bool FEMesh::intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance)
+bool FEMesh::intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance, glm::vec3* HitPoint)
 {
 	if (triangleVertices.size() != 3)
 		return false;
@@ -172,8 +172,8 @@ bool FEMesh::intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, 
 		u + v >= 0.00001 &&
 		u + v <= 1 && t > 0.00001)
 	{
-		//Point4 p = v1 + u * (v2 - v1) + v * (v3 - v1);
-		//hit = Hit(p, this->N, this, t);
+		if (HitPoint != nullptr)
+			*HitPoint = triangleVertices[0] + u * (triangleVertices[1] - triangleVertices[0]) + v * (triangleVertices[2] - triangleVertices[0]);
 
 		distance = t;
 		return true;
@@ -263,6 +263,37 @@ void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 	}
 }
 
+glm::vec3 FEMesh::IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
+{
+	float currentDistance = 0.0f;
+	float lastDistance = 9999.0f;
+	glm::vec3 HitPosition;
+
+	if (Triangles.empty())
+		fillTrianglesData();
+
+	for (size_t i = 0; i < Triangles.size(); i++)
+	{
+		std::vector<glm::vec3> TranformedTrianglePoints = Triangles[i];
+		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+		{
+			TranformedTrianglePoints[j] = Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+		}
+
+		glm::vec3 HitPosition;
+		//bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, Triangles[i], currentDistance, &HitPosition);
+		bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, TranformedTrianglePoints, currentDistance, &HitPosition);
+
+		if (hit && currentDistance < lastDistance)
+		{
+			lastDistance = currentDistance;
+
+			glm::mat4 Inverse = glm::inverse(Position->getTransformMatrix());
+			return Inverse * glm::vec4(HitPosition, 1.0f);
+		}
+	}
+}
+
 void FEMesh::SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius)
 {
 	SelectTriangle(MouseRay, currentCamera);
@@ -280,6 +311,24 @@ void FEMesh::SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* current
 		if (i == TriangleSelected[0])
 			continue;
 
+		if (glm::distance(FirstSelectedTriangleCentroid, TrianglesCentroids[i]) <= Radius)
+		{
+			TriangleSelected.push_back(i);
+		}
+	}
+}
+
+void FEMesh::SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius)
+{
+	TriangleSelected.clear();
+
+	LastMeasuredRugosityAreaRadius = Radius;
+	LastMeasuredRugosityAreaCenter = Position->getTransformMatrix() * glm::vec4(CenterPoint, 1.0f);
+
+	glm::vec3 FirstSelectedTriangleCentroid = CenterPoint;
+
+	for (size_t i = 0; i < Triangles.size(); i++)
+	{
 		if (glm::distance(FirstSelectedTriangleCentroid, TrianglesCentroids[i]) <= Radius)
 		{
 			TriangleSelected.push_back(i);

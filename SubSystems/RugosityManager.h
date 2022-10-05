@@ -60,10 +60,14 @@ namespace FocalEngine
 
 		std::string colorSchemeIndexToString(int index);
 		int colorSchemeIndexFromString(std::string name);
+
+		bool GetUseFindSmallestRugosity();
+		void SetUseFindSmallestRugosity(bool NewValue);
 	private:
 		SINGLETON_PRIVATE_PART(RugosityManager)
 
 		int RugosityLayerIndex = 0;
+		bool bUseFindSmallestRugosity = false;
 	};
 
 	#define RUGOSITY_MANAGER RugosityManager::getInstance()

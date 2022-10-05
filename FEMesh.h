@@ -88,10 +88,11 @@ namespace FocalEngine
 		std::vector<float> TrianglesRugosityAdditional;
 		void fillRugosityDataToGPU(int RugosityLayerIndex = 0);
 
-
 		void fillTrianglesData();
-		bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance);
+		bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance, glm::vec3* HitPoint = nullptr);
 		void SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera);
+		glm::vec3 IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera);
 		void SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius);
+		void SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius);
 	};
 }

@@ -139,16 +139,16 @@ void UIManager::showCameraTransform()
 		APPLICATION.SetClipboardText(CameraRotationToStr());
 	}
 
+	currentCamera->setYaw(cameraRotation[0]);
+	currentCamera->setPitch(cameraRotation[1]);
+	currentCamera->setRoll(cameraRotation[2]);
+
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(40);
 	if (ImGui::Button("Paste##Rotation"))
 	{
 		StrToCameraRotation(APPLICATION.GetClipboardText());
 	}
-
-	currentCamera->setYaw(cameraRotation[0]);
-	currentCamera->setPitch(cameraRotation[1]);
-	currentCamera->setRoll(cameraRotation[2]);
 
 	float cameraSpeed = currentCamera->getMovementSpeed();
 	ImGui::Text("Camera speed: ");
@@ -191,6 +191,12 @@ void UIManager::SetDeveloperMode(bool NewValue)
 void UIManager::RenderMainWindow(FEMesh* currentMesh)
 {
 	showCameraTransform();
+
+	bool TempBool = RUGOSITY_MANAGER.GetUseFindSmallestRugosity();
+	if (ImGui::Checkbox("New algorithm", &TempBool))
+	{
+		RUGOSITY_MANAGER.SetUseFindSmallestRugosity(TempBool);
+	}
 
 	if (currentMesh != nullptr)
 	{
@@ -830,6 +836,9 @@ void UIManager::StrToCameraRotation(std::string text)
 void UIManager::updateCurrentMesh(FEMesh* NewMesh)
 {
 	currentMesh = NewMesh;
+
+	delete RUGOSITY_MANAGER.currentSDF;
+	RUGOSITY_MANAGER.currentSDF = nullptr;
 
 	LINE_RENDERER.clearAll();
 	LINE_RENDERER.SyncWithGPU();

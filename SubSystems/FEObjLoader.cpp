@@ -31,11 +31,11 @@ void FEObjLoader::readLine(std::stringstream& lineStream, FERawOBJData* data)
 	// if this line contains vertex coordinates
 	if (sTemp[0] == 'v' && sTemp.size() == 1)
 	{
-		glm::vec3 newVec;
+		glm::dvec3 newVec;
 		for (int i = 0; i <= 2; i++)
 		{
 			lineStream >> sTemp;
-			newVec[i] = std::stof(sTemp);
+			newVec[i] = std::stod(sTemp);
 		}
 
 		data->rawVertexCoordinates.push_back(newVec);
@@ -413,12 +413,12 @@ void FEObjLoader::calculateTangents(FERawOBJData* data)
 
 void FEObjLoader::NormilizeVertexPositions(FERawOBJData* data)
 {
-	float MinX = FLT_MAX;
-	float MaxX = -FLT_MAX;
-	float MinY = FLT_MAX;
-	float MaxY = -FLT_MAX;
-	float MinZ = FLT_MAX;
-	float MaxZ = -FLT_MAX;
+	double MinX = DBL_MAX;
+	double MaxX = -DBL_MAX;
+	double MinY = DBL_MAX;
+	double MaxY = -DBL_MAX;
+	double MinZ = DBL_MAX;
+	double MaxZ = -DBL_MAX;
 
 	for (size_t i = 0; i < data->rawVertexCoordinates.size(); i++)
 	{
@@ -441,11 +441,25 @@ void FEObjLoader::NormilizeVertexPositions(FERawOBJData* data)
 			MaxZ = data->rawVertexCoordinates[i].z;
 	}
 
+	double RangeX = abs(MaxX - MinX);
+	double RangeY = abs(MaxY - MinY);
+	double RangeZ = abs(MaxZ - MinZ);
+
+	double MinRange = std::min(std::min(RangeX, RangeY), RangeZ);
+	double ScaleFactor = 1.0;
+
+	if (MinRange < 50.0)
+	{
+		ScaleFactor = 50.0 - MinRange;
+	}
+
 	for (size_t i = 0; i < data->rawVertexCoordinates.size(); i++)
 	{
 		data->rawVertexCoordinates[i].x -= MinX;
 		data->rawVertexCoordinates[i].y -= MinY;
 		data->rawVertexCoordinates[i].z -= MinZ;
+
+		data->rawVertexCoordinates[i] *= ScaleFactor;
 	}
 }
 
@@ -650,6 +664,9 @@ void FEObjLoader::processRawData(FERawOBJData* data)
 
 			data->fInd.push_back(vIndex);
 		}
+
+		data->fNorC.resize(data->rawVertexCoordinates.size() * 3);
+		calculateNormals(data);
 	}
 
 	/*if (haveColors)

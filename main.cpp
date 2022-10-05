@@ -369,6 +369,9 @@ void dropCallback(int count, const char** paths)
 		currentCamera->setPitch(0.0f);
 		currentCamera->setRoll(0.0f);
 
+		currentCamera->setMovementSpeed(currentMesh->AABB.getSize() / 10.0f);
+		currentCamera->setFarPlane(currentMesh->AABB.getSize() * 3.0f);
+
 		//if (PROJECT_MANAGER.getCurrent() != nullptr)
 		//{
 		//	std::vector<FEObject*> loadedObjects = RESOURCE_MANAGER.importAsset(paths[i]);
@@ -495,6 +498,9 @@ void mouseButtonCallback(int button, int action, int mods)
 			}
 			else if (UI.GetRugositySelectionMode() == 2)
 			{
+				//glm::vec3 HitPoint = currentMesh->IntersectTriangle(mouseRay(mouseX, mouseY), currentCamera);
+				//HitPoint += glm::vec3(1.0f, 0.0f, 1.0f);
+				//currentMesh->SelectTrianglesInRadius(HitPoint, UI.GetAreaToMeasureRugosity());
 				currentMesh->SelectTrianglesInRadius(mouseRay(mouseX, mouseY), currentCamera, UI.GetAreaToMeasureRugosity());
 			}
 
@@ -575,7 +581,7 @@ void renderFEMesh(FEMesh* mesh)
 	if (mesh->TriangleSelected.size() > 1 && UI.GetRugositySelectionMode() == 2)
 	{
 		meshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(mesh->LastMeasuredRugosityAreaRadius);
-		meshShader->getParameter("MeasuredRugosityAreaCenter")->updateData(mesh->LastMeasuredRugosityAreaCenter/*glm::vec3(0.0f)*/);
+		meshShader->getParameter("MeasuredRugosityAreaCenter")->updateData(mesh->LastMeasuredRugosityAreaCenter);
 	}
 	else
 	{

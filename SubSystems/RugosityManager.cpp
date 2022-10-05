@@ -97,6 +97,7 @@ SDF* RugosityManager::calculateSDF(FEMesh* mesh, int dimentions, FEFreeCamera* c
 	}*/
 
 	SDF* result = new SDF(mesh, dimentions, finalAABB, currentCamera);
+	result->bFindSmallestRugosity = bUseFindSmallestRugosity;
 	result->bWeightedNormals = bWeightedNormals;
 	result->bNormalizedNormals = bNormalizedNormals;
 
@@ -152,6 +153,7 @@ void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
 
 	Output->Init(Input->mesh, 0/*Input->dimentions*/, finalAABB, RUGOSITY_MANAGER.currentCamera, RUGOSITY_MANAGER.ResolutonInM);
 	//currentSDF = new SDF(mesh, dimentions, finalAABB, currentCamera);
+	Output->bFindSmallestRugosity = RUGOSITY_MANAGER.bUseFindSmallestRugosity;
 	Output->bWeightedNormals = RUGOSITY_MANAGER.bWeightedNormals;
 	Output->bNormalizedNormals = RUGOSITY_MANAGER.bNormalizedNormals;
 
@@ -176,6 +178,7 @@ void RugosityManager::RunCreationOfSDFAsync(FEMesh* mesh, bool bJitter)
 	InputData->GridScale = RUGOSITY_MANAGER.GridScale;
 
 	SDF* OutputData = new SDF();
+	OutputData->bFindSmallestRugosity = RUGOSITY_MANAGER.bUseFindSmallestRugosity;
 	currentSDF = OutputData;
 
 	if (mesh->Triangles.empty())
@@ -262,4 +265,14 @@ int RugosityManager::colorSchemeIndexFromString(std::string name)
 		return 5;
 
 	return 3;
-};
+}
+
+bool RugosityManager::GetUseFindSmallestRugosity()
+{
+	return bUseFindSmallestRugosity;
+}
+
+void RugosityManager::SetUseFindSmallestRugosity(bool NewValue)
+{
+	bUseFindSmallestRugosity = NewValue;
+}

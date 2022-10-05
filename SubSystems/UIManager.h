@@ -36,6 +36,8 @@ namespace FocalEngine
 
 		int GetRugositySelectionMode();
 		void SetRugositySelectionMode(int NewValue);
+
+		
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 
