@@ -94,5 +94,9 @@ namespace FocalEngine
 		glm::vec3 IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera);
 		void SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius);
 		void SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius);
+
+		glm::vec3 AvarageNormal = glm::vec3();
+		glm::vec3 GetAverageNormal();
+		void UpdateAverageNormal();
 	};
 }

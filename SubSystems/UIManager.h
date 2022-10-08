@@ -52,6 +52,8 @@ namespace FocalEngine
 
 		float AreaToMeasureRugosity = 1.0f;
 		int RugositySelectionMode = 0;
+
+		void RenderLegend();
 	};
 
 	#define UI UIManager::getInstance()

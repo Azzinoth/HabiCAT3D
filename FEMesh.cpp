@@ -414,3 +414,69 @@ void FEMesh::fillRugosityDataToGPU(int RugosityLayerIndex)
 
 	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
 }
+
+double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC)
+{
+	double x1 = PointA.x;
+	double x2 = PointB.x;
+	double x3 = PointC.x;
+
+	double y1 = PointA.y;
+	double y2 = PointB.y;
+	double y3 = PointC.y;
+
+	double z1 = PointA.z;
+	double z2 = PointB.z;
+	double z3 = PointC.z;
+
+	return 0.5 * sqrt(pow(x2 * y1 - x3 * y1 - x1 * y2 + x3 * y2 + x1 * y3 - x2 * y3, 2.0) +
+		pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
+		pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
+}
+
+void FEMesh::UpdateAverageNormal()
+{
+	if (Triangles.empty())
+		fillTrianglesData();
+
+	AvarageNormal = glm::vec3();
+
+	std::vector<float> originalAreas;
+	float totalArea = 0.0f;
+	for (size_t i = 0; i < Triangles.size(); i++)
+	{
+		double originalArea = TriangleArea(Triangles[i][0], Triangles[i][1], Triangles[i][2]);
+		originalAreas.push_back(originalArea);
+		totalArea += originalArea;
+	}
+
+	// ******* Geting avarage normal *******
+	for (size_t i = 0; i < Triangles.size(); i++)
+	{
+		//std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
+		//std::vector<glm::vec3> currentTriangleNormals = TrianglesNormals[i];
+
+		/*if (bWeightedNormals)
+		{*/
+			float currentTriangleCoef = originalAreas[i] / totalArea;
+
+			AvarageNormal += TrianglesNormals[i][0] * currentTriangleCoef;
+			AvarageNormal += TrianglesNormals[i][1] * currentTriangleCoef;
+			AvarageNormal += TrianglesNormals[i][2] * currentTriangleCoef;
+		/*}
+		else
+		{
+			node->averageCellNormal += currentTriangleNormals[0];
+			node->averageCellNormal += currentTriangleNormals[1];
+			node->averageCellNormal += currentTriangleNormals[2];
+		}*/
+	}
+
+	AvarageNormal = glm::normalize(AvarageNormal);
+	
+}
+
+glm::vec3 FEMesh::GetAverageNormal()
+{
+	return AvarageNormal;
+}
