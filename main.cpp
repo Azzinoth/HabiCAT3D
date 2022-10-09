@@ -399,13 +399,13 @@ void LoadMesh(std::string FileName)
 	//glm::vec3 TransformedAvarageNormal = currentMesh->Position->getTransformMatrix() * glm::vec4(AvarageNormal, 1.0f);
 	glm::vec3 TransformedCenter = currentMesh->Position->getTransformMatrix() * glm::vec4(currentMesh->AABB.getCenter(), 1.0f);
 
-	LINE_RENDERER.clearAll();
+	/*LINE_RENDERER.clearAll();
 	LINE_RENDERER.AddLineToBuffer(
 		FELine(TransformedCenter,
 			   TransformedCenter + AverageNormal * currentMesh->AABB.getSize(),
 			   glm::vec3(1.0f, 1.0f, 0.0f)));
 	
-	LINE_RENDERER.SyncWithGPU();
+	LINE_RENDERER.SyncWithGPU();*/
 }
 
 void mouseMoveCallback(double xpos, double ypos)

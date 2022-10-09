@@ -778,7 +778,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 		return Result;
 	};
 
-	// ******* Geting avarage normal *******
+	// ******* Getting average normal *******
 	for (size_t l = 0; l < node->trianglesInCell.size(); l++)
 	{
 		std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
@@ -810,7 +810,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 	if (bNormalizedNormals)
 		node->averageCellNormal = glm::normalize(node->averageCellNormal);
 	node->CellTrianglesCentroid /= node->trianglesInCell.size() * 3;
-	// ******* Geting avarage normal END *******
+	// ******* Getting average normal END *******
 
 	if (bFindSmallestRugosity)
 	{
@@ -838,45 +838,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 	}
 	else
 	{
-		if (debugInfo)
-		{
-			*debugInfo += "Average normal x:" + std::to_string(node->averageCellNormal.x);
-			*debugInfo += " y:" + std::to_string(node->averageCellNormal.y);
-			*debugInfo += " z:" + std::to_string(node->averageCellNormal.z);
-			*debugInfo += "\n";
-		}
-
-		if (node->approximateProjectionPlane != nullptr)
-			delete node->approximateProjectionPlane;
-
-		node->approximateProjectionPlane = new FEPlane(node->CellTrianglesCentroid, node->averageCellNormal);
-
-		std::vector<float> rugosities;
-		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
-		{
-			std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
-
-			glm::vec3 aProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[0]);
-			glm::vec3 bProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[1]);
-			glm::vec3 cProjection = node->approximateProjectionPlane->ProjectPoint(currentTriangle[2]);
-
-			double projectionArea = TriangleArea(aProjection, bProjection, cProjection);
-
-			rugosities.push_back(originalAreas[l] / projectionArea);
-
-			if (originalAreas[l] == 0.0 || projectionArea == 0.0)
-				rugosities.back() = 1.0f;
-
-			if (rugosities.back() > 100.0f)
-				rugosities.back() = 100.0f;
-		}
-
-		// Weighted by triangle area rugosity.
-		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
-		{
-			float currentTriangleCoef = originalAreas[l] / totalArea;
-			node->rugosity += rugosities[l] * currentTriangleCoef;
-		}
+		node->rugosity = CalculateCellRugosity(node->CellTrianglesCentroid, node->averageCellNormal);
 	}
 }
 

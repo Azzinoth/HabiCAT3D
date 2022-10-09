@@ -694,7 +694,7 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 		}
 	}
 
-	RenderLegend();
+	//RenderLegend();
 }
 
 std::string UIManager::CameraPositionToStr()

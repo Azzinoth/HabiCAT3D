@@ -321,6 +321,9 @@ glm::vec3 FEObjLoader::calculateNormal(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2)
 
 	glm::vec3 normal = glm::normalize(glm::cross(edge_1, edge_0));
 
+	if (isnan(normal.x) || isnan(normal.y) || isnan(normal.z))
+		normal = glm::vec3();
+
 	return normal;
 }
 
