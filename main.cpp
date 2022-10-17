@@ -85,6 +85,8 @@ uniform float maxRugorsity;
 uniform vec3 MeasuredRugosityAreaCenter;
 uniform float MeasuredRugosityAreaRadius;
 
+uniform vec3 AverageNormal;
+
 layout (location = 0) out vec4 out_Color;
 
 // Copyright 2019 Google LLC.
@@ -238,6 +240,8 @@ vec3 getCorrectColor()
 		//		result = getTurboColormapValue(normalizedRugorsity);
         //        break;
     }
+
+	result = vec3(dot(FS_IN.worldPosition, AverageNormal));
 
 	return result;
 }
@@ -601,6 +605,8 @@ void renderFEMesh(FEMesh* mesh)
 		meshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(-1.0f);
 	}
 
+	meshShader->getParameter("AverageNormal")->updateData(mesh->AvarageNormal);
+
 	FE_GL_ERROR(glBindVertexArray(mesh->getVaoID()));
 	if ((mesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));
 	if ((mesh->vertexAttributes & FE_COLOR) == FE_COLOR) FE_GL_ERROR(glEnableVertexAttribArray(1));
@@ -691,7 +697,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	APPLICATION.SetMouseButtonCallback(mouseButtonCallback);
 	APPLICATION.SetWindowResizeCallback(windowResizeCallback);
 
-	THREAD_POOL.SetConcurrentThreadCount(8);
+
+	const auto processor_count = THREAD_POOL.GetLogicalCoreCount();
+	unsigned int HowManyToUse = processor_count > 4 ? processor_count - 2 : 1;
+
+	THREAD_POOL.SetConcurrentThreadCount(HowManyToUse);
 
 	glClearColor(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 1.0f);
 	FE_GL_ERROR(glEnable(GL_DEPTH_TEST));

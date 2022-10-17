@@ -772,6 +772,9 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 		{
 			float currentTriangleCoef = originalAreas[l] / totalArea;
 			Result += rugosities[l] * currentTriangleCoef;
+
+			if (isnan(Result))
+				Result = 1.0f;
 		}
 
 		delete ProjectionPlane;
@@ -839,6 +842,8 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 	else
 	{
 		node->rugosity = CalculateCellRugosity(node->CellTrianglesCentroid, node->averageCellNormal);
+		if (isnan(node->rugosity))
+			node->rugosity = 1.0f;
 	}
 }
 
