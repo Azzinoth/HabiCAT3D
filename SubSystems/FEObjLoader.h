@@ -49,7 +49,7 @@ namespace FocalEngine
 		std::vector<int> rawIndices;
 
 		// final vertex coordinates
-		std::vector<float> fVerC;
+		std::vector<double> fVerC;
 		// final colors
 		std::vector<float> fColorsC;
 		// final texture coordinates
@@ -84,7 +84,7 @@ namespace FocalEngine
 		void readLine(std::stringstream& lineStream, FERawOBJData* data);
 		void processRawData(FERawOBJData* data);
 
-		glm::vec3 calculateNormal(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2);
+		glm::vec3 calculateNormal(glm::dvec3 v0, glm::dvec3 v1, glm::dvec3 v2);
 		void calculateNormals(FERawOBJData* data);
 
 		glm::vec3 calculateTangent(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, std::vector<glm::vec2>&& textures);

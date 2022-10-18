@@ -4,6 +4,56 @@
 
 namespace FocalEngine
 {
+	class FEArrowScroller
+	{
+		bool bHorizontal;
+
+		ImVec2 Position;
+		bool bSelected;
+		bool bMouseHover;
+
+		bool bWindowFlagWasAdded;
+		int OriginalWindowFlags;
+
+		RECT Area;
+		float Size;
+
+		ImColor Color;
+		ImColor SelectedColor;
+
+		float LastFrameMouseX;
+		float LastFrameMouseY;
+		float LastFrameDelta;
+
+		ImVec2 AvailableRange;
+	public:
+		FEArrowScroller(bool Horizontal = true);
+
+		ImVec2 GetPosition() const;
+		void SetPosition(ImVec2 NewPosition);
+
+		float GetSize() const;
+		void SetSize(float NewValue);
+
+		bool IsSelected() const;
+		void SetSelected(bool NewValue);
+
+		ImColor GetColor() const;
+		void SetColor(ImColor NewValue);
+
+		ImColor GetSelectedColor() const;
+		void SetSelectedColor(ImColor NewValue);
+
+		float GetLastFrameDelta() const;
+
+		void Render();
+
+		void SetAvailableRange(ImVec2 NewValue);
+		void LiftRangeRestrictions();
+
+		void SetOrientation(bool IsHorisontal);
+	};
+
 	class UIManager
 	{
 	public:
@@ -52,6 +102,8 @@ namespace FocalEngine
 
 		float AreaToMeasureRugosity = 1.0f;
 		int RugositySelectionMode = 0;
+
+		FEArrowScroller ScrollerTest;
 
 		void RenderLegend();
 	};

@@ -241,7 +241,7 @@ vec3 getCorrectColor()
         //        break;
     }
 
-	result = vec3(dot(FS_IN.worldPosition, AverageNormal));
+	//result = vec3(dot(FS_IN.worldPosition, AverageNormal));
 
 	return result;
 }
@@ -605,7 +605,7 @@ void renderFEMesh(FEMesh* mesh)
 		meshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(-1.0f);
 	}
 
-	meshShader->getParameter("AverageNormal")->updateData(mesh->AvarageNormal);
+	//meshShader->getParameter("AverageNormal")->updateData(mesh->AvarageNormal);
 
 	FE_GL_ERROR(glBindVertexArray(mesh->getVaoID()));
 	if ((mesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));

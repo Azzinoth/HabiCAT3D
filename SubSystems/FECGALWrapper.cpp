@@ -113,6 +113,36 @@ FEMesh* FECGALWrapper::rawDataToMesh(float* positions, int posSize,
 	return newMesh;
 }
 
+FEMesh* FECGALWrapper::rawDataToMesh(double* positions, int posSize,
+									 float* colors, int colorSize,
+									 float* UV, int UVSize,
+								     float* normals, int normSize,
+								     float* tangents, int tanSize,
+								     int* indices, int indexSize,
+								     float* matIndexs, int matIndexsSize, int matCount,
+								     std::string Name)
+{
+	float* FloatPositions = new float[posSize];
+
+	for (size_t i = 0; i < posSize; i++)
+	{
+		FloatPositions[i] = positions[i];
+	}
+
+	FEMesh* result = rawDataToMesh(FloatPositions, posSize,
+								   colors, colorSize,
+								   UV, UVSize,
+								   normals, normSize,
+								   tangents, tanSize,
+								   indices, indexSize,
+								   matIndexs, matIndexsSize, matCount,
+								   Name);
+
+	delete[] FloatPositions;
+
+	return result;
+}
+
 FEMesh* FECGALWrapper::importOBJ(const char* fileName, bool forceOneMesh)
 {
 	FEMesh* result = nullptr;

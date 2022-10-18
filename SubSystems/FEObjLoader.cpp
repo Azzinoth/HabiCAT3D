@@ -314,15 +314,15 @@ void FEObjLoader::readFile(const char* fileName)
 	}
 }
 
-glm::vec3 FEObjLoader::calculateNormal(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2)
+glm::vec3 FEObjLoader::calculateNormal(glm::dvec3 v0, glm::dvec3 v1, glm::dvec3 v2)
 {
-	glm::vec3 edge_0 = v2 - v1;
-	glm::vec3 edge_1 = v2 - v0;
+	glm::dvec3 edge_0 = v2 - v1;
+	glm::dvec3 edge_1 = v2 - v0;
 
-	glm::vec3 normal = glm::normalize(glm::cross(edge_1, edge_0));
+	glm::dvec3 normal = glm::normalize(glm::cross(edge_1, edge_0));
 
 	if (isnan(normal.x) || isnan(normal.y) || isnan(normal.z))
-		normal = glm::vec3();
+		normal = glm::dvec3();
 
 	return normal;
 }
@@ -333,9 +333,9 @@ void FEObjLoader::calculateNormals(FERawOBJData* data)
 	// We assume that there were no normals info read.
 	for (size_t i = 0; i < data->fInd.size() - 1; i+=3)
 	{
-		glm::vec3 v0 = { data->fVerC[data->fInd[i] * IndexShift], data->fVerC[data->fInd[i] * IndexShift + 1], data->fVerC[data->fInd[i] * IndexShift + 2] };
-		glm::vec3 v1 = { data->fVerC[data->fInd[i + 1] * IndexShift], data->fVerC[data->fInd[i + 1] * IndexShift + 1], data->fVerC[data->fInd[i + 1] * IndexShift + 2] };
-		glm::vec3 v2 = { data->fVerC[data->fInd[i + 2] * IndexShift], data->fVerC[data->fInd[i + 2] * IndexShift + 1], data->fVerC[data->fInd[i + 2] * IndexShift + 2] };
+		glm::dvec3 v0 = { data->fVerC[data->fInd[i] * IndexShift], data->fVerC[data->fInd[i] * IndexShift + 1], data->fVerC[data->fInd[i] * IndexShift + 2] };
+		glm::dvec3 v1 = { data->fVerC[data->fInd[i + 1] * IndexShift], data->fVerC[data->fInd[i + 1] * IndexShift + 1], data->fVerC[data->fInd[i + 1] * IndexShift + 2] };
+		glm::dvec3 v2 = { data->fVerC[data->fInd[i + 2] * IndexShift], data->fVerC[data->fInd[i + 2] * IndexShift + 1], data->fVerC[data->fInd[i + 2] * IndexShift + 2] };
 
 		glm::vec3 normal = calculateNormal(v0, v1, v2);
 

@@ -71,6 +71,15 @@ namespace FocalEngine
 							  float* matIndexs, int matIndexsSize, int matCount,
 							  std::string Name);
 
+		FEMesh* rawDataToMesh(double* positions, int posSize,
+							  float* colors, int colorSize,
+							  float* UV, int UVSize,
+							  float* normals, int normSize,
+							  float* tangents, int tanSize,
+							  int* indices, int indexSize,
+							  float* matIndexs, int matIndexsSize, int matCount,
+							  std::string Name);
+
 		void addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrianglesToSegments, std::vector<glm::vec3> segmentsNormals);
 		std::vector<float> calculateNormals(Surface_mesh mesh);
 	};

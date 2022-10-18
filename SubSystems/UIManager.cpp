@@ -1,7 +1,11 @@
 #include "UIManager.h"
 using namespace FocalEngine;
 UIManager* UIManager::Instance = nullptr;
-UIManager::UIManager() {}
+UIManager::UIManager()
+{
+	ScrollerTest.SetOrientation(false);
+}
+
 UIManager::~UIManager() {}
 
 void UIManager::showTransformConfiguration(std::string name, FETransformComponent* transform)
@@ -193,6 +197,8 @@ void UIManager::SetDeveloperMode(bool NewValue)
 
 void UIManager::RenderMainWindow(FEMesh* currentMesh)
 {
+	ImGui::Checkbox("Developer UI", &DeveloperMode);
+
 	showCameraTransform();
 
 	bool TempBool = RUGOSITY_MANAGER.GetUseFindSmallestRugosity();
@@ -697,7 +703,7 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 		}
 	}
 
-	//RenderLegend();
+	RenderLegend();
 }
 
 std::string UIManager::CameraPositionToStr()
@@ -900,7 +906,206 @@ void UIManager::RenderLegend()
 												  SomeColor);
 	}
 
+	ScrollerTest.SetColor(ImColor(255, 155, 155, 255));
+	ScrollerTest.SetPosition(ImVec2(10.0f, 10.0f));
+	ScrollerTest.Render();
+
 	ImGui::PopStyleVar();
 	ImGui::PopStyleVar();
 	ImGui::End();
+}
+
+FEArrowScroller::FEArrowScroller(const bool Horizontal)
+{
+	bHorizontal = Horizontal;
+
+	bSelected = false;
+	bMouseHover = false;
+
+	bWindowFlagWasAdded = false;
+	OriginalWindowFlags = 0;
+
+	LastFrameDelta = 0;
+	Size = 20.0f;
+
+	Color = ImColor(10, 10, 40, 255);
+	SelectedColor = ImColor(115, 115, 255, 255);
+
+	AvailableRange = ImVec2(-FLT_MAX, FLT_MAX);
+}
+
+ImVec2 FEArrowScroller::GetPosition() const
+{
+	return Position;
+}
+
+void FEArrowScroller::SetPosition(const ImVec2 NewPosition)
+{
+	Position = NewPosition;
+
+	if (bHorizontal)
+	{
+		Area.left = static_cast<LONG>(Position.x - Size / 2.0f);
+		Area.right = static_cast<LONG>(Position.x + Size / 2.0f);
+		Area.top = static_cast<LONG>(Position.y - Size);
+		Area.bottom = static_cast<LONG>(Position.y);
+	}
+	else
+	{
+		Area.left = static_cast<LONG>(Position.x - Size);
+		Area.right = static_cast<LONG>(Position.x);
+		Area.top = static_cast<LONG>(Position.y - Size / 2.0f);
+		Area.bottom = static_cast<LONG>(Position.y + Size / 2.0f);
+	}
+}
+
+bool FEArrowScroller::IsSelected() const
+{
+	return bSelected;
+}
+
+void FEArrowScroller::SetSelected(const bool NewValue)
+{
+	bSelected = NewValue;
+}
+
+void FEArrowScroller::Render()
+{
+	const float MouseXWindows = ImGui::GetIO().MousePos.x - ImGui::GetCurrentWindow()->Pos.x;
+	const float MouseYWindows = ImGui::GetIO().MousePos.y - ImGui::GetCurrentWindow()->Pos.y;
+
+	bMouseHover = false;
+	if (MouseXWindows >= Area.left && MouseXWindows < Area.right &&
+		MouseYWindows >= Area.top && MouseYWindows < Area.bottom)
+	{
+		bMouseHover = true;
+	}
+
+	if (!bMouseHover && bWindowFlagWasAdded)
+	{
+		bWindowFlagWasAdded = false;
+		ImGui::GetCurrentWindow()->Flags = OriginalWindowFlags;
+	}
+
+	if (!(ImGui::GetCurrentWindow()->Flags & ImGuiWindowFlags_NoMove) && bMouseHover)
+	{
+		bWindowFlagWasAdded = true;
+		OriginalWindowFlags = ImGui::GetCurrentWindow()->Flags;
+		ImGui::GetCurrentWindow()->Flags |= ImGuiWindowFlags_NoMove;
+	}
+
+	if (ImGui::GetIO().MouseClicked[0])
+	{
+		bMouseHover ? SetSelected(true) : SetSelected(false);
+	}
+
+	if (ImGui::GetIO().MouseReleased[0])
+		SetSelected(false);
+
+	LastFrameDelta = 0;
+	if (IsSelected())
+	{
+		LastFrameDelta = bHorizontal ? MouseXWindows - LastFrameMouseX : MouseYWindows - LastFrameMouseY;
+
+		if (bHorizontal)
+		{
+			if (GetPosition().x + LastFrameDelta <= AvailableRange.y && GetPosition().x + LastFrameDelta >= AvailableRange.x)
+			{
+				SetPosition(ImVec2(GetPosition().x + LastFrameDelta, GetPosition().y));
+			}
+		}
+		else
+		{
+			if (GetPosition().y + LastFrameDelta <= AvailableRange.y && GetPosition().y + LastFrameDelta >= AvailableRange.x)
+			{
+				SetPosition(ImVec2(GetPosition().x, GetPosition().y + LastFrameDelta));
+			}
+		}
+	}
+
+	LastFrameMouseX = MouseXWindows;
+	LastFrameMouseY = MouseYWindows;
+
+	ImVec2 P1;
+	ImVec2 P2;
+	ImVec2 P3;
+
+	if (bHorizontal)
+	{
+		P1 = ImVec2(ImGui::GetCurrentWindow()->Pos.x + Area.left,
+			ImGui::GetCurrentWindow()->Pos.y + Area.top);
+		P2 = ImVec2(ImGui::GetCurrentWindow()->Pos.x + Area.right,
+			ImGui::GetCurrentWindow()->Pos.y + Area.top);
+		P3 = ImVec2(ImGui::GetCurrentWindow()->Pos.x + Area.left + (Area.right - Area.left) / 2.0f,
+			ImGui::GetCurrentWindow()->Pos.y + Area.bottom);
+	}
+	else
+	{
+		P1 = ImVec2(ImGui::GetCurrentWindow()->Pos.x + Area.left,
+			ImGui::GetCurrentWindow()->Pos.y + Area.top);
+		P2 = ImVec2(ImGui::GetCurrentWindow()->Pos.x + Area.left,
+			ImGui::GetCurrentWindow()->Pos.y + Area.bottom);
+		P3 = ImVec2(ImGui::GetCurrentWindow()->Pos.x + Area.right,
+			ImGui::GetCurrentWindow()->Pos.y + Area.top + (Area.right - Area.left) / 2.0f);
+	}
+
+	if (IsSelected())
+	{
+		ImGui::GetWindowDrawList()->AddTriangleFilled(P1, P2, P3, SelectedColor);
+	}
+	else
+	{
+		ImGui::GetWindowDrawList()->AddTriangleFilled(P1, P2, P3, Color);
+	}
+}
+
+float FEArrowScroller::GetLastFrameDelta() const
+{
+	return LastFrameDelta;
+}
+
+float FEArrowScroller::GetSize() const
+{
+	return Size;
+}
+
+void FEArrowScroller::SetSize(const float NewValue)
+{
+	if (NewValue > 1.0f)
+		Size = NewValue;
+}
+
+ImColor FEArrowScroller::GetColor() const
+{
+	return Color;
+}
+
+void FEArrowScroller::SetColor(const ImColor NewValue)
+{
+	Color = NewValue;
+}
+
+ImColor FEArrowScroller::GetSelectedColor() const
+{
+	return SelectedColor;
+}
+
+void FEArrowScroller::SetSelectedColor(const ImColor NewValue)
+{
+	SelectedColor = NewValue;
+}
+
+void FEArrowScroller::SetAvailableRange(const ImVec2 NewValue)
+{
+	AvailableRange = NewValue;
+}
+
+void FEArrowScroller::LiftRangeRestrictions()
+{
+	AvailableRange = ImVec2(-FLT_MAX, FLT_MAX);
+}
+
+void FEArrowScroller::SetOrientation(const bool IsHorisontal)
+{
+	bHorizontal = IsHorisontal;
 }
