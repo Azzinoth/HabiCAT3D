@@ -8,6 +8,7 @@ namespace FocalEngine
 	{
 		bool bHorizontal;
 
+		ImVec2 StartPosition;
 		ImVec2 Position;
 		bool bSelected;
 		bool bMouseHover;
@@ -26,11 +27,16 @@ namespace FocalEngine
 		float LastFrameDelta;
 
 		ImVec2 AvailableRange;
-	public:
-		FEArrowScroller(bool Horizontal = true);
+		float RangePosition = 0.0f;
 
 		ImVec2 GetPosition() const;
 		void SetPosition(ImVec2 NewPosition);
+	public:
+		FEArrowScroller(bool Horizontal = true);
+
+		/**/
+		ImVec2 GetStartPosition() const;
+		void SetStartPosition(ImVec2 NewValue);
 
 		float GetSize() const;
 		void SetSize(float NewValue);
@@ -52,6 +58,35 @@ namespace FocalEngine
 		void LiftRangeRestrictions();
 
 		void SetOrientation(bool IsHorisontal);
+
+		float GetRangePosition();
+		void SetRangePosition(float NewValue);
+	};
+
+	class FEColorRangeAdjuster
+	{
+		ImVec2 Position;
+		FEArrowScroller Ceiling;
+
+		ImVec2 RangeSize;
+		ImVec2 RangePosition;
+
+		std::function<ImColor(float)> ColorRangeFunction;
+
+		float CeilingValue = 1.0f;
+	public:
+		FEColorRangeAdjuster();
+
+		ImVec2 GetPosition() const;
+		void SetPosition(ImVec2 NewPosition);
+
+		std::function<ImColor(float)> GetColorRangeFunction();
+		void SetColorRangeFunction(std::function<ImColor(float)> UserFunc);
+
+		float GetCeilingValue();
+		void SetCeilingValue(float NewValue);
+
+		void Render();
 	};
 
 	class UIManager
@@ -103,7 +138,7 @@ namespace FocalEngine
 		float AreaToMeasureRugosity = 1.0f;
 		int RugositySelectionMode = 0;
 
-		FEArrowScroller ScrollerTest;
+		FEColorRangeAdjuster RugosityColorRange;
 
 		void RenderLegend();
 	};
