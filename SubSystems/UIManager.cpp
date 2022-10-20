@@ -4,6 +4,12 @@ UIManager* UIManager::Instance = nullptr;
 UIManager::UIManager()
 {
 	RugosityColorRange.SetPosition(ImVec2(0, 20));
+
+	RugosityColorRange.RangeValueLabels[0.0] = "0.0";
+	RugosityColorRange.RangeValueLabels[0.25] = "0.25";
+	RugosityColorRange.RangeValueLabels[0.5] = "0.5";
+	RugosityColorRange.RangeValueLabels[0.75] = "0.75";
+	RugosityColorRange.RangeValueLabels[1.0] = "1.0";
 }
 
 UIManager::~UIManager() {}
@@ -107,7 +113,6 @@ void UIManager::showCameraTransform()
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(40);
-	//ImGui::push
 	if (ImGui::Button("Copy##Position"))
 	{
 		APPLICATION.SetClipboardText(CameraPositionToStr());
@@ -193,6 +198,32 @@ bool UIManager::GetDeveloperMode()
 void UIManager::SetDeveloperMode(bool NewValue)
 {
 	DeveloperMode = NewValue;
+}
+
+void UIManager::ShowRugosityRangeSettings()
+{
+	static float LastMax = FLT_MAX;
+
+	if (LastMax != currentMesh->maxRugorsity)
+	{
+		LastMax = currentMesh->maxRugorsity;
+		RugosityColorRange.SetCeilingValue(3.0f / (currentMesh->maxRugorsity - currentMesh->minRugorsity));
+	}
+
+	if (currentMesh == nullptr)
+		return;
+
+	RugosityColorRange.RangeValueLabels.clear();
+	RugosityColorRange.RangeValueLabels[1.0f] = "max: " + std::to_string(currentMesh->maxRugorsity);
+
+	RugosityColorRange.RangeValueLabels[RugosityColorRange.GetCeilingValue()] = "current: " + std::to_string(currentMesh->maxRugorsity * RugosityColorRange.GetCeilingValue());
+
+	float MiddleOfUsedRange = RugosityColorRange.GetCeilingValue() / 2.0f;
+	RugosityColorRange.RangeValueLabels[MiddleOfUsedRange] = "middle: " + std::to_string(currentMesh->maxRugorsity * MiddleOfUsedRange);
+
+	RugosityColorRange.RangeValueLabels[0.0f] = "min: " + std::to_string(currentMesh->minRugorsity);
+
+	currentMesh->maxVisibleRugorsity = currentMesh->minRugorsity + RugosityColorRange.GetCeilingValue() * currentMesh->maxRugorsity;
 }
 
 void UIManager::RenderMainWindow(FEMesh* currentMesh)
@@ -395,15 +426,7 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 					ImGui::EndCombo();
 				}
 
-				float maxRugorsity = currentMesh->maxRugorsity;
-				ImGui::Text("Max rugorsity for color scaling: ");
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(128);
-				ImGui::DragFloat("##MaxRugorsity", &maxRugorsity, 0.01f);
-				if (maxRugorsity < currentMesh->minRugorsity)
-					maxRugorsity = currentMesh->minRugorsity + 0.1f;
-				currentMesh->maxRugorsity = maxRugorsity;
-
+				ShowRugosityRangeSettings();
 				ImGui::Separator();
 
 				float TotalTime = 0.0f;
@@ -591,14 +614,7 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 
 			if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
 			{
-				float maxRugorsity = currentMesh->maxRugorsity;
-				ImGui::Text("Heat map sensitivity: ");
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(128);
-				ImGui::DragFloat("##MaxRugorsity", &maxRugorsity, 0.01f);
-				if (maxRugorsity < currentMesh->minRugorsity)
-					maxRugorsity = currentMesh->minRugorsity + 0.1f;
-				currentMesh->maxRugorsity = maxRugorsity;
+				ShowRugosityRangeSettings();
 
 				if (ImGui::Checkbox("Show Rugosity", &currentMesh->showRugosity))
 				{
@@ -936,10 +952,10 @@ void UIManager::RenderLegend()
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-	ImGui::SetNextWindowSize(ImVec2(100, 400));
+	ImGui::SetNextWindowSize(ImVec2(150, 350));
 	ImGui::Begin("##RugosityLegend", nullptr, /*ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_NoMove |*/
+		ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_NoCollapse |
 		ImGuiWindowFlags_NoScrollbar);
 
@@ -969,7 +985,7 @@ FEArrowScroller::FEArrowScroller(const bool Horizontal)
 	Color = ImColor(10, 10, 40, 255);
 	SelectedColor = ImColor(115, 115, 255, 255);
 
-	AvailableRange = ImVec2(-FLT_MAX, FLT_MAX);
+	AvailableRange = FLT_MAX;
 }
 
 ImVec2 FEArrowScroller::GetPosition() const
@@ -983,17 +999,17 @@ void FEArrowScroller::SetPosition(const ImVec2 NewPosition)
 
 	if (bHorizontal)
 	{
-		Area.left = static_cast<LONG>(Position.x - Size / 2.0f);
-		Area.right = static_cast<LONG>(Position.x + Size / 2.0f);
-		Area.top = static_cast<LONG>(Position.y - Size);
-		Area.bottom = static_cast<LONG>(Position.y);
+		Area.left = static_cast<LONG>(GetStartPosition().x + Position.x - Size / 2.0f);
+		Area.right = static_cast<LONG>(GetStartPosition().x + Position.x + Size / 2.0f);
+		Area.top = static_cast<LONG>(GetStartPosition().y + Position.y - Size);
+		Area.bottom = static_cast<LONG>(GetStartPosition().y + Position.y);
 	}
 	else
 	{
-		Area.left = static_cast<LONG>(Position.x - Size);
-		Area.right = static_cast<LONG>(Position.x);
-		Area.top = static_cast<LONG>(Position.y - Size / 2.0f);
-		Area.bottom = static_cast<LONG>(Position.y + Size / 2.0f);
+		Area.left = static_cast<LONG>(GetStartPosition().x + Position.x - Size);
+		Area.right = static_cast<LONG>(GetStartPosition().x + Position.x);
+		Area.top = static_cast<LONG>(GetStartPosition().y + Position.y - Size / 2.0f);
+		Area.bottom = static_cast<LONG>(GetStartPosition().y + Position.y + Size / 2.0f);
 	}
 }
 
@@ -1055,34 +1071,28 @@ void FEArrowScroller::Render()
 	{
 		LastFrameDelta = bHorizontal ? MouseXWindows - LastFrameMouseX : MouseYWindows - LastFrameMouseY;
 
-		if (LastFrameDelta > 0.0)
-		{
-			int y = 0;
-			y++;
-		}
-
 		if (bHorizontal)
 		{
-			if (GetPosition().x + LastFrameDelta <= AvailableRange.y && GetPosition().x + LastFrameDelta >= AvailableRange.x)
+			if (GetPosition().x + LastFrameDelta <= AvailableRange && GetPosition().x + LastFrameDelta >= 0.0f)
 			{
-				SetPosition(GetStartPosition() + ImVec2(GetPosition().x + LastFrameDelta, GetPosition().y));
+				SetPosition(ImVec2(GetPosition().x + LastFrameDelta, GetPosition().y));
 			}
 
-			SetRangePosition(GetPosition().x - AvailableRange.x / (AvailableRange.x + AvailableRange.y));
+			SetRangePosition(GetPosition().x / AvailableRange);
 		}
 		else
 		{
-			if (GetPosition().y + LastFrameDelta <= AvailableRange.y && GetPosition().y + LastFrameDelta >= AvailableRange.x)
+			if (GetPosition().y + LastFrameDelta <= AvailableRange && GetPosition().y + LastFrameDelta >= 0.0f)
 			{
-				SetPosition(GetStartPosition() + ImVec2(GetPosition().x, GetPosition().y + LastFrameDelta));
+				SetPosition(ImVec2(GetPosition().x, GetPosition().y + LastFrameDelta));
 			}
 
-			SetRangePosition((GetPosition().y - AvailableRange.x) / (AvailableRange.x + AvailableRange.y));
+			SetRangePosition((GetPosition().y) / AvailableRange);
 		}
 	}
 	else
 	{
-		SetPosition(GetStartPosition() + ImVec2(GetPosition().x, GetPosition().y));
+		SetPosition(ImVec2(GetPosition().x, GetPosition().y));
 	}
 	
 	LastFrameMouseX = MouseXWindows;
@@ -1157,14 +1167,14 @@ void FEArrowScroller::SetSelectedColor(const ImColor NewValue)
 	SelectedColor = NewValue;
 }
 
-void FEArrowScroller::SetAvailableRange(const ImVec2 NewValue)
+void FEArrowScroller::SetAvailableRange(const float NewValue)
 {
 	AvailableRange = NewValue;
 }
 
 void FEArrowScroller::LiftRangeRestrictions()
 {
-	AvailableRange = ImVec2(-FLT_MAX, FLT_MAX);
+	AvailableRange = FLT_MAX;
 }
 
 void FEArrowScroller::SetOrientation(const bool IsHorisontal)
@@ -1191,12 +1201,13 @@ void FEArrowScroller::SetRangePosition(float NewValue)
 FEColorRangeAdjuster::FEColorRangeAdjuster()
 {
 	RangeSize = ImVec2(20, 300);
-	RangePosition = ImVec2(15, 15);
+	RangePosition = ImVec2(17, 15);
 
 	Ceiling.SetOrientation(false);
 
-	Ceiling.SetAvailableRange(ImVec2(5, 100));
-	Ceiling.SetStartPosition(ImVec2(10.0f, 10.0f));
+	Ceiling.SetSize(13.0f);
+	Ceiling.SetAvailableRange(RangeSize.y - 1);
+	Ceiling.SetStartPosition(ImVec2(15.0f, 32.0f));
 	Ceiling.SetColor(ImColor(255, 155, 155, 255));
 }
 
@@ -1222,7 +1233,7 @@ void FEColorRangeAdjuster::SetColorRangeFunction(std::function<ImColor(float)> U
 
 float FEColorRangeAdjuster::GetCeilingValue()
 {
-	return CeilingValue;
+	return 1.0f - Ceiling.GetRangePosition();
 }
 
 void FEColorRangeAdjuster::SetCeilingValue(float NewValue)
@@ -1233,7 +1244,9 @@ void FEColorRangeAdjuster::SetCeilingValue(float NewValue)
 	if (NewValue > 1.0f)
 		NewValue = 1.0f;
 
-	CeilingValue = NewValue;
+	Ceiling.SetRangePosition(1.0f - NewValue);
+
+	//SetPosition(ImVec2(GetPosition().x + LastFrameDelta, GetPosition().y));
 }
 
 void FEColorRangeAdjuster::Render()
@@ -1241,33 +1254,51 @@ void FEColorRangeAdjuster::Render()
 	int WindowX = ImGui::GetCurrentWindow()->Pos.x;
 	int WindowY = ImGui::GetCurrentWindow()->Pos.y;
 
-	ImColor CurrentColor = ImColor(255, 0, 255, 255);
+	ImColor CurrentColor = ImColor(155, 155, 155, 255);
 
-	for (size_t i = 0; i < RangeSize.y; i++)
+	// Take max color from range and desaturate it.
+	if (ColorRangeFunction != nullptr)
 	{
-		float factor = i / float(RangeSize.y);
-		//int index = int(255 * factor);
+		CurrentColor = ColorRangeFunction(1.0f);
+		CurrentColor = ImColor(CurrentColor.Value.x * 0.5f + 0.15f, CurrentColor.Value.y * 0.5f + 0.15f, CurrentColor.Value.z * 0.5f + 0.15f);
+	}
 
-		/*ImColor SomeColor = ImColor(int(turbo_srgb_floats[index][0] * 255),
-			int(turbo_srgb_floats[index][1] * 255),
-			int(turbo_srgb_floats[index][2] * 255), 255);*/
+	float LastY = FLT_MAX;
+	auto BeginIt = RangeValueLabels.begin();
+	while(BeginIt != RangeValueLabels.end())
+	{
+		ImGui::SetCursorPosX(Ceiling.GetSize() + RangeSize.x + 10);
+		float CurrentY = GetPosition().y + 5 + (1.0f - BeginIt->first) * RangeSize.y;
+		//if (abs(LastY - CurrentY) < 10)
+		//{
+		//	CurrentY -= 10;
+		//}
+		ImGui::SetCursorPosY(CurrentY);
+		ImGui::Text(BeginIt->second.c_str());
+
+		BeginIt++;
+	}
+
+	int GreyPixelStart = 0;
+	int GreyPixelEnd = RangeSize.y * Ceiling.GetRangePosition();
+
+
+	ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY) + RangePosition,
+											  ImVec2(WindowX + RangeSize.x, WindowY + GreyPixelEnd + 1) + RangePosition,
+											  CurrentColor);
+
+	for (size_t i = 0; i < RangeSize.y - GreyPixelEnd; i++)
+	{
+		float factor = i / float(RangeSize.y - GreyPixelEnd);
 
 		if (ColorRangeFunction != nullptr)
 			CurrentColor = ColorRangeFunction(factor);
 
 		ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY + RangeSize.y - i + 1) + RangePosition,
-			ImVec2(WindowX + RangeSize.x, WindowY + RangeSize.y - i) + RangePosition,
-			CurrentColor);
+												  ImVec2(WindowX + RangeSize.x, WindowY + RangeSize.y - i) + RangePosition,
+												  CurrentColor);
 	}
 
-	//ScrollerTest.SetPosition(ImVec2(float(ScrollerTest.Area.right), float(ScrollerTest.Area.top)));
-	//ScrollerTest.
-	//ScrollerTest.SetPosition(ImVec2(10.0f, 10.0f));
-
 	RangePosition.y = Position.y + 10;
-
-	//Ceiling.SetPosition(ImVec2(Ceiling.GetPosition().x, RangePosition.y - 1 + GetCeilingValue() * RangeSize.y));
-	//RangePosition.y = Ceiling.GetPosition().y - 1;
-
 	Ceiling.Render();
 }

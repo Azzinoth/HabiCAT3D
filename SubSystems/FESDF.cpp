@@ -635,24 +635,12 @@ void SDF::fillMeshWithRugosityData()
 			minRugorsity = TrianglesRugosity[i];
 	}
 
-	maxRugorsity = 3.0f;
+	//maxRugorsity = 3.0f;
 	//maxRugorsity = mean;
 
 	mesh->minRugorsity = minRugorsity;
 	mesh->maxRugorsity = maxRugorsity;
-
-
-
-
-
-
-
-
-
-
-
-
-
+	mesh->maxVisibleRugorsity = maxRugorsity;
 
 	
 
