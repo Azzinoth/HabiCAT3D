@@ -68,6 +68,7 @@ namespace FocalEngine
 
 		double minRugorsity = DBL_MAX;
 		double maxRugorsity = -DBL_MAX;
+		double minVisibleRugorsity = DBL_MAX;
 		double maxVisibleRugorsity = -DBL_MAX;
 		bool showRugosity = false;
 

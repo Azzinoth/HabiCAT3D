@@ -640,6 +640,7 @@ void SDF::fillMeshWithRugosityData()
 
 	mesh->minRugorsity = minRugorsity;
 	mesh->maxRugorsity = maxRugorsity;
+	mesh->minVisibleRugorsity = 1.0;
 	mesh->maxVisibleRugorsity = maxRugorsity;
 
 	

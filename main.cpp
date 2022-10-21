@@ -592,7 +592,7 @@ void renderFEMesh(FEMesh* mesh)
 			meshShader->getParameter("colorMode")->updateData(1);
 	}
 
-	meshShader->getParameter("minRugorsity")->updateData(float(mesh->minRugorsity));
+	meshShader->getParameter("minRugorsity")->updateData(float(mesh->minVisibleRugorsity));
 	meshShader->getParameter("maxRugorsity")->updateData(float(mesh->maxVisibleRugorsity));
 
 	if (mesh->TriangleSelected.size() > 1 && UI.GetRugositySelectionMode() == 2)

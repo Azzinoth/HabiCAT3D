@@ -28,9 +28,7 @@ namespace FocalEngine
 
 		float AvailableRange;
 		float RangePosition = 0.0f;
-
-		ImVec2 GetPosition() const;
-		void SetPosition(ImVec2 NewPosition);
+		float RangeBottomLimit = 1.0f;
 	public:
 		FEArrowScroller(bool Horizontal = true);
 
@@ -53,6 +51,7 @@ namespace FocalEngine
 
 		void Render();
 
+		float GetAvailableRange();
 		void SetAvailableRange(float NewValue);
 		void LiftRangeRestrictions();
 
@@ -60,6 +59,12 @@ namespace FocalEngine
 
 		float GetRangePosition();
 		void SetRangePosition(float NewValue);
+
+		float GetRangeBottomLimit();
+		void SetRangeBottomLimit(float NewValue);
+
+		ImVec2 GetPixelPosition() const;
+		void SetPixelPosition(ImVec2 NewPosition);
 	};
 
 	class FEColorRangeAdjuster
@@ -71,10 +76,6 @@ namespace FocalEngine
 		ImVec2 RangePosition;
 
 		std::function<ImColor(float)> ColorRangeFunction;
-
-		//float CeilingValue = 1.0f;
-
-		
 	public:
 		FEColorRangeAdjuster();
 
@@ -86,6 +87,9 @@ namespace FocalEngine
 
 		float GetCeilingValue();
 		void SetCeilingValue(float NewValue);
+
+		float GetRangeBottomLimit();
+		void SetRangeBottomLimit(float NewValue);
 
 		void Render();
 
