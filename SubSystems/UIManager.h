@@ -129,7 +129,7 @@ namespace FocalEngine
 		int GetRugositySelectionMode();
 		void SetRugositySelectionMode(int NewValue);
 
-		
+		FEMesh* TestMesh = nullptr;
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 

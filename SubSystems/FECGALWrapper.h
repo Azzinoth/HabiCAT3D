@@ -59,8 +59,6 @@ namespace FocalEngine
 		void saveSurfaceMeshToOBJFile(std::string fileName, Surface_mesh mesh);
 		FEMesh* SurfaceMeshSimplification(FEMesh* originalMesh, double verticesLeftInPersent);
 		FEMesh* SurfaceMeshApproximation(FEMesh* originalMesh, int segmentsMax);
-	private:
-		SINGLETON_PRIVATE_PART(FECGALWrapper)
 
 		FEMesh* rawDataToMesh(float* positions, int posSize,
 							  float* colors, int colorSize,
@@ -79,6 +77,10 @@ namespace FocalEngine
 							  int* indices, int indexSize,
 							  float* matIndexs, int matIndexsSize, int matCount,
 							  std::string Name);
+	private:
+		SINGLETON_PRIVATE_PART(FECGALWrapper)
+
+		
 
 		void addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrianglesToSegments, std::vector<glm::vec3> segmentsNormals);
 		std::vector<float> calculateNormals(Surface_mesh mesh);

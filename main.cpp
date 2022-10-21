@@ -763,6 +763,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 			renderFEMesh(currentMesh);
 
+			if (UI.TestMesh)
+				renderFEMesh(UI.TestMesh);
+
 			/*FETransformComponent* newPosition = new FETransformComponent();
 			newPosition->setPosition(glm::vec3(0.0, 0.0, 5.0));
 			testShader->getParameter("FEWorldMatrix")->updateData(newPosition->getTransformMatrix());
