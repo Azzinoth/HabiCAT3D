@@ -13,6 +13,8 @@
 #include "CGAL/Polygon_mesh_processing/polygon_mesh_to_polygon_soup.h"
 #include "CGAL/Polygon_mesh_processing/repair_polygon_soup.h"
 
+#include "CGAL/Shape_detection/Region_growing/Region_growing_on_polygon_mesh/Least_squares_plane_fit_region.h"
+
 typedef CGAL::Simple_cartesian<double>  Kernel;
 typedef Kernel::Point_3                 Point_3;
 typedef CGAL::Surface_mesh<Point_3>		Surface_mesh;

@@ -63,11 +63,17 @@ namespace FocalEngine
 
 		bool GetUseFindSmallestRugosity();
 		void SetUseFindSmallestRugosity(bool NewValue);
+
+		bool GetUseCGALVariant();
+		void SetUseCGALVariant(bool NewValue);
+
+		glm::vec2 RugosityAreaDistribution(float RugosityValue);
 	private:
 		SINGLETON_PRIVATE_PART(RugosityManager)
 
 		int RugosityLayerIndex = 0;
 		bool bUseFindSmallestRugosity = false;
+		bool bUseCGALVariant = false;
 	};
 
 	#define RUGOSITY_MANAGER RugosityManager::getInstance()

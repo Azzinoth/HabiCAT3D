@@ -253,6 +253,219 @@ void UIManager::ShowRugosityRangeSettings()
 	currentMesh->maxVisibleRugorsity = RugosityColorRange.GetCeilingValue() * currentMesh->maxRugorsity;
 }
 
+//void UIManager::TestCGALVariant()
+//{
+//	// GDAL Least_squares_plane_fit
+//	SDFInitData* InputData = new SDFInitData();
+//	InputData->dimentions = RUGOSITY_MANAGER.SDFDimention;
+//	InputData->mesh = currentMesh;
+//	InputData->UseJitterExpandedAABB = false;
+//
+//	InputData->shiftX = RUGOSITY_MANAGER.shiftX;
+//	InputData->shiftY = RUGOSITY_MANAGER.shiftY;
+//	InputData->shiftZ = RUGOSITY_MANAGER.shiftZ;
+//	InputData->GridScale = RUGOSITY_MANAGER.GridScale;
+//
+//	RUGOSITY_MANAGER.currentSDF = new SDF();
+//	RUGOSITY_MANAGER.currentSDF->bFindSmallestRugosity = false;
+//
+//	if (currentMesh->Triangles.empty())
+//		currentMesh->fillTrianglesData();
+//
+//	RUGOSITY_MANAGER.calculateSDFAsync(InputData, RUGOSITY_MANAGER.currentSDF);
+//
+//	// Extracting data from FEMesh.
+//	//std::vector<float> FEVertices;
+//	//FEVertices.resize(currentMesh->getPositionsCount());
+//	//FE_GL_ERROR(glGetNamedBufferSubData(currentMesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
+//
+//	//std::vector<int> FEIndices;
+//	//FEIndices.resize(currentMesh->getIndicesCount());
+//	//FE_GL_ERROR(glGetNamedBufferSubData(currentMesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
+//
+//
+//
+//
+//	for (size_t i = 0; i < RUGOSITY_MANAGER.currentSDF->data.size(); i++)
+//	{
+//		for (size_t j = 0; j < RUGOSITY_MANAGER.currentSDF->data[i].size(); j++)
+//		{
+//			for (size_t k = 0; k < RUGOSITY_MANAGER.currentSDF->data[i][j].size(); k++)
+//			{
+//				//calculateCellRugosity(&data[i][j][k]);
+//
+//				SDFNode* Node = &RUGOSITY_MANAGER.currentSDF->data[i][j][k];
+//
+//				if (Node->trianglesInCell.size() == 0)
+//					continue;
+//				//if (Node->trianglesInCell.size() < 100)
+//				//	continue;
+//
+//				std::vector<float> FEVerticesFinal;
+//				std::vector<int> FEIndicesFinal;
+//
+//				for (size_t l = 0; l < Node->trianglesInCell.size(); l++)
+//				{
+//					int TriangleIndex = Node->trianglesInCell[l];
+//
+//					auto test = currentMesh->Triangles[TriangleIndex];
+//
+//					FEVerticesFinal.push_back(currentMesh->Triangles[TriangleIndex][0][0]);
+//					FEVerticesFinal.push_back(currentMesh->Triangles[TriangleIndex][0][1]);
+//					FEVerticesFinal.push_back(currentMesh->Triangles[TriangleIndex][0][2]);
+//					FEIndicesFinal.push_back(l * 3);
+//
+//					FEVerticesFinal.push_back(currentMesh->Triangles[TriangleIndex][1][0]);
+//					FEVerticesFinal.push_back(currentMesh->Triangles[TriangleIndex][1][1]);
+//					FEVerticesFinal.push_back(currentMesh->Triangles[TriangleIndex][1][2]);
+//					FEIndicesFinal.push_back(l * 3 + 1);
+//
+//					FEVerticesFinal.push_back(currentMesh->Triangles[TriangleIndex][2][0]);
+//					FEVerticesFinal.push_back(currentMesh->Triangles[TriangleIndex][2][1]);
+//					FEVerticesFinal.push_back(currentMesh->Triangles[TriangleIndex][2][2]);
+//					FEIndicesFinal.push_back(l * 3 + 2);
+//
+//
+//
+//					//int FirstIndex = FEIndices[TriangleIndex /** 3*/];
+//					//FEIndicesFinal.push_back(FirstIndex);
+//					//FEVerticesFinal.push_back(FEVertices[TriangleIndex]);
+//					//FEVerticesFinal.push_back(FEVertices[TriangleIndex + 1] /*+ 5.0f*/);
+//					//FEVerticesFinal.push_back(FEVertices[TriangleIndex + 2]);
+//
+//					//int SecondIndex = FEIndices[TriangleIndex * 3 + 1];
+//					//FEIndicesFinal.push_back(SecondIndex);
+//					//FEVerticesFinal.push_back(FEVertices[SecondIndex]);
+//					//FEVerticesFinal.push_back(FEVertices[SecondIndex + 1] + 5.0f);
+//					//FEVerticesFinal.push_back(FEVertices[SecondIndex + 2]);
+//
+//					//int ThirdIndex = FEIndices[TriangleIndex * 3 + 2];
+//					//FEIndicesFinal.push_back(ThirdIndex);
+//					//FEVerticesFinal.push_back(FEVertices[ThirdIndex]);
+//					//FEVerticesFinal.push_back(FEVertices[ThirdIndex + 1] + 5.0f);
+//					//FEVerticesFinal.push_back(FEVertices[ThirdIndex + 2]);
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//					//FEIndicesFinal.push_back(TriangleIndex);
+//
+//					//FEVerticesFinal.push_back(FEVertices[CurrentIndex * 3]);
+//					//FEVerticesFinal.push_back(FEVertices[CurrentIndex * 3 + 1]);
+//					//FEVerticesFinal.push_back(FEVertices[CurrentIndex * 3 + 2]);
+//
+//					//FEIndicesFinal.push_back(CurrentIndex);
+//				}
+//
+//				if (TestMesh == nullptr)
+//				{
+//					RUGOSITY_MANAGER.currentSDF->selectedCell = glm::vec3(i, j, k);
+//
+//					FEMesh* TestMesh = CGALWrapper.rawDataToMesh(FEVerticesFinal.data(), FEVerticesFinal.size(),
+//						nullptr, 0,
+//						nullptr, 0,
+//						nullptr, 0,
+//						nullptr, 0,
+//						FEIndicesFinal.data(), FEIndicesFinal.size(),
+//						nullptr, 0, 0,
+//						"");
+//
+//
+//
+//					// Formating data to CGAL format.
+//					std::vector<Polygon_3> CGALFaces;
+//					CGALFaces.resize(FEIndicesFinal.size() / 3);
+//					int count = 0;
+//					for (size_t i = 0; i < FEIndicesFinal.size(); i += 3)
+//					{
+//						CGALFaces[count].push_back(FEIndicesFinal[i]);
+//						CGALFaces[count].push_back(FEIndicesFinal[i + 1]);
+//						CGALFaces[count].push_back(FEIndicesFinal[i + 2]);
+//						count++;
+//					}
+//
+//					std::vector<Point_3> CGALPoints;
+//					for (size_t i = 0; i < FEVerticesFinal.size(); i += 3)
+//					{
+//						CGALPoints.push_back(Point_3(FEVerticesFinal[i], FEVerticesFinal[i + 1], FEVerticesFinal[i + 2]));
+//					}
+//
+//					Surface_mesh result;
+//
+//					if (!PMP::is_polygon_soup_a_polygon_mesh(CGALFaces))
+//					{
+//						PMP::repair_polygon_soup(CGALPoints, CGALFaces);
+//						PMP::orient_polygon_soup(CGALPoints, CGALFaces);
+//					}
+//
+//					PMP::polygon_soup_to_polygon_mesh(CGALPoints, CGALFaces, result);
+//
+//					int y = 0;
+//					y++;
+//
+//					/*using Region_type = CGAL::Shape_detection::Polygon_mesh::Least_squares_plane_fit_region<Kernel, Surface_mesh, Surface_mesh::Face_range>;
+//					Region_type test(result, 1.0, 5.0, 3, result.points());
+//					auto region = result.faces();
+//
+//					faces(result);
+//
+//					std::vector<size_t> Region;
+//					for (size_t i = 0; i < region.size(); i++)
+//					{
+//						Region.push_back(i);
+//					}
+//
+//					test.update(Region);
+//					auto Vector = test.get_Plane();*/
+// 
+//					// Need to add in file:
+//					ThirdParty/CGAL/Shape_detection/Region_growing/Region_growing_on_polygon_mesh/Least_squares_plane_fit_region.h
+//					// in line: 238
+//					inline Vector_3 get_Plane() const {
+//						return m_normal_of_best_fit;
+//					}
+// 
+// 
+// 
+//
+//
+//
+//					Kernel::FT quality;
+//					Kernel::Plane_3 plane;
+//					Kernel::Point_3 centroid;
+//
+//					quality = linear_least_squares_fitting_3(result.points().begin(), result.points().end(), plane, centroid, CGAL::Dimension_tag<0>());
+//
+//
+//
+//					auto normal = plane.perpendicular_line(centroid);
+//
+//					glm::vec3 Normal = glm::vec3(normal.direction().vector().x(),
+//						normal.direction().vector().y(),
+//						normal.direction().vector().z());
+//
+//					Normal = glm::normalize(Normal);
+//
+//					//RUGOSITY_MANAGER.currentSDF->bFindSmallestRugosity = true;
+//					//RUGOSITY_MANAGER.currentSDF->calculateCellRugosity(Node);
+//
+//					int u = 0;
+//					u++;
+//
+//					//Region_type.update();
+//				}
+//			}
+//		}
+//	}
+//}
+
 void UIManager::RenderMainWindow(FEMesh* currentMesh)
 {
 	ImGui::Checkbox("Developer UI", &DeveloperMode);
@@ -263,6 +476,13 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 	if (ImGui::Checkbox("New algorithm", &TempBool))
 	{
 		RUGOSITY_MANAGER.SetUseFindSmallestRugosity(TempBool);
+	}
+
+	TempBool = RUGOSITY_MANAGER.GetUseCGALVariant();
+	ImGui::SameLine();
+	if (ImGui::Checkbox("CGAL Variant", &TempBool))
+	{
+		RUGOSITY_MANAGER.SetUseCGALVariant(TempBool);
 	}
 
 	if (currentMesh != nullptr)
@@ -362,155 +582,7 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 					currentMesh->rugosityData.clear();
 
 					RUGOSITY_MANAGER.bLastJitter = true;
-					//RUGOSITY_MANAGER.RunCreationOfSDFAsync(currentMesh);
-
-					// GDAL Least_squares_plane_fit
-					SDFInitData* InputData = new SDFInitData();
-					InputData->dimentions = RUGOSITY_MANAGER.SDFDimention;
-					InputData->mesh = currentMesh;
-					InputData->UseJitterExpandedAABB = false;
-
-					InputData->shiftX = RUGOSITY_MANAGER.shiftX;
-					InputData->shiftY = RUGOSITY_MANAGER.shiftY;
-					InputData->shiftZ = RUGOSITY_MANAGER.shiftZ;
-					InputData->GridScale = RUGOSITY_MANAGER.GridScale;
-
-					RUGOSITY_MANAGER.currentSDF = new SDF();
-					RUGOSITY_MANAGER.currentSDF->bFindSmallestRugosity = false;
-
-					if (currentMesh->Triangles.empty())
-						currentMesh->fillTrianglesData();
-
-					RUGOSITY_MANAGER.calculateSDFAsync(InputData, RUGOSITY_MANAGER.currentSDF);
-
-					// Extracting data from FEMesh.
-					std::vector<float> FEVertices;
-					FEVertices.resize(currentMesh->getPositionsCount());
-					FE_GL_ERROR(glGetNamedBufferSubData(currentMesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
-
-					std::vector<int> FEIndices;
-					FEIndices.resize(currentMesh->getIndicesCount());
-					FE_GL_ERROR(glGetNamedBufferSubData(currentMesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
-
-
-					
-
-					for (size_t i = 0; i < RUGOSITY_MANAGER.currentSDF->data.size(); i++)
-					{
-						for (size_t j = 0; j < RUGOSITY_MANAGER.currentSDF->data[i].size(); j++)
-						{
-							for (size_t k = 0; k < RUGOSITY_MANAGER.currentSDF->data[i][j].size(); k++)
-							{
-								//calculateCellRugosity(&data[i][j][k]);
-
-								SDFNode* Node = &RUGOSITY_MANAGER.currentSDF->data[i][j][k];
-								if (Node->trianglesInCell.size() < 100)
-									continue;
-
-								std::vector<float> FEVerticesFinal;
-								std::vector<int> FEIndicesFinal;
-
-								for (size_t l = 0; l < Node->trianglesInCell.size(); l++)
-								{
-									int TriangleIndex = Node->trianglesInCell[l];
-
-									auto test = currentMesh->Triangles[TriangleIndex];
-
-									int FirstIndex = FEIndices[TriangleIndex] * 3;
-									FEIndicesFinal.push_back(FirstIndex);
-									FEVerticesFinal.push_back(FEVertices[FirstIndex]);
-									FEVerticesFinal.push_back(FEVertices[FirstIndex + 1] + 5.0f);
-									FEVerticesFinal.push_back(FEVertices[FirstIndex + 2]);
-
-									int SecondIndex = FEIndices[TriangleIndex + 1] * 3;
-									FEIndicesFinal.push_back(SecondIndex);
-									FEVerticesFinal.push_back(FEVertices[SecondIndex]);
-									FEVerticesFinal.push_back(FEVertices[SecondIndex + 1] + 5.0f);
-									FEVerticesFinal.push_back(FEVertices[SecondIndex + 2]);
-
-									int ThirdIndex = FEIndices[TriangleIndex + 2] * 3;
-									FEIndicesFinal.push_back(ThirdIndex);
-									FEVerticesFinal.push_back(FEVertices[ThirdIndex]);
-									FEVerticesFinal.push_back(FEVertices[ThirdIndex + 1] + 5.0f);
-									FEVerticesFinal.push_back(FEVertices[ThirdIndex + 2]);
-
-	
-									//FEIndicesFinal.push_back(TriangleIndex);
-
-									//FEVerticesFinal.push_back(FEVertices[CurrentIndex * 3]);
-									//FEVerticesFinal.push_back(FEVertices[CurrentIndex * 3 + 1]);
-									//FEVerticesFinal.push_back(FEVertices[CurrentIndex * 3 + 2]);
-
-									//FEIndicesFinal.push_back(CurrentIndex);
-								}
-
-								if (TestMesh == nullptr)
-								{
-									RUGOSITY_MANAGER.currentSDF->selectedCell = glm::vec3(i, j, k);
-
-									TestMesh = CGALWrapper.rawDataToMesh(FEVerticesFinal.data(), FEVerticesFinal.size(),
-										nullptr, 0,
-										nullptr, 0,
-										nullptr, 0,
-										nullptr, 0,
-										FEIndicesFinal.data(), FEIndicesFinal.size(),
-										nullptr, 0, 0,
-										"");
-								}
-								
-								
-
-								//// Formating data to CGAL format.
-								//std::vector<Polygon_3> CGALFaces;
-								//CGALFaces.resize(FEIndices.size() / 3);
-								//int count = 0;
-								//for (size_t i = 0; i < FEIndices.size(); i += 3)
-								//{
-								//	CGALFaces[count].push_back(FEIndices[i]);
-								//	CGALFaces[count].push_back(FEIndices[i + 1]);
-								//	CGALFaces[count].push_back(FEIndices[i + 2]);
-								//	count++;
-								//}
-
-								//std::vector<Point_3> CGALPoints;
-								//for (size_t i = 0; i < FEVertices.size(); i += 3)
-								//{
-								//	CGALPoints.push_back(Point_3(FEVertices[i], FEVertices[i + 1], FEVertices[i + 2]));
-								//}
-
-								//Surface_mesh result;
-
-								//if (!PMP::is_polygon_soup_a_polygon_mesh(CGALFaces))
-								//{
-								//	PMP::repair_polygon_soup(CGALPoints, CGALFaces);
-								//	PMP::orient_polygon_soup(CGALPoints, CGALFaces);
-								//}
-
-								//PMP::polygon_soup_to_polygon_mesh(CGALPoints, CGALFaces, result);
-
-							}
-						}
-					}
-
-
-					
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-					//calculateSDF(currentMesh, SDFDimention);
-					//MoveRugosityInfoToMesh(currentSDF, true);
+					RUGOSITY_MANAGER.RunCreationOfSDFAsync(currentMesh);
 				}
 
 				ImGui::Text(("For current mesh \n Min value : "
@@ -735,6 +807,7 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 			{
 				RUGOSITY_MANAGER.SmoothingFactor = 64;
 				RUGOSITY_MANAGER.calculateRugorsityWithJitterAsyn(currentMesh);
+
 				currentMesh->colorMode = 5;
 				currentMesh->showRugosity = true;
 
@@ -870,6 +943,9 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 
 					ImGui::Text(Text.c_str());
 				}
+
+				ImGui::Text("Rugosity distribution : ");
+				
 			}
 
 			ImGui::SetNextWindowSize(ImVec2(300, 50));

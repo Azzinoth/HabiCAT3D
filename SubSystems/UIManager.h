@@ -149,6 +149,7 @@ namespace FocalEngine
 
 		void RenderLegend();
 		void ShowRugosityRangeSettings();
+		//void TestCGALVariant();
 	};
 
 	#define UI UIManager::getInstance()

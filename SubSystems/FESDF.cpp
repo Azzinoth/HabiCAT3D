@@ -770,6 +770,79 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 		return Result;
 	};
 
+	if (bCGALVariant)
+	{
+		std::vector<float> FEVerticesFinal;
+		std::vector<int> FEIndicesFinal;
+
+		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+		{
+			int TriangleIndex = node->trianglesInCell[l];
+
+			FEVerticesFinal.push_back(mesh->Triangles[TriangleIndex][0][0]);
+			FEVerticesFinal.push_back(mesh->Triangles[TriangleIndex][0][1]);
+			FEVerticesFinal.push_back(mesh->Triangles[TriangleIndex][0][2]);
+			FEIndicesFinal.push_back(l * 3);
+
+			FEVerticesFinal.push_back(mesh->Triangles[TriangleIndex][1][0]);
+			FEVerticesFinal.push_back(mesh->Triangles[TriangleIndex][1][1]);
+			FEVerticesFinal.push_back(mesh->Triangles[TriangleIndex][1][2]);
+			FEIndicesFinal.push_back(l * 3 + 1);
+
+			FEVerticesFinal.push_back(mesh->Triangles[TriangleIndex][2][0]);
+			FEVerticesFinal.push_back(mesh->Triangles[TriangleIndex][2][1]);
+			FEVerticesFinal.push_back(mesh->Triangles[TriangleIndex][2][2]);
+			FEIndicesFinal.push_back(l * 3 + 2);
+		}
+
+		// Formating data to CGAL format.
+		std::vector<Polygon_3> CGALFaces;
+		CGALFaces.resize(FEIndicesFinal.size() / 3);
+		int count = 0;
+		for (size_t i = 0; i < FEIndicesFinal.size(); i += 3)
+		{
+			CGALFaces[count].push_back(FEIndicesFinal[i]);
+			CGALFaces[count].push_back(FEIndicesFinal[i + 1]);
+			CGALFaces[count].push_back(FEIndicesFinal[i + 2]);
+			count++;
+		}
+
+		std::vector<Point_3> CGALPoints;
+		for (size_t i = 0; i < FEVerticesFinal.size(); i += 3)
+		{
+			CGALPoints.push_back(Point_3(FEVerticesFinal[i], FEVerticesFinal[i + 1], FEVerticesFinal[i + 2]));
+		}
+
+		Surface_mesh result;
+
+		if (!PMP::is_polygon_soup_a_polygon_mesh(CGALFaces))
+		{
+			PMP::repair_polygon_soup(CGALPoints, CGALFaces);
+			PMP::orient_polygon_soup(CGALPoints, CGALFaces);
+		}
+
+		PMP::polygon_soup_to_polygon_mesh(CGALPoints, CGALFaces, result);
+
+		Kernel::FT quality;
+		Kernel::Plane_3 plane;
+		Kernel::Point_3 centroid;
+
+		quality = linear_least_squares_fitting_3(result.points().begin(), result.points().end(), plane, centroid, CGAL::Dimension_tag<0>());
+
+
+		auto CGALNormal = plane.perpendicular_line(centroid);
+
+		glm::vec3 Normal = glm::vec3(CGALNormal.direction().vector().x(),
+									 CGALNormal.direction().vector().y(),
+									 CGALNormal.direction().vector().z());
+
+		Normal = glm::normalize(Normal);
+
+		node->rugosity = CalculateCellRugosity(node->CellTrianglesCentroid, Normal);
+
+		return;
+	}
+
 	// ******* Getting average normal *******
 	for (size_t l = 0; l < node->trianglesInCell.size(); l++)
 	{
