@@ -67,13 +67,17 @@ namespace FocalEngine
 		bool GetUseCGALVariant();
 		void SetUseCGALVariant(bool NewValue);
 
-		glm::vec2 RugosityAreaDistribution(float RugosityValue);
+		glm::dvec2 RugosityAreaDistribution(float RugosityValue);
+
+		float GetLastTimeTookForCalculation();
 	private:
 		SINGLETON_PRIVATE_PART(RugosityManager)
 
 		int RugosityLayerIndex = 0;
 		bool bUseFindSmallestRugosity = false;
 		bool bUseCGALVariant = false;
+
+		static float LastTimeTookForCalculation;
 	};
 
 	#define RUGOSITY_MANAGER RugosityManager::getInstance()

@@ -622,29 +622,11 @@ void SDF::fillMeshWithRugosityData()
 	if (numbOfPoints != 0)
 		mean /= numbOfPoints;*/
 
-	double minRugorsity = DBL_MAX;
-	double maxRugorsity = -DBL_MAX;
+
 	for (size_t i = 0; i < TrianglesRugosity.size(); i++)
 	{
 		TrianglesRugosity[i] /= TrianglesRugosityCount[i];
-
-		if (TrianglesRugosity[i] > maxRugorsity)
-			maxRugorsity = TrianglesRugosity[i];
-
-		if (TrianglesRugosity[i] < minRugorsity)
-			minRugorsity = TrianglesRugosity[i];
 	}
-
-	//maxRugorsity = 3.0f;
-	//maxRugorsity = mean;
-
-	mesh->minRugorsity = minRugorsity;
-	mesh->maxRugorsity = maxRugorsity;
-	mesh->minVisibleRugorsity = 1.0;
-	mesh->maxVisibleRugorsity = maxRugorsity;
-
-	
-
 
 	//bool bFirstTime = true;
 
@@ -722,14 +704,10 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 	if (node->trianglesInCell.size() == 0)
 		return;
 
-	std::vector<float> originalAreas;
 	float totalArea = 0.0f;
 	for (size_t l = 0; l < node->trianglesInCell.size(); l++)
 	{
-		std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
-		double originalArea = TriangleArea(currentTriangle[0], currentTriangle[1], currentTriangle[2]);
-		originalAreas.push_back(originalArea);
-		totalArea += originalArea;
+		totalArea += mesh->TrianglesArea[node->trianglesInCell[l]];
 	}
 
 	auto CalculateCellRugosity = [&](glm::vec3 PointOnPlane, glm::vec3 PlaneNormal) {
@@ -746,10 +724,10 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 			glm::vec3 cProjection = ProjectionPlane->ProjectPoint(currentTriangle[2]);
 
 			double projectionArea = TriangleArea(aProjection, bProjection, cProjection);
+			double originalArea = mesh->TrianglesArea[node->trianglesInCell[l]];
+			rugosities.push_back(originalArea / projectionArea);
 
-			rugosities.push_back(originalAreas[l] / projectionArea);
-
-			if (originalAreas[l] == 0.0 || projectionArea == 0.0)
+			if (originalArea == 0.0 || projectionArea == 0.0)
 				rugosities.back() = 1.0f;
 
 			if (rugosities.back() > 100.0f)
@@ -759,7 +737,8 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 		// Weighted by triangle area rugosity.
 		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
 		{
-			float currentTriangleCoef = originalAreas[l] / totalArea;
+			float currentTriangleCoef = mesh->TrianglesArea[node->trianglesInCell[l]] / totalArea;
+
 			Result += rugosities[l] * currentTriangleCoef;
 
 			if (isnan(Result))
@@ -851,7 +830,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 
 		if (bWeightedNormals)
 		{
-			float currentTriangleCoef = originalAreas[l] / totalArea;
+			float currentTriangleCoef = mesh->TrianglesArea[node->trianglesInCell[l]] / totalArea;
 
 			node->averageCellNormal += currentTriangleNormals[0] * currentTriangleCoef;
 			node->averageCellNormal += currentTriangleNormals[1] * currentTriangleCoef;

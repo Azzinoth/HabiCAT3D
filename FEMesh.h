@@ -78,6 +78,8 @@ namespace FocalEngine
 		float LastMeasuredRugosityAreaRadius = -1.0f;
 		glm::vec3 LastMeasuredRugosityAreaCenter = glm::vec3(0.0f);
 		std::vector<std::vector<glm::vec3>> Triangles;
+		std::vector<double> TrianglesArea;
+		float TotalArea = 0.0f;
 		std::vector<std::vector<glm::vec3>> TrianglesNormals;
 		std::vector<glm::vec3> TrianglesCentroids;
 
@@ -100,5 +102,7 @@ namespace FocalEngine
 		glm::vec3 AvarageNormal = glm::vec3();
 		glm::vec3 GetAverageNormal();
 		void UpdateAverageNormal();
+
+		static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
 	};
 }

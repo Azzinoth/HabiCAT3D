@@ -185,6 +185,10 @@ bool FEMesh::intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, 
 void FEMesh::fillTrianglesData()
 {
 	Triangles.clear();
+	TrianglesNormals.clear();
+	TrianglesArea.clear();
+	TrianglesCentroids.clear();
+	TotalArea = 0;
 
 	std::vector<float> FEVertices;
 	FEVertices.resize(getPositionsCount());
@@ -216,6 +220,9 @@ void FEMesh::fillTrianglesData()
 		triangle[2] = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
 
 		Triangles.push_back(triangle);
+		TrianglesArea.push_back(TriangleArea(triangle[0], triangle[1], triangle[2]));
+		TotalArea += TrianglesArea.back();
+
 		TrianglesCentroids.push_back((triangle[0] + triangle[1] + triangle[2]) / 3.0f);
 
 		if (!FENormals.empty())
@@ -415,25 +422,6 @@ void FEMesh::fillRugosityDataToGPU(int RugosityLayerIndex)
 	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
 }
 
-double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC)
-{
-	double x1 = PointA.x;
-	double x2 = PointB.x;
-	double x3 = PointC.x;
-
-	double y1 = PointA.y;
-	double y2 = PointB.y;
-	double y3 = PointC.y;
-
-	double z1 = PointA.z;
-	double z2 = PointB.z;
-	double z3 = PointC.z;
-
-	return 0.5 * sqrt(pow(x2 * y1 - x3 * y1 - x1 * y2 + x3 * y2 + x1 * y3 - x2 * y3, 2.0) +
-		pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
-		pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
-}
-
 void FEMesh::UpdateAverageNormal()
 {
 	if (Triangles.empty())
@@ -479,4 +467,23 @@ void FEMesh::UpdateAverageNormal()
 glm::vec3 FEMesh::GetAverageNormal()
 {
 	return AvarageNormal;
+}
+
+double FEMesh::TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC)
+{
+	double x1 = PointA.x;
+	double x2 = PointB.x;
+	double x3 = PointC.x;
+
+	double y1 = PointA.y;
+	double y2 = PointB.y;
+	double y3 = PointC.y;
+
+	double z1 = PointA.z;
+	double z2 = PointB.z;
+	double z3 = PointC.z;
+
+	return 0.5 * sqrt(pow(x2 * y1 - x3 * y1 - x1 * y2 + x3 * y2 + x1 * y3 - x2 * y3, 2.0) +
+		pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
+		pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
 }

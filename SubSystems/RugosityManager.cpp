@@ -2,6 +2,7 @@
 using namespace FocalEngine;
 
 RugosityManager* RugosityManager::Instance = nullptr;
+float RugosityManager::LastTimeTookForCalculation = 0.0f;
 
 RugosityManager::RugosityManager()
 {
@@ -59,10 +60,24 @@ void RugosityManager::MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter)
 
 	if (bFinalJitter)
 	{
+		double minRugorsity = DBL_MAX;
+		double maxRugorsity = -DBL_MAX;
+
 		for (size_t i = 0; i < SDF->mesh->TrianglesRugosity.size(); i++)
 		{
 			SDF->mesh->TrianglesRugosity[i] /= JitterCounter;
+
+			if (SDF->mesh->TrianglesRugosity[i] > maxRugorsity)
+				maxRugorsity = SDF->mesh->TrianglesRugosity[i];
+
+			if (SDF->mesh->TrianglesRugosity[i] < minRugorsity)
+				minRugorsity = SDF->mesh->TrianglesRugosity[i];
 		}
+
+		SDF->mesh->minRugorsity = minRugorsity;
+		SDF->mesh->maxRugorsity = maxRugorsity;
+		SDF->mesh->minVisibleRugorsity = 1.0;
+		SDF->mesh->maxVisibleRugorsity = maxRugorsity;
 
 		SDF->mesh->fillRugosityDataToGPU(RUGOSITY_MANAGER.RugosityLayerIndex);
 	}
@@ -129,6 +144,10 @@ void RugosityManager::calculateSDFCallback(void* OutputData)
 		delete RUGOSITY_MANAGER.currentSDF;
 		RUGOSITY_MANAGER.currentSDF = nullptr;
 	}
+	else
+	{
+		LastTimeTookForCalculation = TIME.EndTimeStamp("CalculateRugorsityTotal");
+	}
 }
 
 void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
@@ -169,6 +188,8 @@ void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
 
 void RugosityManager::RunCreationOfSDFAsync(FEMesh* mesh, bool bJitter)
 {
+	TIME.BeginTimeStamp("CalculateRugorsityTotal");
+
 	SDFInitData* InputData = new SDFInitData();
 	InputData->dimentions = SDFDimention;
 	InputData->mesh = mesh;
@@ -192,6 +213,8 @@ void RugosityManager::RunCreationOfSDFAsync(FEMesh* mesh, bool bJitter)
 
 void RugosityManager::calculateRugorsityWithJitterAsyn(FEMesh* mesh, int RugosityLayerIndex)
 {
+	TIME.BeginTimeStamp("CalculateRugorsityTotal");
+
 	RUGOSITY_MANAGER.JitterCounter = 0;
 	RUGOSITY_MANAGER.RugosityLayerIndex = RugosityLayerIndex;
 	newSDFSeen = 0;
@@ -290,8 +313,30 @@ void RugosityManager::SetUseCGALVariant(bool NewValue)
 	bUseCGALVariant = NewValue;
 }
 
-glm::vec2 RugosityManager::RugosityAreaDistribution(float RugosityValue)
+glm::dvec2 RugosityManager::RugosityAreaDistribution(float RugosityValue)
 {
-	//if (curr)
-	return glm::vec2();
+	if (RUGOSITY_MANAGER.currentSDF == nullptr || !RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+		return glm::dvec2(0.0);
+
+	float FirstBin = 0.0;
+	float SecondBin = 0.0;
+
+	for (size_t i = 0; i < currentSDF->mesh->Triangles.size(); i++)
+	{
+		if (currentSDF->mesh->TrianglesRugosity[i] <= RugosityValue)
+		{
+			FirstBin += currentSDF->mesh->TrianglesArea[i];
+		}
+		else
+		{
+			SecondBin += currentSDF->mesh->TrianglesArea[i];
+		}
+	}
+
+	return glm::dvec2(FirstBin, SecondBin);
+}
+
+float RugosityManager::GetLastTimeTookForCalculation()
+{
+	return LastTimeTookForCalculation;
 }

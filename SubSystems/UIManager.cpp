@@ -675,7 +675,7 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 
 				float TotalTime = 0.0f;
 
-				std::string debugTimers = "Building of SDF grid : " + std::to_string(RUGOSITY_MANAGER.currentSDF->TimeTookToGenerateInMS) + " ms";
+				/*std::string debugTimers = "Building of SDF grid : " + std::to_string(RUGOSITY_MANAGER.currentSDF->TimeTookToGenerateInMS) + " ms";
 				debugTimers += "\n";
 				TotalTime += RUGOSITY_MANAGER.currentSDF->TimeTookToGenerateInMS;
 
@@ -697,7 +697,10 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 				debugTimers += "TimeTookToJitter : " + std::to_string(TimeTookToJitter) + " ms";
 				debugTimers += "\n";
 
-				ImGui::Text((debugTimers).c_str());
+				ImGui::Text((debugTimers).c_str());*/
+
+				ImGui::Text(("Total time: " + std::to_string(RUGOSITY_MANAGER.GetLastTimeTookForCalculation())).c_str());
+				
 
 				ImGui::Text(("debugTotalTrianglesInCells: " + std::to_string(RUGOSITY_MANAGER.currentSDF->debugTotalTrianglesInCells)).c_str());
 
@@ -945,7 +948,39 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 				}
 
 				ImGui::Text("Rugosity distribution : ");
+				static char CurrentRugosityDistributionEdit[1024];
+				static glm::vec2 CurrentRugosityDistribution = glm::vec2();
+				static float LastRugosityDistributionValue = 0.0f;
+
+				ImGui::SetNextItemWidth(62);
+				if (ImGui::InputText("##RugosityDistributionEdit", CurrentRugosityDistributionEdit, IM_ARRAYSIZE(CurrentRugosityDistributionEdit), ImGuiInputTextFlags_EnterReturnsTrue) ||
+					ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##RugosityDistributionEdit"))
+				{
+					
+				}
+
+				ImGui::SameLine();
+				if (ImGui::Button("Calculate Distribution", ImVec2(167, 19)))
+				{
+					if (currentMesh != nullptr && abs(currentMesh->maxRugorsity) < 100000)
+					{
+						float NewValue = atof(CurrentRugosityDistributionEdit);
+						if (NewValue != 0.0f)
+						{
+							if (NewValue < 1.0f)
+								NewValue = 1.0f;
+
+							LastRugosityDistributionValue = NewValue;
+							CurrentRugosityDistribution = RUGOSITY_MANAGER.RugosityAreaDistribution(NewValue);
+						}
+					}
+				}
 				
+				if (CurrentRugosityDistribution != glm::vec2())
+				{
+					ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastRugosityDistributionValue)) + " rugosity : " + std::to_string(CurrentRugosityDistribution.x / currentMesh->TotalArea * 100.0f ) + " %%").c_str());
+					ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastRugosityDistributionValue)) + " rugosity : " + std::to_string(CurrentRugosityDistribution.y / currentMesh->TotalArea * 100.0f) + " %%").c_str());
+				}
 			}
 
 			ImGui::SetNextWindowSize(ImVec2(300, 50));
