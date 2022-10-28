@@ -861,9 +861,14 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 		std::unordered_map<int, float> TriangleNormalsToRugosity;
 		TriangleNormalsToRugosity[-1] = CalculateCellRugosity(node->CellTrianglesCentroid, node->averageCellNormal);
 
-		for (int i = 0; i < node->trianglesInCell.size(); i++)
+		/*for (int i = 0; i < node->trianglesInCell.size(); i++)
 		{
 			TriangleNormalsToRugosity[i] = CalculateCellRugosity(mesh->Triangles[node->trianglesInCell[i]][2], mesh->TrianglesNormals[node->trianglesInCell[i]][2]);
+		}*/
+
+		for (int i = 0; i < SphereVectors.size(); i++)
+		{
+			TriangleNormalsToRugosity[i] = CalculateCellRugosity(glm::vec3(0.0f), SphereVectors[i]);
 		}
 
 		double Min = FLT_MAX;

@@ -427,7 +427,7 @@ void FEMesh::UpdateAverageNormal()
 	if (Triangles.empty())
 		fillTrianglesData();
 
-	AvarageNormal = glm::vec3();
+	AverageNormal = glm::vec3();
 
 	std::vector<float> originalAreas;
 	float totalArea = 0.0f;
@@ -438,35 +438,35 @@ void FEMesh::UpdateAverageNormal()
 		totalArea += originalArea;
 	}
 
-	// ******* Geting avarage normal *******
+	// ******* Geting average normal *******
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
-		//std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
-		//std::vector<glm::vec3> currentTriangleNormals = TrianglesNormals[i];
+		float currentTriangleCoef = originalAreas[i] / totalArea;
 
-		/*if (bWeightedNormals)
-		{*/
-			float currentTriangleCoef = originalAreas[i] / totalArea;
-
-			AvarageNormal += TrianglesNormals[i][0] * currentTriangleCoef;
-			AvarageNormal += TrianglesNormals[i][1] * currentTriangleCoef;
-			AvarageNormal += TrianglesNormals[i][2] * currentTriangleCoef;
-		/*}
-		else
-		{
-			node->averageCellNormal += currentTriangleNormals[0];
-			node->averageCellNormal += currentTriangleNormals[1];
-			node->averageCellNormal += currentTriangleNormals[2];
-		}*/
+		AverageNormal += TrianglesNormals[i][0] * currentTriangleCoef;
+		AverageNormal += TrianglesNormals[i][1] * currentTriangleCoef;
+		AverageNormal += TrianglesNormals[i][2] * currentTriangleCoef;
 	}
 
-	AvarageNormal = glm::normalize(AvarageNormal);
+	AverageNormal = glm::normalize(AverageNormal);
 	
+	MinHeight = DBL_MAX;
+	MaxHeight = -DBL_MAX;
+	for (size_t i = 0; i < Triangles.size(); i++)
+	{
+		for (size_t j = 0; j < 3; j++)
+		{
+			double CurrentHeight = glm::dot(Triangles[i][j], AverageNormal);
+
+			MinHeight = std::min(CurrentHeight, MinHeight);
+			MaxHeight = std::max(CurrentHeight, MaxHeight);
+		}
+	}
 }
 
 glm::vec3 FEMesh::GetAverageNormal()
 {
-	return AvarageNormal;
+	return AverageNormal;
 }
 
 double FEMesh::TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC)

@@ -82,6 +82,9 @@ uniform vec3 lightDirection;
 uniform float minRugorsity;
 uniform float maxRugorsity;
 
+uniform float minHeight;
+uniform float maxHeight;
+
 uniform vec3 MeasuredRugosityAreaCenter;
 uniform float MeasuredRugosityAreaRadius;
 
@@ -213,6 +216,12 @@ vec3 getScaledColor(float factor)
 	return result;
 }
 
+vec3 getHeightHeatMap()
+{
+	float ProjectionOnUpDirection = dot(FS_IN.worldPosition, AverageNormal);
+	return getTurboColormapValue((ProjectionOnUpDirection - minHeight) / (maxHeight - minHeight));
+}
+
 vec3 getCorrectColor()
 {
 	vec3 result = vec3(0.0, 0.5, 1.0);
@@ -236,12 +245,15 @@ vec3 getCorrectColor()
 		case 5:
 				result = getTurboColormapValue(normalizedRugorsity);
                 break;
-		//case 6:
-		//		result = getTurboColormapValue(normalizedRugorsity);
-        //        break;
+		case 6:
+				result = getHeightHeatMap();
+                break;
     }
 
-	//result = vec3(dot(FS_IN.worldPosition, AverageNormal));
+	//float ProjectionOnUpDirection = dot(FS_IN.worldPosition, AverageNormal);
+
+	//result = getTurboColormapValue((ProjectionOnUpDirection - minHeight) / (maxHeight - minHeight));
+	
 
 	return result;
 }
@@ -396,7 +408,7 @@ void LoadMesh(std::string FileName)
 	currentCamera->setPitch(0.0f);
 	currentCamera->setRoll(0.0f);
 
-	currentCamera->setMovementSpeed(currentMesh->AABB.getSize() / 10.0f);
+	currentCamera->setMovementSpeed(currentMesh->AABB.getSize() / 5.0f);
 	currentCamera->setFarPlane(currentMesh->AABB.getSize() * 3.0f);
 
 	glm::vec3 AverageNormal = currentMesh->GetAverageNormal();
@@ -595,6 +607,16 @@ void renderFEMesh(FEMesh* mesh)
 	meshShader->getParameter("minRugorsity")->updateData(float(mesh->minVisibleRugorsity));
 	meshShader->getParameter("maxRugorsity")->updateData(float(mesh->maxVisibleRugorsity));
 
+	// Height heat map.
+	meshShader->getParameter("colorMode")->updateData(6);
+	meshShader->getParameter("AverageNormal")->updateData(mesh->AverageNormal);
+	float HeightDiff = mesh->MaxHeight - mesh->MinHeight;
+	meshShader->getParameter("minHeight")->updateData(-(HeightDiff / 2.0f));
+	meshShader->getParameter("maxHeight")->updateData(HeightDiff / 2.0f);
+
+	/*meshShader->getParameter("minHeight")->updateData(float(mesh->MinHeight));
+	meshShader->getParameter("maxHeight")->updateData(float(mesh->MaxHeight));*/
+	
 	if (mesh->TriangleSelected.size() > 1 && UI.GetRugositySelectionMode() == 2)
 	{
 		meshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(mesh->LastMeasuredRugosityAreaRadius);
@@ -604,8 +626,6 @@ void renderFEMesh(FEMesh* mesh)
 	{
 		meshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(-1.0f);
 	}
-
-	//meshShader->getParameter("AverageNormal")->updateData(mesh->AvarageNormal);
 
 	FE_GL_ERROR(glBindVertexArray(mesh->getVaoID()));
 	if ((mesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));

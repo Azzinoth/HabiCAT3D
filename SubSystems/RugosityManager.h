@@ -70,6 +70,7 @@ namespace FocalEngine
 		glm::dvec2 RugosityAreaDistribution(float RugosityValue);
 
 		float GetLastTimeTookForCalculation();
+		float GetMaxRugosityWithOutOutliers(float OutliersPercentage);
 	private:
 		SINGLETON_PRIVATE_PART(RugosityManager)
 

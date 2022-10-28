@@ -453,7 +453,7 @@ void FEObjLoader::NormilizeVertexPositions(FERawOBJData* data)
 
 	if (MinRange < 1.0)
 	{
-		ScaleFactor = 1.0 - MinRange;
+		ScaleFactor = 1.0 / MinRange;
 	}
 
 	for (size_t i = 0; i < data->rawVertexCoordinates.size(); i++)

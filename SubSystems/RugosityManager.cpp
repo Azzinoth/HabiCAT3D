@@ -340,3 +340,36 @@ float RugosityManager::GetLastTimeTookForCalculation()
 {
 	return LastTimeTookForCalculation;
 }
+
+float RugosityManager::GetMaxRugosityWithOutOutliers(float OutliersPercentage)
+{
+	if (RUGOSITY_MANAGER.currentSDF == nullptr || !RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+		return FLT_MAX;
+
+	std::unordered_map<int, double> allRugosityValuesMap;
+	std::vector<float> allRugosityValues;
+	allRugosityValues.resize(RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity.size());
+	for (size_t i = 0; i < RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity.size(); i++)
+	{
+		allRugosityValues[i] = RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity[i];
+		allRugosityValuesMap[i] = RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity[i];
+	}
+
+	std::sort(allRugosityValues.begin(), allRugosityValues.end());
+
+	double CurrentCombinedArea = 0.0;
+	for (size_t i = 0; i < allRugosityValues.size(); i++)
+	{
+		CurrentCombinedArea += currentSDF->mesh->TrianglesArea[i];
+	}
+
+	/*int numbOfPoints = int(vertexInfo.size() * 0.01f);
+	float mean = 0.0f;
+	for (size_t i = 0; i < numbOfPoints; i++)
+	{
+		mean += allYValues[i];
+	}
+
+	if (numbOfPoints != 0)
+		mean /= numbOfPoints;*/
+}

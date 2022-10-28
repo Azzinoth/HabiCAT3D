@@ -70,6 +70,8 @@ namespace FocalEngine
 		double maxRugorsity = -DBL_MAX;
 		double minVisibleRugorsity = DBL_MAX;
 		double maxVisibleRugorsity = -DBL_MAX;
+		double MinHeight = DBL_MAX;
+		double MaxHeight = -DBL_MAX;
 		bool showRugosity = false;
 
 		int colorMode = 0;
@@ -99,7 +101,7 @@ namespace FocalEngine
 		void SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius);
 		void SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius);
 
-		glm::vec3 AvarageNormal = glm::vec3();
+		glm::vec3 AverageNormal = glm::vec3();
 		glm::vec3 GetAverageNormal();
 		void UpdateAverageNormal();
 

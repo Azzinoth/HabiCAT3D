@@ -514,6 +514,20 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 			//if (currentMesh->maxRugorsity != -DBL_MAX)
 			//	ImGui::Text(("maxRugorsity: " + std::to_string(currentMesh->maxRugorsity)).c_str());
 
+			ImGui::Text("MinHeight: ");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(128);
+			float TempValue = currentMesh->MinHeight;
+			ImGui::DragFloat("##MinHeight", &TempValue, 0.01f);
+			currentMesh->MinHeight = TempValue;
+
+			ImGui::Text("MaxHeight: ");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(128);
+			TempValue = currentMesh->MaxHeight;
+			ImGui::DragFloat("##MaxHeight", &TempValue, 0.01f);
+			currentMesh->MaxHeight = TempValue;
+
 			if (currentMesh->TriangleSelected.size() == 1)
 			{
 				ImGui::Separator();
