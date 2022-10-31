@@ -100,118 +100,104 @@ void UIManager::showTransformConfiguration(std::string name, FETransformComponen
 
 void UIManager::showCameraTransform()
 {
-	/*glm::vec3 ViewDirection = currentCamera->getForward();
-	std::string Text = "ViewDirection : X - ";
-	Text += std::to_string(ViewDirection.x);
-	Text += " Y - ";
-	Text += std::to_string(ViewDirection.y);
-	Text += " Z - ";
-	Text += std::to_string(ViewDirection.z);
-	ImGui::Text(Text.c_str());
-
-	if (currentMesh != nullptr)
+	if (!bModelCamera)
 	{
-		glm::vec3 ToMeshDirection = glm::normalize(currentMesh->AABB.getCenter() - currentCamera->getPosition());
-		Text = "ToMeshDirection : X - ";
-		Text += std::to_string(ToMeshDirection.x);
-		Text += " Y - ";
-		Text += std::to_string(ToMeshDirection.y);
-		Text += " Z - ";
-		Text += std::to_string(ToMeshDirection.z);
-		ImGui::Text(Text.c_str());
-	}*/
+		// ********* POSITION *********
+		glm::vec3 cameraPosition = currentCamera->getPosition();
 
-	// ********* POSITION *********
-	glm::vec3 cameraPosition = currentCamera->getPosition();
+		ImGui::Text("Position : ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##X pos", &cameraPosition[0], 0.1f);
 
-	ImGui::Text("Position : ");
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(70);
-	ImGui::DragFloat("##X pos", &cameraPosition[0], 0.1f);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##Y pos", &cameraPosition[1], 0.1f);
 
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(70);
-	ImGui::DragFloat("##Y pos", &cameraPosition[1], 0.1f);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##Z pos", &cameraPosition[2], 0.1f);
 
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(70);
-	ImGui::DragFloat("##Z pos", &cameraPosition[2], 0.1f);
+		currentCamera->setPosition(cameraPosition);
 
-	currentCamera->setPosition(cameraPosition);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(40);
+		if (ImGui::Button("Copy##Position"))
+		{
+			APPLICATION.SetClipboardText(CameraPositionToStr());
+		}
 
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(40);
-	if (ImGui::Button("Copy##Position"))
-	{
-		APPLICATION.SetClipboardText(CameraPositionToStr());
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(40);
+		if (ImGui::Button("Paste##Position"))
+		{
+			StrToCameraPosition(APPLICATION.GetClipboardText());
+		}
+
+		// ********* ROTATION *********
+		glm::vec3 cameraRotation = glm::vec3(currentCamera->getYaw(), currentCamera->getPitch(), currentCamera->getRoll());
+
+		ImGui::Text("Rotation : ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##X rot", &cameraRotation[0], 0.1f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##Y rot", &cameraRotation[1], 0.1f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##Z rot", &cameraRotation[2], 0.1f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(40);
+		if (ImGui::Button("Copy##Rotation"))
+		{
+			APPLICATION.SetClipboardText(CameraRotationToStr());
+		}
+
+		currentCamera->setYaw(cameraRotation[0]);
+		currentCamera->setPitch(cameraRotation[1]);
+		currentCamera->setRoll(cameraRotation[2]);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(40);
+		if (ImGui::Button("Paste##Rotation"))
+		{
+			StrToCameraRotation(APPLICATION.GetClipboardText());
+		}
+
+		float cameraSpeed = currentCamera->getMovementSpeed();
+		ImGui::Text("Camera speed: ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##Camera_speed", &cameraSpeed, 0.01f, 0.01f, 100.0f);
+		currentCamera->setMovementSpeed(cameraSpeed);
+
+		currentCamera->updateViewMatrix();
+
+		ImGui::SameLine();
+		ImGui::Text(("Thread count: " + std::to_string(THREAD_POOL.GetThreadCount())).c_str());
 	}
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(40);
-	if (ImGui::Button("Paste##Position"))
+	else
 	{
-		StrToCameraPosition(APPLICATION.GetClipboardText());
+		/*float tempFloat = currentCamera->CurrentPolarAngle;
+		ImGui::Text("CurrentPolarAngle : ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##CurrentPolarAngle", &tempFloat, 0.1f);
+		currentCamera->CurrentPolarAngle = tempFloat;
+
+		tempFloat = currentCamera->CurrentAzimutAngle;
+		ImGui::Text("CurrentAzimutAngle : ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##CurrentAzimutAngle", &tempFloat, 0.1f);
+		currentCamera->CurrentAzimutAngle = tempFloat;*/
+
+		ImGui::Text(("Thread count: " + std::to_string(THREAD_POOL.GetThreadCount())).c_str());
 	}
-
-	// ********* ROTATION *********
-	glm::vec3 cameraRotation = glm::vec3(currentCamera->getYaw(), currentCamera->getPitch(), currentCamera->getRoll());
-
-	ImGui::Text("Rotation : ");
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(70);
-	ImGui::DragFloat("##X rot", &cameraRotation[0], 0.1f);
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(70);
-	ImGui::DragFloat("##Y rot", &cameraRotation[1], 0.1f);
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(70);
-	ImGui::DragFloat("##Z rot", &cameraRotation[2], 0.1f);
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(40);
-	if (ImGui::Button("Copy##Rotation"))
-	{
-		APPLICATION.SetClipboardText(CameraRotationToStr());
-	}
-
-	currentCamera->setYaw(cameraRotation[0]);
-	currentCamera->setPitch(cameraRotation[1]);
-	currentCamera->setRoll(cameraRotation[2]);
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(40);
-	if (ImGui::Button("Paste##Rotation"))
-	{
-		StrToCameraRotation(APPLICATION.GetClipboardText());
-	}
-
-	float cameraSpeed = currentCamera->getMovementSpeed();
-	ImGui::Text("Camera speed: ");
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(70);
-	ImGui::DragFloat("##Camera_speed", &cameraSpeed, 0.01f, 0.01f, 100.0f);
-	currentCamera->setMovementSpeed(cameraSpeed);
-
-	ImGui::SameLine();
-	ImGui::Text(("Thread count: " + std::to_string(THREAD_POOL.GetThreadCount())).c_str());
-
-	/*float tempFloat = currentCamera->CurrentPolarAngle;
-	ImGui::Text("CurrentPolarAngle : ");
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(70);
-	ImGui::DragFloat("##CurrentPolarAngle", &tempFloat, 0.1f);
-	currentCamera->CurrentPolarAngle = tempFloat;
-
-	tempFloat = currentCamera->CurrentAzimutAngle;
-	ImGui::Text("CurrentAzimutAngle : ");
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(70);
-	ImGui::DragFloat("##CurrentAzimutAngle", &tempFloat, 0.1f);
-	currentCamera->CurrentAzimutAngle = tempFloat;*/
-
-	currentCamera->updateViewMatrix();
 }
 
 void UIManager::SetCamera(FEBasicCamera* newCamera)
@@ -486,8 +472,6 @@ void UIManager::ShowRugosityRangeSettings()
 
 void UIManager::RenderMainWindow(FEMesh* currentMesh)
 {
-	//ImGui::SetNextWindowPos(ImVec2(MainWindowW / 2.0f - CurrentWindowW / 2.0f, 10));
-	//ImGui::SetNextWindowSize(ImVec2(CurrentWindowW, CurrentWindowH));
 	ImGui::Begin("Settings", nullptr);
 	
 	ImGui::Checkbox("Developer UI", &DeveloperMode);
@@ -1469,7 +1453,7 @@ void UIManager::SetIsModelCamera(bool NewValue)
 	if (NewValue)
 	{
 		FEModelViewCamera* ModelCamera = reinterpret_cast<FEModelViewCamera*>(currentCamera);
-		ModelCamera->SetDistanceToModel(currentMesh->AABB.getSize());
+		ModelCamera->SetDistanceToModel(currentMesh->AABB.getSize() * 1.5f);
 	}
 	else
 	{

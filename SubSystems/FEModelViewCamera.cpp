@@ -82,11 +82,6 @@ void FEModelViewCamera::updateViewMatrix()
 
 	position = PolarToCartesian(CurrentPolarAngle, CurrentAzimutAngle, DistancetoModel);
 	viewMatrix = glm::lookAt(position, glm::vec3(0.0f), glm::vec3(0, 1, 0));
-
-	glm::vec3 cameraPosition = position;
-	glm::vec3 negativeCameraPosition = -cameraPosition;
-
-	viewMatrix = glm::translate(viewMatrix, negativeCameraPosition);
 }
 
 double FEModelViewCamera::GetDistanceToModel()

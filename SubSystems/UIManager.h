@@ -132,7 +132,7 @@ namespace FocalEngine
 		bool GetIsModelCamera();
 		void SetIsModelCamera(bool NewValue);
 
-		FEMesh* TestMesh = nullptr;
+		//FEMesh* TestMesh = nullptr;
 		static void(*SwapCameraImpl)(bool);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)

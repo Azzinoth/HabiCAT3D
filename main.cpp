@@ -558,9 +558,6 @@ void mouseButtonCallback(int button, int action, int mods)
 			}
 			else if (UI.GetRugositySelectionMode() == 2)
 			{
-				//glm::vec3 HitPoint = currentMesh->IntersectTriangle(mouseRay(mouseX, mouseY), currentCamera);
-				//HitPoint += glm::vec3(1.0f, 0.0f, 1.0f);
-				//currentMesh->SelectTrianglesInRadius(HitPoint, UI.GetAreaToMeasureRugosity());
 				currentMesh->SelectTrianglesInRadius(mouseRay(mouseX, mouseY), currentCamera, UI.GetAreaToMeasureRugosity());
 			}
 
@@ -753,8 +750,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 			renderFEMesh(currentMesh);
 
-			if (UI.TestMesh)
-				renderFEMesh(UI.TestMesh);
+			//if (UI.TestMesh)
+			//	renderFEMesh(UI.TestMesh);
 
 			/*FETransformComponent* newPosition = new FETransformComponent();
 			newPosition->setPosition(glm::vec3(0.0, 0.0, 5.0));
