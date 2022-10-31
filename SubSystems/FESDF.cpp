@@ -1,7 +1,7 @@
 #include "FESDF.h"
 using namespace FocalEngine;
 
-glm::dvec3 mouseRay(double mouseX, double mouseY, FEFreeCamera* currentCamera)
+glm::dvec3 mouseRay(double mouseX, double mouseY, FEBasicCamera* currentCamera)
 {
 	int W, H;
 	APPLICATION.GetWindowSize(&W, &H);
@@ -152,7 +152,7 @@ SDF::SDF()
 
 }
 
-SDF::SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
+SDF::SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEBasicCamera* camera)
 {
 	if (dimentions < 1 || dimentions > 4096)
 		return;
@@ -249,7 +249,7 @@ SDF::SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera)
 		}
 	}
 
-	TimeTookToGenerateInMS = TIME.EndTimeStamp("SDF Generation");
+	TimeTookToGenerateInMS = float(TIME.EndTimeStamp("SDF Generation"));
 }
 
 int DimensionsToPOWDimentions(int Dimentions)
@@ -260,13 +260,13 @@ int DimensionsToPOWDimentions(int Dimentions)
 			continue;
 
 		if (Dimentions <= pow(2.0, i))
-			return pow(2.0, i);
+			return int(pow(2.0, i));
 	}
 
 	return 0;
 }
 
-void SDF::Init(FEMesh* mesh, int dimensions, FEAABB AABB, FEFreeCamera* camera, float ResolutionInM)
+void SDF::Init(FEMesh* mesh, int dimensions, FEAABB AABB, FEBasicCamera* camera, float ResolutionInM)
 {
 	TIME.BeginTimeStamp("SDF Generation");
 
@@ -382,7 +382,7 @@ void SDF::fillCellsWithTriangleInfo()
 	float distance = 0.0f;
 	debugTotalTrianglesInCells = 0;
 
-	for (size_t l = 0; l < mesh->Triangles.size(); l++)
+	for (int l = 0; l < mesh->Triangles.size(); l++)
 	{
 		FEAABB triangleAABB = FEAABB(mesh->Triangles[l]);
 
@@ -509,7 +509,7 @@ void SDF::mouseClick(double mouseX, double mouseY, glm::mat4 transformMat)
 	}
 
 	if (distanceToCell != 999999.0f)
-		data[selectedCell.x][selectedCell.y][selectedCell.z].selected = true;
+		data[int(selectedCell.x)][int(selectedCell.y)][int(selectedCell.z)].selected = true;
 }
 
 void SDF::fillMeshWithRugosityData()
@@ -584,7 +584,6 @@ void SDF::fillMeshWithRugosityData()
 
 
 
-
 	std::vector<int> TrianglesRugosityCount;
 	TrianglesRugosity.resize(mesh->Triangles.size());
 	TrianglesRugosityCount.resize(mesh->Triangles.size());
@@ -600,7 +599,7 @@ void SDF::fillMeshWithRugosityData()
 				{
 					int TriangleIndex = data[i][j][k].trianglesInCell[l];
 					TrianglesRugosityCount[TriangleIndex]++;
-					TrianglesRugosity[TriangleIndex] += data[i][j][k].rugosity;
+					TrianglesRugosity[TriangleIndex] += float(data[i][j][k].rugosity);
 				}
 			}
 		}
@@ -707,7 +706,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 	float totalArea = 0.0f;
 	for (size_t l = 0; l < node->trianglesInCell.size(); l++)
 	{
-		totalArea += mesh->TrianglesArea[node->trianglesInCell[l]];
+		totalArea += float(mesh->TrianglesArea[node->trianglesInCell[l]]);
 	}
 
 	auto CalculateCellRugosity = [&](glm::vec3 PointOnPlane, glm::vec3 PlaneNormal) {
@@ -715,7 +714,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 		FEPlane* ProjectionPlane = new FEPlane(PointOnPlane, PlaneNormal);
 
 		std::vector<float> rugosities;
-		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+		for (int l = 0; l < node->trianglesInCell.size(); l++)
 		{
 			std::vector<glm::vec3> currentTriangle = mesh->Triangles[node->trianglesInCell[l]];
 
@@ -725,7 +724,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 
 			double projectionArea = TriangleArea(aProjection, bProjection, cProjection);
 			double originalArea = mesh->TrianglesArea[node->trianglesInCell[l]];
-			rugosities.push_back(originalArea / projectionArea);
+			rugosities.push_back(float(originalArea / projectionArea));
 
 			if (originalArea == 0.0 || projectionArea == 0.0)
 				rugosities.back() = 1.0f;
@@ -735,9 +734,9 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 		}
 
 		// Weighted by triangle area rugosity.
-		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+		for (int l = 0; l < node->trianglesInCell.size(); l++)
 		{
-			float currentTriangleCoef = mesh->TrianglesArea[node->trianglesInCell[l]] / totalArea;
+			float currentTriangleCoef = float(mesh->TrianglesArea[node->trianglesInCell[l]] / totalArea);
 
 			Result += rugosities[l] * currentTriangleCoef;
 
@@ -754,7 +753,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 		std::vector<float> FEVerticesFinal;
 		std::vector<int> FEIndicesFinal;
 
-		for (size_t l = 0; l < node->trianglesInCell.size(); l++)
+		for (int l = 0; l < node->trianglesInCell.size(); l++)
 		{
 			int TriangleIndex = node->trianglesInCell[l];
 
@@ -830,7 +829,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 
 		if (bWeightedNormals)
 		{
-			float currentTriangleCoef = mesh->TrianglesArea[node->trianglesInCell[l]] / totalArea;
+			float currentTriangleCoef = float(mesh->TrianglesArea[node->trianglesInCell[l]] / totalArea);
 
 			node->averageCellNormal += currentTriangleNormals[0] * currentTriangleCoef;
 			node->averageCellNormal += currentTriangleNormals[1] * currentTriangleCoef;
@@ -859,7 +858,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 	if (bFindSmallestRugosity)
 	{
 		std::unordered_map<int, float> TriangleNormalsToRugosity;
-		TriangleNormalsToRugosity[-1] = CalculateCellRugosity(node->CellTrianglesCentroid, node->averageCellNormal);
+		TriangleNormalsToRugosity[-1] = float(CalculateCellRugosity(node->CellTrianglesCentroid, node->averageCellNormal));
 
 		/*for (int i = 0; i < node->trianglesInCell.size(); i++)
 		{
@@ -868,7 +867,7 @@ void SDF::calculateCellRugosity(SDFNode* node, std::string* debugInfo)
 
 		for (int i = 0; i < SphereVectors.size(); i++)
 		{
-			TriangleNormalsToRugosity[i] = CalculateCellRugosity(glm::vec3(0.0f), SphereVectors[i]);
+			TriangleNormalsToRugosity[i] = float(CalculateCellRugosity(glm::vec3(0.0f), SphereVectors[i]));
 		}
 
 		double Min = FLT_MAX;

@@ -104,7 +104,7 @@ namespace FocalEngine
 		void showTransformConfiguration(std::string name, FETransformComponent* transform);
 		void showCameraTransform();
 
-		void SetCamera(FEFreeCamera* newCamera);
+		void SetCamera(FEBasicCamera* newCamera);
 		void SetMeshShader(FEShader* newShader);
 
 		void RenderMainWindow(FEMesh* currentMesh);
@@ -129,17 +129,22 @@ namespace FocalEngine
 		int GetRugositySelectionMode();
 		void SetRugositySelectionMode(int NewValue);
 
+		bool GetIsModelCamera();
+		void SetIsModelCamera(bool NewValue);
+
 		FEMesh* TestMesh = nullptr;
+		static void(*SwapCameraImpl)(bool);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 
-		FEFreeCamera* currentCamera = nullptr;
+		FEBasicCamera* currentCamera = nullptr;
 		FEShader* meshShader = nullptr;
 
 		bool wireframeMode = false;
 		float TimeTookToJitter = 0.0f;
 
 		bool DeveloperMode = false;
+		bool bModelCamera = true;
 		FEMesh* currentMesh = nullptr;
 
 		float AreaToMeasureRugosity = 1.0f;
@@ -149,6 +154,7 @@ namespace FocalEngine
 
 		void RenderLegend();
 		void ShowRugosityRangeSettings();
+		void RenderVisualModeWindow();
 		//void TestCGALVariant();
 	};
 

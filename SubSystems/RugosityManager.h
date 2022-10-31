@@ -26,11 +26,11 @@ namespace FocalEngine
 		SINGLETON_PUBLIC_PART(RugosityManager)
 
 		SDF* currentSDF = nullptr;
-		FEFreeCamera* currentCamera = nullptr;
+		FEBasicCamera* currentCamera = nullptr;
 
 		void MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter = true);
 		int JitterCounter = 0;
-		SDF* calculateSDF(FEMesh* mesh, int dimentions, FEFreeCamera* currentCamera, bool UseJitterExpandedAABB = false);
+		SDF* calculateSDF(FEMesh* mesh, int dimentions, FEBasicCamera* currentCamera, bool UseJitterExpandedAABB = false);
 
 		float shiftX = 0.0f;
 		float shiftY = 0.0f;

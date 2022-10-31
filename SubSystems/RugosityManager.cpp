@@ -83,7 +83,7 @@ void RugosityManager::MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter)
 	}
 }
 
-SDF* RugosityManager::calculateSDF(FEMesh* mesh, int dimentions, FEFreeCamera* currentCamera, bool UseJitterExpandedAABB)
+SDF* RugosityManager::calculateSDF(FEMesh* mesh, int dimentions, FEBasicCamera* currentCamera, bool UseJitterExpandedAABB)
 {
 	FEAABB finalAABB = mesh->AABB;
 
@@ -146,7 +146,7 @@ void RugosityManager::calculateSDFCallback(void* OutputData)
 	}
 	else
 	{
-		LastTimeTookForCalculation = TIME.EndTimeStamp("CalculateRugorsityTotal");
+		LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
 	}
 }
 
@@ -321,15 +321,15 @@ glm::dvec2 RugosityManager::RugosityAreaDistribution(float RugosityValue)
 	float FirstBin = 0.0;
 	float SecondBin = 0.0;
 
-	for (size_t i = 0; i < currentSDF->mesh->Triangles.size(); i++)
+	for (int i = 0; i < currentSDF->mesh->Triangles.size(); i++)
 	{
 		if (currentSDF->mesh->TrianglesRugosity[i] <= RugosityValue)
 		{
-			FirstBin += currentSDF->mesh->TrianglesArea[i];
+			FirstBin += float(currentSDF->mesh->TrianglesArea[i]);
 		}
 		else
 		{
-			SecondBin += currentSDF->mesh->TrianglesArea[i];
+			SecondBin += float(currentSDF->mesh->TrianglesArea[i]);
 		}
 	}
 

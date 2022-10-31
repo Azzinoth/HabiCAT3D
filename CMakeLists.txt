@@ -36,6 +36,8 @@ file(GLOB SubSystems_SRC
 	"SubSystems/FEBasicCamera.cpp"
 	"SubSystems/FEFreeCamera.h"
 	"SubSystems/FEFreeCamera.cpp"
+	"SubSystems/FEModelViewCamera.h"
+	"SubSystems/FEModelViewCamera.cpp"
 	"SubSystems/FEFileSystem.cpp"
 	"SubSystems/FEFileSystem.h"
 	"SubSystems/FETransformComponent.cpp"

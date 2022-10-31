@@ -126,7 +126,7 @@ FEMesh* FECGALWrapper::rawDataToMesh(double* positions, int posSize,
 
 	for (size_t i = 0; i < posSize; i++)
 	{
-		FloatPositions[i] = positions[i];
+		FloatPositions[i] = float(positions[i]);
 	}
 
 	FEMesh* result = rawDataToMesh(FloatPositions, posSize,
@@ -379,7 +379,7 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 
 	std::vector<glm::vec3> usedColors;
 	std::unordered_map<int, glm::vec3> segIDColors;
-	for (size_t i = 0; i < originalTrianglesToSegments.size(); i++)
+	for (int i = 0; i < originalTrianglesToSegments.size(); i++)
 	{
 		if (segIDColors.find(originalTrianglesToSegments[i]) == segIDColors.end())
 		{
@@ -407,7 +407,7 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 	double totalAreaTEST = 0.0f;
 	double totalAreaTEST1 = 0.0f;
 
-	for (size_t i = 0; i < originalTrianglesToSegments.size(); i++)
+	for (int i = 0; i < originalTrianglesToSegments.size(); i++)
 	{
 		glm::vec3 segmentNormal = segmentsNormals[originalTrianglesToSegments[i]];
 		std::vector<int> points = getVertexOfFace(i);
@@ -458,7 +458,7 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 	glm::vec3 yellow = glm::vec3(225.0f / 255.0f, 225.0f / 255.0f, 0.0f / 255.0f);
 	glm::vec3 red = glm::vec3(225.0f / 255.0f, 0 / 255.0f, 0.0f / 255.0f);
 
-	for (size_t i = 0; i < originalTrianglesToSegments.size(); i++)
+	for (int i = 0; i < originalTrianglesToSegments.size(); i++)
 	{
 		//double normalizedRugorsity = (sectorsRugorsity[originalTrianglesToSegments[i]] - minRugorsity) / (maxRugorsity - minRugorsity);
 		double normalizedRugorsity = sectorsRugorsity[originalTrianglesToSegments[i]];
@@ -530,22 +530,22 @@ std::vector<float> FECGALWrapper::calculateNormals(Surface_mesh mesh)
 
 	std::vector<float> calculatedNormals;
 	calculatedNormals.resize(extractedPoints.size() * 3);
-	for (size_t i = 0; i < extractedFaces.size(); i++)
+	for (int i = 0; i < extractedFaces.size(); i++)
 	{
-		int vertexIndex = extractedFaces[i][0] * 3;
-		calculatedNormals[vertexIndex + 0] = face_normals.data()[i].x();
-		calculatedNormals[vertexIndex + 1] = face_normals.data()[i].y();
-		calculatedNormals[vertexIndex + 2] = face_normals.data()[i].z();
+		int vertexIndex = int(extractedFaces[i][0] * 3);
+		calculatedNormals[vertexIndex + 0] = float(face_normals.data()[i].x());
+		calculatedNormals[vertexIndex + 1] = float(face_normals.data()[i].y());
+		calculatedNormals[vertexIndex + 2] = float(face_normals.data()[i].z());
 
-		vertexIndex = extractedFaces[i][1] * 3;
-		calculatedNormals[vertexIndex + 0] = face_normals.data()[i].x();
-		calculatedNormals[vertexIndex + 1] = face_normals.data()[i].y();
-		calculatedNormals[vertexIndex + 2] = face_normals.data()[i].z();
+		vertexIndex = int(extractedFaces[i][1] * 3);
+		calculatedNormals[vertexIndex + 0] = float(face_normals.data()[i].x());
+		calculatedNormals[vertexIndex + 1] = float(face_normals.data()[i].y());
+		calculatedNormals[vertexIndex + 2] = float(face_normals.data()[i].z());
 
-		vertexIndex = extractedFaces[i][2] * 3;
-		calculatedNormals[vertexIndex + 0] = face_normals.data()[i].x();
-		calculatedNormals[vertexIndex + 1] = face_normals.data()[i].y();
-		calculatedNormals[vertexIndex + 2] = face_normals.data()[i].z();
+		vertexIndex = int(extractedFaces[i][2] * 3);
+		calculatedNormals[vertexIndex + 0] = float(face_normals.data()[i].x());
+		calculatedNormals[vertexIndex + 1] = float(face_normals.data()[i].y());
+		calculatedNormals[vertexIndex + 2] = float(face_normals.data()[i].z());
 	}
 
 	return calculatedNormals;
@@ -590,7 +590,7 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, int segmen
 	auto iterator = fpxmap.begin();
 	while (iterator != fpxmap.end())
 	{
-		originalMeshToSegments.push_back(iterator._Ptr[0]);
+		originalMeshToSegments.push_back(int(iterator._Ptr[0]));
 		iterator++;
 	}
 
@@ -649,7 +649,7 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, int segmen
 
 		double minError = 99999.0;
 		int minErrorIndex = -1;
-		for (size_t j = 0; j < proxies.size(); j++)
+		for (int j = 0; j < proxies.size(); j++)
 		{
 			double currentError = glm::length(abs(proxiesVector[j] - normalsNew.back()));
 			if (currentError < minError)
@@ -673,7 +673,7 @@ FEMesh* FECGALWrapper::SurfaceMeshApproximation(FEMesh* originalMesh, int segmen
 		normalsNewNEW.push_back(glm::vec3(calculatedNormals[i], calculatedNormals[i + 1], calculatedNormals[i + 2]));
 	}
 
-	return surfaceMeshToFEMesh(output, calculatedNormals.data(), calculatedNormals.size());
+	return surfaceMeshToFEMesh(output, calculatedNormals.data(), int(calculatedNormals.size()));
 }
 
 FEMesh* FECGALWrapper::surfaceMeshToFEMesh(Surface_mesh mesh, float* normals, int normSize)

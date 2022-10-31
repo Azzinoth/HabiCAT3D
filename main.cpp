@@ -284,11 +284,30 @@ void main(void)
 			finalBaseColor = vec3(0.8f, 0.0f, 0.8f);
 	}
 
-	out_Color = vec4(ambientColor * diffuseFactor * finalBaseColor, 1.0f);
+	out_Color = vec4(ambientColor * (diffuseFactor * finalBaseColor) * 0.5, 1.0f);
 }
 )";
 
-FEFreeCamera* currentCamera = nullptr;
+FEBasicCamera* currentCamera = nullptr;
+
+void SwapCamera(bool bModelCamera)
+{
+	delete currentCamera;
+
+	if (bModelCamera)
+	{
+		currentCamera = new FEModelViewCamera("mainCamera");
+	}
+	else
+	{
+		currentCamera = new FEFreeCamera("mainCamera");
+	}
+	currentCamera->setIsInputActive(false);
+
+	UI.SetCamera(currentCamera);
+	RUGOSITY_MANAGER.currentCamera = currentCamera;
+}
+
 FEShader* meshShader = nullptr;
 
 double mouseX;
@@ -320,31 +339,25 @@ void renderTargetCenterForCamera()
 
 	int xpos, ypos;
 	APPLICATION.GetWindowPosition(&xpos, &ypos);
+	
+	int windowW, windowH = 0;
+	APPLICATION.GetWindowSize(&windowW, &windowH);
+	centerX = xpos + (windowW / 2);
+	centerY = ypos + (windowH / 2);
 
-	//if (renderTargetMode == FE_GLFW_MODE)
-	//{
-		int windowW, windowH = 0;
-		APPLICATION.GetWindowSize(&windowW, &windowH);
-		centerX = xpos + (windowW / 2);
-		centerY = ypos + (windowH / 2);
+	shiftX = xpos;
+	shiftY = ypos;
 
-		shiftX = xpos;
-		shiftY = ypos;
-	/*}
-	else if (renderTargetMode == FE_CUSTOM_MODE)
+	if (!UI.GetIsModelCamera())
 	{
-		centerX = xpos + renderTargetXShift + (renderTargetW / 2);
-		centerY = ypos + renderTargetYShift + (renderTargetH / 2);
+		FEFreeCamera* FreeCamera = reinterpret_cast<FEFreeCamera*>(currentCamera);
 
-		shiftX = renderTargetXShift + xpos;
-		shiftY = renderTargetYShift + ypos;
-	}*/
+		FreeCamera->setRenderTargetCenterX(centerX);
+		FreeCamera->setRenderTargetCenterY(centerY);
 
-	currentCamera->setRenderTargetCenterX(centerX);
-	currentCamera->setRenderTargetCenterY(centerY);
-
-	currentCamera->setRenderTargetShiftX(shiftX);
-	currentCamera->setRenderTargetShiftY(shiftY);
+		FreeCamera->setRenderTargetShiftX(shiftX);
+		FreeCamera->setRenderTargetShiftY(shiftY);
+	}
 }
 
 FEMesh* loadedMesh = nullptr;
@@ -393,27 +406,45 @@ void dropCallback(int count, const char** paths)
 	}
 }
 
+void ScrollCall(double Xoffset, double Yoffset)
+{
+	if (UI.GetIsModelCamera())
+		reinterpret_cast<FEModelViewCamera*>(currentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(currentCamera)->GetDistanceToModel() + Yoffset * 2.0);
+}
+
 void LoadMesh(std::string FileName)
 {
 	loadedMesh = CGALWrapper.importOBJ(FileName.c_str(), true);
 	currentMesh = loadedMesh;
-	currentMesh->UpdateAverageNormal();
+	
 	UI.updateCurrentMesh(currentMesh);
 	RUGOSITY_MANAGER.CheckAcceptableResolutions(currentMesh);
 
 	currentMesh->Position->setPosition(-currentMesh->AABB.getCenter());
+	currentMesh->UpdateAverageNormal();
 
-	currentCamera->setPosition(glm::vec3(0.0f, 0.0f, currentMesh->AABB.getSize() * 1.5f));
+	UI.SetIsModelCamera(true);
+
+	/*currentCamera->setPosition(glm::vec3(0.0f, 0.0f, currentMesh->AABB.getSize() * 1.5f));
 	currentCamera->setYaw(0.0f);
 	currentCamera->setPitch(0.0f);
 	currentCamera->setRoll(0.0f);
 
 	currentCamera->setMovementSpeed(currentMesh->AABB.getSize() / 5.0f);
-	currentCamera->setFarPlane(currentMesh->AABB.getSize() * 3.0f);
+	currentCamera->setFarPlane(currentMesh->AABB.getSize() * 5.0f);
+
+	if (UI.GetIsModelCamera())
+		reinterpret_cast<FEModelViewCamera*>(currentCamera)->SetDistanceToModel(currentMesh->AABB.getSize());*/
 
 	glm::vec3 AverageNormal = currentMesh->GetAverageNormal();
 	//glm::vec3 TransformedAvarageNormal = currentMesh->Position->getTransformMatrix() * glm::vec4(AvarageNormal, 1.0f);
 	glm::vec3 TransformedCenter = currentMesh->Position->getTransformMatrix() * glm::vec4(currentMesh->AABB.getCenter(), 1.0f);
+
+	meshShader->getParameter("lightDirection")->updateData(glm::normalize(currentMesh->GetAverageNormal()));
+
+	currentMesh->colorMode = 0;
+	if (currentMesh->getColorCount() != 0)
+		currentMesh->colorMode = 1;
 
 	/*LINE_RENDERER.clearAll();
 	LINE_RENDERER.AddLineToBuffer(
@@ -593,29 +624,14 @@ void mouseButtonCallback(int button, int action, int mods)
 void renderFEMesh(FEMesh* mesh)
 {
 	meshShader->getParameter("colorMode")->updateData(mesh->colorMode);
-	//if (mesh->colorMode == 5 && mesh->getColorCount() != 0)
-	//	meshShader->getParameter("colorMode")->updateData(6);
-
-	if (!mesh->showRugosity)
-	{
-		meshShader->getParameter("colorMode")->updateData(0);
-
-		if (mesh->getColorCount() != 0)
-			meshShader->getParameter("colorMode")->updateData(1);
-	}
 
 	meshShader->getParameter("minRugorsity")->updateData(float(mesh->minVisibleRugorsity));
 	meshShader->getParameter("maxRugorsity")->updateData(float(mesh->maxVisibleRugorsity));
 
 	// Height heat map.
-	meshShader->getParameter("colorMode")->updateData(6);
 	meshShader->getParameter("AverageNormal")->updateData(mesh->AverageNormal);
-	float HeightDiff = mesh->MaxHeight - mesh->MinHeight;
-	meshShader->getParameter("minHeight")->updateData(-(HeightDiff / 2.0f));
-	meshShader->getParameter("maxHeight")->updateData(HeightDiff / 2.0f);
-
-	/*meshShader->getParameter("minHeight")->updateData(float(mesh->MinHeight));
-	meshShader->getParameter("maxHeight")->updateData(float(mesh->MaxHeight));*/
+	meshShader->getParameter("minHeight")->updateData(float(mesh->MinHeight));
+	meshShader->getParameter("maxHeight")->updateData(float(mesh->MaxHeight));
 	
 	if (mesh->TriangleSelected.size() > 1 && UI.GetRugositySelectionMode() == 2)
 	{
@@ -652,71 +668,24 @@ void windowResizeCallback(int width, int height)
 	APPLICATION.GetWindowSize(&W, &H);
 
 	currentCamera->setAspectRatio(float(W) / float(H));
+
+	ImGuiWindow* window = ImGui::FindWindowByName("Settings");
+	if (window != nullptr)
+	{
+		window->Pos.x = W - (window->SizeFull.x + 10);
+		window->Pos.y = 10;
+	}
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	/*Point_3 a = Point_3(1.0, 5.0, 1.0);
-	Point_3 b = Point_3(-2.0, 15.0, 4.0);
-	Point_3 c = Point_3(-2.0, 5.0, -2.0);
-
-	double area = sqrt(CGAL::squared_area(a, b, c));
-
-	Plane_3 testPlane = Plane_3(Point_3(0.0, 0.0, 0.0), Direction_3(0.0, 1.0, 0.0));
-
-	Point_3 aProjection = testPlane.projection(a);
-	Point_3 bProjection = testPlane.projection(b);
-	Point_3 cProjection = testPlane.projection(c);
-
-	double projectionArea = sqrt(CGAL::squared_area(aProjection, bProjection, cProjection));
-	double rugosity = area / projectionArea;
-
-
-	int y = 0;
-	y++;*/
-
-	//Surface_mesh surface_mesh;
-
-	//std::ifstream objFile("C:/Users/kandr/Downloads/OBJ_Models/sphere.obj");
-	//std::vector<Point_3> points;
-	//std::vector<Polygon_3> faces;
-
-	//bool result = CGAL::IO::read_OBJ(objFile, points, faces);
-
-
-	////PMP::orient_polygon_soup(points, faces); // optional if your mesh is not correctly oriented
-	//Surface_mesh sm;
-	//try
-	//{
-	//	PMP::polygon_soup_to_polygon_mesh(points, faces, sm);
-	//}
-	//catch (const std::exception& e)
-	//{
-	//	int y = 0;
-	//	y++;
-	//}
-	//
-	//// In this example, the simplification stops when the number of undirected edges
-	//// drops below 10% of the initial count
-	//double stop_ratio = 0.5;
-	//SMS::Count_ratio_stop_predicate<Surface_mesh> stop(stop_ratio);
-
-	//int r = SMS::edge_collapse(sm, stop);
-
-	
-
-	//saveSurfaceMeshToOBJFile("C:/Users/kandr/Downloads/OBJ_Models/sphereR_.obj", sm);
-
-	
-
 	APPLICATION.InitWindow(1280, 720, "Rugosity Calculator");
-	//APPLICATION.InitWindow(1920, 1080, "Rugosity Calculator");
 	APPLICATION.SetDropCallback(dropCallback);
 	APPLICATION.SetKeyCallback(keyButtonCallback);
 	APPLICATION.SetMouseMoveCallback(mouseMoveCallback);
 	APPLICATION.SetMouseButtonCallback(mouseButtonCallback);
 	APPLICATION.SetWindowResizeCallback(windowResizeCallback);
-
+	APPLICATION.SetScrollCallback(ScrollCall);
 
 	const auto processor_count = THREAD_POOL.GetLogicalCoreCount();
 	unsigned int HowManyToUse = processor_count > 4 ? processor_count - 2 : 1;
@@ -734,14 +703,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
 	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
 
-	currentCamera = new FEFreeCamera("mainCamera");
+	currentCamera = new FEModelViewCamera("mainCamera");
 	currentCamera->setIsInputActive(false);
 	currentCamera->setAspectRatio(1280.0f / 720.0f);
+
 	UI.SetCamera(currentCamera);
-
 	RUGOSITY_MANAGER.currentCamera = currentCamera;
-
-	
+	UI.SwapCameraImpl = SwapCamera;
 
 	while (APPLICATION.IsWindowOpened())
 	{
@@ -750,6 +718,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		renderTargetCenterForCamera();
 		currentCamera->move(10);
+
+		//ImGui::ShowDemoWindow();
 
 		if (currentMesh != nullptr)
 		{

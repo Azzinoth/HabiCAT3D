@@ -221,7 +221,7 @@ void FEMesh::fillTrianglesData()
 
 		Triangles.push_back(triangle);
 		TrianglesArea.push_back(TriangleArea(triangle[0], triangle[1], triangle[2]));
-		TotalArea += TrianglesArea.back();
+		TotalArea += float(TrianglesArea.back());
 
 		TrianglesCentroids.push_back((triangle[0] + triangle[1] + triangle[2]) / 3.0f);
 
@@ -251,7 +251,7 @@ void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 	if (Triangles.empty())
 		fillTrianglesData();
 
-	for (size_t i = 0; i < Triangles.size(); i++)
+	for (int i = 0; i < Triangles.size(); i++)
 	{
 		std::vector<glm::vec3> TranformedTrianglePoints = Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
@@ -320,7 +320,7 @@ void FEMesh::SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* current
 
 		if (glm::distance(FirstSelectedTriangleCentroid, TrianglesCentroids[i]) <= Radius)
 		{
-			TriangleSelected.push_back(i);
+			TriangleSelected.push_back(int(i));
 		}
 	}
 }
@@ -338,7 +338,7 @@ void FEMesh::SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius)
 	{
 		if (glm::distance(FirstSelectedTriangleCentroid, TrianglesCentroids[i]) <= Radius)
 		{
-			TriangleSelected.push_back(i);
+			TriangleSelected.push_back(int(i));
 		}
 	}
 }
@@ -395,7 +395,7 @@ void FEMesh::fillRugosityDataToGPU(int RugosityLayerIndex)
 
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
-		setRugosityOfFace(i, TrianglesRugosity[i]);
+		setRugosityOfFace(int(i), TrianglesRugosity[i]);
 	}
 
 	FE_GL_ERROR(glBindVertexArray(vaoID));
@@ -434,7 +434,7 @@ void FEMesh::UpdateAverageNormal()
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
 		double originalArea = TriangleArea(Triangles[i][0], Triangles[i][1], Triangles[i][2]);
-		originalAreas.push_back(originalArea);
+		originalAreas.push_back(float(originalArea));
 		totalArea += originalArea;
 	}
 
@@ -456,7 +456,7 @@ void FEMesh::UpdateAverageNormal()
 	{
 		for (size_t j = 0; j < 3; j++)
 		{
-			double CurrentHeight = glm::dot(Triangles[i][j], AverageNormal);
+			double CurrentHeight = glm::dot(glm::vec3(Position->getTransformMatrix() * glm::vec4(Triangles[i][j], 1.0)), AverageNormal);
 
 			MinHeight = std::min(CurrentHeight, MinHeight);
 			MaxHeight = std::max(CurrentHeight, MaxHeight);

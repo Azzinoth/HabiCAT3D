@@ -2,9 +2,8 @@
 
 #include "../FEMesh.h"
 #include "FEFreeCamera.h"
+#include "FEModelViewCamera.h"
 #include "../SubSystems/FELinesRenderer.h"
-
-
 
 #include "CGAL/Surface_mesh.h"
 #include "CGAL/Surface_mesh_simplification/edge_collapse.h"
@@ -171,7 +170,7 @@ namespace FocalEngine
 
 	struct SDF
 	{
-		FEFreeCamera* currentCamera = nullptr;
+		FEBasicCamera* currentCamera = nullptr;
 
 		std::vector<std::vector<std::vector<SDFNode>>> data;
 		glm::vec3 averageNormal;
@@ -179,9 +178,9 @@ namespace FocalEngine
 
 		std::vector<triangleData> getTrianglesData(FEMesh* mesh);
 		SDF();
-		SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEFreeCamera* camera);
+		SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEBasicCamera* camera);
 
-		void Init(FEMesh* mesh, int dimensions, FEAABB AABB, FEFreeCamera* camera, float ResolutionInM = 0.0f);
+		void Init(FEMesh* mesh, int dimensions, FEAABB AABB, FEBasicCamera* camera, float ResolutionInM = 0.0f);
 
 		glm::vec3 selectedCell = glm::vec3(0.0);
 
