@@ -336,6 +336,24 @@ glm::dvec2 RugosityManager::RugosityAreaDistribution(float RugosityValue)
 	return glm::dvec2(FirstBin, SecondBin);
 }
 
+double RugosityManager::AreaWithRugosities(float MinRugosity, float MaxRugosity)
+{
+	double Result = 0.0;
+
+	if (RUGOSITY_MANAGER.currentSDF == nullptr || !RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+		return Result;
+
+	for (int i = 0; i < currentSDF->mesh->Triangles.size(); i++)
+	{
+		if (currentSDF->mesh->TrianglesRugosity[i] >= MinRugosity && currentSDF->mesh->TrianglesRugosity[i] <= MaxRugosity)
+		{
+			Result += currentSDF->mesh->TrianglesArea[i];
+		}
+	}
+
+	return Result;
+}
+
 float RugosityManager::GetLastTimeTookForCalculation()
 {
 	return LastTimeTookForCalculation;

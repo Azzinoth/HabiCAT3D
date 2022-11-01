@@ -96,6 +96,32 @@ namespace FocalEngine
 		std::unordered_map<float, std::string> RangeValueLabels;
 	};
 
+	class FEGraphRender
+	{
+		ImVec2 Position;
+		ImVec2 Size = ImVec2(100, 100);
+
+		std::vector<float> DataPonts;
+		std::vector<float> NormalizedDataPonts;
+
+		int ColumnWidth = 3;
+
+		std::vector<float> NormalizeArray(std::vector<float> Array);
+
+		float GetValueAtPosition(float NormalizedPosition);
+	public:
+		ImVec2 GetPosition() const;
+		void SetPosition(ImVec2 NewValue);
+
+		ImVec2 GetSize() const;
+		void SetSize(ImVec2 NewValue);
+
+		std::vector<float> GetDataPoints() const;
+		void SetDataPoints(std::vector<float> NewValue);
+
+		void Render();
+	};
+
 	class UIManager
 	{
 	public:
@@ -155,6 +181,9 @@ namespace FocalEngine
 		void RenderLegend();
 		void ShowRugosityRangeSettings();
 		void RenderVisualModeWindow();
+
+		FEGraphRender Graph;
+		void RenderRugosityHistogram();
 		//void TestCGALVariant();
 	};
 

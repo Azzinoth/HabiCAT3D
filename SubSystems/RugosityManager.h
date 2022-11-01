@@ -68,6 +68,7 @@ namespace FocalEngine
 		void SetUseCGALVariant(bool NewValue);
 
 		glm::dvec2 RugosityAreaDistribution(float RugosityValue);
+		double AreaWithRugosities(float MinRugosity, float MaxRugosity);
 
 		float GetLastTimeTookForCalculation();
 		float GetMaxRugosityWithOutOutliers(float OutliersPercentage);
