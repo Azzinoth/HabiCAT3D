@@ -185,6 +185,7 @@ namespace FocalEngine
 		FEGraphRender Graph;
 		void FillGraphDataPoints(int GraphWidth);
 		void RenderRugosityHistogram();
+		float TimeTook = 0.0f;
 		//void TestCGALVariant();
 	};
 

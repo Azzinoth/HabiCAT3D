@@ -353,6 +353,22 @@ double RugosityManager::AreaWithRugosities(float MinRugosity, float MaxRugosity)
 		}
 	}
 
+	/*auto Iterator = RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.begin();
+	while (Iterator != RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.end())
+	{
+		double CurrentRugosity = std::get<0>(*Iterator);
+		if (CurrentRugosity >= MinRugosity && CurrentRugosity <= MaxRugosity)
+		{
+			Result += std::get<1>(*Iterator);
+		}
+		else if (CurrentRugosity > MaxRugosity)
+		{
+			break;
+		}
+
+		Iterator++;
+	}*/
+
 	return Result;
 }
 
@@ -396,8 +412,6 @@ float RugosityManager::GetMaxRugosityWithOutOutliers(float OutliersPercentage)
 
 void RugosityManager::OnRugosityCalculationsEnd()
 {
-	
-
 	for (int i = 0; i < RUGOSITY_MANAGER.currentSDF->mesh->Triangles.size(); i++)
 	{
 		RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.push_back(std::make_tuple(RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity[i],

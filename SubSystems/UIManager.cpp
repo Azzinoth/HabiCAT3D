@@ -473,7 +473,9 @@ void UIManager::ShowRugosityRangeSettings()
 void UIManager::RenderMainWindow(FEMesh* currentMesh)
 {
 	ImGui::Begin("Settings", nullptr);
-	
+
+	ImGui::Text(("TimeTook: " + std::to_string(TimeTook)).c_str());
+
 	ImGui::Checkbox("Developer UI", &DeveloperMode);
 
 	showCameraTransform();
@@ -1471,6 +1473,8 @@ void UIManager::SetIsModelCamera(bool NewValue)
 
 void UIManager::FillGraphDataPoints(int GraphWidth)
 {
+	TIME.BeginTimeStamp("FillGraphDataPoints Time");
+
 	std::vector<float> DataPoints;
 	for (size_t i = 0; i < GraphWidth; i++)
 	{
@@ -1495,7 +1499,11 @@ void UIManager::FillGraphDataPoints(int GraphWidth)
 	}
 
 	Graph.SetDataPoints(DataPoints);
+
+	TimeTook = TIME.EndTimeStamp("FillGraphDataPoints Time");
 }
+
+double TimeFromLastWindowResize = 0.0;
 
 void UIManager::RenderRugosityHistogram()
 {
@@ -1523,8 +1531,22 @@ void UIManager::RenderRugosityHistogram()
 
 		if (currentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded && LastWindowW != window->SizeFull.x && !currentMesh->TrianglesRugosity.empty())
 		{
-			LastWindowW = window->SizeFull.x;
-			FillGraphDataPoints(window->SizeFull.x - 20);
+			if (TimeFromLastWindowResize == 0.0)
+			{
+				TIME.BeginTimeStamp("TimeFromLastWindowResize");
+				TimeFromLastWindowResize = 0.001;
+			}
+			else
+			{
+				TimeFromLastWindowResize = TIME.EndTimeStamp("TimeFromLastWindowResize");
+			}
+			
+			if (TimeFromLastWindowResize > 400)
+			{
+				TimeFromLastWindowResize = 0.0;
+				LastWindowW = window->SizeFull.x;
+				FillGraphDataPoints(window->SizeFull.x - 20);
+			}
 		}
 	}
 
