@@ -1469,6 +1469,34 @@ void UIManager::SetIsModelCamera(bool NewValue)
 	bModelCamera = NewValue;
 }
 
+void UIManager::FillGraphDataPoints(int GraphWidth)
+{
+	std::vector<float> DataPoints;
+	for (size_t i = 0; i < GraphWidth; i++)
+	{
+		double NormalizedPixelPosition = double(i) / (GraphWidth);
+		double NextNormalizedPixelPosition = double(i + 1) / (GraphWidth);
+
+		double RugosityAtThisPosition = currentMesh->minRugorsity + (currentMesh->maxRugorsity - currentMesh->minRugorsity) * NormalizedPixelPosition;
+		double RugosityAtNextPosition = currentMesh->minRugorsity + (currentMesh->maxRugorsity - currentMesh->minRugorsity) * NextNormalizedPixelPosition;
+
+		//double RugosityAtThisPosition = currentMesh->minVisibleRugorsity + (currentMesh->maxVisibleRugorsity - currentMesh->minVisibleRugorsity) * NormalizedPixelPosition;
+		//auto test = RUGOSITY_MANAGER.RugosityAreaDistribution(RugosityAtThisPosition);
+
+		double DataPoint = RUGOSITY_MANAGER.AreaWithRugosities(RugosityAtThisPosition, RugosityAtNextPosition) / currentMesh->TotalArea;
+
+		DataPoints.push_back(DataPoint);
+	}
+
+	double Sum = 0.0;
+	for (size_t i = 0; i < DataPoints.size(); i++)
+	{
+		Sum += DataPoints[i];
+	}
+
+	Graph.SetDataPoints(DataPoints);
+}
+
 void UIManager::RenderRugosityHistogram()
 {
 	if (Graph.GetPosition().x == 0)
@@ -1491,36 +1519,12 @@ void UIManager::RenderRugosityHistogram()
 	ImGuiWindow* window = ImGui::FindWindowByName("Rugosity histogram");
 	if (window != nullptr)
 	{
-		Graph.SetSize(ImVec2(window->SizeFull.x - 20, window->SizeFull.y - 20));
+		Graph.SetSize(ImVec2(window->SizeFull.x - 40, window->SizeFull.y - 50));
 
 		if (currentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded && LastWindowW != window->SizeFull.x && !currentMesh->TrianglesRugosity.empty())
 		{
 			LastWindowW = window->SizeFull.x;
-
-			std::vector<float> DataPoints;
-			for (size_t i = 0; i < window->SizeFull.x - 20; i++)
-			{
-				double NormalizedPixelPosition = double(i) / (window->SizeFull.x - 20);
-				double NextNormalizedPixelPosition = double(i + 1) / (window->SizeFull.x - 20);
-
-				double RugosityAtThisPosition = currentMesh->minVisibleRugorsity + (currentMesh->maxVisibleRugorsity - currentMesh->minVisibleRugorsity) * NormalizedPixelPosition;
-				double RugosityAtNextPosition = currentMesh->minVisibleRugorsity + (currentMesh->maxVisibleRugorsity - currentMesh->minVisibleRugorsity) * NextNormalizedPixelPosition;
-
-				//double RugosityAtThisPosition = currentMesh->minVisibleRugorsity + (currentMesh->maxVisibleRugorsity - currentMesh->minVisibleRugorsity) * NormalizedPixelPosition;
-				//auto test = RUGOSITY_MANAGER.RugosityAreaDistribution(RugosityAtThisPosition);
-
-				double DataPoint = RUGOSITY_MANAGER.AreaWithRugosities(RugosityAtThisPosition, RugosityAtNextPosition) / currentMesh->TotalArea;
-
-				DataPoints.push_back(DataPoint);
-			}
-
-			double Sum = 0.0;
-			for (size_t i = 0; i < DataPoints.size(); i++)
-			{
-				Sum += DataPoints[i];
-			}
-
-			Graph.SetDataPoints(DataPoints);
+			FillGraphDataPoints(window->SizeFull.x - 20);
 		}
 	}
 
@@ -2022,7 +2026,6 @@ float FEGraphRender::GetValueAtPosition(float NormalizedPosition)
 
 void FEGraphRender::Render()
 {
-	int GraphTop = Position.y;
 	int GraphBottom = /*Position.y +*/ Size.y;
 
 	float WindowX = ImGui::GetCurrentWindow()->Pos.x;
@@ -2031,14 +2034,15 @@ void FEGraphRender::Render()
 	ImColor StartColor = ImColor(11.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f);
 	ImColor EndColor = ImColor(35.0f / 255.0f, 94.0f / 255.0f, 133.0f / 255.0f);
 
-	ImVec2 GraphPosition = Position;
-
 	std::vector<ImVec2> Points;
 
 	auto RenderOneColumn = [&](int ColumnBottom, int ColumnTop, int XPosition, int ColumnW, int PreviousColumnHeight, int NextColumnHeight) {
+		if (ColumnTop < 0)
+			return;
+
 		for (int i = ColumnBottom; i > ColumnTop; i--)
 		{
-			float CombineFactor = (float(GraphBottom) - float(i)) / (float(GraphBottom) - float(GraphTop));
+			float CombineFactor = (float(GraphBottom) - float(i)) / (float(GraphBottom) - float(Position.y));
 
 			ImColor FirstPart = ImColor(EndColor.Value.x * CombineFactor,
 				EndColor.Value.y * CombineFactor,
@@ -2052,42 +2056,25 @@ void FEGraphRender::Render()
 				FirstPart.Value.y + SecondPart.Value.y,
 				FirstPart.Value.z + SecondPart.Value.z);
 
-			// Creating border of graph
+			// Outline of graph
 			if (i < ColumnTop + 3 || i <= PreviousColumnHeight || i <= NextColumnHeight)
 				CurrentColor = ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f);
 
-			//if (i == ColumnTop + 1)
-			//{
-			//	Points.push_back(ImVec2(WindowX + XPosition + ColumnW / 2.0f, WindowY + i - 1 + ColumnWidth) + GraphPosition);
-			//}
-
-			ImVec2 MinPosition = ImVec2(WindowX + XPosition, WindowY + i - 1) /*+ GraphPosition*/;
-			ImVec2 MaxPosition = ImVec2(WindowX + XPosition + ColumnW, WindowY + i) /*+ GraphPosition*/;
+			ImVec2 MinPosition = ImVec2(WindowX + Position.x + XPosition, WindowY + i - 1) /*+ GraphPosition*/;
+			ImVec2 MaxPosition = ImVec2(WindowX + Position.x + XPosition + ColumnW, WindowY + i) /*+ GraphPosition*/;
 			ImGui::GetWindowDrawList()->AddRectFilled(MinPosition,
 				MaxPosition,
 				CurrentColor);
 		}
 	};
 
-	/*for (int i = 0; i < NormalizedDataPonts.size(); i++)
-	{
-		if (isnan(NormalizedDataPonts[i]))
-			continue;
-
-		float ColumnHeight = float(GraphBottom - GraphTop) * NormalizedDataPonts[i];
-
-		RenderOneColumn(GraphBottom, ColumnHeight, Position.x + i * ColumnWidth, ColumnWidth);
-
-		auto test = GetValueAtPosition(0.1);
-	}*/
-
 	auto GraphHeightAtPixel = [&](int PixelX) {
 		float NormalizedPosition = PixelX / Size.x;
 		if (NormalizedPosition > 1.0f)
 			NormalizedPosition = 1.0f;
 
-		float ValueAtThisPixel = GetValueAtPosition(PixelX / Size.x);
-		float ColumnHeight = GraphBottom - float(GraphBottom - GraphTop) * ValueAtThisPixel;
+		float ValueAtThisPixel = GetValueAtPosition(NormalizedPosition);
+		float ColumnHeight = GraphBottom - float(GraphBottom - Position.y) * ValueAtThisPixel;
 
 		if (ColumnHeight > GraphBottom)
 		{
@@ -2102,13 +2089,4 @@ void FEGraphRender::Render()
 	{
 		RenderOneColumn(GraphBottom, GraphHeightAtPixel(i), Position.x + i, 1, GraphHeightAtPixel(i - 1), GraphHeightAtPixel(i + 1));
 	}
-
-	/*ImColor LineColor = ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f);
-
-	for (int i = 0; i < Points.size(); i++)
-	{
-		ImGui::GetWindowDrawList()->PathLineTo(Points[i]);
-	}*/
-
-	//ImGui::GetWindowDrawList()->PathStroke(LineColor, 0/*ImDrawListFlags_AntiAliasedLines*/, 1);
 }

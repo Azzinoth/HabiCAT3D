@@ -3,6 +3,7 @@ using namespace FocalEngine;
 
 RugosityManager* RugosityManager::Instance = nullptr;
 float RugosityManager::LastTimeTookForCalculation = 0.0f;
+std::vector<std::tuple<double, double, int>> RugosityManager::RugosityTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
 
 RugosityManager::RugosityManager()
 {
@@ -121,8 +122,9 @@ SDF* RugosityManager::calculateSDF(FEMesh* mesh, int dimentions, FEBasicCamera* 
 	result->calculateRugosity();
 
 	result->fillMeshWithRugosityData();
-
 	result->bFullyLoaded = true;
+
+	OnRugosityCalculationsEnd();
 
 	return result;
 }
@@ -147,6 +149,7 @@ void RugosityManager::calculateSDFCallback(void* OutputData)
 	else
 	{
 		LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
+		OnRugosityCalculationsEnd();
 	}
 }
 
@@ -182,7 +185,6 @@ void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
 	Output->calculateRugosity();
 
 	Output->fillMeshWithRugosityData();
-
 	Output->bFullyLoaded = true;
 }
 
@@ -390,4 +392,32 @@ float RugosityManager::GetMaxRugosityWithOutOutliers(float OutliersPercentage)
 
 	if (numbOfPoints != 0)
 		mean /= numbOfPoints;*/
+}
+
+void RugosityManager::OnRugosityCalculationsEnd()
+{
+	
+
+	for (int i = 0; i < RUGOSITY_MANAGER.currentSDF->mesh->Triangles.size(); i++)
+	{
+		RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.push_back(std::make_tuple(RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity[i],
+																				RUGOSITY_MANAGER.currentSDF->mesh->TrianglesArea[i], i));
+
+		/*if (RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity[i] >= MinRugosity && currentSDF->mesh->TrianglesRugosity[i] <= MaxRugosity)
+		{
+			Result += currentSDF->mesh->TrianglesArea[i];
+		}*/
+	}
+
+	// sort() function will sort by 1st element of tuple.
+	std::sort(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.begin(), RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.end());
+
+	double test = std::get<0>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex[0]);
+	test = std::get<0>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.back());
+
+	int y = 0;
+	y++;
+
+	//RUGOSITY_MANAGER.currentSDF->fillMeshWithRugosityData();
+	//RUGOSITY_MANAGER.currentSDF->bFullyLoaded = true;
 }

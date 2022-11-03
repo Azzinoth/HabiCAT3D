@@ -80,6 +80,10 @@ namespace FocalEngine
 		bool bUseCGALVariant = false;
 
 		static float LastTimeTookForCalculation;
+
+		static void OnRugosityCalculationsEnd();
+
+		static std::vector<std::tuple<double, double, int>> RugosityTriangleAreaAndIndex;
 	};
 
 	#define RUGOSITY_MANAGER RugosityManager::getInstance()
