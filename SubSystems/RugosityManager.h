@@ -72,6 +72,13 @@ namespace FocalEngine
 
 		float GetLastTimeTookForCalculation();
 		float GetMaxRugosityWithOutOutliers(float OutliersPercentage);
+
+		void SetOnRugosityCalculationsEndCallback(void(*Func)(void));
+
+		std::string GetUsedRugosityAlgorithmName();
+		void SetUsedRugosityAlgorithmName(std::string name);
+		std::vector<std::string> RugosityAlgorithmList;
+
 	private:
 		SINGLETON_PRIVATE_PART(RugosityManager)
 
@@ -82,6 +89,7 @@ namespace FocalEngine
 		static float LastTimeTookForCalculation;
 
 		static void OnRugosityCalculationsEnd();
+		static void(*OnRugosityCalculationsEndCallbackImpl)(void);
 	public:
 		static std::vector<std::tuple<double, double, int>> RugosityTriangleAreaAndIndex;
 	};

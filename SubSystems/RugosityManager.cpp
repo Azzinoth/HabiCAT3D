@@ -4,6 +4,7 @@ using namespace FocalEngine;
 RugosityManager* RugosityManager::Instance = nullptr;
 float RugosityManager::LastTimeTookForCalculation = 0.0f;
 std::vector<std::tuple<double, double, int>> RugosityManager::RugosityTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
+void(*RugosityManager::OnRugosityCalculationsEndCallbackImpl)(void) = nullptr;
 
 RugosityManager::RugosityManager()
 {
@@ -22,6 +23,10 @@ RugosityManager::RugosityManager()
 	colorSchemesList.push_back("Default");
 	colorSchemesList.push_back("Rainbow");
 	colorSchemesList.push_back("Turbo colormap");
+
+	RugosityAlgorithmList.push_back("Average normal(default)");
+	RugosityAlgorithmList.push_back("Min Rugosity");
+	RugosityAlgorithmList.push_back("Least square fitting");
 }
 
 RugosityManager::~RugosityManager() {}
@@ -295,6 +300,36 @@ int RugosityManager::colorSchemeIndexFromString(std::string name)
 	return 3;
 }
 
+std::string RugosityManager::GetUsedRugosityAlgorithmName()
+{
+	if (bUseFindSmallestRugosity)
+		return RugosityAlgorithmList[1];
+
+	if (bUseCGALVariant)
+		return RugosityAlgorithmList[2];
+
+	return RugosityAlgorithmList[0];
+}
+
+void RugosityManager::SetUsedRugosityAlgorithmName(std::string name)
+{
+	if (name == RugosityAlgorithmList[1])
+	{
+		bUseFindSmallestRugosity = true;
+		bUseCGALVariant = false;
+	} 
+	else if (name == RugosityAlgorithmList[2])
+	{
+		bUseFindSmallestRugosity = false;
+		bUseCGALVariant = true;
+	}
+	else
+	{
+		bUseFindSmallestRugosity = false;
+		bUseCGALVariant = false;
+	}
+}
+
 bool RugosityManager::GetUseFindSmallestRugosity()
 {
 	return bUseFindSmallestRugosity;
@@ -416,22 +451,16 @@ void RugosityManager::OnRugosityCalculationsEnd()
 	{
 		RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.push_back(std::make_tuple(RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity[i],
 																				RUGOSITY_MANAGER.currentSDF->mesh->TrianglesArea[i], i));
-
-		/*if (RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity[i] >= MinRugosity && currentSDF->mesh->TrianglesRugosity[i] <= MaxRugosity)
-		{
-			Result += currentSDF->mesh->TrianglesArea[i];
-		}*/
 	}
 
 	// sort() function will sort by 1st element of tuple.
 	std::sort(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.begin(), RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.end());
 
-	double test = std::get<0>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex[0]);
-	test = std::get<0>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.back());
+	if (OnRugosityCalculationsEndCallbackImpl != nullptr)
+		OnRugosityCalculationsEndCallbackImpl();
+}
 
-	int y = 0;
-	y++;
-
-	//RUGOSITY_MANAGER.currentSDF->fillMeshWithRugosityData();
-	//RUGOSITY_MANAGER.currentSDF->bFullyLoaded = true;
+void RugosityManager::SetOnRugosityCalculationsEndCallback(void(*Func)(void))
+{
+	OnRugosityCalculationsEndCallbackImpl = Func;
 }

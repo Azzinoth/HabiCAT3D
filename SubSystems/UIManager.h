@@ -192,6 +192,7 @@ namespace FocalEngine
 		float SetDataPoints = 0.0f;
 		float AreaWithRugosities_TotalTime = 0.0f;
 		
+		static void OnRugosityCalculationsEnd();
 		//void TestCGALVariant();
 	};
 
