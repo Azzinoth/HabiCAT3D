@@ -474,7 +474,11 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 {
 	ImGui::Begin("Settings", nullptr);
 
-	ImGui::Text(("TimeTook: " + std::to_string(TimeTook)).c_str());
+	ImGui::Text(("FillGraphDataPoints_TotalTime: " + std::to_string(FillGraphDataPoints_TotalTime)).c_str());
+	ImGui::Text(("AreaWithRugosities_TotalTime: " + std::to_string(AreaWithRugosities_TotalTime)).c_str());
+	ImGui::Text(("SetDataPoints_Time: " + std::to_string(SetDataPoints)).c_str());
+	
+
 
 	ImGui::Checkbox("Developer UI", &DeveloperMode);
 
@@ -1474,9 +1478,10 @@ void UIManager::SetIsModelCamera(bool NewValue)
 void UIManager::FillGraphDataPoints(int GraphWidth)
 {
 	TIME.BeginTimeStamp("FillGraphDataPoints Time");
+	AreaWithRugosities_TotalTime = 0.0f;
 
 	std::vector<float> DataPoints;
-	for (size_t i = 0; i < GraphWidth; i++)
+	/*for (size_t i = 0; i < GraphWidth; i++)
 	{
 		double NormalizedPixelPosition = double(i) / (GraphWidth);
 		double NextNormalizedPixelPosition = double(i + 1) / (GraphWidth);
@@ -1484,26 +1489,75 @@ void UIManager::FillGraphDataPoints(int GraphWidth)
 		double RugosityAtThisPosition = currentMesh->minRugorsity + (currentMesh->maxRugorsity - currentMesh->minRugorsity) * NormalizedPixelPosition;
 		double RugosityAtNextPosition = currentMesh->minRugorsity + (currentMesh->maxRugorsity - currentMesh->minRugorsity) * NextNormalizedPixelPosition;
 
-		//double RugosityAtThisPosition = currentMesh->minVisibleRugorsity + (currentMesh->maxVisibleRugorsity - currentMesh->minVisibleRugorsity) * NormalizedPixelPosition;
-		//auto test = RUGOSITY_MANAGER.RugosityAreaDistribution(RugosityAtThisPosition);
-
+		TIME.BeginTimeStamp("AreaWithRugosities Time");
 		double DataPoint = RUGOSITY_MANAGER.AreaWithRugosities(RugosityAtThisPosition, RugosityAtNextPosition) / currentMesh->TotalArea;
+		AreaWithRugosities_TotalTime += TIME.EndTimeStamp("AreaWithRugosities Time", FE_TIME_RESOLUTION_MICROSECONS);
 
 		DataPoints.push_back(DataPoint);
+	}*/
+
+	std::vector<float> MinRugosity;
+	MinRugosity.resize(GraphWidth);
+	std::vector<float> MaxRugosity;
+	MaxRugosity.resize(GraphWidth);
+
+	TIME.BeginTimeStamp("AreaWithRugosities Time");
+
+	for (size_t i = 0; i < GraphWidth; i++)
+	{
+		double NormalizedPixelPosition = double(i) / (GraphWidth);
+		double NextNormalizedPixelPosition = double(i + 1) / (GraphWidth);
+
+		MinRugosity[i] = currentMesh->minRugorsity + (currentMesh->maxRugorsity - currentMesh->minRugorsity) * NormalizedPixelPosition;
+		MaxRugosity[i] = currentMesh->minRugorsity + (currentMesh->maxRugorsity - currentMesh->minRugorsity) * NextNormalizedPixelPosition;
 	}
 
-	double Sum = 0.0;
+
+	int CurrentIndex = 0;
+	double PartialResult = 0.0;
+	auto Iterator = RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.begin();
+	while (Iterator != RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.end())
+	{
+		double CurrentRugosity = std::get<0>(*Iterator);
+		if (CurrentRugosity >= MinRugosity[CurrentIndex] && CurrentRugosity <= MaxRugosity[CurrentIndex])
+		{
+			PartialResult += std::get<1>(*Iterator);
+		}
+		else if (CurrentRugosity > MaxRugosity[CurrentIndex])
+		{
+			
+			DataPoints.push_back(PartialResult);
+			CurrentIndex++;
+			PartialResult = 0.0;
+
+			if (CurrentIndex == GraphWidth)
+				break;
+			//break;
+		}
+
+		Iterator++;
+	}
+
+	for (size_t i = 0; i < GraphWidth; i++)
+	{
+		
+	}
+
+
+	AreaWithRugosities_TotalTime = TIME.EndTimeStamp("AreaWithRugosities Time");
+
+	/*double Sum = 0.0;
 	for (size_t i = 0; i < DataPoints.size(); i++)
 	{
 		Sum += DataPoints[i];
-	}
+	}*/
 
+	TIME.BeginTimeStamp("SetDataPoints Time");
 	Graph.SetDataPoints(DataPoints);
+	SetDataPoints = TIME.EndTimeStamp("SetDataPoints Time");
 
-	TimeTook = TIME.EndTimeStamp("FillGraphDataPoints Time");
+	FillGraphDataPoints_TotalTime = TIME.EndTimeStamp("FillGraphDataPoints Time");
 }
-
-double TimeFromLastWindowResize = 0.0;
 
 void UIManager::RenderRugosityHistogram()
 {
@@ -1531,22 +1585,8 @@ void UIManager::RenderRugosityHistogram()
 
 		if (currentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded && LastWindowW != window->SizeFull.x && !currentMesh->TrianglesRugosity.empty())
 		{
-			if (TimeFromLastWindowResize == 0.0)
-			{
-				TIME.BeginTimeStamp("TimeFromLastWindowResize");
-				TimeFromLastWindowResize = 0.001;
-			}
-			else
-			{
-				TimeFromLastWindowResize = TIME.EndTimeStamp("TimeFromLastWindowResize");
-			}
-			
-			if (TimeFromLastWindowResize > 400)
-			{
-				TimeFromLastWindowResize = 0.0;
-				LastWindowW = window->SizeFull.x;
-				FillGraphDataPoints(window->SizeFull.x - 20);
-			}
+			LastWindowW = window->SizeFull.x;
+			FillGraphDataPoints(window->SizeFull.x - 20);
 		}
 	}
 
@@ -2111,4 +2151,9 @@ void FEGraphRender::Render()
 	{
 		RenderOneColumn(GraphBottom, GraphHeightAtPixel(i), Position.x + i, 1, GraphHeightAtPixel(i - 1), GraphHeightAtPixel(i + 1));
 	}
+
+	// Debug functionality
+	ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY) + Position + GraphCanvasPosition,
+											  ImVec2(WindowX, WindowY) + Position + GraphCanvasSize,
+											  ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f, 45.0f / 255.0f));
 }

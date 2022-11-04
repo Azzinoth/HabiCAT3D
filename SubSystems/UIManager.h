@@ -109,6 +109,9 @@ namespace FocalEngine
 		std::vector<float> NormalizeArray(std::vector<float> Array);
 
 		float GetValueAtPosition(float NormalizedPosition);
+
+		ImVec2 GraphCanvasPosition = ImVec2(0, 0);
+		ImVec2 GraphCanvasSize = ImVec2(50, 50);
 	public:
 		ImVec2 GetPosition() const;
 		void SetPosition(ImVec2 NewValue);
@@ -185,7 +188,10 @@ namespace FocalEngine
 		FEGraphRender Graph;
 		void FillGraphDataPoints(int GraphWidth);
 		void RenderRugosityHistogram();
-		float TimeTook = 0.0f;
+		float FillGraphDataPoints_TotalTime = 0.0f;
+		float SetDataPoints = 0.0f;
+		float AreaWithRugosities_TotalTime = 0.0f;
+		
 		//void TestCGALVariant();
 	};
 

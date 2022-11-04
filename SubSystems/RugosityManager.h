@@ -82,7 +82,7 @@ namespace FocalEngine
 		static float LastTimeTookForCalculation;
 
 		static void OnRugosityCalculationsEnd();
-
+	public:
 		static std::vector<std::tuple<double, double, int>> RugosityTriangleAreaAndIndex;
 	};
 
