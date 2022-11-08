@@ -61,6 +61,8 @@ file(GLOB BasicApplicationSubSystem_SRC
 	"SubSystems/FEBasicApplication/FEBasicApplication.h"
 	"SubSystems/FEBasicApplication/FEThreadPool.cpp"
 	"SubSystems/FEBasicApplication/FEThreadPool.h"
+	"SubSystems/FEBasicApplication/FELog.cpp"
+	"SubSystems/FEBasicApplication/FELog.h"
 	"SubSystems/FEBasicApplication/FETime.cpp"
 	"SubSystems/FEBasicApplication/FETime.h"
 )

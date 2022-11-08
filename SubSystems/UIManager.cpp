@@ -905,6 +905,115 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 					RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.HigestResolution;
 			}
 
+			ImGui::Text("Selection mode:");
+			if (ImGui::RadioButton("None", &RugositySelectionMode, 0))
+			{
+				currentMesh->TriangleSelected.clear();
+				LINE_RENDERER.clearAll();
+				LINE_RENDERER.SyncWithGPU();
+			}
+
+			if (ImGui::RadioButton("Triangles", &RugositySelectionMode, 1))
+			{
+				currentMesh->TriangleSelected.clear();
+				LINE_RENDERER.clearAll();
+				LINE_RENDERER.SyncWithGPU();
+			}
+
+			if (ImGui::RadioButton("Area", &RugositySelectionMode, 2))
+			{
+				currentMesh->TriangleSelected.clear();
+				LINE_RENDERER.clearAll();
+				LINE_RENDERER.SyncWithGPU();
+			}
+
+			if (RugositySelectionMode == 2)
+			{
+				ImGui::Text("Radius of area to measure: ");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(128);
+				ImGui::DragFloat("##AreaToMeasureRugosity", &AreaToMeasureRugosity, 0.01f);
+				if (AreaToMeasureRugosity < 0.1f)
+					AreaToMeasureRugosity = 0.1f;
+			}
+
+			if (currentMesh->TriangleSelected.size() == 1)
+			{
+				ImGui::Separator();
+				ImGui::Text("Selected triangle information :");
+
+				std::string Text = "Triangle rugosity : ";
+				if (!currentMesh->TrianglesRugosity.empty())
+				{
+					Text += std::to_string(currentMesh->TrianglesRugosity[currentMesh->TriangleSelected[0]]);
+				}
+				else
+				{
+					Text += "No information.";
+				}
+				ImGui::Text(Text.c_str());
+
+				Text = "Triangle average height : ";
+				double AverageHeight = 0.0;
+				for (size_t i = 0; i < 3; i++)
+				{
+					glm::vec3 CurrentPoint = currentMesh->Triangles[currentMesh->TriangleSelected[0]][i];
+					AverageHeight += glm::dot(glm::vec3(currentMesh->Position->getTransformMatrix() * glm::vec4(CurrentPoint, 1.0)), currentMesh->AverageNormal);
+				}
+
+				AverageHeight /= 3.0;
+				AverageHeight -= currentMesh->MinHeight;
+
+				Text += std::to_string(AverageHeight);
+
+				ImGui::Text(Text.c_str());
+			}
+			else if (currentMesh->TriangleSelected.size() > 1)
+			{
+				std::string Text = "Area rugosity : ";
+
+				if (!currentMesh->TrianglesRugosity.empty())
+				{
+					float TotalRugosity = 0.0f;
+					for (size_t i = 0; i < currentMesh->TriangleSelected.size(); i++)
+					{
+						TotalRugosity += currentMesh->TrianglesRugosity[currentMesh->TriangleSelected[i]];
+					}
+
+					TotalRugosity /= currentMesh->TriangleSelected.size();
+					Text += std::to_string(TotalRugosity);
+				}
+				else
+				{
+					Text += "No information.";
+				}
+
+				ImGui::Text(Text.c_str());
+
+				Text = "Area average height : ";
+
+				double AverageHeight = 0.0;
+				for (size_t i = 0; i < currentMesh->TriangleSelected.size(); i++)
+				{
+					double CurrentHeight = 0.0;
+					for (size_t j = 0; j < 3; j++)
+					{
+						glm::vec3 CurrentPoint = currentMesh->Triangles[currentMesh->TriangleSelected[i]][j];
+						CurrentHeight += glm::dot(glm::vec3(currentMesh->Position->getTransformMatrix() * glm::vec4(CurrentPoint, 1.0)), currentMesh->AverageNormal);
+					}
+
+					CurrentHeight /= 3.0;
+					AverageHeight += CurrentHeight;
+				}
+
+				AverageHeight /= currentMesh->TriangleSelected.size();
+				AverageHeight -= currentMesh->MinHeight;
+
+				Text += std::to_string(AverageHeight);
+
+				ImGui::Text(Text.c_str());
+			}
+
 			if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
 			{
 				ShowRugosityRangeSettings();
@@ -921,76 +1030,7 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 					}
 				}*/
 
-				ImGui::Text("Selection mode:");
-				if (ImGui::RadioButton("None", &RugositySelectionMode, 0))
-				{
-					currentMesh->TriangleSelected.clear();
-					LINE_RENDERER.clearAll();
-					LINE_RENDERER.SyncWithGPU();
-				}
-
-				if (ImGui::RadioButton("Triangles", &RugositySelectionMode, 1))
-				{
-					currentMesh->TriangleSelected.clear();
-					LINE_RENDERER.clearAll();
-					LINE_RENDERER.SyncWithGPU();
-				}
-
-				if (ImGui::RadioButton("Area", &RugositySelectionMode, 2))
-				{
-					currentMesh->TriangleSelected.clear();
-					LINE_RENDERER.clearAll();
-					LINE_RENDERER.SyncWithGPU();
-				}
-
-				if (RugositySelectionMode == 2)
-				{
-					ImGui::Text("Radius of area to measure: ");
-					ImGui::SameLine();
-					ImGui::SetNextItemWidth(128);
-					ImGui::DragFloat("##AreaToMeasureRugosity", &AreaToMeasureRugosity, 0.01f);
-					if (AreaToMeasureRugosity < 0.1f)
-						AreaToMeasureRugosity = 0.1f;
-				}
-
-				if (currentMesh->TriangleSelected.size() == 1)
-				{
-					ImGui::Separator();
-					ImGui::Text("Selected triangle information :");
-
-					std::string Text = "Triangle rugosity : ";
-					if (!currentMesh->TrianglesRugosity.empty())
-					{
-						Text += std::to_string(currentMesh->TrianglesRugosity[currentMesh->TriangleSelected[0]]);
-					}
-					else
-					{
-						Text += "No information.";
-					}
-					ImGui::Text(Text.c_str());
-				}
-				else if (currentMesh->TriangleSelected.size() > 1)
-				{
-					std::string Text = "Area rugosity : ";
-
-					if (!currentMesh->TrianglesRugosity.empty())
-					{
-						float TotalRugosity = 0.0f;
-						for (size_t i = 0; i < currentMesh->TriangleSelected.size(); i++)
-						{
-							TotalRugosity += currentMesh->TrianglesRugosity[currentMesh->TriangleSelected[i]];
-						}
-
-						TotalRugosity /= currentMesh->TriangleSelected.size();
-						Text += std::to_string(TotalRugosity);
-					}
-					else
-					{
-						Text += "No information.";
-					}
-
-					ImGui::Text(Text.c_str());
-				}
+				
 
 				ImGui::Text("Rugosity distribution : ");
 				static char CurrentRugosityDistributionEdit[1024];

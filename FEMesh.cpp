@@ -246,6 +246,7 @@ void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 	float currentDistance = 0.0f;
 	float lastDistance = 9999.0f;
 
+	int TriangeIndex = -1;
 	TriangleSelected.clear();
 
 	if (Triangles.empty())
@@ -264,10 +265,12 @@ void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 		if (hit && currentDistance < lastDistance)
 		{
 			lastDistance = currentDistance;
-			TriangleSelected.push_back(i);
-			break;
+			TriangeIndex = i;
 		}
 	}
+
+	if (TriangeIndex != -1)
+		TriangleSelected.push_back(TriangeIndex);
 }
 
 glm::vec3 FEMesh::IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
