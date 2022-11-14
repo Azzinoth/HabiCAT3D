@@ -44,6 +44,8 @@ file(GLOB SubSystems_SRC
 	"SubSystems/FETransformComponent.h"
 	"SubSystems/FECGALWrapper.cpp"
 	"SubSystems/FECGALWrapper.h"
+	"SubSystems/ExcelWrapper.cpp"
+	"SubSystems/ExcelWrapper.h"
 	"SubSystems/FEGeometricTools.cpp"
 	"SubSystems/FEGeometricTools.h"
 	"SubSystems/FELinesRenderer.cpp"
