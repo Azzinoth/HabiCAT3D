@@ -1309,7 +1309,7 @@ void UIManager::OnRugosityCalculationsEnd()
 	if (window != nullptr)
 	{
 		UI.Graph.SetSize(ImVec2(window->SizeFull.x - 40, window->SizeFull.y - 50));
-		UI.FillGraphDataPoints(window->SizeFull.x - 20);
+		UI.FillGraphDataPoints(/*window->SizeFull.x -*/ 20);
 	}
 }
 
@@ -1573,23 +1573,23 @@ void UIManager::SetIsModelCamera(bool NewValue)
 	bModelCamera = NewValue;
 }
 
-void UIManager::FillGraphDataPoints(int GraphWidth)
+void UIManager::FillGraphDataPoints(int BinsCount)
 {
 	TIME.BeginTimeStamp("FillGraphDataPoints Time");
 	AreaWithRugosities_TotalTime = 0.0f;
 
 	std::vector<float> DataPoints;
 	std::vector<float> MinRugosity;
-	MinRugosity.resize(GraphWidth);
+	MinRugosity.resize(BinsCount);
 	std::vector<float> MaxRugosity;
-	MaxRugosity.resize(GraphWidth);
+	MaxRugosity.resize(BinsCount);
 
 	TIME.BeginTimeStamp("AreaWithRugosities Time");
 
-	for (size_t i = 0; i < GraphWidth; i++)
+	for (size_t i = 0; i < BinsCount; i++)
 	{
-		double NormalizedPixelPosition = double(i) / (GraphWidth);
-		double NextNormalizedPixelPosition = double(i + 1) / (GraphWidth);
+		double NormalizedPixelPosition = double(i) / (BinsCount);
+		double NextNormalizedPixelPosition = double(i + 1) / (BinsCount);
 
 		MinRugosity[i] = currentMesh->minRugorsity + (currentMesh->maxRugorsity - currentMesh->minRugorsity) * NormalizedPixelPosition;
 		MaxRugosity[i] = currentMesh->minRugorsity + (currentMesh->maxRugorsity - currentMesh->minRugorsity) * NextNormalizedPixelPosition;
@@ -1607,19 +1607,18 @@ void UIManager::FillGraphDataPoints(int GraphWidth)
 		}
 		else if (CurrentRugosity > MaxRugosity[CurrentIndex])
 		{
-			
 			DataPoints.push_back(PartialResult);
 			CurrentIndex++;
 			PartialResult = 0.0;
 
-			if (CurrentIndex == GraphWidth)
+			if (CurrentIndex == BinsCount)
 				break;
 		}
 
 		Iterator++;
 	}
 
-	for (size_t i = 0; i < GraphWidth; i++)
+	for (size_t i = 0; i < BinsCount; i++)
 	{
 		
 	}
@@ -1641,6 +1640,7 @@ void UIManager::RenderRugosityHistogram()
 	}
 
 	static int LastWindowW = 0;
+	static int BinCount = 20;
 
 	ImGuiWindow* window = ImGui::FindWindowByName("Rugosity histogram");
 	if (window != nullptr)
@@ -1650,7 +1650,7 @@ void UIManager::RenderRugosityHistogram()
 		if (currentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded && LastWindowW != window->SizeFull.x && !currentMesh->TrianglesRugosity.empty())
 		{
 			LastWindowW = window->SizeFull.x;
-			FillGraphDataPoints(window->SizeFull.x - 20);
+			FillGraphDataPoints(BinCount);
 		}
 	}
 
@@ -1674,6 +1674,61 @@ void UIManager::RenderRugosityHistogram()
 		ImGuiWindowFlags_NoTitleBar*/);
 
 	Graph.Render();
+
+	bool bInterpolate = Graph.IsUsingInterpolation();
+	if (window != nullptr)
+		ImGui::SetCursorPos(ImVec2(10.0f, window->SizeFull.y - 30.0f));
+	if (ImGui::Checkbox("Interpolate", &bInterpolate))
+	{
+		Graph.SetIsUsingInterpolation(bInterpolate);
+	}
+
+	static bool bPixelBins = false;
+	if (window != nullptr)
+		ImGui::SetCursorPos(ImVec2(130.0f, window->SizeFull.y - 30.0f));
+	if (ImGui::Checkbox("BinCount = Pixels", &bPixelBins))
+	{
+		if (bPixelBins)
+		{
+			BinCount = window->SizeFull.x - 20;
+		}
+		else
+		{
+			BinCount = 20;
+		}
+
+		FillGraphDataPoints(BinCount);
+	}
+
+	static char CurrentBinCountChar[1024] = "20";
+
+	if (!bPixelBins)
+	{
+		ImGui::SetCursorPosX(290.0f);
+		if (window != nullptr)
+			ImGui::SetCursorPosY(window->SizeFull.y - 30.0f);
+		ImGui::SetNextItemWidth(62);
+		if (ImGui::InputText("##BinCount", CurrentBinCountChar, IM_ARRAYSIZE(CurrentBinCountChar), ImGuiInputTextFlags_EnterReturnsTrue) ||
+			ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##CurrentBinCountChar"))
+		{
+			int TempInt = atoi(CurrentBinCountChar);
+			if (TempInt <= 0)
+				TempInt = 1;
+
+			if (window != nullptr)
+			{
+				if (TempInt > window->SizeFull.x - 20)
+					TempInt = window->SizeFull.x - 20;
+			}
+
+			if (BinCount != TempInt)
+			{
+				BinCount = TempInt;
+				if (currentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded && !currentMesh->TrianglesRugosity.empty())
+					FillGraphDataPoints(BinCount);
+			}
+		}
+	}
 
 	ImGui::PopStyleVar();
 	ImGui::PopStyleVar();
@@ -2097,9 +2152,9 @@ void FEGraphRender::SetSize(ImVec2 NewValue)
 	}
 }
 
-std::vector<float> FEGraphRender::NormalizeArray(std::vector<float> Array)
+std::vector<double> FEGraphRender::NormalizeArray(std::vector<float> Array)
 {
-	std::vector<float> Result;
+	std::vector<double> Result;
 
 	double MinValue = DBL_MAX;
 	double MaxValue = -DBL_MAX;
@@ -2112,7 +2167,7 @@ std::vector<float> FEGraphRender::NormalizeArray(std::vector<float> Array)
 
 	for (size_t i = 0; i < Array.size(); i++)
 	{
-		Result.push_back((Array[i] - MinValue) / (MaxValue - MinValue));
+		Result.push_back((Array[i] - MinValue) / MaxValue);
 	}
 
 	return Result;
@@ -2142,7 +2197,22 @@ float FEGraphRender::GetValueAtPosition(float NormalizedPosition)
 		if (NormalizedPosition >= CurrentPosition && NormalizedPosition < CurrentPosition + NormalizedDataPointWidth)
 		{
 			float NormalizedPositionBetweenDataPoints = (NormalizedPosition - CurrentPosition) / NormalizedDataPointWidth;
-			float result = NormalizedDataPonts[i] * (1.0f - NormalizedPositionBetweenDataPoints) + NormalizedDataPonts[i + 1] * NormalizedPositionBetweenDataPoints;
+
+			float result = 0.0f;
+			if (bInterpolation)
+			{
+				if (i + 1 >= DataPonts.size())
+				{
+					result = NormalizedDataPonts[i];
+					return result;
+				}
+				result = NormalizedDataPonts[i] * (1.0f - NormalizedPositionBetweenDataPoints) + NormalizedDataPonts[i + 1] * NormalizedPositionBetweenDataPoints;
+			}
+			else
+			{
+				result = NormalizedDataPonts[i];
+			}
+			
 			return result;
 		}
 
@@ -2220,6 +2290,16 @@ void FEGraphRender::Render()
 	/*ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY) + Position + GraphCanvasPosition,
 											  ImVec2(WindowX, WindowY) + Position + GraphCanvasSize,
 											  ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f, 45.0f / 255.0f));*/
+}
+
+bool FEGraphRender::IsUsingInterpolation()
+{
+	return bInterpolation;
+}
+
+void FEGraphRender::SetIsUsingInterpolation(bool NewValue)
+{
+	bInterpolation = NewValue;
 }
 
 // ****************** EXCEL ******************

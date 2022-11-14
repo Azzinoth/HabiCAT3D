@@ -102,16 +102,18 @@ namespace FocalEngine
 		ImVec2 Size = ImVec2(100, 100);
 
 		std::vector<float> DataPonts;
-		std::vector<float> NormalizedDataPonts;
+		std::vector<double> NormalizedDataPonts;
 
 		int ColumnWidth = 3;
 
-		std::vector<float> NormalizeArray(std::vector<float> Array);
+		std::vector<double> NormalizeArray(std::vector<float> Array);
 
 		float GetValueAtPosition(float NormalizedPosition);
 
 		ImVec2 GraphCanvasPosition = ImVec2(0, 0);
 		ImVec2 GraphCanvasSize = ImVec2(50, 50);
+
+		bool bInterpolation = false;
 	public:
 		ImVec2 GetPosition() const;
 		void SetPosition(ImVec2 NewValue);
@@ -121,6 +123,9 @@ namespace FocalEngine
 
 		std::vector<float> GetDataPoints() const;
 		void SetDataPoints(std::vector<float> NewValue);
+
+		bool IsUsingInterpolation();
+		void SetIsUsingInterpolation(bool NewValue);
 
 		void Render();
 	};
@@ -186,7 +191,7 @@ namespace FocalEngine
 		void RenderVisualModeWindow();
 
 		FEGraphRender Graph;
-		void FillGraphDataPoints(int GraphWidth);
+		void FillGraphDataPoints(int BinsCount);
 		void RenderRugosityHistogram();
 		float FillGraphDataPoints_TotalTime = 0.0f;
 		float SetDataPoints = 0.0f;
