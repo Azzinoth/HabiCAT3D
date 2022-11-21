@@ -2213,6 +2213,11 @@ float FEGraphRender::GetValueAtPosition(float NormalizedPosition)
 	}
 }
 
+bool FEGraphRender::ShouldOutline(int CurrentIndex, int ColumnTop, int PreviousColumnHeight, int NextColumnHeight)
+{
+	return CurrentIndex < ColumnTop + 5 || CurrentIndex <= PreviousColumnHeight + 5 || CurrentIndex <= NextColumnHeight + 5;
+}
+
 void FEGraphRender::Render()
 {
 	int GraphBottom = /*Position.y +*/ Size.y;
@@ -2246,7 +2251,7 @@ void FEGraphRender::Render()
 				FirstPart.Value.z + SecondPart.Value.z);
 
 			// Outline of graph
-			if (i < ColumnTop + 3 || i <= PreviousColumnHeight || i <= NextColumnHeight)
+			if (ShouldOutline(i, ColumnTop, PreviousColumnHeight, NextColumnHeight))
 				CurrentColor = ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f);
 
 			ImVec2 MinPosition = ImVec2(WindowX + Position.x + XPosition, WindowY + i - 1) /*+ GraphPosition*/;

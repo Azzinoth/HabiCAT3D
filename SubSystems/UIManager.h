@@ -114,6 +114,8 @@ namespace FocalEngine
 		ImVec2 GraphCanvasSize = ImVec2(50, 50);
 
 		bool bInterpolation = false;
+
+		bool ShouldOutline(int CurrentIndex, int ColumnTop, int PreviousColumnHeight, int NextColumnHeight);
 	public:
 		ImVec2 GetPosition() const;
 		void SetPosition(ImVec2 NewValue);
