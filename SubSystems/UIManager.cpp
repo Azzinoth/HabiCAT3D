@@ -2213,9 +2213,73 @@ float FEGraphRender::GetValueAtPosition(float NormalizedPosition)
 	}
 }
 
-bool FEGraphRender::ShouldOutline(int CurrentIndex, int ColumnTop, int PreviousColumnHeight, int NextColumnHeight)
+float FEGraphRender::GraphHeightAtPixel(int PixelX)
 {
-	return CurrentIndex < ColumnTop + 5 || CurrentIndex <= PreviousColumnHeight + 5 || CurrentIndex <= NextColumnHeight + 5;
+	if (PixelX < 0 || PixelX > Size.x)
+		return -1.0f;
+
+	int GraphBottom = /*Position.y +*/ Size.y;
+
+	float NormalizedPosition = PixelX / Size.x;
+	if (NormalizedPosition > 1.0f)
+		NormalizedPosition = 1.0f;
+
+	float ValueAtThisPixel = GetValueAtPosition(NormalizedPosition);
+	float ColumnHeight = GraphBottom - float(GraphBottom - Position.y) * ValueAtThisPixel;
+
+	return ColumnHeight;
+}
+
+bool FEGraphRender::ShouldOutline(int XPosition, int YPosition)
+{
+	if (YPosition < GraphHeightAtPixel(XPosition) + OutlineThickness)
+		return true;
+
+	for (int i = -OutlineThickness; i < OutlineThickness; i++)
+	{
+		if (YPosition <= GraphHeightAtPixel(XPosition + i) + OutlineThickness)
+			return true;
+	}
+
+	return false;
+}
+
+void FEGraphRender::RenderOneColumn(int XPosition)
+{
+	int ColumnTop = GraphHeightAtPixel(XPosition);
+	if (ColumnTop < 0)
+		return;
+
+	int GraphBottom = /*Position.y +*/ Size.y;
+	float WindowX = ImGui::GetCurrentWindow()->Pos.x;
+	float WindowY = ImGui::GetCurrentWindow()->Pos.y;
+
+	for (int i = GraphBottom; i > ColumnTop; i--)
+	{
+		float CombineFactor = (float(GraphBottom) - float(i)) / (float(GraphBottom) - float(Position.y));
+
+		ImColor FirstPart = ImColor(EndGradientColor.Value.x * CombineFactor,
+									EndGradientColor.Value.y * CombineFactor,
+									EndGradientColor.Value.z * CombineFactor);
+
+		ImColor SecondPart = ImColor(StartGradientColor.Value.x * (1.0f - CombineFactor),
+									 StartGradientColor.Value.y * (1.0f - CombineFactor),
+									 StartGradientColor.Value.z * (1.0f - CombineFactor));
+
+		ImColor CurrentColor = ImColor(FirstPart.Value.x + SecondPart.Value.x,
+									   FirstPart.Value.y + SecondPart.Value.y,
+									   FirstPart.Value.z + SecondPart.Value.z);
+
+		// Outline of graph
+		if (ShouldOutline(XPosition, i))
+			CurrentColor = OutlineColor;
+
+		ImVec2 MinPosition = ImVec2(WindowX + Position.x + XPosition, WindowY + i - 1);
+		ImVec2 MaxPosition = ImVec2(WindowX + Position.x + XPosition + 1, WindowY + i);
+		ImGui::GetWindowDrawList()->AddRectFilled(MinPosition,
+			MaxPosition,
+			CurrentColor);
+	}
 }
 
 void FEGraphRender::Render()
@@ -2225,63 +2289,9 @@ void FEGraphRender::Render()
 	float WindowX = ImGui::GetCurrentWindow()->Pos.x;
 	float WindowY = ImGui::GetCurrentWindow()->Pos.y;
 
-	ImColor StartColor = ImColor(11.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f);
-	ImColor EndColor = ImColor(35.0f / 255.0f, 94.0f / 255.0f, 133.0f / 255.0f);
-
-	std::vector<ImVec2> Points;
-
-	auto RenderOneColumn = [&](int ColumnBottom, int ColumnTop, int XPosition, int ColumnW, int PreviousColumnHeight, int NextColumnHeight) {
-		if (ColumnTop < 0)
-			return;
-
-		for (int i = ColumnBottom; i > ColumnTop; i--)
-		{
-			float CombineFactor = (float(GraphBottom) - float(i)) / (float(GraphBottom) - float(Position.y));
-
-			ImColor FirstPart = ImColor(EndColor.Value.x * CombineFactor,
-				EndColor.Value.y * CombineFactor,
-				EndColor.Value.z * CombineFactor);
-
-			ImColor SecondPart = ImColor(StartColor.Value.x * (1.0f - CombineFactor),
-				StartColor.Value.y * (1.0f - CombineFactor),
-				StartColor.Value.z * (1.0f - CombineFactor));
-
-			ImColor CurrentColor = ImColor(FirstPart.Value.x + SecondPart.Value.x,
-				FirstPart.Value.y + SecondPart.Value.y,
-				FirstPart.Value.z + SecondPart.Value.z);
-
-			// Outline of graph
-			if (ShouldOutline(i, ColumnTop, PreviousColumnHeight, NextColumnHeight))
-				CurrentColor = ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f);
-
-			ImVec2 MinPosition = ImVec2(WindowX + Position.x + XPosition, WindowY + i - 1) /*+ GraphPosition*/;
-			ImVec2 MaxPosition = ImVec2(WindowX + Position.x + XPosition + ColumnW, WindowY + i) /*+ GraphPosition*/;
-			ImGui::GetWindowDrawList()->AddRectFilled(MinPosition,
-				MaxPosition,
-				CurrentColor);
-		}
-	};
-
-	auto GraphHeightAtPixel = [&](int PixelX) {
-		float NormalizedPosition = PixelX / Size.x;
-		if (NormalizedPosition > 1.0f)
-			NormalizedPosition = 1.0f;
-
-		float ValueAtThisPixel = GetValueAtPosition(NormalizedPosition);
-		float ColumnHeight = GraphBottom - float(GraphBottom - Position.y) * ValueAtThisPixel;
-
-		if (ColumnHeight > GraphBottom)
-		{
-			int y = 0;
-			y++;
-		}
-
-		return ColumnHeight;
-	};
-
 	for (int i = 0; i < Size.x; i++)
 	{
-		RenderOneColumn(GraphBottom, GraphHeightAtPixel(i), Position.x + i, 1, GraphHeightAtPixel(i - 1), GraphHeightAtPixel(i + 1));
+		RenderOneColumn(i);
 	}
 
 	// Debug functionality

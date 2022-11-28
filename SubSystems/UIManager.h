@@ -115,7 +115,14 @@ namespace FocalEngine
 
 		bool bInterpolation = false;
 
-		bool ShouldOutline(int CurrentIndex, int ColumnTop, int PreviousColumnHeight, int NextColumnHeight);
+		ImColor StartGradientColor = ImColor(11.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f);
+		ImColor EndGradientColor = ImColor(35.0f / 255.0f, 94.0f / 255.0f, 133.0f / 255.0f);
+		ImColor OutlineColor = ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f);
+
+		float GraphHeightAtPixel(int PixelX);
+		void RenderOneColumn(int XPosition);
+		int OutlineThickness = 5;
+		bool ShouldOutline(int XPosition, int YPosition);
 	public:
 		ImVec2 GetPosition() const;
 		void SetPosition(ImVec2 NewValue);
