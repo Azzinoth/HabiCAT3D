@@ -44,6 +44,93 @@ std::string TruncateAfterDot(std::string FloatingPointNumber, int DigitCount = 2
 	return FloatingPointNumber;
 }
 
+const COMDLG_FILTERSPEC RUGOSITY_FILE_FILTER[] =
+{
+	{ L"Rugosity file (*.rug)", L"*.rug" }
+};
+
+void SaveRUGMesh(FEMesh* Mesh)
+{
+	if (Mesh == nullptr)
+		return;
+
+	std::string FilePath = "";
+	FILE_SYSTEM.ShowFileSaveDialog(FilePath, RUGOSITY_FILE_FILTER, 1);
+
+	if (FilePath.empty())
+		return;
+
+	FilePath += ".rug";
+
+	std::fstream file;
+	file.open(FilePath, std::ios::out | std::ios::binary);
+
+	// Version of FEMesh file type.
+	float version = 0.01f;
+	file.write((char*)&version, sizeof(float));
+
+	int Count = Mesh->getPositionsCount();
+	float* Positions = new float[Count];
+	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getPositionsBufferID(), 0, sizeof(float) * Count, Positions));
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)Positions, sizeof(float) * Count);
+
+	Count = Mesh->getColorCount();
+	float* Colors = new float[Count];
+	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getColorBufferID(), 0, sizeof(float) * Count, Colors));
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)Colors, sizeof(float) * Count);
+
+	Count = Mesh->getUVCount();
+	float* UV = new float[Count];
+	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getUVBufferID(), 0, sizeof(float) * Count, UV));
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)UV, sizeof(float) * Count);
+
+	Count = Mesh->getNormalsCount();
+	float* Normals = new float[Count];
+	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getNormalsBufferID(), 0, sizeof(float) * Count, Normals));
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)Normals, sizeof(float) * Count);
+
+	Count = Mesh->getTangentsCount();
+	float* Tangents = new float[Count];
+	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getTangentsBufferID(), 0, sizeof(float) * Count, Tangents));
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)Tangents, sizeof(float) * Count);
+
+	Count = Mesh->getIndicesCount();
+	int* Indices = new int[Count];
+	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getIndicesBufferID(), 0, sizeof(int) * Count, Indices));
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)Indices, sizeof(int) * Count);
+
+	Count = Mesh->rugosityData.size();
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)Mesh->rugosityData.data(), sizeof(float) * Count);
+
+	Count = Mesh->TrianglesRugosity.size();
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)Mesh->TrianglesRugosity.data(), sizeof(float) * Count);
+
+	FEAABB TempAABB(Positions, Mesh->getPositionsCount());
+	file.write((char*)&TempAABB.getMin()[0], sizeof(float));
+	file.write((char*)&TempAABB.getMin()[1], sizeof(float));
+	file.write((char*)&TempAABB.getMin()[2], sizeof(float));
+
+	file.write((char*)&TempAABB.getMax()[0], sizeof(float));
+	file.write((char*)&TempAABB.getMax()[1], sizeof(float));
+	file.write((char*)&TempAABB.getMax()[2], sizeof(float));
+
+	file.close();
+
+	delete[] Positions;
+	delete[] UV;
+	delete[] Normals;
+	delete[] Tangents;
+	delete[] Indices;
+}
+
 void UIManager::showTransformConfiguration(std::string name, FETransformComponent* transform)
 {
 	// ********************* POSITION *********************
@@ -280,9 +367,6 @@ void UIManager::ShowRugosityRangeSettings()
 //
 //	RUGOSITY_MANAGER.currentSDF = new SDF();
 //	RUGOSITY_MANAGER.currentSDF->bFindSmallestRugosity = false;
-//
-//	if (currentMesh->Triangles.empty())
-//		currentMesh->fillTrianglesData();
 //
 //	RUGOSITY_MANAGER.calculateSDFAsync(InputData, RUGOSITY_MANAGER.currentSDF);
 //
@@ -682,7 +766,7 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 				ImGui::Text(Text.c_str());
 			}
 
-			if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+			if (RUGOSITY_MANAGER.IsRugosityInfoReady())
 			{
 				/*if (ImGui::Checkbox("Show Rugosity", &currentMesh->showRugosity))
 				{
@@ -718,70 +802,48 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 				ShowRugosityRangeSettings();
 				ImGui::Separator();
 
-				float TotalTime = 0.0f;
-
-				/*std::string debugTimers = "Building of SDF grid : " + std::to_string(RUGOSITY_MANAGER.currentSDF->TimeTookToGenerateInMS) + " ms";
-				debugTimers += "\n";
-				TotalTime += RUGOSITY_MANAGER.currentSDF->TimeTookToGenerateInMS;
-
-				debugTimers += "Fill cells with triangle info : " + std::to_string(RUGOSITY_MANAGER.currentSDF->TimeTookFillCellsWithTriangleInfo) + " ms";
-				debugTimers += "\n";
-				TotalTime += RUGOSITY_MANAGER.currentSDF->TimeTookFillCellsWithTriangleInfo;
-
-				debugTimers += "Calculate rugosity : " + std::to_string(RUGOSITY_MANAGER.currentSDF->TimeTookCalculateRugosity) + " ms";
-				debugTimers += "\n";
-				TotalTime += RUGOSITY_MANAGER.currentSDF->TimeTookCalculateRugosity;
-
-				debugTimers += "Assign colors to mesh : " + std::to_string(RUGOSITY_MANAGER.currentSDF->TimeTookFillMeshWithRugosityData) + " ms";
-				debugTimers += "\n";
-				TotalTime += RUGOSITY_MANAGER.currentSDF->TimeTookFillMeshWithRugosityData;
-
-				debugTimers += "Total time : " + std::to_string(TotalTime) + " ms";
-				debugTimers += "\n";
-
-				debugTimers += "TimeTookToJitter : " + std::to_string(TimeTookToJitter) + " ms";
-				debugTimers += "\n";
-
-				ImGui::Text((debugTimers).c_str());*/
-
 				ImGui::Text(("Total time: " + std::to_string(RUGOSITY_MANAGER.GetLastTimeTookForCalculation())).c_str());
 				
-
-				ImGui::Text(("debugTotalTrianglesInCells: " + std::to_string(RUGOSITY_MANAGER.currentSDF->debugTotalTrianglesInCells)).c_str());
-
-				ImGui::Separator();
-				ImGui::Text("Visualization of SDF:");
-
-				if (ImGui::RadioButton("Do not draw", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 0))
-				{
-					RUGOSITY_MANAGER.currentSDF->RenderingMode = 0;
-
-					RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
-					//LINE_RENDERER.clearAll();
-					//LINE_RENDERER.SyncWithGPU();
-				}
-
-				if (ImGui::RadioButton("Show cells with triangles", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 1))
-				{
-					RUGOSITY_MANAGER.currentSDF->RenderingMode = 1;
-
-					RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
-					//LINE_RENDERER.clearAll();
-					//addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
-					//LINE_RENDERER.SyncWithGPU();
-				}
-
-				if (ImGui::RadioButton("Show all cells", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 2))
-				{
-					RUGOSITY_MANAGER.currentSDF->RenderingMode = 2;
-
-					RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
-					//LINE_RENDERER.clearAll();
-					//addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
-					//LINE_RENDERER.SyncWithGPU();
-				}
+				if (RUGOSITY_MANAGER.currentSDF != nullptr)
+					ImGui::Text(("debugTotalTrianglesInCells: " + std::to_string(RUGOSITY_MANAGER.currentSDF->debugTotalTrianglesInCells)).c_str());
 
 				ImGui::Separator();
+
+				if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+				{
+					ImGui::Text("Visualization of SDF:");
+
+					if (ImGui::RadioButton("Do not draw", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 0))
+					{
+						RUGOSITY_MANAGER.currentSDF->RenderingMode = 0;
+
+						RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+						//LINE_RENDERER.clearAll();
+						//LINE_RENDERER.SyncWithGPU();
+					}
+
+					if (ImGui::RadioButton("Show cells with triangles", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 1))
+					{
+						RUGOSITY_MANAGER.currentSDF->RenderingMode = 1;
+
+						RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+						//LINE_RENDERER.clearAll();
+						//addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
+						//LINE_RENDERER.SyncWithGPU();
+					}
+
+					if (ImGui::RadioButton("Show all cells", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 2))
+					{
+						RUGOSITY_MANAGER.currentSDF->RenderingMode = 2;
+
+						RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+						//LINE_RENDERER.clearAll();
+						//addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
+						//LINE_RENDERER.SyncWithGPU();
+					}
+
+					ImGui::Separator();
+				}
 			}
 			else if (RUGOSITY_MANAGER.currentSDF != nullptr && !RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
 			{
@@ -953,7 +1015,7 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 				}
 				ImGui::Text(Text.c_str());
 
-				Text = "Triangle average height : ";
+				Text = "Triangle height : ";
 				double AverageHeight = 0.0;
 				for (size_t i = 0; i < 3; i++)
 				{
@@ -1014,23 +1076,9 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 				ImGui::Text(Text.c_str());
 			}
 
-			if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+			if (RUGOSITY_MANAGER.IsRugosityInfoReady())
 			{
 				ShowRugosityRangeSettings();
-
-				/*if (ImGui::Checkbox("Show Rugosity", &currentMesh->showRugosity))
-				{
-					if (currentMesh->showRugosity)
-					{
-						currentMesh->colorMode = 5;
-					}
-					else
-					{
-						currentMesh->colorMode = 0;
-					}
-				}*/
-
-				
 
 				ImGui::Text("Rugosity distribution : ");
 				static char CurrentRugosityDistributionEdit[1024];
@@ -1118,6 +1166,14 @@ void UIManager::RenderMainWindow(FEMesh* currentMesh)
 		}
 
 		ExcelManager.OutputToExcel(Data);
+	}
+
+	if (currentMesh != nullptr)
+	{
+		if (ImGui::Button("Save result..."))
+		{
+			SaveRUGMesh(currentMesh);
+		}
 	}
 
 	ImGui::End();
@@ -1302,7 +1358,7 @@ void UIManager::OnRugosityCalculationsEnd()
 	if (window != nullptr)
 	{
 		UI.Graph.SetSize(ImVec2(window->SizeFull.x - 40, window->SizeFull.y - 50));
-		UI.FillGraphDataPoints(/*window->SizeFull.x -*/ 20);
+		//UI.FillGraphDataPoints(/*window->SizeFull.x -*/ 20);
 	}
 }
 
@@ -1589,37 +1645,65 @@ void UIManager::FillGraphDataPoints(int BinsCount)
 	}
 
 	int CurrentIndex = 0;
-	double PartialResult = 0.0;
-	auto Iterator = RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.begin();
-	while (Iterator != RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.end())
+	double CurrentArea = 0.0;
+	for (int i = 0; i < RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.size(); i++)
 	{
-		double CurrentRugosity = std::get<0>(*Iterator);
+		double CurrentRugosity = std::get<0>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex[i]);
 		if (CurrentRugosity >= MinRugosity[CurrentIndex] && CurrentRugosity <= MaxRugosity[CurrentIndex])
 		{
-			PartialResult += std::get<1>(*Iterator);
+			CurrentArea += std::get<1>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex[i]);
 		}
 		else if (CurrentRugosity > MaxRugosity[CurrentIndex])
 		{
-			DataPoints.push_back(PartialResult);
+			DataPoints.push_back(CurrentArea);
 			CurrentIndex++;
-			PartialResult = 0.0;
+			CurrentArea = 0.0;
 
 			if (CurrentIndex == BinsCount)
 				break;
 		}
-
-		Iterator++;
 	}
 
+	// This could happen because in some algorithms there would be no triangles in some range of rugosities.
+	if (DataPoints.size() < BinsCount)
+	{
+		for (size_t i = DataPoints.size(); i < BinsCount; i++)
+		{
+			DataPoints.push_back(0);
+		}
+	}
+
+	double TotalArea = 0.0;
+	float MaxValue = -FLT_MAX;
 	for (size_t i = 0; i < BinsCount; i++)
 	{
-		
+		TotalArea += DataPoints[i];
+		MaxValue = std::max(DataPoints[i], MaxValue);
 	}
+
+	/*for (size_t i = 0; i < BinsCount; i++)
+	{
+		DataPoints[i] /= TotalArea;
+	}*/
+
+	/*double AddUpTo = 0.0;
+	for (size_t i = 0; i < BinsCount; i++)
+	{
+		AddUpTo += DataPoints[i];
+	}
+
+	int GraphH = Graph.GetSize().y;
+	for (size_t i = 0; i < BinsCount; i++)
+	{
+		DataPoints[i] *= GraphH;
+	}*/
 
 	AreaWithRugosities_TotalTime = TIME.EndTimeStamp("AreaWithRugosities Time");
 
 	TIME.BeginTimeStamp("SetDataPoints Time");
 	Graph.SetDataPoints(DataPoints);
+	Graph.SetCeiling(MaxValue * 1.2f);
+
 	SetDataPoints = TIME.EndTimeStamp("SetDataPoints Time");
 
 	FillGraphDataPoints_TotalTime = TIME.EndTimeStamp("FillGraphDataPoints Time");
@@ -1640,7 +1724,7 @@ void UIManager::RenderRugosityHistogram()
 	{
 		Graph.SetSize(ImVec2(window->SizeFull.x - 40, window->SizeFull.y - 50));
 
-		if (currentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded && LastWindowW != window->SizeFull.x && !currentMesh->TrianglesRugosity.empty())
+		if (currentMesh != nullptr /*&& RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded*/ && LastWindowW != window->SizeFull.x && !currentMesh->TrianglesRugosity.empty())
 		{
 			LastWindowW = window->SizeFull.x;
 			FillGraphDataPoints(BinCount);
@@ -1676,7 +1760,7 @@ void UIManager::RenderRugosityHistogram()
 		Graph.SetIsUsingInterpolation(bInterpolate);
 	}
 
-	static bool bPixelBins = false;
+	static bool bPixelBins = true;
 	if (window != nullptr)
 		ImGui::SetCursorPos(ImVec2(130.0f, window->SizeFull.y - 30.0f));
 	if (ImGui::Checkbox("BinCount = Pixels", &bPixelBins))
@@ -1717,7 +1801,7 @@ void UIManager::RenderRugosityHistogram()
 			if (BinCount != TempInt)
 			{
 				BinCount = TempInt;
-				if (currentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded && !currentMesh->TrianglesRugosity.empty())
+				if (currentMesh != nullptr && !currentMesh->TrianglesRugosity.empty())
 					FillGraphDataPoints(BinCount);
 			}
 		}
@@ -2158,12 +2242,24 @@ std::vector<double> FEGraphRender::NormalizeArray(std::vector<float> Array)
 		MaxValue = std::max(MaxValue, double(Array[i]));
 	}
 
+	float CurrentCeiling = Ceiling == -FLT_MAX ? MaxValue : Ceiling;
 	for (size_t i = 0; i < Array.size(); i++)
 	{
-		Result.push_back((Array[i] - MinValue) / MaxValue);
+		Result.push_back((Array[i] - MinValue) / CurrentCeiling);
 	}
 
 	return Result;
+}
+
+float FEGraphRender::GetCeiling()
+{
+	return Ceiling;
+}
+
+void FEGraphRender::SetCeiling(float NewValue)
+{
+	Ceiling = NewValue;
+	NormalizedDataPonts = NormalizeArray(DataPonts);
 }
 
 std::vector<float> FEGraphRender::GetDataPoints() const
@@ -2173,6 +2269,7 @@ std::vector<float> FEGraphRender::GetDataPoints() const
 
 void FEGraphRender::SetDataPoints(std::vector<float> NewValue)
 {
+	Ceiling = -FLT_MAX;
 	DataPonts = NewValue;
 	NormalizedDataPonts = NormalizeArray(DataPonts);
 }
@@ -2218,14 +2315,15 @@ float FEGraphRender::GraphHeightAtPixel(int PixelX)
 	if (PixelX < 0 || PixelX > Size.x)
 		return -1.0f;
 
-	int GraphBottom = /*Position.y +*/ Size.y;
+	int GraphBottom = Size.y /*- Position.y*/;
 
 	float NormalizedPosition = PixelX / Size.x;
 	if (NormalizedPosition > 1.0f)
 		NormalizedPosition = 1.0f;
 
 	float ValueAtThisPixel = GetValueAtPosition(NormalizedPosition);
-	float ColumnHeight = GraphBottom - float(GraphBottom - Position.y) * ValueAtThisPixel;
+	//float ColumnHeight = GraphBottom - float(GraphBottom - Position.y) * ValueAtThisPixel;
+	float ColumnHeight = GraphBottom - float(Size.y) * ValueAtThisPixel;
 
 	return ColumnHeight;
 }
@@ -2250,7 +2348,7 @@ void FEGraphRender::RenderOneColumn(int XPosition)
 	if (ColumnTop < 0)
 		return;
 
-	int GraphBottom = /*Position.y +*/ Size.y;
+	int GraphBottom = Size.y /*- Position.y*/;
 	float WindowX = ImGui::GetCurrentWindow()->Pos.x;
 	float WindowY = ImGui::GetCurrentWindow()->Pos.y;
 
@@ -2284,15 +2382,12 @@ void FEGraphRender::RenderOneColumn(int XPosition)
 
 void FEGraphRender::Render()
 {
-	int GraphBottom = /*Position.y +*/ Size.y;
-
-	float WindowX = ImGui::GetCurrentWindow()->Pos.x;
-	float WindowY = ImGui::GetCurrentWindow()->Pos.y;
-
 	for (int i = 0; i < Size.x; i++)
 	{
 		RenderOneColumn(i);
 	}
+
+	RenderBottomLegend();
 
 	// Debug functionality
 	/*ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY) + Position + GraphCanvasPosition,
@@ -2308,4 +2403,20 @@ bool FEGraphRender::IsUsingInterpolation()
 void FEGraphRender::SetIsUsingInterpolation(bool NewValue)
 {
 	bInterpolation = NewValue;
+}
+
+void FEGraphRender::RenderBottomLegend()
+{
+	int GraphBottom = Size.y /*- Position.y*/;
+
+	ImVec2 TextSize = ImGui::CalcTextSize("0.0");
+	
+	ImGui::SetCursorPos(ImVec2(Position.x, Size.y));
+	ImGui::Text("0.0");
+
+	ImGui::SetCursorPos(Position + ImVec2(Size.x / 2.0f - TextSize.x / 2.0f, Size.y));
+	ImGui::Text("0.5");
+
+	ImGui::SetCursorPos(Position + Size);
+	ImGui::Text("1.0");
 }

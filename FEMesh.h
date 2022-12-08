@@ -20,7 +20,7 @@ namespace FocalEngine
 		FEMesh(GLuint VaoID, unsigned int VertexCount, int VertexBuffersTypes, std::string Name);
 		~FEMesh();
 
-		GLuint getVaoID() const;
+		GLuint GetVaoID() const;
 		GLuint getVertexCount() const;
 		GLuint getIndicesBufferID() const;
 		GLuint getIndicesCount() const;
@@ -68,7 +68,7 @@ namespace FocalEngine
 
 		double minRugorsity = DBL_MAX;
 		double maxRugorsity = -DBL_MAX;
-		double minVisibleRugorsity = DBL_MAX;
+		double minVisibleRugorsity = 1.0;
 		double maxVisibleRugorsity = -DBL_MAX;
 		double MinHeight = DBL_MAX;
 		double MaxHeight = -DBL_MAX;

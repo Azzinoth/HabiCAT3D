@@ -693,9 +693,9 @@ void FEObjLoader::readMaterialFile(const char* originalOBJFile)
 	if (materialFileName == "" || originalOBJFile == "")
 		return;
 
-	std::string materialFileFullPath = FILE_SYSTEM.getDirectoryPath(originalOBJFile);
+	std::string materialFileFullPath = FILE_SYSTEM.GetDirectoryPath(originalOBJFile);
 	materialFileFullPath += materialFileName;
-	if (!FILE_SYSTEM.checkFile(materialFileFullPath.c_str()))
+	if (!FILE_SYSTEM.CheckFile(materialFileFullPath.c_str()))
 	{
 		//LOG.add(std::string("material file: ") + materialFileName + " was indicated in OBJ file but this file can't be located.", FE_LOG_ERROR, FE_LOG_LOADING);
 		return;
@@ -757,12 +757,12 @@ void FEObjLoader::readMaterialLine(std::stringstream& lineStream)
 				}
 			}
 
-			std::string newPath = std::string(FILE_SYSTEM.getDirectoryPath(currentFilePath.c_str())) + name + "/" + filePath;
+			std::string newPath = std::string(FILE_SYSTEM.GetDirectoryPath(currentFilePath.c_str())) + name + "/" + filePath;
 			filePath = newPath;
 		}
 		else
 		{
-			std::string newPath = std::string(FILE_SYSTEM.getDirectoryPath(currentFilePath.c_str())) + filePath;
+			std::string newPath = std::string(FILE_SYSTEM.GetDirectoryPath(currentFilePath.c_str())) + filePath;
 			filePath = newPath;
 		}
 	};
@@ -812,7 +812,7 @@ void FEObjLoader::readMaterialLine(std::stringstream& lineStream)
 		if ((*stringEdited)[0] == ' ')
 			stringEdited->erase(stringEdited->begin());
 
-		if (!FILE_SYSTEM.checkFile(stringEdited->c_str()))
+		if (!FILE_SYSTEM.CheckFile(stringEdited->c_str()))
 			lookForFile(*stringEdited);
 	}
 	// Specular color texture map
@@ -827,7 +827,7 @@ void FEObjLoader::readMaterialLine(std::stringstream& lineStream)
 		if ((*stringEdited)[0] == ' ')
 			stringEdited->erase(stringEdited->begin());
 
-		if (!FILE_SYSTEM.checkFile(stringEdited->c_str()))
+		if (!FILE_SYSTEM.CheckFile(stringEdited->c_str()))
 			lookForFile(*stringEdited);
 	}
 	// Specular highlight component
@@ -842,7 +842,7 @@ void FEObjLoader::readMaterialLine(std::stringstream& lineStream)
 		if ((*stringEdited)[0] == ' ')
 			stringEdited->erase(stringEdited->begin());
 
-		if (!FILE_SYSTEM.checkFile(stringEdited->c_str()))
+		if (!FILE_SYSTEM.CheckFile(stringEdited->c_str()))
 			lookForFile(*stringEdited);
 	}
 	// The alpha texture map
@@ -857,7 +857,7 @@ void FEObjLoader::readMaterialLine(std::stringstream& lineStream)
 		if ((*stringEdited)[0] == ' ')
 			stringEdited->erase(stringEdited->begin());
 
-		if (!FILE_SYSTEM.checkFile(stringEdited->c_str()))
+		if (!FILE_SYSTEM.CheckFile(stringEdited->c_str()))
 			lookForFile(*stringEdited);
 	}
 	// Some implementations use 'map_bump' instead of 'bump' below
@@ -872,7 +872,7 @@ void FEObjLoader::readMaterialLine(std::stringstream& lineStream)
 		if ((*stringEdited)[0] == ' ')
 			stringEdited->erase(stringEdited->begin());
 
-		if (!FILE_SYSTEM.checkFile(stringEdited->c_str()))
+		if (!FILE_SYSTEM.CheckFile(stringEdited->c_str()))
 			lookForFile(*stringEdited);
 	}
 	// Bump map (which by default uses luminance channel of the image)
@@ -887,7 +887,7 @@ void FEObjLoader::readMaterialLine(std::stringstream& lineStream)
 		if ((*stringEdited)[0] == ' ')
 			stringEdited->erase(stringEdited->begin());
 
-		if (!FILE_SYSTEM.checkFile(stringEdited->c_str()))
+		if (!FILE_SYSTEM.CheckFile(stringEdited->c_str()))
 			lookForFile(*stringEdited);
 	}
 	// Displacement map
@@ -902,7 +902,7 @@ void FEObjLoader::readMaterialLine(std::stringstream& lineStream)
 		if ((*stringEdited)[0] == ' ')
 			stringEdited->erase(stringEdited->begin());
 
-		if (!FILE_SYSTEM.checkFile(stringEdited->c_str()))
+		if (!FILE_SYSTEM.CheckFile(stringEdited->c_str()))
 			lookForFile(*stringEdited);
 	}
 	// Stencil decal texture (defaults to 'matte' channel of the image)
@@ -917,7 +917,7 @@ void FEObjLoader::readMaterialLine(std::stringstream& lineStream)
 		if ((*stringEdited)[0] == ' ')
 			stringEdited->erase(stringEdited->begin());
 
-		if (!FILE_SYSTEM.checkFile(stringEdited->c_str()))
+		if (!FILE_SYSTEM.CheckFile(stringEdited->c_str()))
 			lookForFile(*stringEdited);
 	}
 }

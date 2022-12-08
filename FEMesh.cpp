@@ -13,7 +13,7 @@ FEMesh::~FEMesh()
 	FE_GL_ERROR(glDeleteVertexArrays(1, &vaoID));
 }
 
-GLuint FEMesh::getVaoID() const
+GLuint FEMesh::GetVaoID() const
 {
 	return vaoID;
 }
@@ -249,9 +249,6 @@ void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 	int TriangeIndex = -1;
 	TriangleSelected.clear();
 
-	if (Triangles.empty())
-		fillTrianglesData();
-
 	for (int i = 0; i < Triangles.size(); i++)
 	{
 		std::vector<glm::vec3> TranformedTrianglePoints = Triangles[i];
@@ -278,9 +275,6 @@ glm::vec3 FEMesh::IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentC
 	float currentDistance = 0.0f;
 	float lastDistance = 9999.0f;
 	glm::vec3 HitPosition;
-
-	if (Triangles.empty())
-		fillTrianglesData();
 
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
@@ -427,9 +421,6 @@ void FEMesh::fillRugosityDataToGPU(int RugosityLayerIndex)
 
 void FEMesh::UpdateAverageNormal()
 {
-	if (Triangles.empty())
-		fillTrianglesData();
-
 	AverageNormal = glm::vec3();
 
 	std::vector<float> originalAreas;

@@ -360,9 +360,9 @@ void renderTargetCenterForCamera()
 	}
 }
 
-FEMesh* loadedMesh = nullptr;
 FEMesh* currentMesh = nullptr;
 
+FEMesh* LoadRUGMesh(std::string FileName);
 void LoadMesh(std::string FileName);
 
 static void dropCallback(int count, const char** paths);
@@ -370,39 +370,7 @@ void dropCallback(int count, const char** paths)
 {
 	for (size_t i = 0; i < size_t(count); i++)
 	{
-		if (FILE_SYSTEM.isFolder(paths[i]) && count == 1)
-		{
-			/*if (PROJECT_MANAGER.getCurrent() == nullptr)
-			{
-				PROJECT_MANAGER.setProjectsFolder(paths[i]);
-			}*/
-		}
-
-		if (!FILE_SYSTEM.checkFile(paths[i]))
-		{
-			//LOG.add("Can't locate file: " + std::string(fileName) + " in FEResourceManager::importAsset", FE_LOG_ERROR, FE_LOG_LOADING);
-			continue;
-		}
-
-		std::string fileExtention = FILE_SYSTEM.getFileExtension(paths[i]);
-		if (fileExtention == ".obj")
-		{
-			LoadMesh(paths[i]);
-			/*loadedMesh = CGALWrapper.importOBJ(paths[i], true);
-			currentMesh = loadedMesh;
-			UI.updateCurrentMesh(currentMesh);
-			RUGOSITY_MANAGER.CheckAcceptableResolutions(currentMesh);
-
-			currentMesh->Position->setPosition(-currentMesh->AABB.getCenter());*/
-		}
-
-		/*currentCamera->setPosition(glm::vec3(0.0f, 0.0f, currentMesh->AABB.getSize() * 1.5f));
-		currentCamera->setYaw(0.0f);
-		currentCamera->setPitch(0.0f);
-		currentCamera->setRoll(0.0f);
-
-		currentCamera->setMovementSpeed(currentMesh->AABB.getSize() / 10.0f);
-		currentCamera->setFarPlane(currentMesh->AABB.getSize() * 3.0f);*/
+		LoadMesh(paths[i]);
 	}
 }
 
@@ -412,11 +380,10 @@ void ScrollCall(double Xoffset, double Yoffset)
 		reinterpret_cast<FEModelViewCamera*>(currentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(currentCamera)->GetDistanceToModel() + Yoffset * 2.0);
 }
 
-void LoadMesh(std::string FileName)
+void AfterMeshLoads(FEMesh* NewlyLoadedMesh)
 {
-	loadedMesh = CGALWrapper.importOBJ(FileName.c_str(), true);
-	currentMesh = loadedMesh;
-	
+	currentMesh->fillTrianglesData();
+
 	UI.updateCurrentMesh(currentMesh);
 	RUGOSITY_MANAGER.CheckAcceptableResolutions(currentMesh);
 
@@ -451,8 +418,187 @@ void LoadMesh(std::string FileName)
 		FELine(TransformedCenter,
 			   TransformedCenter + AverageNormal * currentMesh->AABB.getSize(),
 			   glm::vec3(1.0f, 1.0f, 0.0f)));
-	
+
 	LINE_RENDERER.SyncWithGPU();*/
+
+	// When loading from binary format we would have that data in file.
+	if (!currentMesh->rugosityData.empty() && !currentMesh->TrianglesRugosity.empty())
+	{
+		currentMesh->fillRugosityDataToGPU();
+		RUGOSITY_MANAGER.ForceOnRugosityCalculationsEnd(currentMesh);
+	}
+		
+}
+
+FEMesh* ChooseHowToAndLoadMesh(std::string FileName)
+{
+	FEMesh* Result = nullptr;
+
+	if (!FILE_SYSTEM.CheckFile(FileName.c_str()))
+		return Result;
+
+	std::string FileExtention = FILE_SYSTEM.GetFileExtension(FileName.c_str());
+	// To lower case
+	std::transform(FileExtention.begin(), FileExtention.end(), FileExtention.begin(), [](const unsigned char C) { return std::tolower(C); });
+
+	if (FileExtention == ".obj")
+	{
+		Result = CGALWrapper.importOBJ(FileName.c_str(), true);
+	}
+	else if (FileExtention == ".rug")
+	{
+		Result = LoadRUGMesh(FileName);
+	}
+	
+	return Result;
+}
+
+void LoadMesh(std::string FileName)
+{
+	FEMesh* TempMesh = ChooseHowToAndLoadMesh(FileName);
+	if (TempMesh == nullptr)
+	{
+		LOG.Add("Failed to load mesh with path: " + FileName);
+		return;
+	}
+	currentMesh = TempMesh;
+
+	AfterMeshLoads(currentMesh);
+}
+
+FEMesh* LoadRUGMesh(std::string FileName)
+{
+	std::fstream File;
+
+	File.open(FileName, std::ios::in | std::ios::binary);
+	const std::streamsize FileSize = File.tellg();
+	if (FileSize < 0)
+	{
+		LOG.Add(std::string("Can't load file: ") + FileName + " in function LoadRUGMesh.");
+		return nullptr;
+	}
+
+	char* Buffer = new char[4];
+
+	// version of FEMesh file type
+	File.read(Buffer, 4);
+	const float Version = *(float*)Buffer;
+	if (Version != 0.01f)
+	{
+		LOG.Add(std::string("Can't load file: ") + FileName + " in function LoadRUGMesh. File was created in different version of engine!");
+		return nullptr;
+	}
+
+	File.read(Buffer, 4);
+	const int VertexCount = *(int*)Buffer;
+	char* VertexBuffer = new char[VertexCount * 4];
+	File.read(VertexBuffer, VertexCount * 4);
+
+	File.read(Buffer, 4);
+	const int ColorCount = *(int*)Buffer;
+	char* ColorBuffer = nullptr;
+	if (ColorCount != 0)
+	{
+		ColorBuffer = new char[ColorCount * 4];
+		File.read(ColorBuffer, ColorCount * 4);
+	}
+
+	File.read(Buffer, 4);
+	const int TexCout = *(int*)Buffer;
+	char* TexBuffer = new char[TexCout * 4];
+	File.read(TexBuffer, TexCout * 4);
+
+	File.read(Buffer, 4);
+	const int NormCout = *(int*)Buffer;
+	char* NormBuffer = new char[NormCout * 4];
+	File.read(NormBuffer, NormCout * 4);
+
+	File.read(Buffer, 4);
+	const int TangCout = *(int*)Buffer;
+	char* TangBuffer = new char[TangCout * 4];
+	File.read(TangBuffer, TangCout * 4);
+
+	File.read(Buffer, 4);
+	const int IndexCout = *(int*)Buffer;
+	char* IndexBuffer = new char[IndexCout * 4];
+	File.read(IndexBuffer, IndexCout * 4);
+
+	File.read(Buffer, 4);
+	const int RugosityDataCount = *(int*)Buffer;
+	std::vector<float> RugosityData;
+	if (RugosityDataCount != 0)
+	{
+		RugosityData.resize(RugosityDataCount);
+		File.read((char*)RugosityData.data(), RugosityDataCount * 4);
+	}
+
+	File.read(Buffer, 4);
+	const int TrianglesRugosityDataCount = *(int*)Buffer;
+	std::vector<float> TrianglesRugosityData;
+	if (TrianglesRugosityDataCount != 0)
+	{
+		TrianglesRugosityData.resize(TrianglesRugosityDataCount);
+		File.read((char*)TrianglesRugosityData.data(), TrianglesRugosityDataCount * 4);
+	}
+
+	FEAABB MeshAABB;
+
+	glm::vec3 Min;
+	File.read(Buffer, 4);
+	Min.x = *(float*)Buffer;
+	File.read(Buffer, 4);
+	Min.y = *(float*)Buffer;
+	File.read(Buffer, 4);
+	Min.z = *(float*)Buffer;
+
+	glm::vec3 Max;
+	File.read(Buffer, 4);
+	Max.x = *(float*)Buffer;
+	File.read(Buffer, 4);
+	Max.y = *(float*)Buffer;
+	File.read(Buffer, 4);
+	Max.z = *(float*)Buffer;
+
+	MeshAABB = FEAABB(Min, Max);
+
+	File.close();
+
+	FEMesh* NewMesh = CGALWrapper.rawDataToMesh((float*)VertexBuffer, VertexCount,
+												(float*)ColorBuffer, ColorCount,
+												(float*)TexBuffer, TexCout,
+												(float*)NormBuffer, NormCout,
+												(float*)TangBuffer, TangCout,
+												(int*)IndexBuffer, IndexCout,
+												nullptr, 0, 0, "");
+
+	delete[] Buffer;
+	delete[] VertexBuffer;
+	delete[] TexBuffer;
+	delete[] NormBuffer;
+	delete[] TangBuffer;
+	delete[] IndexBuffer;
+
+	NewMesh->AABB = MeshAABB;
+
+	if (RugosityDataCount != 0 && TrianglesRugosityDataCount != 0)
+	{
+		float Min = FLT_MAX;
+		float Max = -FLT_MAX;
+
+		for (size_t i = 0; i < TrianglesRugosityData.size(); i++)
+		{
+			Min = std::min(Min, TrianglesRugosityData[i]);
+			Max = std::max(Max, TrianglesRugosityData[i]);
+		}
+
+		NewMesh->minRugorsity = Min;
+		NewMesh->maxRugorsity = Max;
+
+		NewMesh->rugosityData = RugosityData;
+		NewMesh->TrianglesRugosity = TrianglesRugosityData;
+	}
+
+	return NewMesh;
 }
 
 void mouseMoveCallback(double xpos, double ypos)
@@ -640,7 +786,7 @@ void renderFEMesh(FEMesh* mesh)
 		meshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(-1.0f);
 	}
 
-	FE_GL_ERROR(glBindVertexArray(mesh->getVaoID()));
+	FE_GL_ERROR(glBindVertexArray(mesh->GetVaoID()));
 	if ((mesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));
 	if ((mesh->vertexAttributes & FE_COLOR) == FE_COLOR) FE_GL_ERROR(glEnableVertexAttribArray(1));
 	if ((mesh->vertexAttributes & FE_NORMAL) == FE_NORMAL) FE_GL_ERROR(glEnableVertexAttribArray(2));
@@ -760,8 +906,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 			renderFEMesh(compareToMesh);*/
 			
-			//APPLICATION.setWindowCaption("vertexCount: " + std::to_string(loadedMesh->getVertexCount()));
-
 			meshShader->stop();
 		}
 

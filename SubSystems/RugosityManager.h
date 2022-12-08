@@ -79,6 +79,9 @@ namespace FocalEngine
 		void SetUsedRugosityAlgorithmName(std::string name);
 		std::vector<std::string> RugosityAlgorithmList;
 
+		static void ForceOnRugosityCalculationsEnd(FEMesh* Mesh);
+
+		bool IsRugosityInfoReady();
 	private:
 		SINGLETON_PRIVATE_PART(RugosityManager)
 
@@ -88,8 +91,11 @@ namespace FocalEngine
 
 		static float LastTimeTookForCalculation;
 
-		static void OnRugosityCalculationsEnd();
+		static void OnRugosityCalculationsEnd(FEMesh* Mesh = nullptr);
 		static void(*OnRugosityCalculationsEndCallbackImpl)(void);
+
+		static bool bHaveRugosityInfoReady;
+		static void BeforeAnyRugosityCalculationsStart();
 	public:
 		static std::vector<std::tuple<double, double, int>> RugosityTriangleAreaAndIndex;
 	};

@@ -98,13 +98,14 @@ namespace FocalEngine
 
 	class FEGraphRender
 	{
-		ImVec2 Position;
+		ImVec2 Position = ImVec2(10, 10);
 		ImVec2 Size = ImVec2(100, 100);
 
 		std::vector<float> DataPonts;
 		std::vector<double> NormalizedDataPonts;
 
 		int ColumnWidth = 3;
+		float Ceiling = 1.0f;
 
 		std::vector<double> NormalizeArray(std::vector<float> Array);
 
@@ -113,7 +114,7 @@ namespace FocalEngine
 		ImVec2 GraphCanvasPosition = ImVec2(0, 0);
 		ImVec2 GraphCanvasSize = ImVec2(50, 50);
 
-		bool bInterpolation = false;
+		bool bInterpolation = true;
 
 		ImColor StartGradientColor = ImColor(11.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f);
 		ImColor EndGradientColor = ImColor(35.0f / 255.0f, 94.0f / 255.0f, 133.0f / 255.0f);
@@ -123,12 +124,17 @@ namespace FocalEngine
 		void RenderOneColumn(int XPosition);
 		int OutlineThickness = 5;
 		bool ShouldOutline(int XPosition, int YPosition);
+
+		void RenderBottomLegend();
 	public:
 		ImVec2 GetPosition() const;
 		void SetPosition(ImVec2 NewValue);
 
 		ImVec2 GetSize() const;
 		void SetSize(ImVec2 NewValue);
+
+		float GetCeiling();
+		void SetCeiling(float NewValue);
 
 		std::vector<float> GetDataPoints() const;
 		void SetDataPoints(std::vector<float> NewValue);

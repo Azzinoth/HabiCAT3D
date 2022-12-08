@@ -449,9 +449,6 @@ void SDF::fillCellsWithTriangleInfo()
 
 void SDF::calculateRugosity()
 {
-	if (mesh->Triangles.empty())
-		mesh->fillTrianglesData();
-
 	TIME.BeginTimeStamp("Calculate rugosity");
 
 	for (size_t i = 0; i < data.size(); i++)
