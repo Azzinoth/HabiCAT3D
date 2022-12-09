@@ -4,6 +4,7 @@ using namespace FocalEngine;
 RugosityManager* RugosityManager::Instance = nullptr;
 float RugosityManager::LastTimeTookForCalculation = 0.0f;
 std::vector<std::tuple<double, double, int>> RugosityManager::RugosityTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
+void(*RugosityManager::OnRugosityCalculationsStartCallbackImpl)(void) = nullptr;
 void(*RugosityManager::OnRugosityCalculationsEndCallbackImpl)(void) = nullptr;
 bool RugosityManager::bHaveRugosityInfoReady = false;
 FEMesh* RugosityManager::CurrentMesh = nullptr;
@@ -92,7 +93,7 @@ void RugosityManager::MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter)
 
 SDF* RugosityManager::calculateSDF(FEMesh* mesh, int dimentions, FEBasicCamera* currentCamera, bool UseJitterExpandedAABB)
 {
-	BeforeAnyRugosityCalculationsStart();
+	OnRugosityCalculationsStart(mesh);
 
 	FEAABB finalAABB = mesh->AABB;
 
@@ -198,7 +199,7 @@ void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
 
 void RugosityManager::RunCreationOfSDFAsync(FEMesh* mesh, bool bJitter)
 {
-	BeforeAnyRugosityCalculationsStart();
+	OnRugosityCalculationsStart(mesh);
 
 	SDFInitData* InputData = new SDFInitData();
 	InputData->dimentions = SDFDimention;
@@ -220,7 +221,7 @@ void RugosityManager::RunCreationOfSDFAsync(FEMesh* mesh, bool bJitter)
 
 void RugosityManager::calculateRugorsityWithJitterAsyn(FEMesh* mesh, int RugosityLayerIndex)
 {
-	BeforeAnyRugosityCalculationsStart();
+	OnRugosityCalculationsStart(mesh);
 
 	RUGOSITY_MANAGER.JitterCounter = 0;
 	RUGOSITY_MANAGER.RugosityLayerIndex = RugosityLayerIndex;
@@ -450,6 +451,21 @@ float RugosityManager::GetMaxRugosityWithOutOutliers(float OutliersPercentage)
 		mean /= numbOfPoints;*/
 }
 
+void RugosityManager::SetOnRugosityCalculationsStartCallback(void(*Func)(void))
+{
+	OnRugosityCalculationsStartCallbackImpl = Func;
+}
+
+void RugosityManager::OnRugosityCalculationsStart(FEMesh* Mesh)
+{
+	TIME.BeginTimeStamp("CalculateRugorsityTotal");
+	bHaveRugosityInfoReady = false;
+	CurrentMesh = Mesh;
+
+	if (OnRugosityCalculationsStartCallbackImpl != nullptr)
+		OnRugosityCalculationsStartCallbackImpl();
+}
+
 void RugosityManager::OnRugosityCalculationsEnd(FEMesh* Mesh)
 {
 	CurrentMesh = Mesh;
@@ -491,11 +507,4 @@ void RugosityManager::ForceOnRugosityCalculationsEnd(FEMesh* Mesh)
 bool RugosityManager::IsRugosityInfoReady()
 {
 	return bHaveRugosityInfoReady;
-}
-
-void RugosityManager::BeforeAnyRugosityCalculationsStart()
-{
-	TIME.BeginTimeStamp("CalculateRugorsityTotal");
-	bHaveRugosityInfoReady = false;
-	CurrentMesh = nullptr;
 }

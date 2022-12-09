@@ -73,6 +73,7 @@ namespace FocalEngine
 		float GetLastTimeTookForCalculation();
 		float GetMaxRugosityWithOutOutliers(float OutliersPercentage);
 
+		void SetOnRugosityCalculationsStartCallback(void(*Func)(void));
 		void SetOnRugosityCalculationsEndCallback(void(*Func)(void));
 
 		std::string GetUsedRugosityAlgorithmName();
@@ -91,11 +92,13 @@ namespace FocalEngine
 
 		static float LastTimeTookForCalculation;
 
+		static void OnRugosityCalculationsStart(FEMesh* Mesh);
+		static void(*OnRugosityCalculationsStartCallbackImpl)(void);
+
 		static void OnRugosityCalculationsEnd(FEMesh* Mesh = nullptr);
 		static void(*OnRugosityCalculationsEndCallbackImpl)(void);
 
 		static bool bHaveRugosityInfoReady;
-		static void BeforeAnyRugosityCalculationsStart();
 
 		static FEMesh* CurrentMesh;
 	public:
