@@ -1673,6 +1673,19 @@ void UIManager::FillGraphDataPoints(int BinsCount)
 		}
 	}
 
+	//double AreaWithUnder = 0.0;
+	//double AreaWithAbove = 0.0;
+	//double Value = 3.0;
+	//for (int i = 0; i < DataPoints.size() / 2; i++)
+	//{
+	//	AreaWithUnder += DataPoints[i];
+	//}
+
+	//for (int i = DataPoints.size() / 2; i < DataPoints.size(); i++)
+	//{
+	//	AreaWithAbove += DataPoints[i];
+	//}
+
 	double TotalArea = 0.0;
 	float MaxValue = -FLT_MAX;
 	for (size_t i = 0; i < BinsCount; i++)

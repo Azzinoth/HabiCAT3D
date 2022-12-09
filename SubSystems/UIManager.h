@@ -122,7 +122,7 @@ namespace FocalEngine
 
 		float GraphHeightAtPixel(int PixelX);
 		void RenderOneColumn(int XPosition);
-		int OutlineThickness = 5;
+		int OutlineThickness = 2;
 		bool ShouldOutline(int XPosition, int YPosition);
 
 		void RenderBottomLegend();

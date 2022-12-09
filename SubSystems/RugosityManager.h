@@ -96,6 +96,8 @@ namespace FocalEngine
 
 		static bool bHaveRugosityInfoReady;
 		static void BeforeAnyRugosityCalculationsStart();
+
+		static FEMesh* CurrentMesh;
 	public:
 		static std::vector<std::tuple<double, double, int>> RugosityTriangleAreaAndIndex;
 	};

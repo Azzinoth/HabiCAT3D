@@ -438,7 +438,7 @@ FEMesh* ChooseHowToAndLoadMesh(std::string FileName)
 		return Result;
 
 	std::string FileExtention = FILE_SYSTEM.GetFileExtension(FileName.c_str());
-	// To lower case
+	// Convert to lower case.
 	std::transform(FileExtention.begin(), FileExtention.end(), FileExtention.begin(), [](const unsigned char C) { return std::tolower(C); });
 
 	if (FileExtention == ".obj")

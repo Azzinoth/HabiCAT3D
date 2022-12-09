@@ -6,6 +6,7 @@ float RugosityManager::LastTimeTookForCalculation = 0.0f;
 std::vector<std::tuple<double, double, int>> RugosityManager::RugosityTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
 void(*RugosityManager::OnRugosityCalculationsEndCallbackImpl)(void) = nullptr;
 bool RugosityManager::bHaveRugosityInfoReady = false;
+FEMesh* RugosityManager::CurrentMesh = nullptr;
 
 RugosityManager::RugosityManager()
 {
@@ -351,21 +352,21 @@ void RugosityManager::SetUseCGALVariant(bool NewValue)
 
 glm::dvec2 RugosityManager::RugosityAreaDistribution(float RugosityValue)
 {
-	if (RUGOSITY_MANAGER.currentSDF == nullptr || !RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+	if (!RUGOSITY_MANAGER.IsRugosityInfoReady() || CurrentMesh == nullptr)
 		return glm::dvec2(0.0);
 
 	float FirstBin = 0.0;
 	float SecondBin = 0.0;
 
-	for (int i = 0; i < currentSDF->mesh->Triangles.size(); i++)
+	for (int i = 0; i < CurrentMesh->Triangles.size(); i++)
 	{
-		if (currentSDF->mesh->TrianglesRugosity[i] <= RugosityValue)
+		if (CurrentMesh->TrianglesRugosity[i] <= RugosityValue)
 		{
-			FirstBin += float(currentSDF->mesh->TrianglesArea[i]);
+			FirstBin += float(CurrentMesh->TrianglesArea[i]);
 		}
 		else
 		{
-			SecondBin += float(currentSDF->mesh->TrianglesArea[i]);
+			SecondBin += float(CurrentMesh->TrianglesArea[i]);
 		}
 	}
 
@@ -376,7 +377,7 @@ double RugosityManager::AreaWithRugosities(float MinRugosity, float MaxRugosity)
 {
 	double Result = 0.0;
 
-	if (RUGOSITY_MANAGER.currentSDF == nullptr || !RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+	if (!RUGOSITY_MANAGER.IsRugosityInfoReady() || CurrentMesh == nullptr)
 		return Result;
 
 	for (int i = 0; i < RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.size(); i++)
@@ -418,16 +419,16 @@ float RugosityManager::GetLastTimeTookForCalculation()
 
 float RugosityManager::GetMaxRugosityWithOutOutliers(float OutliersPercentage)
 {
-	if (RUGOSITY_MANAGER.currentSDF == nullptr || !RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+	if (!RUGOSITY_MANAGER.IsRugosityInfoReady() || CurrentMesh == nullptr)
 		return FLT_MAX;
 
 	std::unordered_map<int, double> allRugosityValuesMap;
 	std::vector<float> allRugosityValues;
-	allRugosityValues.resize(RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity.size());
-	for (size_t i = 0; i < RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity.size(); i++)
+	allRugosityValues.resize(CurrentMesh->TrianglesRugosity.size());
+	for (size_t i = 0; i < CurrentMesh->TrianglesRugosity.size(); i++)
 	{
-		allRugosityValues[i] = RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity[i];
-		allRugosityValuesMap[i] = RUGOSITY_MANAGER.currentSDF->mesh->TrianglesRugosity[i];
+		allRugosityValues[i] = CurrentMesh->TrianglesRugosity[i];
+		allRugosityValuesMap[i] = CurrentMesh->TrianglesRugosity[i];
 	}
 
 	std::sort(allRugosityValues.begin(), allRugosityValues.end());
@@ -435,7 +436,7 @@ float RugosityManager::GetMaxRugosityWithOutOutliers(float OutliersPercentage)
 	double CurrentCombinedArea = 0.0;
 	for (size_t i = 0; i < allRugosityValues.size(); i++)
 	{
-		CurrentCombinedArea += currentSDF->mesh->TrianglesArea[i];
+		CurrentCombinedArea += CurrentMesh->TrianglesArea[i];
 	}
 
 	/*int numbOfPoints = int(vertexInfo.size() * 0.01f);
@@ -451,7 +452,7 @@ float RugosityManager::GetMaxRugosityWithOutOutliers(float OutliersPercentage)
 
 void RugosityManager::OnRugosityCalculationsEnd(FEMesh* Mesh)
 {
-	FEMesh* CurrentMesh = Mesh;
+	CurrentMesh = Mesh;
 	if (CurrentMesh == nullptr)
 		CurrentMesh = RUGOSITY_MANAGER.currentSDF->mesh;
 
@@ -496,4 +497,5 @@ void RugosityManager::BeforeAnyRugosityCalculationsStart()
 {
 	TIME.BeginTimeStamp("CalculateRugorsityTotal");
 	bHaveRugosityInfoReady = false;
+	CurrentMesh = nullptr;
 }
