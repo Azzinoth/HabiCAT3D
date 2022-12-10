@@ -96,10 +96,10 @@ namespace FocalEngine
 
 		void fillTrianglesData();
 		bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance, glm::vec3* HitPoint = nullptr);
-		void SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera);
+		bool SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera);
 		glm::vec3 IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera);
-		void SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius);
-		void SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius);
+		bool SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius);
+		bool SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius);
 
 		glm::vec3 AverageNormal = glm::vec3();
 		glm::vec3 GetAverageNormal();

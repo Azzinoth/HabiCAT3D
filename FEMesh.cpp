@@ -241,7 +241,7 @@ void FEMesh::fillTrianglesData()
 	}
 }
 
-void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
+bool FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 {
 	float currentDistance = 0.0f;
 	float lastDistance = 9999.0f;
@@ -267,7 +267,12 @@ void FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 	}
 
 	if (TriangeIndex != -1)
+	{
 		TriangleSelected.push_back(TriangeIndex);
+		return true;
+	}
+
+	return false;
 }
 
 glm::vec3 FEMesh::IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
@@ -298,12 +303,13 @@ glm::vec3 FEMesh::IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentC
 	}
 }
 
-void FEMesh::SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius)
+bool FEMesh::SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius)
 {
+	bool Result = false;
 	SelectTriangle(MouseRay, currentCamera);
 
 	if (TriangleSelected.size() == 0)
-		return;
+		return Result;
 
 	LastMeasuredRugosityAreaRadius = Radius;
 	LastMeasuredRugosityAreaCenter = Position->getTransformMatrix() * glm::vec4(TrianglesCentroids[TriangleSelected[0]], 1.0f);
@@ -318,12 +324,17 @@ void FEMesh::SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* current
 		if (glm::distance(FirstSelectedTriangleCentroid, TrianglesCentroids[i]) <= Radius)
 		{
 			TriangleSelected.push_back(int(i));
+			Result = true;
 		}
 	}
+
+	return Result;
 }
 
-void FEMesh::SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius)
+bool FEMesh::SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius)
 {
+	bool Result = false;
+
 	TriangleSelected.clear();
 
 	LastMeasuredRugosityAreaRadius = Radius;
@@ -336,8 +347,11 @@ void FEMesh::SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius)
 		if (glm::distance(FirstSelectedTriangleCentroid, TrianglesCentroids[i]) <= Radius)
 		{
 			TriangleSelected.push_back(int(i));
+			Result = true;
 		}
 	}
+
+	return Result;
 }
 
 void FEMesh::fillRugosityDataToGPU(int RugosityLayerIndex)

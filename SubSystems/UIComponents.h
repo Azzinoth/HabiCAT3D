@@ -61,6 +61,8 @@ public:
 
 	ImVec2 GetPixelPosition() const;
 	void SetPixelPosition(ImVec2 NewPosition);
+
+	void Clear();
 };
 
 struct Legend

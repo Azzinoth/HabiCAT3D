@@ -34,18 +34,26 @@ RugosityManager::RugosityManager()
 
 RugosityManager::~RugosityManager() {}
 
-void RugosityManager::CheckAcceptableResolutions(FEMesh* NewMesh)
+void RugosityManager::UpdateCurrentMesh(FEMesh* NewMesh)
 {
-	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
-	transformMatrix = glm::scale(transformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
-	FEAABB finalAABB = NewMesh->AABB.transform(transformMatrix);
+	bHaveRugosityInfoReady = false;
+	CurrentMesh = NewMesh;
 
-	float MaxMeshAABBSize = finalAABB.getSize();
+	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
+	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
+	FEAABB FinalAABB = CurrentMesh->AABB.transform(TransformMatrix);
+
+	const float MaxMeshAABBSize = FinalAABB.getSize();
 
 	LowestResolution = MaxMeshAABBSize / 120;
 	HigestResolution = MaxMeshAABBSize / 9;
 
 	ResolutonInM = LowestResolution;
+
+	delete currentSDF;
+	currentSDF = nullptr;
+
+	RugosityTriangleAreaAndIndex.clear();
 }
 
 void RugosityManager::MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter)
@@ -104,11 +112,11 @@ SDF* RugosityManager::calculateSDF(FEMesh* mesh, int dimentions, FEBasicCamera* 
 		finalAABB = finalAABB.transform(transformMatrix);
 	}
 
-	float cellSize = finalAABB.getSize() / dimentions;
+	const float cellSize = finalAABB.getSize() / dimentions;
 
 	//glm::vec3 center = mesh->AABB.getCenter();
-	glm::vec3 center = mesh->AABB.getCenter() + glm::vec3(shiftX, shiftY, shiftZ) * cellSize;
-	FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
+	const glm::vec3 center = mesh->AABB.getCenter() + glm::vec3(shiftX, shiftY, shiftZ) * cellSize;
+	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
 	finalAABB = SDFAABB;
 
 
@@ -164,7 +172,7 @@ void RugosityManager::calculateSDFCallback(void* OutputData)
 
 void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
 {
-	SDFInitData* Input = reinterpret_cast<SDFInitData*>(InputData);
+	const SDFInitData* Input = reinterpret_cast<SDFInitData*>(InputData);
 	SDF* Output = reinterpret_cast<SDF*>(OutputData);
 
 	FEAABB finalAABB = Input->mesh->AABB;
@@ -176,11 +184,11 @@ void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
 		finalAABB = finalAABB.transform(transformMatrix);
 	}
 
-	float cellSize = finalAABB.getSize() / Input->dimentions;
+	const float cellSize = finalAABB.getSize() / Input->dimentions;
 
 	//glm::vec3 center = mesh->AABB.getCenter();
-	glm::vec3 center = Input->mesh->AABB.getCenter() + glm::vec3(Input->shiftX, Input->shiftY, Input->shiftZ) * cellSize;
-	FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
+	const glm::vec3 center = Input->mesh->AABB.getCenter() + glm::vec3(Input->shiftX, Input->shiftY, Input->shiftZ) * cellSize;
+	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
 	finalAABB = SDFAABB;
 
 	Output->Init(Input->mesh, 0/*Input->dimentions*/, finalAABB, RUGOSITY_MANAGER.currentCamera, RUGOSITY_MANAGER.ResolutonInM);
@@ -383,7 +391,7 @@ double RugosityManager::AreaWithRugosities(float MinRugosity, float MaxRugosity)
 
 	for (int i = 0; i < RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.size(); i++)
 	{
-		double CurrentRugosity = std::get<0>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex[i]);
+		const double CurrentRugosity = std::get<0>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex[i]);
 		if (CurrentRugosity >= MinRugosity && CurrentRugosity <= MaxRugosity)
 		{
 			Result += std::get<1>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex[i]);
@@ -471,6 +479,8 @@ void RugosityManager::OnRugosityCalculationsEnd(FEMesh* Mesh)
 	CurrentMesh = Mesh;
 	if (CurrentMesh == nullptr)
 		CurrentMesh = RUGOSITY_MANAGER.currentSDF->mesh;
+
+	RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.clear();
 
 	for (int i = 0; i < CurrentMesh->Triangles.size(); i++)
 	{

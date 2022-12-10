@@ -19,6 +19,28 @@ FEArrowScroller::FEArrowScroller(const bool Horizontal)
 	AvailableRange = FLT_MAX;
 }
 
+void FEArrowScroller::Clear()
+{
+	StartPosition = ImVec2(0.0f, 0.0f);
+	Position = ImVec2(0.0f, 0.0f);
+
+	bSelected = false;
+	bMouseHover = false;
+
+	bWindowFlagWasAdded = false;
+	OriginalWindowFlags = 0;
+
+	LastFrameDelta = 0;
+	Size = 20.0f;
+
+	Color = ImColor(10, 10, 40, 255);
+	SelectedColor = ImColor(115, 115, 255, 255);
+
+	AvailableRange = FLT_MAX;
+	RangePosition = 0.0f;
+	RangeBottomLimit = 1.0f;
+}
+
 ImVec2 FEArrowScroller::GetPixelPosition() const
 {
 	return Position;
@@ -422,6 +444,7 @@ void FEColorRangeAdjuster::SetRangeBottomLimit(float NewValue)
 
 void FEColorRangeAdjuster::Clear()
 {
+	Ceiling.Clear();
 	RangeSize = ImVec2(20, 600);
 	RangePosition = ImVec2(17, 15);
 

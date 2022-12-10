@@ -360,7 +360,7 @@ void renderTargetCenterForCamera()
 	}
 }
 
-FEMesh* currentMesh = nullptr;
+FEMesh* CurrentMesh = nullptr;
 
 FEMesh* LoadRUGMesh(std::string FileName);
 void LoadMesh(std::string FileName);
@@ -382,52 +382,31 @@ void ScrollCall(double Xoffset, double Yoffset)
 
 void AfterMeshLoads(FEMesh* NewlyLoadedMesh)
 {
-	currentMesh->fillTrianglesData();
+	CurrentMesh->fillTrianglesData();
 
-	UI.updateCurrentMesh(currentMesh);
-	RUGOSITY_MANAGER.CheckAcceptableResolutions(currentMesh);
+	UI.UpdateCurrentMesh(CurrentMesh);
+	RUGOSITY_MANAGER.UpdateCurrentMesh(CurrentMesh);
 
-	currentMesh->Position->setPosition(-currentMesh->AABB.getCenter());
-	currentMesh->UpdateAverageNormal();
+	CurrentMesh->Position->setPosition(-CurrentMesh->AABB.getCenter());
+	CurrentMesh->UpdateAverageNormal();
 
 	UI.SetIsModelCamera(true);
 
-	/*currentCamera->setPosition(glm::vec3(0.0f, 0.0f, currentMesh->AABB.getSize() * 1.5f));
-	currentCamera->setYaw(0.0f);
-	currentCamera->setPitch(0.0f);
-	currentCamera->setRoll(0.0f);
+	glm::vec3 AverageNormal = CurrentMesh->GetAverageNormal();
+	glm::vec3 TransformedCenter = CurrentMesh->Position->getTransformMatrix() * glm::vec4(CurrentMesh->AABB.getCenter(), 1.0f);
 
-	currentCamera->setMovementSpeed(currentMesh->AABB.getSize() / 5.0f);
-	currentCamera->setFarPlane(currentMesh->AABB.getSize() * 5.0f);
+	meshShader->getParameter("lightDirection")->updateData(glm::normalize(CurrentMesh->GetAverageNormal()));
 
-	if (UI.GetIsModelCamera())
-		reinterpret_cast<FEModelViewCamera*>(currentCamera)->SetDistanceToModel(currentMesh->AABB.getSize());*/
-
-	glm::vec3 AverageNormal = currentMesh->GetAverageNormal();
-	//glm::vec3 TransformedAvarageNormal = currentMesh->Position->getTransformMatrix() * glm::vec4(AvarageNormal, 1.0f);
-	glm::vec3 TransformedCenter = currentMesh->Position->getTransformMatrix() * glm::vec4(currentMesh->AABB.getCenter(), 1.0f);
-
-	meshShader->getParameter("lightDirection")->updateData(glm::normalize(currentMesh->GetAverageNormal()));
-
-	currentMesh->colorMode = 0;
-	if (currentMesh->getColorCount() != 0)
-		currentMesh->colorMode = 1;
-
-	/*LINE_RENDERER.clearAll();
-	LINE_RENDERER.AddLineToBuffer(
-		FELine(TransformedCenter,
-			   TransformedCenter + AverageNormal * currentMesh->AABB.getSize(),
-			   glm::vec3(1.0f, 1.0f, 0.0f)));
-
-	LINE_RENDERER.SyncWithGPU();*/
+	CurrentMesh->colorMode = 0;
+	if (CurrentMesh->getColorCount() != 0)
+		CurrentMesh->colorMode = 1;
 
 	// When loading from binary format we would have that data in file.
-	if (!currentMesh->rugosityData.empty() && !currentMesh->TrianglesRugosity.empty())
+	if (!CurrentMesh->rugosityData.empty() && !CurrentMesh->TrianglesRugosity.empty())
 	{
-		currentMesh->fillRugosityDataToGPU();
-		RUGOSITY_MANAGER.ForceOnRugosityCalculationsEnd(currentMesh);
+		CurrentMesh->fillRugosityDataToGPU();
+		RUGOSITY_MANAGER.ForceOnRugosityCalculationsEnd(CurrentMesh);
 	}
-		
 }
 
 FEMesh* ChooseHowToAndLoadMesh(std::string FileName)
@@ -461,9 +440,9 @@ void LoadMesh(std::string FileName)
 		LOG.Add("Failed to load mesh with path: " + FileName);
 		return;
 	}
-	currentMesh = TempMesh;
+	CurrentMesh = TempMesh;
 
-	AfterMeshLoads(currentMesh);
+	AfterMeshLoads(CurrentMesh);
 }
 
 FEMesh* LoadRUGMesh(std::string FileName)
@@ -677,6 +656,58 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* mesh)
 	}
 }
 
+void OutputSeletedAreaInfoToFile()
+{
+	if (CurrentMesh->TriangleSelected.size() < 2)
+		return;
+
+	std::string Text = "Area radius : " + std::to_string(UI.GetAreaToMeasureRugosity());
+	LOG.Add(Text, "Selections");
+
+	Text = "Area approximate center : X - ";
+	glm::vec3 Center = CurrentMesh->TrianglesCentroids[CurrentMesh->TriangleSelected[0]];
+	Text += std::to_string(Center.x);
+	Text += " Y - ";
+	Text += std::to_string(Center.y);
+	Text += " Z - ";
+	Text += std::to_string(Center.z);
+	LOG.Add(Text, "Selections");
+
+	Text = "Area rugosity : ";
+	float TotalRugosity = 0.0f;
+	for (size_t i = 0; i < CurrentMesh->TriangleSelected.size(); i++)
+	{
+		TotalRugosity += CurrentMesh->TrianglesRugosity[CurrentMesh->TriangleSelected[i]];
+	}
+
+	TotalRugosity /= CurrentMesh->TriangleSelected.size();
+	Text += std::to_string(TotalRugosity);
+	LOG.Add(Text, "Selections");
+
+	Text = "Area average height : ";
+	double AverageHeight = 0.0;
+	for (size_t i = 0; i < CurrentMesh->TriangleSelected.size(); i++)
+	{
+		double CurrentHeight = 0.0;
+		for (size_t j = 0; j < 3; j++)
+		{
+			glm::vec3 CurrentPoint = CurrentMesh->Triangles[CurrentMesh->TriangleSelected[i]][j];
+			CurrentHeight += glm::dot(glm::vec3(CurrentMesh->Position->getTransformMatrix() * glm::vec4(CurrentPoint, 1.0)), CurrentMesh->AverageNormal);
+		}
+
+		CurrentHeight /= 3.0;
+		AverageHeight += CurrentHeight;
+	}
+
+	AverageHeight /= CurrentMesh->TriangleSelected.size();
+	AverageHeight -= CurrentMesh->MinHeight;
+
+	Text += std::to_string(AverageHeight);
+
+	LOG.Add(Text, "Selections");
+	LOG.Add("\n", "Selections");
+}
+
 void mouseButtonCallback(int button, int action, int mods)
 {
 	if (ImGui::GetIO().WantCaptureMouse)
@@ -696,54 +727,58 @@ void mouseButtonCallback(int button, int action, int mods)
 
 	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
 	{
-		if (currentMesh != nullptr)
+		if (CurrentMesh != nullptr)
 		{
 			if (UI.GetRugositySelectionMode() == 1)
 			{
-				currentMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
+				CurrentMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
 			}
 			else if (UI.GetRugositySelectionMode() == 2)
 			{
-				currentMesh->SelectTrianglesInRadius(mouseRay(mouseX, mouseY), currentCamera, UI.GetAreaToMeasureRugosity());
+				if (CurrentMesh->SelectTrianglesInRadius(mouseRay(mouseX, mouseY), currentCamera, UI.GetAreaToMeasureRugosity()) &&
+					UI.GetOutputSelectionToFile())
+				{
+					OutputSeletedAreaInfoToFile();
+				}
 			}
 
-			UpdateMeshSelectedTrianglesRendering(currentMesh);
+			UpdateMeshSelectedTrianglesRendering(CurrentMesh);
 		}
 
-		if (currentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr)
+		if (CurrentMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr)
 		{
 			if (RUGOSITY_MANAGER.currentSDF->RenderingMode == 0)
 			{
 				/*LINE_RENDERER.clearAll();
 
-				if (currentMesh->TriangleSelected != -1)
+				if (CurrentMesh->TriangleSelected != -1)
 				{
-					LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][1], glm::vec3(1.0f, 1.0f, 0.0f)));
-					LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][0], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
-					LINE_RENDERER.AddLineToBuffer(FELine(currentMesh->Triangles[currentMesh->TriangleSelected][1], currentMesh->Triangles[currentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+					LINE_RENDERER.AddLineToBuffer(FELine(CurrentMesh->Triangles[CurrentMesh->TriangleSelected][0], CurrentMesh->Triangles[CurrentMesh->TriangleSelected][1], glm::vec3(1.0f, 1.0f, 0.0f)));
+					LINE_RENDERER.AddLineToBuffer(FELine(CurrentMesh->Triangles[CurrentMesh->TriangleSelected][0], CurrentMesh->Triangles[CurrentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
+					LINE_RENDERER.AddLineToBuffer(FELine(CurrentMesh->Triangles[CurrentMesh->TriangleSelected][1], CurrentMesh->Triangles[CurrentMesh->TriangleSelected][2], glm::vec3(1.0f, 1.0f, 0.0f)));
 
-					if (!currentMesh->TrianglesNormals.empty())
+					if (!CurrentMesh->TrianglesNormals.empty())
 					{
-						glm::vec3 Point = currentMesh->Triangles[currentMesh->TriangleSelected][0];
-						glm::vec3 Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][0];
+						glm::vec3 Point = CurrentMesh->Triangles[CurrentMesh->TriangleSelected][0];
+						glm::vec3 Normal = CurrentMesh->TrianglesNormals[CurrentMesh->TriangleSelected][0];
 						LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
-						Point = currentMesh->Triangles[currentMesh->TriangleSelected][1];
-						Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][1];
+						Point = CurrentMesh->Triangles[CurrentMesh->TriangleSelected][1];
+						Normal = CurrentMesh->TrianglesNormals[CurrentMesh->TriangleSelected][1];
 						LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
-						Point = currentMesh->Triangles[currentMesh->TriangleSelected][2];
-						Normal = currentMesh->TrianglesNormals[currentMesh->TriangleSelected][2];
+						Point = CurrentMesh->Triangles[CurrentMesh->TriangleSelected][2];
+						Normal = CurrentMesh->TrianglesNormals[CurrentMesh->TriangleSelected][2];
 						LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 					}
 
-					if (!currentMesh->originalTrianglesToSegments.empty() && !currentMesh->segmentsNormals.empty())
+					if (!CurrentMesh->originalTrianglesToSegments.empty() && !CurrentMesh->segmentsNormals.empty())
 					{
-						glm::vec3 Centroid = (currentMesh->Triangles[currentMesh->TriangleSelected][0] +
-							currentMesh->Triangles[currentMesh->TriangleSelected][1] +
-							currentMesh->Triangles[currentMesh->TriangleSelected][2]) / 3.0f;
+						glm::vec3 Centroid = (CurrentMesh->Triangles[CurrentMesh->TriangleSelected][0] +
+							CurrentMesh->Triangles[CurrentMesh->TriangleSelected][1] +
+							CurrentMesh->Triangles[CurrentMesh->TriangleSelected][2]) / 3.0f;
 
-						glm::vec3 Normal = currentMesh->segmentsNormals[currentMesh->originalTrianglesToSegments[currentMesh->TriangleSelected]];
+						glm::vec3 Normal = CurrentMesh->segmentsNormals[CurrentMesh->originalTrianglesToSegments[CurrentMesh->TriangleSelected]];
 						LINE_RENDERER.AddLineToBuffer(FELine(Centroid, Centroid + Normal, glm::vec3(1.0f, 0.0f, 0.0f)));
 					}
 
@@ -822,6 +857,8 @@ void windowResizeCallback(int width, int height)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	LOG.SetFileOutput(true);
+
 	APPLICATION.InitWindow(1280, 720, "Rugosity Calculator");
 	APPLICATION.SetDropCallback(dropCallback);
 	APPLICATION.SetKeyCallback(keyButtonCallback);
@@ -864,7 +901,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		//ImGui::ShowDemoWindow();
 
-		if (currentMesh != nullptr)
+		if (CurrentMesh != nullptr)
 		{
 			meshShader->start();
 
@@ -872,7 +909,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			while (iterator != meshShader->parameters.end())
 			{
 				if (iterator->second.nameHash == FEWorldMatrix_hash)
-					iterator->second.updateData(currentMesh->Position->getTransformMatrix());
+					iterator->second.updateData(CurrentMesh->Position->getTransformMatrix());
 
 				if (iterator->second.nameHash == FEViewMatrix_hash)
 					iterator->second.updateData(currentCamera->getViewMatrix());
@@ -894,7 +931,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}
 
-			renderFEMesh(currentMesh);
+			renderFEMesh(CurrentMesh);
 
 			//if (UI.TestMesh)
 			//	renderFEMesh(UI.TestMesh);
@@ -911,7 +948,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		LINE_RENDERER.Render(currentCamera);
 			
-		UI.RenderMainWindow(currentMesh);
+		UI.RenderMainWindow(CurrentMesh);
 		
 		APPLICATION.EndFrame();
 	}
