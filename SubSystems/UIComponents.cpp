@@ -676,11 +676,18 @@ bool FEGraphRender::ShouldOutline(int XPosition, int YPosition)
 
 void FEGraphRender::RenderOneColumn(int XPosition)
 {
-	int ColumnTop = GraphHeightAtPixel(XPosition);
-	if (ColumnTop < 0)
-		return;
-
 	int GraphBottom = Size.y /*- Position.y*/;
+	int ColumnTop = GraphHeightAtPixel(XPosition);
+
+	if (abs(GraphBottom - ColumnTop) == 0)
+	{
+		ColumnTop -= 1;
+	}
+	else if (ColumnTop < Position.y)
+	{
+		ColumnTop = Position.y + OutlineThickness + 1;
+	}
+
 	float WindowX = ImGui::GetCurrentWindow()->Pos.x;
 	float WindowY = ImGui::GetCurrentWindow()->Pos.y;
 

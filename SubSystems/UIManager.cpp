@@ -7,6 +7,7 @@ void(*UIManager::SwapCameraImpl)(bool) = nullptr;
 UIManager::UIManager()
 {
 	RugosityColorRange.SetPosition(ImVec2(0, 20));
+	Graph.SetPosition(ImVec2(5, 20));
 
 	RUGOSITY_MANAGER.SetOnRugosityCalculationsEndCallback(OnRugosityCalculationsEnd);
 	RUGOSITY_MANAGER.SetOnRugosityCalculationsStartCallback(OnRugosityCalculationsStart);
@@ -1761,11 +1762,6 @@ void UIManager::FillGraphDataPoints(const int BinsCount)
 
 void UIManager::RenderRugosityHistogram()
 {
-	if (Graph.GetPosition().x == 0)
-	{
-		Graph.SetPosition(ImVec2(5, 30));
-	}
-
 	static int LastWindowW = 0;
 
 	const ImGuiWindow* window = ImGui::FindWindowByName("Rugosity histogram");
