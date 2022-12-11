@@ -53,8 +53,6 @@ namespace FocalEngine
 	public:
 		SINGLETON_PUBLIC_PART(FECGALWrapper)
 
-		FEMesh* importOBJ(const char* fileName, bool forceOneMesh);
-
 		FEMesh* surfaceMeshToFEMesh(Surface_mesh mesh);
 		FEMesh* surfaceMeshToFEMesh(Surface_mesh mesh, float* normals, int normSize);
 		Surface_mesh FEMeshToSurfaceMesh(FEMesh* mesh);
@@ -62,27 +60,8 @@ namespace FocalEngine
 		FEMesh* SurfaceMeshSimplification(FEMesh* originalMesh, double verticesLeftInPersent);
 		FEMesh* SurfaceMeshApproximation(FEMesh* originalMesh, int segmentsMax);
 
-		FEMesh* rawDataToMesh(float* positions, int posSize,
-							  float* colors, int colorSize,
-							  float* UV, int UVSize,
-							  float* normals, int normSize,
-							  float* tangents, int tanSize,
-							  int* indices, int indexSize,
-							  float* matIndexs, int matIndexsSize, int matCount,
-							  std::string Name);
-
-		FEMesh* rawDataToMesh(double* positions, int posSize,
-							  float* colors, int colorSize,
-							  float* UV, int UVSize,
-							  float* normals, int normSize,
-							  float* tangents, int tanSize,
-							  int* indices, int indexSize,
-							  float* matIndexs, int matIndexsSize, int matCount,
-							  std::string Name);
 	private:
 		SINGLETON_PRIVATE_PART(FECGALWrapper)
-
-		
 
 		void addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrianglesToSegments, std::vector<glm::vec3> segmentsNormals);
 		std::vector<float> calculateNormals(Surface_mesh mesh);

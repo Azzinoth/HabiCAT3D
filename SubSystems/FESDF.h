@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../FEMesh.h"
+#include "MeshManager.h"
 #include "FEFreeCamera.h"
 #include "FEModelViewCamera.h"
 #include "../SubSystems/FELinesRenderer.h"
@@ -154,55 +154,54 @@ namespace FocalEngine
 
 	struct SDFNode
 	{
-		float value = 0.0f;
-		float distanceToTrianglePlane = 0.0f;
+		float Value = 0.0f;
+		float DistanceToTrianglePlane = 0.0f;
 		FEAABB AABB;
-		bool wasRenderedLastFrame = false;
-		bool selected = false;
-		std::vector<int> trianglesInCell;
+		bool bWasRenderedLastFrame = false;
+		bool bSelected = false;
+		std::vector<int> TrianglesInCell;
 
 		// Rugosity info.
-		glm::vec3 averageCellNormal = glm::vec3(0.0f);
+		glm::vec3 AverageCellNormal = glm::vec3(0.0f);
 		glm::vec3 CellTrianglesCentroid = glm::vec3(0.0f);
-		FEPlane* approximateProjectionPlane = nullptr;
-		double rugosity = 0.0;
+		FEPlane* ApproximateProjectionPlane = nullptr;
+		double Rugosity = 0.0;
 	};
 
 	struct SDF
 	{
-		FEBasicCamera* currentCamera = nullptr;
+		FEBasicCamera* CurrentCamera = nullptr;
 
-		std::vector<std::vector<std::vector<SDFNode>>> data;
-		glm::vec3 averageNormal;
-		FEMesh* mesh;
+		std::vector<std::vector<std::vector<SDFNode>>> Data;
+		glm::vec3 AverageNormal;
 
-		std::vector<triangleData> getTrianglesData(FEMesh* mesh);
+		std::vector<triangleData> GetTrianglesData();
 		SDF();
-		SDF(FEMesh* mesh, int dimentions, FEAABB AABB, FEBasicCamera* camera);
+		SDF(int Dimentions, FEAABB AABB, FEBasicCamera* Camera);
 
-		void Init(FEMesh* mesh, int dimensions, FEAABB AABB, FEBasicCamera* camera, float ResolutionInM = 0.0f);
+		void Init(int Dimensions, FEAABB AABB, FEBasicCamera* Camera, float ResolutionInM = 0.0f);
 
-		glm::vec3 selectedCell = glm::vec3(0.0);
+		glm::vec3 SelectedCell = glm::vec3(0.0);
 
-		void fillCellsWithTriangleInfo();
-		void calculateRugosity();
+		void FillCellsWithTriangleInfo();
+		void CalculateRugosity();
 
 		//std::vector<glm::vec3> highlightedCells;
 
-		void mouseClick(double mouseX, double mouseY, glm::mat4 transformMat = glm::identity<glm::mat4>());
+		void MouseClick(double MouseX, double MouseY, glm::mat4 TransformMat = glm::identity<glm::mat4>());
 
 		static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
 
-		void fillMeshWithRugosityData();
+		void FillMeshWithRugosityData();
 
-		void calculateCellRugosity(SDFNode* node, std::string* debugInfo = nullptr);
+		void CalculateCellRugosity(SDFNode* Node, std::string* DebugInfo = nullptr);
 
 		float TimeTookToGenerateInMS = 0.0f;
 		float TimeTookFillCellsWithTriangleInfo = 0.0f;
 		float TimeTookCalculateRugosity = 0.0f;
 		float TimeTookFillMeshWithRugosityData = 0.0f;
 
-		int debugTotalTrianglesInCells = 0;
+		int DebugTotalTrianglesInCells = 0;
 		//bool bFinalJitter = false;
 		bool bWeightedNormals = false;
 		bool bNormalizedNormals = false;
@@ -214,15 +213,15 @@ namespace FocalEngine
 		bool bFullyLoaded = false;
 
 		int RenderingMode = 0;
-		bool showTrianglesInCells = true;
+		bool bShowTrianglesInCells = true;
 		void UpdateRenderLines();
 
 		~SDF()
 		{
-			data.clear();
+			Data.clear();
 		}
 
 	private:
-		void addLinesOFSDF();
+		void AddLinesOfsdf();
 	};
 }

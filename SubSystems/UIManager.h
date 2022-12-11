@@ -13,9 +13,9 @@ namespace FocalEngine
 		void ShowCameraTransform();
 
 		void SetCamera(FEBasicCamera* NewCamera);
-		void SetMeshShader(FEShader* NewShader);
 
-		void RenderMainWindow(FEMesh* CurrentMesh);
+		void RenderMainWindow();
+		void Render();
 
 		bool GetWireFrameMode();
 		void SetWireFrameMode(bool NewValue);
@@ -29,7 +29,7 @@ namespace FocalEngine
 		std::string CameraRotationToStr();
 		void StrToCameraRotation(std::string Text);
 
-		void UpdateCurrentMesh(FEMesh* NewMesh);
+		static void OnMeshUpdate();
 
 		float GetAreaToMeasureRugosity();
 		void SetAreaToMeasureRugosity(float NewValue);
@@ -44,11 +44,12 @@ namespace FocalEngine
 
 		bool GetOutputSelectionToFile();
 		void SetOutputSelectionToFile(bool NewValue);
+
+		void ApplyStandardWindowsSizeAndPosition();
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 
 		FEBasicCamera* CurrentCamera = nullptr;
-		FEShader* MeshShader = nullptr;
 
 		bool bWireframeMode = false;
 		float TimeTookToJitter = 0.0f;
@@ -56,7 +57,6 @@ namespace FocalEngine
 		bool DeveloperMode = false;
 		bool bModelCamera = true;
 		bool bCloseProgressPopup = false;
-		FEMesh* CurrentMesh = nullptr;
 
 		float AreaToMeasureRugosity = 1.0f;
 		int RugositySelectionMode = 0;
@@ -65,7 +65,7 @@ namespace FocalEngine
 
 		void RenderLegend();
 		void UpdateRugosityRangeSettings();
-		void RenderVisualModeWindow();
+		void RenderLayerChooseWindow();
 
 		FEGraphRender Graph;
 		const int StandardGraphBinCount = 128;
@@ -82,6 +82,13 @@ namespace FocalEngine
 		//void TestCGALVariant();
 
 		bool bOutputSelectionToFile = false;
+
+		void RenderDeveloperModeMainWindow();
+		void RenderUserModeMainWindow();
+
+		bool bShouldOpenAboutWindow = false;
+		void OpenAboutWindow();
+		void RenderAboutWindow();
 	};
 
 	#define UI UIManager::getInstance()

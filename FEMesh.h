@@ -3,6 +3,8 @@
 #include "FEShader.h"
 #include "SubSystems/FEGeometricTools.h"
 
+#define APP_VERSION 0.21
+
 namespace FocalEngine
 {
 	class FEEntity;

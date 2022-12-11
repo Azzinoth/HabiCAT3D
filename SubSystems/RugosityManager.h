@@ -30,7 +30,7 @@ namespace FocalEngine
 
 		void MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter = true);
 		int JitterCounter = 0;
-		SDF* calculateSDF(FEMesh* mesh, int dimentions, FEBasicCamera* currentCamera, bool UseJitterExpandedAABB = false);
+		SDF* calculateSDF(int dimentions, FEBasicCamera* currentCamera, bool UseJitterExpandedAABB = false);
 
 		float shiftX = 0.0f;
 		float shiftY = 0.0f;
@@ -47,15 +47,15 @@ namespace FocalEngine
 		int newSDFSeen = 0;
 		static void calculateSDFAsync(void* InputData, void* OutputData);
 		static void calculateSDFCallback(void* OutputData);
-		void RunCreationOfSDFAsync(FEMesh* mesh, bool bJitter = false);
-		void calculateRugorsityWithJitterAsyn(FEMesh* mesh, int RugosityLayerIndex = 0);
+		void RunCreationOfSDFAsync(bool bJitter = false);
+		void calculateRugorsityWithJitterAsyn(int RugosityLayerIndex = 0);
 
 		std::vector<std::string> dimentionsList;
 
 		float ResolutonInM = 1.0f;
 		float LowestResolution = -1.0f;
 		float HigestResolution = -1.0f;
-		void UpdateCurrentMesh(FEMesh* NewMesh);
+		static void OnMeshUpdate();
 		std::vector<std::string> colorSchemesList;
 
 		std::string colorSchemeIndexToString(int index);
@@ -80,7 +80,7 @@ namespace FocalEngine
 		void SetUsedRugosityAlgorithmName(std::string name);
 		std::vector<std::string> RugosityAlgorithmList;
 
-		static void ForceOnRugosityCalculationsEnd(FEMesh* Mesh);
+		static void ForceOnRugosityCalculationsEnd();
 
 		bool IsRugosityInfoReady();
 	private:
@@ -92,15 +92,13 @@ namespace FocalEngine
 
 		static float LastTimeTookForCalculation;
 
-		static void OnRugosityCalculationsStart(FEMesh* Mesh);
+		static void OnRugosityCalculationsStart();
 		static void(*OnRugosityCalculationsStartCallbackImpl)(void);
 
-		static void OnRugosityCalculationsEnd(FEMesh* Mesh = nullptr);
+		static void OnRugosityCalculationsEnd();
 		static void(*OnRugosityCalculationsEndCallbackImpl)(void);
 
 		static bool bHaveRugosityInfoReady;
-
-		static FEMesh* CurrentMesh;
 	public:
 		static std::vector<std::tuple<double, double, int>> RugosityTriangleAreaAndIndex;
 	};

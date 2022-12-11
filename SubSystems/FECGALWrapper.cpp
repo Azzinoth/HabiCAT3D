@@ -3,168 +3,8 @@ using namespace FocalEngine;
 
 FECGALWrapper* FECGALWrapper::Instance = nullptr;
 
-FECGALWrapper::FECGALWrapper()
-{
-
-}
-
-FECGALWrapper::~FECGALWrapper()
-{
-
-}
-
-FEMesh* FECGALWrapper::rawDataToMesh(float* positions, int posSize,
-									 float* colors, int colorSize,
-									 float* UV, int UVSize,
-									 float* normals, int normSize,
-									 float* tangents, int tanSize,
-									 int* indices, int indexSize,
-									 float* matIndexs, int matIndexsSize, int matCount,
-									 std::string Name)
-{
-	int vertexType = FE_POSITION | FE_INDEX;
-
-	GLuint vaoID;
-	FE_GL_ERROR(glGenVertexArrays(1, &vaoID));
-	FE_GL_ERROR(glBindVertexArray(vaoID));
-
-	GLuint indicesBufferID;
-	// index
-	FE_GL_ERROR(glGenBuffers(1, &indicesBufferID));
-	FE_GL_ERROR(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesBufferID));
-	FE_GL_ERROR(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indexSize, indices, GL_STATIC_DRAW));
-
-	GLuint positionsBufferID;
-	// verCoords
-	FE_GL_ERROR(glGenBuffers(1, &positionsBufferID));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, positionsBufferID));
-	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * posSize, positions, GL_STATIC_DRAW));
-	FE_GL_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-
-	GLuint colorsBufferID = 0;
-	if (colors != nullptr)
-	{
-		vertexType |= FE_COLOR;
-		// colors
-		FE_GL_ERROR(glGenBuffers(1, &colorsBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, colorsBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * colorSize, colors, GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(1/*FE_COLOR*/, 3, GL_FLOAT, false, 0, 0));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-	}
-
-	GLuint normalsBufferID = 0;
-	if (normals != nullptr)
-	{
-		vertexType |= FE_NORMAL;
-		// normals
-		FE_GL_ERROR(glGenBuffers(1, &normalsBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, normalsBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * normSize, normals, GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(2/*FE_NORMAL*/, 3, GL_FLOAT, false, 0, 0));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-	}
-
-	GLuint tangentsBufferID = 0;
-	if (tangents != nullptr)
-	{
-		vertexType |= FE_TANGENTS;
-		// tangents
-		FE_GL_ERROR(glGenBuffers(1, &tangentsBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, tangentsBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * tanSize, tangents, GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(3/*FE_TANGENTS*/, 3, GL_FLOAT, false, 0, 0));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-	}
-
-	GLuint UVBufferID = 0;
-	if (UV != nullptr)
-	{
-		// UV
-		FE_GL_ERROR(glGenBuffers(1, &UVBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, UVBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * UVSize, UV, GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(4/*FE_UV*/, 2, GL_FLOAT, false, 0, 0));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-	}
-
-	FEMesh* newMesh = new FEMesh(vaoID, indexSize, vertexType, Name);
-	newMesh->indicesCount = indexSize;
-	newMesh->indicesBufferID = indicesBufferID;
-
-	newMesh->positionsCount = posSize;
-	newMesh->positionsBufferID = positionsBufferID;
-
-	newMesh->colorCount = colorSize;
-	newMesh->colorBufferID = colorsBufferID;
-
-	newMesh->normalsCount = normSize;
-	newMesh->normalsBufferID = normalsBufferID;
-
-	newMesh->tangentsCount = tanSize;
-	newMesh->tangentsBufferID = tangentsBufferID;
-
-	newMesh->UVCount = UVSize;
-	newMesh->UVBufferID = UVBufferID;
-
-	newMesh->AABB = FEAABB(positions, posSize);
-
-	return newMesh;
-}
-
-FEMesh* FECGALWrapper::rawDataToMesh(double* positions, int posSize,
-									 float* colors, int colorSize,
-									 float* UV, int UVSize,
-								     float* normals, int normSize,
-								     float* tangents, int tanSize,
-								     int* indices, int indexSize,
-								     float* matIndexs, int matIndexsSize, int matCount,
-								     std::string Name)
-{
-	float* FloatPositions = new float[posSize];
-
-	for (size_t i = 0; i < posSize; i++)
-	{
-		FloatPositions[i] = float(positions[i]);
-	}
-
-	FEMesh* result = rawDataToMesh(FloatPositions, posSize,
-								   colors, colorSize,
-								   UV, UVSize,
-								   normals, normSize,
-								   tangents, tanSize,
-								   indices, indexSize,
-								   matIndexs, matIndexsSize, matCount,
-								   Name);
-
-	delete[] FloatPositions;
-
-	return result;
-}
-
-FEMesh* FECGALWrapper::importOBJ(const char* fileName, bool forceOneMesh)
-{
-	FEMesh* result = nullptr;
-	FEObjLoader& objLoader = FEObjLoader::getInstance();
-	objLoader.forceOneMesh = forceOneMesh;
-	objLoader.readFile(fileName);
-
-	if (objLoader.loadedObjects.size() > 0)
-	{
-		result = rawDataToMesh(objLoader.loadedObjects[0]->fVerC.data(), int(objLoader.loadedObjects[0]->fVerC.size()),
-			objLoader.loadedObjects[0]->fColorsC.data(), int(objLoader.loadedObjects[0]->fColorsC.size()),
-			objLoader.loadedObjects[0]->fTexC.data(), int(objLoader.loadedObjects[0]->fTexC.size()),
-			objLoader.loadedObjects[0]->fNorC.data(), int(objLoader.loadedObjects[0]->fNorC.size()),
-			objLoader.loadedObjects[0]->fTanC.data(), int(objLoader.loadedObjects[0]->fTanC.size()),
-			objLoader.loadedObjects[0]->fInd.data(), int(objLoader.loadedObjects[0]->fInd.size()),
-			objLoader.loadedObjects[0]->matIDs.data(), int(objLoader.loadedObjects[0]->matIDs.size()), int(objLoader.loadedObjects[0]->materialRecords.size()), "");
-	}
-
-	//createMaterialsFromOBJData(result);
-
-	return result;
-}
+FECGALWrapper::FECGALWrapper(){}
+FECGALWrapper::~FECGALWrapper(){}
 
 FEMesh* FECGALWrapper::surfaceMeshToFEMesh(Surface_mesh mesh)
 {
@@ -193,7 +33,7 @@ FEMesh* FECGALWrapper::surfaceMeshToFEMesh(Surface_mesh mesh)
 		FEVertices.push_back(float(extractedPoints[i][2]));
 	}
 
-	result = rawDataToMesh(FEVertices.data(), int(FEVertices.size()),
+	result = MESH_MANAGER.RawDataToMesh(FEVertices.data(), int(FEVertices.size()),
 		nullptr, 0, nullptr, 0, nullptr, 0, nullptr, 0,
 		FEIndices.data(), int(FEIndices.size()),
 		nullptr, 0, 0, "");
@@ -703,7 +543,7 @@ FEMesh* FECGALWrapper::surfaceMeshToFEMesh(Surface_mesh mesh, float* normals, in
 		FEVertices.push_back(float(extractedPoints[i][2]));
 	}
 
-	result = rawDataToMesh(FEVertices.data(), int(FEVertices.size()),
+	result = MESH_MANAGER.RawDataToMesh(FEVertices.data(), int(FEVertices.size()),
 		nullptr, 0, nullptr, 0, normals, normSize, nullptr, 0,
 		FEIndices.data(), int(FEIndices.size()),
 		nullptr, 0, 0, "");
