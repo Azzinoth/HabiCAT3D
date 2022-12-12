@@ -836,6 +836,7 @@ void UIManager::RenderUserModeMainWindow()
 			RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.HigestResolution;
 	}
 
+	ImGui::Separator();
 	ImGui::Text("Selection mode:");
 	if (ImGui::RadioButton("None", &RugositySelectionMode, 0))
 	{
@@ -903,7 +904,7 @@ void UIManager::RenderUserModeMainWindow()
 	}
 	else if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() > 1)
 	{
-		std::string Text = "Area rugosity : ";
+		std::string Text = "Area average rugosity : ";
 
 		if (!MESH_MANAGER.ActiveMesh->TrianglesRugosity.empty())
 		{
@@ -949,6 +950,7 @@ void UIManager::RenderUserModeMainWindow()
 
 	if (RUGOSITY_MANAGER.IsRugosityInfoReady())
 	{
+		ImGui::Separator();
 		UpdateRugosityRangeSettings();
 
 		ImGui::Text("Rugosity distribution : ");
@@ -1051,50 +1053,6 @@ void UIManager::RenderMainWindow()
 			RenderUserModeMainWindow();
 		}
 	}
-
-	ImGui::Text("Map dimensions : ");
-	static char CurrentMapDimensionsEdit[1024];
-	static int CurrentMapDimensions = 5;
-	//static float LastCurrentMapDimensions = 5;
-
-	ImGui::SetNextItemWidth(62);
-	if (ImGui::InputText("##MapDimensionsEdit", CurrentMapDimensionsEdit, IM_ARRAYSIZE(CurrentMapDimensionsEdit), ImGuiInputTextFlags_EnterReturnsTrue) ||
-		ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##MapDimensionsEdit"))
-	{
-		CurrentMapDimensions = atoi(CurrentMapDimensionsEdit);
-	}
-
-	/*if (ImGui::Button("Test Excel"))
-	{
-		std::vector<std::vector<int>> Data;
-		Data.resize(CurrentMapDimensions);
-		for (size_t i = 0; i < CurrentMapDimensions; i++)
-		{
-			Data[i].resize(CurrentMapDimensions);
-			for (size_t j = 0; j < CurrentMapDimensions; j++)
-			{
-				Data[i][j] = (i + 1) * (j + 1) * CurrentMapDimensions;
-			}
-		}
-
-		ExcelManager.OutputToExcel(Data);
-	}
-
-	if (ImGui::Button("Test Excel___"))
-	{
-		std::vector<std::vector<int>> Data;
-		Data.resize(CurrentMapDimensions);
-		for (size_t i = 0; i < CurrentMapDimensions; i++)
-		{
-			Data[i].resize(CurrentMapDimensions);
-			for (size_t j = 0; j < CurrentMapDimensions; j++)
-			{
-				Data[i][j] = (i + 1) * (j + 1) * CurrentMapDimensions;
-			}
-		}
-
-		ExcelManager.Test(Data);
-	}*/
 
 	ImGui::End();
 }
@@ -1853,12 +1811,12 @@ void UIManager::RenderAboutWindow()
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
-		std::string Text = "Version: " + std::to_string(APP_VERSION);
+		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 12\\12\\2022";
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
 		ImGui::Text(Text.c_str());
 
-		Text = "commit f5505d1354cdb421f338f692ea2773ac6805b9cf";
+		Text = "commit d77fc3df64a622949eb6eb4ac5cd77361c6aa7c1";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
 		ImGui::Text(Text.c_str());

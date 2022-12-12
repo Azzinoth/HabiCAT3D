@@ -86,7 +86,7 @@ void dropCallback(int count, const char** paths)
 void ScrollCall(double Xoffset, double Yoffset)
 {
 	if (UI.GetIsModelCamera())
-		reinterpret_cast<FEModelViewCamera*>(currentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(currentCamera)->GetDistanceToModel() + Yoffset * 2.0);
+		reinterpret_cast<FEModelViewCamera*>(currentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(currentCamera)->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->AABB.getSize() * 0.05f);
 }
 
 void AfterMeshLoads()
