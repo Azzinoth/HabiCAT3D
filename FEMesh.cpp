@@ -122,49 +122,49 @@ bool FEMesh::intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, 
 	if (triangleVertices.size() != 3)
 		return false;
 
-	float a = RayDirection[0];
-	float b = triangleVertices[0][0] - triangleVertices[1][0];
-	float c = triangleVertices[0][0] - triangleVertices[2][0];
+	const float a = RayDirection[0];
+	const float b = triangleVertices[0][0] - triangleVertices[1][0];
+	const float c = triangleVertices[0][0] - triangleVertices[2][0];
 
-	float d = RayDirection[1];
-	float e = triangleVertices[0][1] - triangleVertices[1][1];
-	float f = triangleVertices[0][1] - triangleVertices[2][1];
+	const float d = RayDirection[1];
+	const float e = triangleVertices[0][1] - triangleVertices[1][1];
+	const float f = triangleVertices[0][1] - triangleVertices[2][1];
 
-	float g = RayDirection[2];
-	float h = triangleVertices[0][2] - triangleVertices[1][2];
-	float j = triangleVertices[0][2] - triangleVertices[2][2];
+	const float g = RayDirection[2];
+	const float h = triangleVertices[0][2] - triangleVertices[1][2];
+	const float j = triangleVertices[0][2] - triangleVertices[2][2];
 
-	float k = triangleVertices[0][0] - RayOrigin[0];
-	float l = triangleVertices[0][1] - RayOrigin[1];
-	float m = triangleVertices[0][2] - RayOrigin[2];
+	const float k = triangleVertices[0][0] - RayOrigin[0];
+	const float l = triangleVertices[0][1] - RayOrigin[1];
+	const float m = triangleVertices[0][2] - RayOrigin[2];
 
-	glm::mat3 temp0 = glm::mat3(a, b, c,
-		d, e, f,
-		g, h, j);
+	const glm::mat3 temp0 = glm::mat3(a, b, c,
+	                                  d, e, f,
+	                                  g, h, j);
 
-	float determinant0 = glm::determinant(temp0);
+	const float determinant0 = glm::determinant(temp0);
 
-	glm::mat3 temp1 = glm::mat3(k, b, c,
-		l, e, f,
-		m, h, j);
+	const glm::mat3 temp1 = glm::mat3(k, b, c,
+	                                  l, e, f,
+	                                  m, h, j);
 
-	float determinant1 = glm::determinant(temp1);
+	const float determinant1 = glm::determinant(temp1);
 
-	float t = determinant1 / determinant0;
+	const float t = determinant1 / determinant0;
 
 
-	glm::mat3 temp2 = glm::mat3(a, k, c,
-		d, l, f,
-		g, m, j);
+	const glm::mat3 temp2 = glm::mat3(a, k, c,
+	                                  d, l, f,
+	                                  g, m, j);
 
-	float determinant2 = glm::determinant(temp2);
-	float u = determinant2 / determinant0;
+	const float determinant2 = glm::determinant(temp2);
+	const float u = determinant2 / determinant0;
 
-	float determinant3 = glm::determinant(glm::mat3(a, b, k,
-		d, e, l,
-		g, h, m));
+	const float determinant3 = glm::determinant(glm::mat3(a, b, k,
+	                                                      d, e, l,
+	                                                      g, h, m));
 
-	float v = determinant3 / determinant0;
+	const float v = determinant3 / determinant0;
 
 	if (t >= 0.00001 &&
 		u >= 0.00001 && v >= 0.00001 &&
@@ -221,7 +221,7 @@ void FEMesh::fillTrianglesData()
 
 		Triangles.push_back(triangle);
 		TrianglesArea.push_back(TriangleArea(triangle[0], triangle[1], triangle[2]));
-		TotalArea += float(TrianglesArea.back());
+		TotalArea += static_cast<float>(TrianglesArea.back());
 
 		TrianglesCentroids.push_back((triangle[0] + triangle[1] + triangle[2]) / 3.0f);
 
@@ -257,7 +257,7 @@ bool FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 			TranformedTrianglePoints[j] = Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
-		bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, TranformedTrianglePoints, currentDistance);
+		const bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, TranformedTrianglePoints, currentDistance);
 
 		if (hit && currentDistance < lastDistance)
 		{
@@ -291,13 +291,13 @@ glm::vec3 FEMesh::IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentC
 
 		glm::vec3 HitPosition;
 		//bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, Triangles[i], currentDistance, &HitPosition);
-		bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, TranformedTrianglePoints, currentDistance, &HitPosition);
+		const bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, TranformedTrianglePoints, currentDistance, &HitPosition);
 
 		if (hit && currentDistance < lastDistance)
 		{
 			lastDistance = currentDistance;
 
-			glm::mat4 Inverse = glm::inverse(Position->getTransformMatrix());
+			const glm::mat4 Inverse = glm::inverse(Position->getTransformMatrix());
 			return Inverse * glm::vec4(HitPosition, 1.0f);
 		}
 	}
@@ -314,7 +314,7 @@ bool FEMesh::SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* current
 	LastMeasuredRugosityAreaRadius = Radius;
 	LastMeasuredRugosityAreaCenter = Position->getTransformMatrix() * glm::vec4(TrianglesCentroids[TriangleSelected[0]], 1.0f);
 
-	glm::vec3 FirstSelectedTriangleCentroid = TrianglesCentroids[TriangleSelected[0]];
+	const glm::vec3 FirstSelectedTriangleCentroid = TrianglesCentroids[TriangleSelected[0]];
 
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
@@ -323,7 +323,7 @@ bool FEMesh::SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* current
 
 		if (glm::distance(FirstSelectedTriangleCentroid, TrianglesCentroids[i]) <= Radius)
 		{
-			TriangleSelected.push_back(int(i));
+			TriangleSelected.push_back(static_cast<int>(i));
 			Result = true;
 		}
 	}
@@ -340,13 +340,13 @@ bool FEMesh::SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius)
 	LastMeasuredRugosityAreaRadius = Radius;
 	LastMeasuredRugosityAreaCenter = Position->getTransformMatrix() * glm::vec4(CenterPoint, 1.0f);
 
-	glm::vec3 FirstSelectedTriangleCentroid = CenterPoint;
+	const glm::vec3 FirstSelectedTriangleCentroid = CenterPoint;
 
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
 		if (glm::distance(FirstSelectedTriangleCentroid, TrianglesCentroids[i]) <= Radius)
 		{
-			TriangleSelected.push_back(int(i));
+			TriangleSelected.push_back(static_cast<int>(i));
 			Result = true;
 		}
 	}
@@ -356,11 +356,17 @@ bool FEMesh::SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius)
 
 void FEMesh::fillRugosityDataToGPU(int RugosityLayerIndex)
 {
-	int posSize = getPositionsCount();
+	Layers.push_back(MeshLayer(this, TrianglesRugosity));
+	Layers.back().FillDataToGPU();
+
+
+	return;
+
+	const int posSize = getPositionsCount();
 	float* positions = new float[posSize];
 	FE_GL_ERROR(glGetNamedBufferSubData(getPositionsBufferID(), 0, sizeof(float) * posSize, positions));
 
-	int indexSize = getIndicesCount();
+	const int indexSize = getIndicesCount();
 	int* indices = new int[indexSize];
 	FE_GL_ERROR(glGetNamedBufferSubData(getIndicesBufferID(), 0, sizeof(int) * indexSize, indices));
 
@@ -396,7 +402,7 @@ void FEMesh::fillRugosityDataToGPU(int RugosityLayerIndex)
 	};
 
 	auto setRugosityOfFace = [&](int faceIndex, float value) {
-		std::vector<int> faceVertex = getVertexOfFace(faceIndex);
+		const std::vector<int> faceVertex = getVertexOfFace(faceIndex);
 
 		for (size_t i = 0; i < faceVertex.size(); i++)
 		{
@@ -406,26 +412,26 @@ void FEMesh::fillRugosityDataToGPU(int RugosityLayerIndex)
 
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
-		setRugosityOfFace(int(i), TrianglesRugosity[i]);
+		setRugosityOfFace(static_cast<int>(i), TrianglesRugosity[i]);
 	}
 
 	FE_GL_ERROR(glBindVertexArray(vaoID));
 
 	if (RugosityLayerIndex == 0)
 	{
-		rugosityBufferID = 0;
+		FirstLayerBufferID = 0;
 		vertexAttributes |= FE_RUGOSITY_FIRST;
-		FE_GL_ERROR(glGenBuffers(1, &rugosityBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, rugosityBufferID));
+		FE_GL_ERROR(glGenBuffers(1, &FirstLayerBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, FirstLayerBufferID));
 		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * rugosityData.size(), rugosityData.data(), GL_STATIC_DRAW));
 		FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, 0));
 	}
 	else
 	{
-		rugositySecondBufferID = 0;
+		SecondLayerBufferID = 0;
 		vertexAttributes |= FE_RUGOSITY_SECOND;
-		FE_GL_ERROR(glGenBuffers(1, &rugositySecondBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, rugositySecondBufferID));
+		FE_GL_ERROR(glGenBuffers(1, &SecondLayerBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, SecondLayerBufferID));
 		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * rugosityData.size(), rugosityData.data(), GL_STATIC_DRAW));
 		FE_GL_ERROR(glVertexAttribPointer(9, 3, GL_FLOAT, false, 0, 0));
 	}
@@ -441,15 +447,15 @@ void FEMesh::UpdateAverageNormal()
 	float totalArea = 0.0f;
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
-		double originalArea = TriangleArea(Triangles[i][0], Triangles[i][1], Triangles[i][2]);
-		originalAreas.push_back(float(originalArea));
+		const double originalArea = TriangleArea(Triangles[i][0], Triangles[i][1], Triangles[i][2]);
+		originalAreas.push_back(static_cast<float>(originalArea));
 		totalArea += originalArea;
 	}
 
 	// ******* Geting average normal *******
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
-		float currentTriangleCoef = originalAreas[i] / totalArea;
+		const float currentTriangleCoef = originalAreas[i] / totalArea;
 
 		AverageNormal += TrianglesNormals[i][0] * currentTriangleCoef;
 		AverageNormal += TrianglesNormals[i][1] * currentTriangleCoef;
@@ -457,19 +463,6 @@ void FEMesh::UpdateAverageNormal()
 	}
 
 	AverageNormal = glm::normalize(AverageNormal);
-	
-	MinHeight = DBL_MAX;
-	MaxHeight = -DBL_MAX;
-	for (size_t i = 0; i < Triangles.size(); i++)
-	{
-		for (size_t j = 0; j < 3; j++)
-		{
-			double CurrentHeight = glm::dot(glm::vec3(Position->getTransformMatrix() * glm::vec4(Triangles[i][j], 1.0)), AverageNormal);
-
-			MinHeight = std::min(CurrentHeight, MinHeight);
-			MaxHeight = std::max(CurrentHeight, MaxHeight);
-		}
-	}
 }
 
 glm::vec3 FEMesh::GetAverageNormal()
@@ -479,19 +472,175 @@ glm::vec3 FEMesh::GetAverageNormal()
 
 double FEMesh::TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC)
 {
-	double x1 = PointA.x;
-	double x2 = PointB.x;
-	double x3 = PointC.x;
+	const double x1 = PointA.x;
+	const double x2 = PointB.x;
+	const double x3 = PointC.x;
 
-	double y1 = PointA.y;
-	double y2 = PointB.y;
-	double y3 = PointC.y;
+	const double y1 = PointA.y;
+	const double y2 = PointB.y;
+	const double y3 = PointC.y;
 
-	double z1 = PointA.z;
-	double z2 = PointB.z;
-	double z3 = PointC.z;
+	const double z1 = PointA.z;
+	const double z2 = PointB.z;
+	const double z3 = PointC.z;
 
 	return 0.5 * sqrt(pow(x2 * y1 - x3 * y1 - x1 * y2 + x3 * y2 + x1 * y3 - x2 * y3, 2.0) +
-		pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
-		pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
+					  pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
+					  pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
+}
+
+
+void FEMesh::AddLayer(std::vector<float> TrianglesToData)
+{
+	if (TrianglesToData.size() == Triangles.size())
+		Layers.push_back(MeshLayer(this, TrianglesToData));
+}
+
+MeshLayer::MeshLayer() {};
+
+MeshLayer::MeshLayer(FEMesh* Parent, const std::vector<float> TrianglesToData)
+{
+	if (Parent == nullptr)
+		return;
+
+	if (TrianglesToData.size() != Parent->Triangles.size())
+		return;
+
+	SetParentMesh(Parent);
+	this->TrianglesToData = TrianglesToData;
+
+	Min = FLT_MAX;
+	Max = -FLT_MAX;
+
+	for (size_t i = 0; i < TrianglesToData.size(); i++)
+	{
+		Min = std::min(Min, TrianglesToData[i]);
+		Max = std::max(Max, TrianglesToData[i]);
+	}
+
+	MinVisible = Min;
+	MaxVisible = Max;
+}
+
+MeshLayer::~MeshLayer() {};
+
+FEMesh* MeshLayer::GetParentMesh()
+{
+	return ParentMesh;
+}
+
+void MeshLayer::SetParentMesh(FEMesh* NewValue)
+{
+	ParentMesh = NewValue;
+}
+
+void MeshLayer::FillRawData()
+{
+	if (ParentMesh == nullptr || TrianglesToData.empty())
+		return;
+
+	const int PosSize = ParentMesh->getPositionsCount();
+	float* positions = new float[PosSize];
+	FE_GL_ERROR(glGetNamedBufferSubData(ParentMesh->getPositionsBufferID(), 0, sizeof(float) * PosSize, positions));
+
+	const int IndexSize = ParentMesh->getIndicesCount();
+	int* indices = new int[IndexSize];
+	FE_GL_ERROR(glGetNamedBufferSubData(ParentMesh->getIndicesBufferID(), 0, sizeof(int) * IndexSize, indices));
+
+	std::vector<float> PositionsVector;
+	for (size_t i = 0; i < PosSize; i++)
+	{
+		PositionsVector.push_back(positions[i]);
+	}
+
+	std::vector<int> IndexVector;
+	for (size_t i = 0; i < IndexSize; i++)
+	{
+		IndexVector.push_back(indices[i]);
+	}
+
+	delete positions;
+	delete indices;
+
+	RawData.resize(PosSize);
+	auto GetVertexOfFace = [&](const int FaceIndex) {
+		std::vector<int> result;
+		result.push_back(IndexVector[FaceIndex * 3]);
+		result.push_back(IndexVector[FaceIndex * 3 + 1]);
+		result.push_back(IndexVector[FaceIndex * 3 + 2]);
+
+		return result;
+	};
+
+	auto SetRugosityOfVertex = [&](const int Index, const float Value) {
+		RawData[Index * 3] = Value;
+		RawData[Index * 3 + 1] = Value;
+		RawData[Index * 3 + 2] = Value;
+	};
+
+	auto SetRugosityOfFace = [&](const int FaceIndex, const float Value) {
+		const std::vector<int> FaceVertex = GetVertexOfFace(FaceIndex);
+
+		for (size_t i = 0; i < FaceVertex.size(); i++)
+		{
+			SetRugosityOfVertex(FaceVertex[i], Value);
+		}
+	};
+
+	for (size_t i = 0; i < ParentMesh->Triangles.size(); i++)
+	{
+		SetRugosityOfFace(static_cast<int>(i), TrianglesToData[i]);
+	}
+}
+
+void MeshLayer::FillDataToGPU(const int LayerIndex)
+{
+	if (ParentMesh == nullptr)
+		return;
+
+	if (RawData.empty())
+		FillRawData();
+
+	FE_GL_ERROR(glBindVertexArray(ParentMesh->vaoID));
+
+	if (LayerIndex == 0)
+	{
+		ParentMesh->FirstLayerBufferID = 0;
+		ParentMesh->vertexAttributes |= FE_RUGOSITY_FIRST;
+		FE_GL_ERROR(glGenBuffers(1, &ParentMesh->FirstLayerBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ParentMesh->FirstLayerBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * RawData.size(), RawData.data(), GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(7, 3, GL_FLOAT, false, 0, nullptr));
+	}
+	else
+	{
+		ParentMesh->SecondLayerBufferID = 0;
+		ParentMesh->vertexAttributes |= FE_RUGOSITY_SECOND;
+		FE_GL_ERROR(glGenBuffers(1, &ParentMesh->SecondLayerBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ParentMesh->SecondLayerBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * RawData.size(), RawData.data(), GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, nullptr));
+	}
+
+	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+}
+
+std::string MeshLayer::GetCaption()
+{
+	return Caption;
+}
+
+void MeshLayer::SetCaption(std::string NewValue)
+{
+	Caption = NewValue;
+}
+
+std::string MeshLayer::GetNote()
+{
+	return UserNote;
+}
+
+void MeshLayer::SetNote(std::string NewValue)
+{
+	UserNote = NewValue;
 }

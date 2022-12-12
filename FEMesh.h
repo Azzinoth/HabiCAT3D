@@ -7,17 +7,41 @@
 
 namespace FocalEngine
 {
-	class FEEntity;
-	class FEEntityInstanced;
-	class FERenderer;
-	class FEResourceManager;
+	class FEMesh;
+	class MeshLayer
+	{
+		FEMesh* ParentMesh = nullptr;
+		std::string Caption = "Layer caption";
+		std::string UserNote;
+
+		void FillRawData();
+	public:
+		MeshLayer();
+		MeshLayer(FEMesh* Parent, std::vector<float> TrianglesToData);
+		~MeshLayer();
+
+		std::string GetCaption();
+		void SetCaption(std::string NewValue);
+
+		std::string GetNote();
+		void SetNote(std::string NewValue);
+
+		FEMesh* GetParentMesh();
+		void SetParentMesh(FEMesh* NewValue);
+
+		float Min = FLT_MAX;
+		float MinVisible = FLT_MAX;
+		float Max = -FLT_MAX;
+		float MaxVisible = FLT_MAX;
+
+		std::vector<float> RawData;
+		std::vector<float> TrianglesToData;
+
+		void FillDataToGPU(int LayerIndex = 0);
+	};
 
 	class FEMesh
-	{	
-		friend FEEntity;
-		friend FEEntityInstanced;
-		friend FERenderer;
-		friend FEResourceManager;
+	{
 	public:
 		FEMesh(GLuint VaoID, unsigned int VertexCount, int VertexBuffersTypes, std::string Name);
 		~FEMesh();
@@ -55,10 +79,8 @@ namespace FocalEngine
 		unsigned int colorCount = -1;
 		GLuint segmentsColorsBufferID = -1;
 		unsigned int segmentsColorsCount = -1;
-		GLuint rugosityBufferID = -1;
-		unsigned int rugosityColorsCount = -1;
-		GLuint rugositySecondBufferID = -1;
-		unsigned int rugositySecondColorsCount = -1;
+		GLuint FirstLayerBufferID = -1;
+		GLuint SecondLayerBufferID = -1;
 
 		unsigned int vertexCount;
 
@@ -74,9 +96,9 @@ namespace FocalEngine
 		double maxVisibleRugorsity = -DBL_MAX;
 		double MinHeight = DBL_MAX;
 		double MaxHeight = -DBL_MAX;
-		bool showRugosity = false;
+		bool bShowRugosity = false;
 
-		int colorMode = 0;
+		int ColorMode = 5;
 
 		std::vector<int> TriangleSelected;
 		float LastMeasuredRugosityAreaRadius = -1.0f;
@@ -108,5 +130,10 @@ namespace FocalEngine
 		void UpdateAverageNormal();
 
 		static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
+
+		std::vector<MeshLayer> Layers;
+		int CurrentLayerIndex = -1;
+
+		void AddLayer(std::vector<float> TrianglesToData);
 	};
 }

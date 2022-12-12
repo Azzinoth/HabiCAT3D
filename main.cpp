@@ -89,6 +89,38 @@ void ScrollCall(double Xoffset, double Yoffset)
 		reinterpret_cast<FEModelViewCamera*>(currentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(currentCamera)->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->AABB.getSize() * 0.05f);
 }
 
+void AddHeightLayer()
+{
+	if (MESH_MANAGER.ActiveMesh == nullptr)
+		return;
+
+	FEMesh* Mesh = MESH_MANAGER.ActiveMesh;
+
+	Mesh->MinHeight = DBL_MAX;
+	Mesh->MaxHeight = -DBL_MAX;
+
+	std::vector<float> TrianglesHeight;
+
+	for (size_t i = 0; i < Mesh->Triangles.size(); i++)
+	{
+		float AverageTriangleHeight = 0.0f;
+		for (size_t j = 0; j < 3; j++)
+		{
+			double CurrentHeight = glm::dot(glm::vec3(Mesh->Position->getTransformMatrix() * glm::vec4(Mesh->Triangles[i][j], 1.0)), Mesh->AverageNormal);
+			AverageTriangleHeight += CurrentHeight;
+			
+			Mesh->MinHeight = std::min(CurrentHeight, Mesh->MinHeight);
+			Mesh->MaxHeight = std::max(CurrentHeight, Mesh->MaxHeight);
+		}
+
+		TrianglesHeight.push_back(AverageTriangleHeight / 3.0f);
+	}
+
+	Mesh->AddLayer(TrianglesHeight);
+	Mesh->Layers[0].SetCaption("Height");
+	Mesh->Layers[0].FillDataToGPU();
+}
+
 void AfterMeshLoads()
 {
 	MESH_MANAGER.ActiveMesh->fillTrianglesData();
@@ -103,9 +135,9 @@ void AfterMeshLoads()
 
 	MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(MESH_MANAGER.ActiveMesh->GetAverageNormal()));
 
-	MESH_MANAGER.ActiveMesh->colorMode = 0;
+	/*MESH_MANAGER.ActiveMesh->ColorMode = 0;
 	if (MESH_MANAGER.ActiveMesh->getColorCount() != 0)
-		MESH_MANAGER.ActiveMesh->colorMode = 1;
+		MESH_MANAGER.ActiveMesh->ColorMode = 1;*/
 
 	// When loading from binary format we would have that data in file.
 	if (!MESH_MANAGER.ActiveMesh->rugosityData.empty() && !MESH_MANAGER.ActiveMesh->TrianglesRugosity.empty())
@@ -113,6 +145,8 @@ void AfterMeshLoads()
 		MESH_MANAGER.ActiveMesh->fillRugosityDataToGPU();
 		RUGOSITY_MANAGER.ForceOnRugosityCalculationsEnd();
 	}
+
+	AddHeightLayer();
 }
 
 void LoadMesh(std::string FileName)
@@ -345,15 +379,15 @@ void mouseButtonCallback(int button, int action, int mods)
 
 void RenderFEMesh(FEMesh* Mesh)
 {
-	MESH_MANAGER.MeshShader->getParameter("colorMode")->updateData(Mesh->colorMode);
-
-	MESH_MANAGER.MeshShader->getParameter("minRugorsity")->updateData(float(Mesh->minVisibleRugorsity));
-	MESH_MANAGER.MeshShader->getParameter("maxRugorsity")->updateData(float(Mesh->maxVisibleRugorsity));
-
-	// Height heat map.
-	MESH_MANAGER.MeshShader->getParameter("AverageNormal")->updateData(Mesh->AverageNormal);
-	MESH_MANAGER.MeshShader->getParameter("minHeight")->updateData(float(Mesh->MinHeight));
-	MESH_MANAGER.MeshShader->getParameter("maxHeight")->updateData(float(Mesh->MaxHeight));
+	MESH_MANAGER.MeshShader->getParameter("HaveColor")->updateData(Mesh->getColorCount() != 0);
+	MESH_MANAGER.MeshShader->getParameter("HeatMapType")->updateData(Mesh->ColorMode);
+	MESH_MANAGER.MeshShader->getParameter("LayerIndex")->updateData(Mesh->CurrentLayerIndex);
+	
+	if (Mesh->CurrentLayerIndex != -1)
+	{
+		MESH_MANAGER.MeshShader->getParameter("LayerMin")->updateData(float(Mesh->Layers[Mesh->CurrentLayerIndex].MinVisible));
+		MESH_MANAGER.MeshShader->getParameter("LayerMax")->updateData(float(Mesh->Layers[Mesh->CurrentLayerIndex].MaxVisible));
+	}
 	
 	if (Mesh->TriangleSelected.size() > 1 && UI.GetRugositySelectionMode() == 2)
 	{
@@ -372,9 +406,8 @@ void RenderFEMesh(FEMesh* Mesh)
 	if ((Mesh->vertexAttributes & FE_TANGENTS) == FE_TANGENTS) FE_GL_ERROR(glEnableVertexAttribArray(3));
 	if ((Mesh->vertexAttributes & FE_UV) == FE_UV) FE_GL_ERROR(glEnableVertexAttribArray(4));
 
-	if ((Mesh->vertexAttributes & FE_SEGMENTS_COLORS) == FE_SEGMENTS_COLORS) FE_GL_ERROR(glEnableVertexAttribArray(7));
-	if ((Mesh->vertexAttributes & FE_RUGOSITY_FIRST) == FE_RUGOSITY_FIRST) FE_GL_ERROR(glEnableVertexAttribArray(8));
-	if ((Mesh->vertexAttributes & FE_RUGOSITY_SECOND) == FE_RUGOSITY_SECOND) FE_GL_ERROR(glEnableVertexAttribArray(9));
+	if ((Mesh->vertexAttributes & FE_RUGOSITY_FIRST) == FE_RUGOSITY_FIRST) FE_GL_ERROR(glEnableVertexAttribArray(7));
+	if ((Mesh->vertexAttributes & FE_RUGOSITY_SECOND) == FE_RUGOSITY_SECOND) FE_GL_ERROR(glEnableVertexAttribArray(8));
 
 	if ((Mesh->vertexAttributes & FE_INDEX) == FE_INDEX)
 		FE_GL_ERROR(glDrawElements(GL_TRIANGLES, Mesh->getVertexCount(), GL_UNSIGNED_INT, 0));

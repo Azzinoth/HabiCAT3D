@@ -655,14 +655,14 @@ void UIManager::RenderDeveloperModeMainWindow()
 		ImGui::Text("Color scheme: ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(128);
-		if (ImGui::BeginCombo("##ChooseColorScheme", (RUGOSITY_MANAGER.colorSchemeIndexToString(MESH_MANAGER.ActiveMesh->colorMode)).c_str(), ImGuiWindowFlags_None))
+		if (ImGui::BeginCombo("##ChooseColorScheme", (RUGOSITY_MANAGER.colorSchemeIndexToString(MESH_MANAGER.ActiveMesh->ColorMode)).c_str(), ImGuiWindowFlags_None))
 		{
 			for (size_t i = 0; i < RUGOSITY_MANAGER.colorSchemesList.size(); i++)
 			{
-				bool is_selected = ((RUGOSITY_MANAGER.colorSchemeIndexToString(MESH_MANAGER.ActiveMesh->colorMode)).c_str() == RUGOSITY_MANAGER.colorSchemesList[i]);
+				bool is_selected = ((RUGOSITY_MANAGER.colorSchemeIndexToString(MESH_MANAGER.ActiveMesh->ColorMode)).c_str() == RUGOSITY_MANAGER.colorSchemesList[i]);
 				if (ImGui::Selectable(RUGOSITY_MANAGER.colorSchemesList[i].c_str(), is_selected))
 				{
-					MESH_MANAGER.ActiveMesh->colorMode = RUGOSITY_MANAGER.colorSchemeIndexFromString(RUGOSITY_MANAGER.colorSchemesList[i]);
+					MESH_MANAGER.ActiveMesh->ColorMode = RUGOSITY_MANAGER.colorSchemeIndexFromString(RUGOSITY_MANAGER.colorSchemesList[i]);
 				}
 
 				if (is_selected)
@@ -790,8 +790,8 @@ void UIManager::RenderUserModeMainWindow()
 		RUGOSITY_MANAGER.SmoothingFactor = 64;
 		RUGOSITY_MANAGER.calculateRugorsityWithJitterAsyn();
 
-		MESH_MANAGER.ActiveMesh->colorMode = 5;
-		MESH_MANAGER.ActiveMesh->showRugosity = true;
+		MESH_MANAGER.ActiveMesh->ColorMode = 5;
+		MESH_MANAGER.ActiveMesh->bShowRugosity = true;
 	}
 
 	ImGui::Text("Grid size:");
@@ -1436,7 +1436,7 @@ void UIManager::RenderLayerChooseWindow()
 
 	ImGui::SetNextWindowPos(ImVec2(MainWindowW / 2.0f - CurrentWindowW / 2.0f, 21));
 	ImGui::SetNextWindowSize(ImVec2(CurrentWindowW, CurrentWindowH));
-	ImGui::Begin("Visual mode", nullptr,
+	ImGui::Begin("Layers", nullptr,
 		ImGuiWindowFlags_NoMove |
 		ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_NoCollapse |
@@ -1444,9 +1444,29 @@ void UIManager::RenderLayerChooseWindow()
 		ImGuiWindowFlags_NoTitleBar);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f);
-	if (MESH_MANAGER.ActiveMesh != nullptr)
+	if (MESH_MANAGER.ActiveMesh == nullptr)
 	{
-		if (MESH_MANAGER.ActiveMesh->colorMode == 0 || MESH_MANAGER.ActiveMesh->colorMode == 1)
+		std::string NoDataText = "No Data.";
+		ImVec2 TextSize = ImGui::CalcTextSize(NoDataText.c_str());
+
+		ImGui::SetCursorPos(ImVec2(CurrentWindowW / 2.0f - TextSize.x / 2.0f, CurrentWindowH / 2.0f - TextSize.y / 2.0f));
+		ImGui::Text(NoDataText.c_str());
+
+		ImGui::PopStyleVar(3);
+		ImGui::End();
+
+		return;
+	}
+
+	int YPosition = ImGui::GetCursorPosY() + 7;
+	for (int i = -1; i < int(MESH_MANAGER.ActiveMesh->Layers.size()); i++)
+	{
+		ImGui::SameLine();
+		ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.1f, 0.6f, 0.8f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.5f, 0.7f, 0.8f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.0f, 1.6f, 0.6f));
+
+		if (MESH_MANAGER.ActiveMesh->CurrentLayerIndex == i)
 		{
 			ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(0.0f, 1.0f, 0.5f));
 		}
@@ -1454,11 +1474,31 @@ void UIManager::RenderLayerChooseWindow()
 		{
 			ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(1.0f, 1.6f, 1.6f));
 		}
+
+		if (i == -1)
+		{
+			ImGui::SetCursorPosY(YPosition);
+			if (ImGui::Button("No Layer"))
+			{
+				MESH_MANAGER.ActiveMesh->CurrentLayerIndex = i;
+			}
+		}
+		else
+		{
+			ImGui::SetCursorPosY(YPosition);
+			if (ImGui::Button(MESH_MANAGER.ActiveMesh->Layers[i].GetCaption().c_str()))
+			{
+				MESH_MANAGER.ActiveMesh->CurrentLayerIndex = i;
+			}
+		}
+		
+		ImGui::PopStyleColor(4);
 	}
-	else
-	{
-		ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(1.0f, 1.6f, 1.6f));
-	}
+
+	ImGui::PopStyleVar(3);
+	ImGui::End();
+	return;
+
 
 	ImGui::SameLine();
 	ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.1f, 0.6f, 0.8f));
@@ -1467,15 +1507,15 @@ void UIManager::RenderLayerChooseWindow()
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 7);
 	if (ImGui::Button("Model") && MESH_MANAGER.ActiveMesh != nullptr)
 	{
-		MESH_MANAGER.ActiveMesh->colorMode = 0;
+		MESH_MANAGER.ActiveMesh->ColorMode = 0;
 		if (MESH_MANAGER.ActiveMesh->getColorCount() != 0)
-			MESH_MANAGER.ActiveMesh->colorMode = 1;
+			MESH_MANAGER.ActiveMesh->ColorMode = 1;
 	}
 	ImGui::PopStyleColor(4);
 
 	if (MESH_MANAGER.ActiveMesh != nullptr)
 	{
-		if (MESH_MANAGER.ActiveMesh->colorMode == 5)
+		if (MESH_MANAGER.ActiveMesh->ColorMode == 5)
 		{
 			ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(0.0f, 1.0f, 0.5f));
 		}
@@ -1495,13 +1535,13 @@ void UIManager::RenderLayerChooseWindow()
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.0f, 1.6f, 0.6f));
 	if (ImGui::Button("Rugosity") && MESH_MANAGER.ActiveMesh != nullptr)
 	{
-		MESH_MANAGER.ActiveMesh->colorMode = 5;
+		MESH_MANAGER.ActiveMesh->ColorMode = 5;
 	}
 	ImGui::PopStyleColor(4);
 
 	if (MESH_MANAGER.ActiveMesh != nullptr)
 	{
-		if (MESH_MANAGER.ActiveMesh->colorMode == 6)
+		if (MESH_MANAGER.ActiveMesh->ColorMode == 6)
 		{
 			ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(0.0f, 1.0f, 0.5f));
 		}
@@ -1521,7 +1561,7 @@ void UIManager::RenderLayerChooseWindow()
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.0f, 1.6f, 0.6f));
 	if (ImGui::Button("Height") && MESH_MANAGER.ActiveMesh != nullptr)
 	{
-		MESH_MANAGER.ActiveMesh->colorMode = 6;
+		MESH_MANAGER.ActiveMesh->ColorMode = 6;
 	}
 	ImGui::PopStyleColor(4);
 
@@ -1816,7 +1856,7 @@ void UIManager::RenderAboutWindow()
 		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
 		ImGui::Text(Text.c_str());
 
-		Text = "commit d77fc3df64a622949eb6eb4ac5cd77361c6aa7c1";
+		Text = "commit 77e650dfd3d9b7205337fa72e536cc0dd29cdde2";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
 		ImGui::Text(Text.c_str());

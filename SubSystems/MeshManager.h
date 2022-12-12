@@ -6,17 +6,17 @@ static const char* const sTestVS = R"(
 @In_Position@
 @In_Normal@
 
-layout (location = 8) in float RugosityData;
-layout (location = 9) in float RugosityDataAdditional;
+layout (location = 7) in float FirstLayerData;
+layout (location = 8) in float AdditionalLayerData;
 
 @In_Color@
-@In_Segments_colors@
 
 @WorldMatrix@
 @ViewMatrix@
 @ProjectionMatrix@
 
-uniform int colorMode;
+uniform int HeatMapType;
+uniform int HaveColor;
 
 out VS_OUT
 {
@@ -28,10 +28,9 @@ out VS_OUT
 	float materialIndex;
 
 	vec3 color;
-	vec3 segmentsColors;
 
-	float Rugosity;
-	float RugosityAdditional;
+	float FirstLayer;
+	float AdditionalLayer;
 } vs_out;
 
 void main(void)
@@ -45,14 +44,11 @@ void main(void)
 
 	vs_out.vertexNormal = normalize(vec3(FEWorldMatrix * vec4(FENormal, 0.0)));
 
-	if (colorMode == 1)
+	if (HaveColor == 1)
 		vs_out.color = FEColor;
 
-	if (colorMode == 2)
-		vs_out.segmentsColors = FESegmentsColors;
-
-	vs_out.Rugosity = RugosityData;
-	vs_out.RugosityAdditional = RugosityDataAdditional;
+	vs_out.FirstLayer = FirstLayerData;
+	vs_out.AdditionalLayer = AdditionalLayerData;
 }
 )";
 
@@ -67,28 +63,24 @@ in VS_OUT
 	flat float materialIndex;
 
 	vec3 color;
-	flat vec3 segmentsColors;
 
-	float Rugosity;
-	float RugosityAdditional;
+	float FirstLayer;
+	float AdditionalLayer;
 } FS_IN;
 
 @ViewMatrix@
 @ProjectionMatrix@
 
-uniform int colorMode;
+uniform int LayerIndex;
+uniform int HaveColor;
+uniform int HeatMapType;
 uniform vec3 lightDirection;
 
-uniform float minRugorsity;
-uniform float maxRugorsity;
-
-uniform float minHeight;
-uniform float maxHeight;
+uniform float LayerMin;
+uniform float LayerMax;
 
 uniform vec3 MeasuredRugosityAreaCenter;
 uniform float MeasuredRugosityAreaRadius;
-
-uniform vec3 AverageNormal;
 
 layout (location = 0) out vec4 out_Color;
 
@@ -216,26 +208,21 @@ vec3 getScaledColor(float factor)
 	return result;
 }
 
-vec3 getHeightHeatMap()
-{
-	float ProjectionOnUpDirection = dot(FS_IN.worldPosition, AverageNormal);
-	return getTurboColormapValue((ProjectionOnUpDirection - minHeight) / (maxHeight - minHeight));
-}
-
 vec3 getCorrectColor()
 {
 	vec3 result = vec3(0.0, 0.5, 1.0);
-	float normalizedRugorsity = (FS_IN.Rugosity - minRugorsity) / (maxRugorsity - minRugorsity);
+
+	if (HaveColor == 1)
+		result = FS_IN.color;
+
+	if (LayerIndex == -1)
+		return result;
+	
+	float normalizedRugorsity = (FS_IN.FirstLayer - LayerMin) / (LayerMax - LayerMin);
 	normalizedRugorsity = clamp(normalizedRugorsity, 0, 1);
 
-	switch (colorMode)
+	switch (HeatMapType)
     {
-		case 1:
-                result = FS_IN.color;
-                break;
-        case 2:
-                result = FS_IN.segmentsColors;
-                break;
         case 3:
 				result = getScaledColor(normalizedRugorsity);
                 break;
@@ -245,15 +232,7 @@ vec3 getCorrectColor()
 		case 5:
 				result = getTurboColormapValue(normalizedRugorsity);
                 break;
-		case 6:
-				result = getHeightHeatMap();
-                break;
     }
-
-	//float ProjectionOnUpDirection = dot(FS_IN.worldPosition, AverageNormal);
-
-	//result = getTurboColormapValue((ProjectionOnUpDirection - minHeight) / (maxHeight - minHeight));
-	
 
 	return result;
 }
@@ -264,18 +243,16 @@ void main(void)
 	vec3 ambientColor = vec3(0.55f, 0.73f, 0.87f) * 2.8f;
 
 	vec3 firstRugosityLayer = getCorrectColor();
-
-	//if (colorMode == 6)
-	//	firstRugosityLayer = mix(FS_IN.color, firstRugosityLayer, 0.5);
-
-	vec3 magenta = vec3(1.0, 0.0, 1.0);
-	float normalizedRugorsity = (FS_IN.RugosityAdditional - minRugorsity) / (maxRugorsity - minRugorsity);
-	normalizedRugorsity = clamp(normalizedRugorsity, 0, 1);
-	vec3 secondRugosityLayer = magenta * normalizedRugorsity;
-
 	vec3 finalBaseColor = firstRugosityLayer;
-	if (normalizedRugorsity > 0.7)
-		finalBaseColor = secondRugosityLayer;
+
+	//vec3 magenta = vec3(1.0, 0.0, 1.0);
+	//float normalizedRugorsity = (FS_IN.AdditionalLayer - LayerMin) / (LayerMax - LayerMin);
+	//normalizedRugorsity = clamp(normalizedRugorsity, 0, 1);
+	//vec3 secondRugosityLayer = magenta * normalizedRugorsity;
+
+	//vec3 finalBaseColor = firstRugosityLayer;
+	//if (normalizedRugorsity > 0.7)
+	//	finalBaseColor = secondRugosityLayer;
 
 	if (MeasuredRugosityAreaRadius > 0.0)
 	{

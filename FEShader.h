@@ -9,7 +9,6 @@
 #define FE_VERTEX_ATTRIBUTE_UV "@In_UV@"
 #define FE_VERTEX_ATTRIBUTE_MATINDEX "@In_Material_Index@"
 #define FE_VERTEX_ATTRIBUTE_INSTANCEDATA "@In_Instance_Data@"
-#define FE_VERTEX_ATTRIBUTE_SEGMENTS_COLORS "@In_Segments_colors@"
 #define FE_VERTEX_ATTRIBUTE_RUGOSITY_FIRST "@In_Rugosity@"
 #define FE_VERTEX_ATTRIBUTE_RUGOSITY_SECOND "@In_Rugosity_Second@"
 
