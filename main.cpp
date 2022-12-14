@@ -96,11 +96,8 @@ void AddHeightLayer()
 
 	FEMesh* Mesh = MESH_MANAGER.ActiveMesh;
 
-	Mesh->MinHeight = DBL_MAX;
-	Mesh->MaxHeight = -DBL_MAX;
-
+	double Min = DBL_MAX;
 	std::vector<float> TrianglesHeight;
-
 	for (size_t i = 0; i < Mesh->Triangles.size(); i++)
 	{
 		float AverageTriangleHeight = 0.0f;
@@ -108,43 +105,43 @@ void AddHeightLayer()
 		{
 			double CurrentHeight = glm::dot(glm::vec3(Mesh->Position->getTransformMatrix() * glm::vec4(Mesh->Triangles[i][j], 1.0)), Mesh->AverageNormal);
 			AverageTriangleHeight += CurrentHeight;
-			
-			Mesh->MinHeight = std::min(CurrentHeight, Mesh->MinHeight);
-			Mesh->MaxHeight = std::max(CurrentHeight, Mesh->MaxHeight);
 		}
 
 		TrianglesHeight.push_back(AverageTriangleHeight / 3.0f);
+		Min = std::min(float(Min), TrianglesHeight.back());
+	}
+
+	// Smallest value should be 0.0f.
+	for (size_t i = 0; i < TrianglesHeight.size(); i++)
+	{
+		TrianglesHeight[i] += abs(Min);
 	}
 
 	Mesh->AddLayer(TrianglesHeight);
-	Mesh->Layers[0].SetCaption("Height");
-	Mesh->Layers[0].FillDataToGPU();
+	Mesh->Layers.back().SetCaption("Height");
+	Mesh->Layers.back().FillDataToGPU();
 }
 
 void AfterMeshLoads()
 {
-	MESH_MANAGER.ActiveMesh->fillTrianglesData();
-
 	MESH_MANAGER.ActiveMesh->Position->setPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
 	MESH_MANAGER.ActiveMesh->UpdateAverageNormal();
 
 	UI.SetIsModelCamera(true);
 
-	glm::vec3 AverageNormal = MESH_MANAGER.ActiveMesh->GetAverageNormal();
-	glm::vec3 TransformedCenter = MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(MESH_MANAGER.ActiveMesh->AABB.getCenter(), 1.0f);
+	//glm::vec3 AverageNormal = MESH_MANAGER.ActiveMesh->GetAverageNormal();
+	//glm::vec3 TransformedCenter = MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(MESH_MANAGER.ActiveMesh->AABB.getCenter(), 1.0f);
 
 	MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(MESH_MANAGER.ActiveMesh->GetAverageNormal()));
 
-	/*MESH_MANAGER.ActiveMesh->ColorMode = 0;
-	if (MESH_MANAGER.ActiveMesh->getColorCount() != 0)
-		MESH_MANAGER.ActiveMesh->ColorMode = 1;*/
-
 	// When loading from binary format we would have that data in file.
-	if (!MESH_MANAGER.ActiveMesh->rugosityData.empty() && !MESH_MANAGER.ActiveMesh->TrianglesRugosity.empty())
+	/*if (!MESH_MANAGER.ActiveMesh->rugosityData.empty() && !MESH_MANAGER.ActiveMesh->TrianglesRugosity.empty())
 	{
-		MESH_MANAGER.ActiveMesh->fillRugosityDataToGPU();
+		MESH_MANAGER.ActiveMesh->AddLayer(MESH_MANAGER.ActiveMesh->TrianglesRugosity);
+		MESH_MANAGER.ActiveMesh->Layers.back().SetCaption("Rugosity");
+
 		RUGOSITY_MANAGER.ForceOnRugosityCalculationsEnd();
-	}
+	}*/
 
 	AddHeightLayer();
 }
@@ -252,39 +249,22 @@ void OutputSeletedAreaInfoToFile()
 	Text += std::to_string(Center.z);
 	LOG.Add(Text, "Selections");
 
-	Text = "Area rugosity : ";
-	float TotalRugosity = 0.0f;
-	for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
+	for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
 	{
-		TotalRugosity += MESH_MANAGER.ActiveMesh->TrianglesRugosity[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
-	}
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[i];
 
-	TotalRugosity /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
-	Text += std::to_string(TotalRugosity);
-	LOG.Add(Text, "Selections");
-
-	Text = "Area average height : ";
-	double AverageHeight = 0.0;
-	for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
-	{
-		double CurrentHeight = 0.0;
-		for (size_t j = 0; j < 3; j++)
+		Text = "Layer \"" + CurrentLayer->GetCaption() + "\" : \n";
+		Text += "Area average value : ";
+		float Total = 0.0f;
+		for (size_t j = 0; j < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); j++)
 		{
-			glm::vec3 CurrentPoint = MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[i]][j];
-			CurrentHeight += glm::dot(glm::vec3(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(CurrentPoint, 1.0)), MESH_MANAGER.ActiveMesh->AverageNormal);
+			Total += CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
 		}
 
-		CurrentHeight /= 3.0;
-		AverageHeight += CurrentHeight;
+		Total /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
+		Text += std::to_string(Total);
+		LOG.Add(Text, "Selections");
 	}
-
-	AverageHeight /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
-	AverageHeight -= MESH_MANAGER.ActiveMesh->MinHeight;
-
-	Text += std::to_string(AverageHeight);
-
-	LOG.Add(Text, "Selections");
-	LOG.Add("\n", "Selections");
 }
 
 void mouseButtonCallback(int button, int action, int mods)
@@ -380,7 +360,7 @@ void mouseButtonCallback(int button, int action, int mods)
 void RenderFEMesh(FEMesh* Mesh)
 {
 	MESH_MANAGER.MeshShader->getParameter("HaveColor")->updateData(Mesh->getColorCount() != 0);
-	MESH_MANAGER.MeshShader->getParameter("HeatMapType")->updateData(Mesh->ColorMode);
+	MESH_MANAGER.MeshShader->getParameter("HeatMapType")->updateData(Mesh->HeatMapType);
 	MESH_MANAGER.MeshShader->getParameter("LayerIndex")->updateData(Mesh->CurrentLayerIndex);
 	
 	if (Mesh->CurrentLayerIndex != -1)

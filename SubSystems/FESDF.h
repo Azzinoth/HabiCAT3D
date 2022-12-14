@@ -202,7 +202,6 @@ namespace FocalEngine
 		float TimeTookFillMeshWithRugosityData = 0.0f;
 
 		int DebugTotalTrianglesInCells = 0;
-		//bool bFinalJitter = false;
 		bool bWeightedNormals = false;
 		bool bNormalizedNormals = false;
 		bool bFindSmallestRugosity = false;

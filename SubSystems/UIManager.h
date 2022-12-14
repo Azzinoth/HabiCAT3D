@@ -46,6 +46,8 @@ namespace FocalEngine
 		void SetOutputSelectionToFile(bool NewValue);
 
 		void ApplyStandardWindowsSizeAndPosition();
+
+		glm::dvec2 LayerValuesAreaDistribution(MeshLayer* Layer, float Value);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 
@@ -61,10 +63,9 @@ namespace FocalEngine
 		float AreaToMeasureRugosity = 1.0f;
 		int RugositySelectionMode = 0;
 
-		FEColorRangeAdjuster RugosityColorRange;
+		FEColorRangeAdjuster HeatMapColorRange;
 
 		void RenderLegend();
-		void UpdateRugosityRangeSettings();
 		void RenderLayerChooseWindow();
 
 		FEGraphRender Graph;
@@ -72,14 +73,13 @@ namespace FocalEngine
 		bool bPixelBins = false;
 		int CurrentBinCount = StandardGraphBinCount;
 		void FillGraphDataPoints(int BinsCount);
-		void RenderRugosityHistogram();
+		void RenderHistogram();
 		float FillGraphDataPointsTotalTime = 0.0f;
 		float SetDataPoints = 0.0f;
 		float AreaWithRugositiesTotalTime = 0.0f;
 		
 		static void OnRugosityCalculationsStart();
 		static void OnRugosityCalculationsEnd();
-		//void TestCGALVariant();
 
 		bool bOutputSelectionToFile = false;
 
@@ -89,6 +89,10 @@ namespace FocalEngine
 		bool bShouldOpenAboutWindow = false;
 		void OpenAboutWindow();
 		void RenderAboutWindow();
+
+		void AfterLayerChange();
+
+		float FindStandardDeviation(std::vector<float> DataPoints);
 	};
 
 	#define UI UIManager::getInstance()

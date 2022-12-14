@@ -328,9 +328,6 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 	mesh->addColorToVertices(colors, colorSize);
 	mesh->addSegmentsColorToVertices(segmentsColors, segmentsColorsSize);
 
-	mesh->minRugorsity = minRugorsity;
-	mesh->maxRugorsity = maxRugorsity;
-
 	mesh->originalTrianglesToSegments = originalTrianglesToSegments;
 	mesh->segmentsNormals = segmentsNormals;
 }

@@ -28,23 +28,14 @@ namespace FocalEngine
 		SDF* currentSDF = nullptr;
 		FEBasicCamera* currentCamera = nullptr;
 
-		void MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter = true);
-		int JitterCounter = 0;
-		SDF* calculateSDF(int dimentions, FEBasicCamera* currentCamera, bool UseJitterExpandedAABB = false);
-
-		float shiftX = 0.0f;
-		float shiftY = 0.0f;
-		float shiftZ = 0.0f;
-
-		float GridScale = 1.25f;
-
 		bool bWeightedNormals = true;
 		bool bNormalizedNormals = true;
 
 		int SDFDimention = 16;
-		bool bLastJitter = true;
-		int SmoothingFactor = 4;
-		int newSDFSeen = 0;
+
+		int JitterDoneCount = 0;
+		int JitterToDoCount = 4;
+
 		static void calculateSDFAsync(void* InputData, void* OutputData);
 		static void calculateSDFCallback(void* OutputData);
 		void RunCreationOfSDFAsync(bool bJitter = false);
@@ -67,11 +58,7 @@ namespace FocalEngine
 		bool GetUseCGALVariant();
 		void SetUseCGALVariant(bool NewValue);
 
-		glm::dvec2 RugosityAreaDistribution(float RugosityValue);
-		double AreaWithRugosities(float MinRugosity, float MaxRugosity);
-
 		float GetLastTimeTookForCalculation();
-		float GetMaxRugosityWithOutOutliers(float OutliersPercentage);
 
 		void SetOnRugosityCalculationsStartCallback(void(*Func)(void));
 		void SetOnRugosityCalculationsEndCallback(void(*Func)(void));
@@ -82,9 +69,19 @@ namespace FocalEngine
 
 		static void ForceOnRugosityCalculationsEnd();
 
-		bool IsRugosityInfoReady();
+		std::vector<std::vector<float>> PerJitterResult;
+		std::vector<float> Result;
 	private:
 		SINGLETON_PRIVATE_PART(RugosityManager)
+
+		SDF* calculateSDF(int dimentions, FEBasicCamera* currentCamera, bool UseJitterExpandedAABB = false);
+		void MoveRugosityInfoFromSDF(SDF* SDF);
+
+		float shiftX = 0.0f;
+		float shiftY = 0.0f;
+		float shiftZ = 0.0f;
+
+		float GridScale = 1.25f;
 
 		int RugosityLayerIndex = 0;
 		bool bUseFindSmallestRugosity = false;
@@ -97,10 +94,6 @@ namespace FocalEngine
 
 		static void OnRugosityCalculationsEnd();
 		static void(*OnRugosityCalculationsEndCallbackImpl)(void);
-
-		static bool bHaveRugosityInfoReady;
-	public:
-		static std::vector<std::tuple<double, double, int>> RugosityTriangleAreaAndIndex;
 	};
 
 	#define RUGOSITY_MANAGER RugosityManager::getInstance()

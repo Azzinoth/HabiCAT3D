@@ -159,7 +159,7 @@ FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 			objLoader.loadedObjects[0]->matIDs.data(), int(objLoader.loadedObjects[0]->matIDs.size()), int(objLoader.loadedObjects[0]->materialRecords.size()), "");
 	}
 
-	//createMaterialsFromOBJData(result);
+	result->fillTrianglesData();
 
 	return result;
 }
@@ -278,22 +278,15 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	NewMesh->AABB = MeshAABB;
 
+	NewMesh->fillTrianglesData();
+
 	if (RugosityDataCount != 0 && TrianglesRugosityDataCount != 0)
 	{
-		float Min = FLT_MAX;
-		float Max = -FLT_MAX;
+		/*NewMesh->rugosityData = RugosityData;
+		NewMesh->TrianglesRugosity = TrianglesRugosityData;*/
 
-		for (size_t i = 0; i < TrianglesRugosityData.size(); i++)
-		{
-			Min = std::min(Min, TrianglesRugosityData[i]);
-			Max = std::max(Max, TrianglesRugosityData[i]);
-		}
-
-		NewMesh->minRugorsity = Min;
-		NewMesh->maxRugorsity = Max;
-
-		NewMesh->rugosityData = RugosityData;
-		NewMesh->TrianglesRugosity = TrianglesRugosityData;
+		NewMesh->AddLayer(TrianglesRugosityData);
+		NewMesh->Layers.back().SetCaption("Rugosity");
 	}
 
 	return NewMesh;
@@ -400,13 +393,13 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 	file.write((char*)&Count, sizeof(int));
 	file.write((char*)Indices, sizeof(int) * Count);
 
-	Count = Mesh->rugosityData.size();
+	/*Count = Mesh->rugosityData.size();
 	file.write((char*)&Count, sizeof(int));
 	file.write((char*)Mesh->rugosityData.data(), sizeof(float) * Count);
 
 	Count = Mesh->TrianglesRugosity.size();
 	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Mesh->TrianglesRugosity.data(), sizeof(float) * Count);
+	file.write((char*)Mesh->TrianglesRugosity.data(), sizeof(float) * Count);*/
 
 	FEAABB TempAABB(Positions, Mesh->getPositionsCount());
 	file.write((char*)&TempAABB.getMin()[0], sizeof(float));

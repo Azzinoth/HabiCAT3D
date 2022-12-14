@@ -38,6 +38,7 @@ namespace FocalEngine
 		std::vector<float> TrianglesToData;
 
 		void FillDataToGPU(int LayerIndex = 0);
+		std::vector<std::tuple<double, double, int>> ValueTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
 	};
 
 	class FEMesh
@@ -90,15 +91,7 @@ namespace FocalEngine
 		// NEW
 		FETransformComponent* Position = new FETransformComponent();
 
-		double minRugorsity = DBL_MAX;
-		double maxRugorsity = -DBL_MAX;
-		double minVisibleRugorsity = 1.0;
-		double maxVisibleRugorsity = -DBL_MAX;
-		double MinHeight = DBL_MAX;
-		double MaxHeight = -DBL_MAX;
-		bool bShowRugosity = false;
-
-		int ColorMode = 5;
+		int HeatMapType = 5;
 
 		std::vector<int> TriangleSelected;
 		float LastMeasuredRugosityAreaRadius = -1.0f;
@@ -112,11 +105,9 @@ namespace FocalEngine
 		std::vector<int> originalTrianglesToSegments;
 		std::vector<glm::vec3> segmentsNormals;
 
-		std::vector<float> rugosityData;
-		std::vector<float> TrianglesRugosity;
+		//std::vector<float> TrianglesRugosity;
 		std::vector<float> rugosityDataAdditional;
 		std::vector<float> TrianglesRugosityAdditional;
-		void fillRugosityDataToGPU(int RugosityLayerIndex = 0);
 
 		void fillTrianglesData();
 		bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance, glm::vec3* HitPoint = nullptr);

@@ -3,10 +3,8 @@ using namespace FocalEngine;
 
 RugosityManager* RugosityManager::Instance = nullptr;
 float RugosityManager::LastTimeTookForCalculation = 0.0f;
-std::vector<std::tuple<double, double, int>> RugosityManager::RugosityTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
 void(*RugosityManager::OnRugosityCalculationsStartCallbackImpl)(void) = nullptr;
 void(*RugosityManager::OnRugosityCalculationsEndCallbackImpl)(void) = nullptr;
-bool RugosityManager::bHaveRugosityInfoReady = false;
 
 RugosityManager::RugosityManager()
 {
@@ -37,8 +35,6 @@ RugosityManager::~RugosityManager() {}
 
 void RugosityManager::OnMeshUpdate()
 {
-	bHaveRugosityInfoReady = false;
-
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
 	FEAABB FinalAABB = MESH_MANAGER.ActiveMesh->AABB.transform(TransformMatrix);
@@ -52,50 +48,35 @@ void RugosityManager::OnMeshUpdate()
 
 	delete RUGOSITY_MANAGER.currentSDF;
 	RUGOSITY_MANAGER.currentSDF = nullptr;
-
-	RugosityTriangleAreaAndIndex.clear();
 }
 
-void RugosityManager::MoveRugosityInfoToMesh(SDF* SDF, bool bFinalJitter)
+void RugosityManager::MoveRugosityInfoFromSDF(SDF* SDF)
 {
 	if (SDF == nullptr || SDF->TrianglesRugosity.empty())
 		return;
 
-	if (MESH_MANAGER.ActiveMesh->TrianglesRugosity.size() != SDF->TrianglesRugosity.size())
-		MESH_MANAGER.ActiveMesh->TrianglesRugosity.resize(SDF->TrianglesRugosity.size());
+	PerJitterResult.resize(PerJitterResult.size() + 1);
 
-	for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TrianglesRugosity.size(); i++)
+	if (Result.size() != SDF->TrianglesRugosity.size())
+		Result.resize(SDF->TrianglesRugosity.size());
+
+	for (size_t i = 0; i < Result.size(); i++)
 	{
-		MESH_MANAGER.ActiveMesh->TrianglesRugosity[i] += SDF->TrianglesRugosity[i];
-		if (MESH_MANAGER.ActiveMesh->TrianglesRugosity[i] <= 0.0f)
+		PerJitterResult.back().push_back(SDF->TrianglesRugosity[i]);
+		Result[i] += SDF->TrianglesRugosity[i];
+		if (Result[i] <= 0.0f)
 		{
-			MESH_MANAGER.ActiveMesh->TrianglesRugosity[i] += 0.000000001f;
+			Result[i] += 0.000000001f;
 			bWeightedNormals = true;
 		}
 	}
-	JitterCounter++;
 
-	if (bFinalJitter)
+	if (RUGOSITY_MANAGER.JitterDoneCount == RUGOSITY_MANAGER.JitterToDoCount)
 	{
-		double minRugorsity = DBL_MAX;
-		double maxRugorsity = -DBL_MAX;
-
-		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TrianglesRugosity.size(); i++)
+		for (size_t i = 0; i < Result.size(); i++)
 		{
-			MESH_MANAGER.ActiveMesh->TrianglesRugosity[i] /= JitterCounter;
-
-			if (MESH_MANAGER.ActiveMesh->TrianglesRugosity[i] > maxRugorsity)
-				maxRugorsity = MESH_MANAGER.ActiveMesh->TrianglesRugosity[i];
-
-			if (MESH_MANAGER.ActiveMesh->TrianglesRugosity[i] < minRugorsity)
-				minRugorsity = MESH_MANAGER.ActiveMesh->TrianglesRugosity[i];
+			Result[i] /= JitterDoneCount;
 		}
-
-		MESH_MANAGER.ActiveMesh->minRugorsity = minRugorsity;
-		MESH_MANAGER.ActiveMesh->maxRugorsity = maxRugorsity;
-		MESH_MANAGER.ActiveMesh->maxVisibleRugorsity = maxRugorsity;
-
-		MESH_MANAGER.ActiveMesh->fillRugosityDataToGPU(RUGOSITY_MANAGER.RugosityLayerIndex);
 	}
 }
 
@@ -151,14 +132,11 @@ void RugosityManager::calculateSDFCallback(void* OutputData)
 	SDF* Input = reinterpret_cast<SDF*>(OutputData);
 
 	RUGOSITY_MANAGER.currentSDF = Input;
+	RUGOSITY_MANAGER.JitterDoneCount++;
 
-	RUGOSITY_MANAGER.newSDFSeen++;
-	if (RUGOSITY_MANAGER.newSDFSeen == RUGOSITY_MANAGER.SmoothingFactor)
-		RUGOSITY_MANAGER.bLastJitter = true;
+	RUGOSITY_MANAGER.MoveRugosityInfoFromSDF(RUGOSITY_MANAGER.currentSDF);
 
-	RUGOSITY_MANAGER.MoveRugosityInfoToMesh(RUGOSITY_MANAGER.currentSDF, RUGOSITY_MANAGER.bLastJitter);
-
-	if (!RUGOSITY_MANAGER.bLastJitter)
+	if (RUGOSITY_MANAGER.JitterDoneCount != RUGOSITY_MANAGER.JitterToDoCount)
 	{
 		delete RUGOSITY_MANAGER.currentSDF;
 		RUGOSITY_MANAGER.currentSDF = nullptr;
@@ -186,13 +164,12 @@ void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
 
 	const float cellSize = finalAABB.getSize() / Input->dimentions;
 
-	//glm::vec3 center = mesh->AABB.getCenter();
 	const glm::vec3 center = Input->mesh->AABB.getCenter() + glm::vec3(Input->shiftX, Input->shiftY, Input->shiftZ) * cellSize;
 	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
 	finalAABB = SDFAABB;
 
 	Output->Init(0/*Input->dimentions*/, finalAABB, RUGOSITY_MANAGER.currentCamera, RUGOSITY_MANAGER.ResolutonInM);
-	//currentSDF = new SDF(mesh, dimentions, finalAABB, currentCamera);
+
 	Output->bFindSmallestRugosity = RUGOSITY_MANAGER.bUseFindSmallestRugosity;
 	Output->bCGALVariant = RUGOSITY_MANAGER.bUseCGALVariant;
 	Output->bWeightedNormals = RUGOSITY_MANAGER.bWeightedNormals;
@@ -231,27 +208,17 @@ void RugosityManager::calculateRugorsityWithJitterAsyn(int RugosityLayerIndex)
 {
 	OnRugosityCalculationsStart();
 
-	RUGOSITY_MANAGER.JitterCounter = 0;
 	RUGOSITY_MANAGER.RugosityLayerIndex = RugosityLayerIndex;
-	newSDFSeen = 0;
-	MESH_MANAGER.ActiveMesh->TrianglesRugosity.clear();
-	MESH_MANAGER.ActiveMesh->rugosityData.clear();
 
-	bLastJitter = false;
 	RunCreationOfSDFAsync(true);
-	//calculateSDF(currentMesh, SDFDimention, true);
-	//MoveRugosityInfoToMesh(currentSDF, false);
 
 	// In cells
 	float kernelSize = 0.5;
 	kernelSize *= 2.0f;
 	kernelSize *= 100.0f;
 
-	for (size_t i = 0; i < SmoothingFactor - 1; i++)
+	for (size_t i = 0; i < JitterToDoCount - 1; i++)
 	{
-		//delete currentSDF;
-		//currentSDF = nullptr;
-
 		RUGOSITY_MANAGER.shiftX = rand() % int(kernelSize);
 		RUGOSITY_MANAGER.shiftX -= kernelSize / 2.0f;
 		RUGOSITY_MANAGER.shiftX /= 100.0f;
@@ -268,13 +235,6 @@ void RugosityManager::calculateRugorsityWithJitterAsyn(int RugosityLayerIndex)
 		float TempGridScale = rand() % GRID_VARIANCE;
 		TempGridScale /= 100.0f;
 		RUGOSITY_MANAGER.GridScale += TempGridScale;
-
-		/*bool bFinal = false;
-		if (i == SmoothingFactor - 2)
-			bFinal = true;
-
-		calculateSDF(currentMesh, SDFDimention, true);
-		MoveRugosityInfoToMesh(currentSDF, bFinal);*/
 
 		RunCreationOfSDFAsync(true);
 	}
@@ -359,104 +319,9 @@ void RugosityManager::SetUseCGALVariant(bool NewValue)
 	bUseCGALVariant = NewValue;
 }
 
-glm::dvec2 RugosityManager::RugosityAreaDistribution(float RugosityValue)
-{
-	if (!RUGOSITY_MANAGER.IsRugosityInfoReady() || MESH_MANAGER.ActiveMesh == nullptr)
-		return glm::dvec2(0.0);
-
-	float FirstBin = 0.0;
-	float SecondBin = 0.0;
-
-	for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
-	{
-		if (MESH_MANAGER.ActiveMesh->TrianglesRugosity[i] <= RugosityValue)
-		{
-			FirstBin += float(MESH_MANAGER.ActiveMesh->TrianglesArea[i]);
-		}
-		else
-		{
-			SecondBin += float(MESH_MANAGER.ActiveMesh->TrianglesArea[i]);
-		}
-	}
-
-	return glm::dvec2(FirstBin, SecondBin);
-}
-
-double RugosityManager::AreaWithRugosities(float MinRugosity, float MaxRugosity)
-{
-	double Result = 0.0;
-
-	if (!RUGOSITY_MANAGER.IsRugosityInfoReady() || MESH_MANAGER.ActiveMesh == nullptr)
-		return Result;
-
-	for (int i = 0; i < RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.size(); i++)
-	{
-		const double CurrentRugosity = std::get<0>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex[i]);
-		if (CurrentRugosity >= MinRugosity && CurrentRugosity <= MaxRugosity)
-		{
-			Result += std::get<1>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex[i]);
-		}
-		else if (CurrentRugosity > MaxRugosity)
-		{
-			break;
-		}
-	}
-
-	//auto Iterator = RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.begin();
-	//while (Iterator != RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.end())
-	//{
-	//	double CurrentRugosity = std::get<0>(*Iterator);
-	//	if (CurrentRugosity >= MinRugosity && CurrentRugosity <= MaxRugosity)
-	//	{
-	//		Result += std::get<1>(*Iterator);
-	//	}
-	//	else if (CurrentRugosity > MaxRugosity)
-	//	{
-	//		break;
-	//	}
-
-	//	Iterator++;
-	//}
-
-	return Result;
-}
-
 float RugosityManager::GetLastTimeTookForCalculation()
 {
 	return LastTimeTookForCalculation;
-}
-
-float RugosityManager::GetMaxRugosityWithOutOutliers(float OutliersPercentage)
-{
-	if (!RUGOSITY_MANAGER.IsRugosityInfoReady() || MESH_MANAGER.ActiveMesh == nullptr)
-		return FLT_MAX;
-
-	std::unordered_map<int, double> allRugosityValuesMap;
-	std::vector<float> allRugosityValues;
-	allRugosityValues.resize(MESH_MANAGER.ActiveMesh->TrianglesRugosity.size());
-	for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TrianglesRugosity.size(); i++)
-	{
-		allRugosityValues[i] = MESH_MANAGER.ActiveMesh->TrianglesRugosity[i];
-		allRugosityValuesMap[i] = MESH_MANAGER.ActiveMesh->TrianglesRugosity[i];
-	}
-
-	std::sort(allRugosityValues.begin(), allRugosityValues.end());
-
-	double CurrentCombinedArea = 0.0;
-	for (size_t i = 0; i < allRugosityValues.size(); i++)
-	{
-		CurrentCombinedArea += MESH_MANAGER.ActiveMesh->TrianglesArea[i];
-	}
-
-	/*int numbOfPoints = int(vertexInfo.size() * 0.01f);
-	float mean = 0.0f;
-	for (size_t i = 0; i < numbOfPoints; i++)
-	{
-		mean += allYValues[i];
-	}
-
-	if (numbOfPoints != 0)
-		mean /= numbOfPoints;*/
 }
 
 void RugosityManager::SetOnRugosityCalculationsStartCallback(void(*Func)(void))
@@ -469,8 +334,11 @@ void RugosityManager::OnRugosityCalculationsStart()
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return;
 
+	RUGOSITY_MANAGER.Result.clear();
+	RUGOSITY_MANAGER.PerJitterResult.clear();
+	RUGOSITY_MANAGER.JitterDoneCount = 0;
+
 	TIME.BeginTimeStamp("CalculateRugorsityTotal");
-	bHaveRugosityInfoReady = false;
 
 	if (OnRugosityCalculationsStartCallbackImpl != nullptr)
 		OnRugosityCalculationsStartCallbackImpl();
@@ -478,21 +346,8 @@ void RugosityManager::OnRugosityCalculationsStart()
 
 void RugosityManager::OnRugosityCalculationsEnd()
 {
-	RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.clear();
-
-	for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
-	{
-		RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.push_back(std::make_tuple(MESH_MANAGER.ActiveMesh->TrianglesRugosity[i],
-			MESH_MANAGER.ActiveMesh->TrianglesArea[i], i));
-	}
-
-	// sort() function will sort by 1st element of tuple.
-	std::sort(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.begin(), RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.end());
-
 	if (OnRugosityCalculationsEndCallbackImpl != nullptr)
 		OnRugosityCalculationsEndCallbackImpl();
-
-	bHaveRugosityInfoReady = true;
 }
 
 void RugosityManager::SetOnRugosityCalculationsEndCallback(void(*Func)(void))
@@ -505,14 +360,5 @@ void RugosityManager::ForceOnRugosityCalculationsEnd()
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return;
 
-	if (MESH_MANAGER.ActiveMesh->TrianglesRugosity.empty() || MESH_MANAGER.ActiveMesh->TrianglesArea.empty() ||
-		MESH_MANAGER.ActiveMesh->TrianglesRugosity.size() != MESH_MANAGER.ActiveMesh->TrianglesArea.size())
-		return;
-
 	OnRugosityCalculationsEnd();
-}
-
-bool RugosityManager::IsRugosityInfoReady()
-{
-	return bHaveRugosityInfoReady;
 }

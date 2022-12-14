@@ -5,7 +5,7 @@ void(*UIManager::SwapCameraImpl)(bool) = nullptr;
 
 UIManager::UIManager()
 {
-	RugosityColorRange.SetPosition(ImVec2(0, 20));
+	HeatMapColorRange.SetPosition(ImVec2(0, 20));
 	Graph.SetPosition(ImVec2(5, 20));
 
 	RUGOSITY_MANAGER.SetOnRugosityCalculationsEndCallback(OnRugosityCalculationsEnd);
@@ -231,243 +231,6 @@ void UIManager::SetDeveloperMode(const bool NewValue)
 	DeveloperMode = NewValue;
 }
 
-void UIManager::UpdateRugosityRangeSettings()
-{
-	if (MESH_MANAGER.ActiveMesh == nullptr)
-		return;
-
-	static float LastMax = FLT_MAX;
-
-	if (LastMax != MESH_MANAGER.ActiveMesh->maxRugorsity)
-	{
-		LastMax = float(MESH_MANAGER.ActiveMesh->maxRugorsity);
-		RugosityColorRange.SetCeilingValue(3.0f / float(MESH_MANAGER.ActiveMesh->maxRugorsity));
-		RugosityColorRange.SetRangeBottomLimit(1.0f / float(MESH_MANAGER.ActiveMesh->maxRugorsity));
-	}
-
-	RugosityColorRange.Legend.Clear();
-	RugosityColorRange.Legend.SetCaption(1.0f, "max: " + TruncateAfterDot(std::to_string(MESH_MANAGER.ActiveMesh->maxRugorsity)));
-
-	RugosityColorRange.Legend.SetCaption(RugosityColorRange.GetCeilingValue(), "current: " + TruncateAfterDot(std::to_string(MESH_MANAGER.ActiveMesh->maxRugorsity * RugosityColorRange.GetCeilingValue())));
-
-	const float MiddleOfUsedRange = (RugosityColorRange.GetCeilingValue() + float(MESH_MANAGER.ActiveMesh->minVisibleRugorsity / MESH_MANAGER.ActiveMesh->maxRugorsity)) / 2.0f;
-	RugosityColorRange.Legend.SetCaption(MiddleOfUsedRange, "middle: " + TruncateAfterDot(std::to_string(MESH_MANAGER.ActiveMesh->maxRugorsity * MiddleOfUsedRange)));
-
-	RugosityColorRange.Legend.SetCaption(float(MESH_MANAGER.ActiveMesh->minVisibleRugorsity / MESH_MANAGER.ActiveMesh->maxRugorsity), "min: " + TruncateAfterDot(std::to_string(MESH_MANAGER.ActiveMesh->minVisibleRugorsity)));
-
-	MESH_MANAGER.ActiveMesh->maxVisibleRugorsity = RugosityColorRange.GetCeilingValue() * MESH_MANAGER.ActiveMesh->maxRugorsity;
-}
-
-//void UIManager::TestCGALVariant()
-//{
-//	// GDAL Least_squares_plane_fit
-//	SDFInitData* InputData = new SDFInitData();
-//	InputData->dimentions = RUGOSITY_MANAGER.SDFDimention;
-//	InputData->mesh = MESH_MANAGER.ActiveMesh;
-//	InputData->UseJitterExpandedAABB = false;
-//
-//	InputData->shiftX = RUGOSITY_MANAGER.shiftX;
-//	InputData->shiftY = RUGOSITY_MANAGER.shiftY;
-//	InputData->shiftZ = RUGOSITY_MANAGER.shiftZ;
-//	InputData->GridScale = RUGOSITY_MANAGER.GridScale;
-//
-//	RUGOSITY_MANAGER.currentSDF = new SDF();
-//	RUGOSITY_MANAGER.currentSDF->bFindSmallestRugosity = false;
-//
-//	RUGOSITY_MANAGER.calculateSDFAsync(InputData, RUGOSITY_MANAGER.currentSDF);
-//
-//	// Extracting data from FEMesh.
-//	//std::vector<float> FEVertices;
-//	//FEVertices.resize(MESH_MANAGER.ActiveMesh->getPositionsCount());
-//	//FE_GL_ERROR(glGetNamedBufferSubData(MESH_MANAGER.ActiveMesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
-//
-//	//std::vector<int> FEIndices;
-//	//FEIndices.resize(MESH_MANAGER.ActiveMesh->getIndicesCount());
-//	//FE_GL_ERROR(glGetNamedBufferSubData(MESH_MANAGER.ActiveMesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
-//
-//
-//
-//
-//	for (size_t i = 0; i < RUGOSITY_MANAGER.currentSDF->data.size(); i++)
-//	{
-//		for (size_t j = 0; j < RUGOSITY_MANAGER.currentSDF->data[i].size(); j++)
-//		{
-//			for (size_t k = 0; k < RUGOSITY_MANAGER.currentSDF->data[i][j].size(); k++)
-//			{
-//				//calculateCellRugosity(&data[i][j][k]);
-//
-//				SDFNode* Node = &RUGOSITY_MANAGER.currentSDF->data[i][j][k];
-//
-//				if (Node->trianglesInCell.size() == 0)
-//					continue;
-//				//if (Node->trianglesInCell.size() < 100)
-//				//	continue;
-//
-//				std::vector<float> FEVerticesFinal;
-//				std::vector<int> FEIndicesFinal;
-//
-//				for (size_t l = 0; l < Node->trianglesInCell.size(); l++)
-//				{
-//					int TriangleIndex = Node->trianglesInCell[l];
-//
-//					auto test = MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex];
-//
-//					FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][0][0]);
-//					FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][0][1]);
-//					FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][0][2]);
-//					FEIndicesFinal.push_back(l * 3);
-//
-//					FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][1][0]);
-//					FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][1][1]);
-//					FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][1][2]);
-//					FEIndicesFinal.push_back(l * 3 + 1);
-//
-//					FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][2][0]);
-//					FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][2][1]);
-//					FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][2][2]);
-//					FEIndicesFinal.push_back(l * 3 + 2);
-//
-//
-//
-//					//int FirstIndex = FEIndices[TriangleIndex /** 3*/];
-//					//FEIndicesFinal.push_back(FirstIndex);
-//					//FEVerticesFinal.push_back(FEVertices[TriangleIndex]);
-//					//FEVerticesFinal.push_back(FEVertices[TriangleIndex + 1] /*+ 5.0f*/);
-//					//FEVerticesFinal.push_back(FEVertices[TriangleIndex + 2]);
-//
-//					//int SecondIndex = FEIndices[TriangleIndex * 3 + 1];
-//					//FEIndicesFinal.push_back(SecondIndex);
-//					//FEVerticesFinal.push_back(FEVertices[SecondIndex]);
-//					//FEVerticesFinal.push_back(FEVertices[SecondIndex + 1] + 5.0f);
-//					//FEVerticesFinal.push_back(FEVertices[SecondIndex + 2]);
-//
-//					//int ThirdIndex = FEIndices[TriangleIndex * 3 + 2];
-//					//FEIndicesFinal.push_back(ThirdIndex);
-//					//FEVerticesFinal.push_back(FEVertices[ThirdIndex]);
-//					//FEVerticesFinal.push_back(FEVertices[ThirdIndex + 1] + 5.0f);
-//					//FEVerticesFinal.push_back(FEVertices[ThirdIndex + 2]);
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//					//FEIndicesFinal.push_back(TriangleIndex);
-//
-//					//FEVerticesFinal.push_back(FEVertices[CurrentIndex * 3]);
-//					//FEVerticesFinal.push_back(FEVertices[CurrentIndex * 3 + 1]);
-//					//FEVerticesFinal.push_back(FEVertices[CurrentIndex * 3 + 2]);
-//
-//					//FEIndicesFinal.push_back(CurrentIndex);
-//				}
-//
-//				if (TestMesh == nullptr)
-//				{
-//					RUGOSITY_MANAGER.currentSDF->selectedCell = glm::vec3(i, j, k);
-//
-//					FEMesh* TestMesh = CGALWrapper.rawDataToMesh(FEVerticesFinal.data(), FEVerticesFinal.size(),
-//						nullptr, 0,
-//						nullptr, 0,
-//						nullptr, 0,
-//						nullptr, 0,
-//						FEIndicesFinal.data(), FEIndicesFinal.size(),
-//						nullptr, 0, 0,
-//						"");
-//
-//
-//
-//					// Formating data to CGAL format.
-//					std::vector<Polygon_3> CGALFaces;
-//					CGALFaces.resize(FEIndicesFinal.size() / 3);
-//					int count = 0;
-//					for (size_t i = 0; i < FEIndicesFinal.size(); i += 3)
-//					{
-//						CGALFaces[count].push_back(FEIndicesFinal[i]);
-//						CGALFaces[count].push_back(FEIndicesFinal[i + 1]);
-//						CGALFaces[count].push_back(FEIndicesFinal[i + 2]);
-//						count++;
-//					}
-//
-//					std::vector<Point_3> CGALPoints;
-//					for (size_t i = 0; i < FEVerticesFinal.size(); i += 3)
-//					{
-//						CGALPoints.push_back(Point_3(FEVerticesFinal[i], FEVerticesFinal[i + 1], FEVerticesFinal[i + 2]));
-//					}
-//
-//					Surface_mesh result;
-//
-//					if (!PMP::is_polygon_soup_a_polygon_mesh(CGALFaces))
-//					{
-//						PMP::repair_polygon_soup(CGALPoints, CGALFaces);
-//						PMP::orient_polygon_soup(CGALPoints, CGALFaces);
-//					}
-//
-//					PMP::polygon_soup_to_polygon_mesh(CGALPoints, CGALFaces, result);
-//
-//					int y = 0;
-//					y++;
-//
-//					/*using Region_type = CGAL::Shape_detection::Polygon_mesh::Least_squares_plane_fit_region<Kernel, Surface_mesh, Surface_mesh::Face_range>;
-//					Region_type test(result, 1.0, 5.0, 3, result.points());
-//					auto region = result.faces();
-//
-//					faces(result);
-//
-//					std::vector<size_t> Region;
-//					for (size_t i = 0; i < region.size(); i++)
-//					{
-//						Region.push_back(i);
-//					}
-//
-//					test.update(Region);
-//					auto Vector = test.get_Plane();*/
-// 
-//					// Need to add in file:
-//					ThirdParty/CGAL/Shape_detection/Region_growing/Region_growing_on_polygon_mesh/Least_squares_plane_fit_region.h
-//					// in line: 238
-//					inline Vector_3 get_Plane() const {
-//						return m_normal_of_best_fit;
-//					}
-// 
-// 
-// 
-//
-//
-//
-//					Kernel::FT quality;
-//					Kernel::Plane_3 plane;
-//					Kernel::Point_3 centroid;
-//
-//					quality = linear_least_squares_fitting_3(result.points().begin(), result.points().end(), plane, centroid, CGAL::Dimension_tag<0>());
-//
-//
-//
-//					auto normal = plane.perpendicular_line(centroid);
-//
-//					glm::vec3 Normal = glm::vec3(normal.direction().vector().x(),
-//						normal.direction().vector().y(),
-//						normal.direction().vector().z());
-//
-//					Normal = glm::normalize(Normal);
-//
-//					//RUGOSITY_MANAGER.currentSDF->bFindSmallestRugosity = true;
-//					//RUGOSITY_MANAGER.currentSDF->calculateCellRugosity(Node);
-//
-//					int u = 0;
-//					u++;
-//
-//					//Region_type.update();
-//				}
-//			}
-//		}
-//	}
-//}
-
 void UIManager::RenderDeveloperModeMainWindow()
 {
 	bool TempBool = bModelCamera;
@@ -494,26 +257,6 @@ void UIManager::RenderDeveloperModeMainWindow()
 	MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(position);
 
 	ImGui::Checkbox("Wireframe", &bWireframeMode);
-
-	//if (MESH_MANAGER.ActiveMesh->minRugorsity != DBL_MAX)
-	//	ImGui::Text(("minRugorsity: " + std::to_string(MESH_MANAGER.ActiveMesh->minRugorsity)).c_str());
-
-	//if (MESH_MANAGER.ActiveMesh->maxRugorsity != -DBL_MAX)
-	//	ImGui::Text(("maxRugorsity: " + std::to_string(MESH_MANAGER.ActiveMesh->maxRugorsity)).c_str());
-
-	ImGui::Text("MinHeight: ");
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(128);
-	float TempValue = float(MESH_MANAGER.ActiveMesh->MinHeight);
-	ImGui::DragFloat("##MinHeight", &TempValue, 0.01f);
-	MESH_MANAGER.ActiveMesh->MinHeight = TempValue;
-
-	ImGui::Text("MaxHeight: ");
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(128);
-	TempValue = float(MESH_MANAGER.ActiveMesh->MaxHeight);
-	ImGui::DragFloat("##MaxHeight", &TempValue, 0.01f);
-	MESH_MANAGER.ActiveMesh->MaxHeight = TempValue;
 
 	if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() == 1)
 	{
@@ -574,95 +317,57 @@ void UIManager::RenderDeveloperModeMainWindow()
 	}
 
 	ImGui::Separator();
-	if (/*RUGOSITY_MANAGER.currentSDF == nullptr*/1)
+	if (ImGui::Button("Generate SDF"))
 	{
-		if (ImGui::Button("Generate SDF"))
-		{
-			RUGOSITY_MANAGER.JitterCounter = 0;
-			MESH_MANAGER.ActiveMesh->TrianglesRugosity.clear();
-			MESH_MANAGER.ActiveMesh->rugosityData.clear();
-
-			RUGOSITY_MANAGER.bLastJitter = true;
-			RUGOSITY_MANAGER.RunCreationOfSDFAsync(MESH_MANAGER.ActiveMesh);
-		}
-
-		ImGui::Text(("For current mesh \n Min value : "
-			+ std::to_string(RUGOSITY_MANAGER.LowestResolution)
-			+ " m \n Max value : "
-			+ std::to_string(RUGOSITY_MANAGER.HigestResolution) + " m").c_str());
-
-		ImGui::SetNextItemWidth(128);
-		ImGui::DragFloat("##ResolutonInM", &RUGOSITY_MANAGER.ResolutonInM, 0.01f);
-
-		if (RUGOSITY_MANAGER.ResolutonInM < RUGOSITY_MANAGER.LowestResolution)
-			RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.LowestResolution;
-
-		if (RUGOSITY_MANAGER.ResolutonInM > RUGOSITY_MANAGER.HigestResolution)
-			RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.HigestResolution;
-
-		ImGui::Checkbox("Weighted normals", &RUGOSITY_MANAGER.bWeightedNormals);
-		ImGui::Checkbox("Normalized normals", &RUGOSITY_MANAGER.bNormalizedNormals);
-
-		if (ImGui::Button("Generate SDF with Jitter"))
-		{
-			TIME.BeginTimeStamp("TimeTookToJitter");
-
-			RUGOSITY_MANAGER.calculateRugorsityWithJitterAsyn();
-
-			TimeTookToJitter = float(TIME.EndTimeStamp("TimeTookToJitter"));
-		}
-
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(100);
-		ImGui::DragInt("Smoothing factor", &RUGOSITY_MANAGER.SmoothingFactor);
-		if (RUGOSITY_MANAGER.SmoothingFactor < 2)
-			RUGOSITY_MANAGER.SmoothingFactor = 2;
-	}
-	else if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
-	{
-		if (ImGui::Button("Delete SDF"))
-		{
-			//currentSDF->mesh clear all rugosity info
-
-			LINE_RENDERER.clearAll();
-			LINE_RENDERER.SyncWithGPU();
-
-			delete RUGOSITY_MANAGER.currentSDF;
-			RUGOSITY_MANAGER.currentSDF = nullptr;
-		}
+		RUGOSITY_MANAGER.JitterToDoCount = 1;
+		RUGOSITY_MANAGER.RunCreationOfSDFAsync(MESH_MANAGER.ActiveMesh);
 	}
 
-	if (RUGOSITY_MANAGER.newSDFSeen > 0 && RUGOSITY_MANAGER.newSDFSeen < RUGOSITY_MANAGER.SmoothingFactor)
+	ImGui::Text(("For current mesh \n Min value : "
+		+ std::to_string(RUGOSITY_MANAGER.LowestResolution)
+		+ " m \n Max value : "
+		+ std::to_string(RUGOSITY_MANAGER.HigestResolution) + " m").c_str());
+
+	ImGui::SetNextItemWidth(128);
+	ImGui::DragFloat("##ResolutonInM", &RUGOSITY_MANAGER.ResolutonInM, 0.01f);
+
+	if (RUGOSITY_MANAGER.ResolutonInM < RUGOSITY_MANAGER.LowestResolution)
+		RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.LowestResolution;
+
+	if (RUGOSITY_MANAGER.ResolutonInM > RUGOSITY_MANAGER.HigestResolution)
+		RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.HigestResolution;
+
+	ImGui::Checkbox("Weighted normals", &RUGOSITY_MANAGER.bWeightedNormals);
+	ImGui::Checkbox("Normalized normals", &RUGOSITY_MANAGER.bNormalizedNormals);
+
+	if (ImGui::Button("Generate SDF with Jitter"))
 	{
-		std::string Text = "Progress: " + std::to_string(RUGOSITY_MANAGER.newSDFSeen) + " out of " + std::to_string(RUGOSITY_MANAGER.SmoothingFactor);
-		ImGui::Text(Text.c_str());
+		TIME.BeginTimeStamp("TimeTookToJitter");
+
+		RUGOSITY_MANAGER.calculateRugorsityWithJitterAsyn();
+
+		TimeTookToJitter = float(TIME.EndTimeStamp("TimeTookToJitter"));
 	}
 
-	if (RUGOSITY_MANAGER.IsRugosityInfoReady())
-	{
-		/*if (ImGui::Checkbox("Show Rugosity", &MESH_MANAGER.ActiveMesh->showRugosity))
-		{
-			if (MESH_MANAGER.ActiveMesh->showRugosity)
-			{
-				MESH_MANAGER.ActiveMesh->colorMode = 5;
-			}
-			else
-			{
-				MESH_MANAGER.ActiveMesh->colorMode = 0;
-			}
-		}*/
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(100);
+	ImGui::DragInt("Smoothing factor", &RUGOSITY_MANAGER.JitterToDoCount);
+	if (RUGOSITY_MANAGER.JitterToDoCount < 2)
+		RUGOSITY_MANAGER.JitterToDoCount = 2;
 
+	if (MESH_MANAGER.ActiveMesh->CurrentLayerIndex != -1)
+	{
 		ImGui::Text("Color scheme: ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(128);
-		if (ImGui::BeginCombo("##ChooseColorScheme", (RUGOSITY_MANAGER.colorSchemeIndexToString(MESH_MANAGER.ActiveMesh->ColorMode)).c_str(), ImGuiWindowFlags_None))
+		if (ImGui::BeginCombo("##ChooseColorScheme", (RUGOSITY_MANAGER.colorSchemeIndexToString(MESH_MANAGER.ActiveMesh->HeatMapType)).c_str(), ImGuiWindowFlags_None))
 		{
 			for (size_t i = 0; i < RUGOSITY_MANAGER.colorSchemesList.size(); i++)
 			{
-				bool is_selected = ((RUGOSITY_MANAGER.colorSchemeIndexToString(MESH_MANAGER.ActiveMesh->ColorMode)).c_str() == RUGOSITY_MANAGER.colorSchemesList[i]);
+				bool is_selected = ((RUGOSITY_MANAGER.colorSchemeIndexToString(MESH_MANAGER.ActiveMesh->HeatMapType)).c_str() == RUGOSITY_MANAGER.colorSchemesList[i]);
 				if (ImGui::Selectable(RUGOSITY_MANAGER.colorSchemesList[i].c_str(), is_selected))
 				{
-					MESH_MANAGER.ActiveMesh->ColorMode = RUGOSITY_MANAGER.colorSchemeIndexFromString(RUGOSITY_MANAGER.colorSchemesList[i]);
+					MESH_MANAGER.ActiveMesh->HeatMapType = RUGOSITY_MANAGER.colorSchemeIndexFromString(RUGOSITY_MANAGER.colorSchemesList[i]);
 				}
 
 				if (is_selected)
@@ -671,7 +376,6 @@ void UIManager::RenderDeveloperModeMainWindow()
 			ImGui::EndCombo();
 		}
 
-		UpdateRugosityRangeSettings();
 		ImGui::Separator();
 
 		ImGui::Text(("Total time: " + std::to_string(RUGOSITY_MANAGER.GetLastTimeTookForCalculation())).c_str());
@@ -787,11 +491,10 @@ void UIManager::RenderUserModeMainWindow()
 
 	if (ImGui::Button("Calculate rugosity"))
 	{
-		RUGOSITY_MANAGER.SmoothingFactor = 64;
+		RUGOSITY_MANAGER.JitterToDoCount = 64;
 		RUGOSITY_MANAGER.calculateRugorsityWithJitterAsyn();
 
-		MESH_MANAGER.ActiveMesh->ColorMode = 5;
-		MESH_MANAGER.ActiveMesh->bShowRugosity = true;
+		MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 	}
 
 	ImGui::Text("Grid size:");
@@ -871,96 +574,93 @@ void UIManager::RenderUserModeMainWindow()
 		ImGui::Checkbox("Output selection data to file", &bOutputSelectionToFile);
 	}
 
-	if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() == 1)
+	if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() == 1 && MESH_MANAGER.ActiveMesh->CurrentLayerIndex != -1)
 	{
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->CurrentLayerIndex];
+
 		ImGui::Separator();
 		ImGui::Text("Selected triangle information :");
 
-		std::string Text = "Triangle rugosity : ";
-		if (!MESH_MANAGER.ActiveMesh->TrianglesRugosity.empty())
-		{
-			Text += std::to_string(MESH_MANAGER.ActiveMesh->TrianglesRugosity[MESH_MANAGER.ActiveMesh->TriangleSelected[0]]);
-		}
-		else
-		{
-			Text += "No information.";
-		}
+		std::string Text = "Triangle value : ";
+		Text += std::to_string(CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[0]]);
 		ImGui::Text(Text.c_str());
+
+		int HeightLayerIndex = -1;
+		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
+		{
+			if (MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() == "Height")
+				HeightLayerIndex = i;
+		}
 
 		Text = "Triangle height : ";
 		double AverageHeight = 0.0;
-		for (size_t i = 0; i < 3; i++)
+		if (HeightLayerIndex != -1)
 		{
-			glm::vec3 CurrentPoint = MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[0]][i];
-			AverageHeight += glm::dot(glm::vec3(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(CurrentPoint, 1.0)), MESH_MANAGER.ActiveMesh->AverageNormal);
+			AverageHeight = MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[0]];
+			AverageHeight -= MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].Min;
 		}
-
-		AverageHeight /= 3.0;
-		AverageHeight -= MESH_MANAGER.ActiveMesh->MinHeight;
 
 		Text += std::to_string(AverageHeight);
 
 		ImGui::Text(Text.c_str());
 	}
-	else if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() > 1)
+	else if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() > 1 && MESH_MANAGER.ActiveMesh->CurrentLayerIndex != -1)
 	{
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->CurrentLayerIndex];
+
 		std::string Text = "Area average rugosity : ";
-
-		if (!MESH_MANAGER.ActiveMesh->TrianglesRugosity.empty())
+		float TotalRugosity = 0.0f;
+		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
 		{
-			float TotalRugosity = 0.0f;
-			for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
-			{
-				TotalRugosity += MESH_MANAGER.ActiveMesh->TrianglesRugosity[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
-			}
+			TotalRugosity += CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
+		}
 
-			TotalRugosity /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
-			Text += std::to_string(TotalRugosity);
-		}
-		else
-		{
-			Text += "No information.";
-		}
+		TotalRugosity /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
+		Text += std::to_string(TotalRugosity);
 
 		ImGui::Text(Text.c_str());
 
 		Text = "Area average height : ";
-
 		double AverageHeight = 0.0;
-		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
-		{
-			double CurrentHeight = 0.0;
-			for (size_t j = 0; j < 3; j++)
-			{
-				glm::vec3 CurrentPoint = MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[i]][j];
-				CurrentHeight += glm::dot(glm::vec3(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(CurrentPoint, 1.0)), MESH_MANAGER.ActiveMesh->AverageNormal);
-			}
 
-			CurrentHeight /= 3.0;
-			AverageHeight += CurrentHeight;
+		int HeightLayerIndex = -1;
+		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
+		{
+			if (MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() == "Height")
+				HeightLayerIndex = i;
 		}
 
-		AverageHeight /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
-		AverageHeight -= MESH_MANAGER.ActiveMesh->MinHeight;
+		if (HeightLayerIndex != -1)
+		{
+			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex];
+
+			for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
+			{
+				double CurrentHeight = CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
+				AverageHeight += CurrentHeight;
+			}
+
+			AverageHeight /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
+			AverageHeight -= CurrentLayer->Min;
+		}
 
 		Text += std::to_string(AverageHeight);
 
 		ImGui::Text(Text.c_str());
 	}
 
-	if (RUGOSITY_MANAGER.IsRugosityInfoReady())
+	if (MESH_MANAGER.ActiveMesh != nullptr && MESH_MANAGER.ActiveMesh->CurrentLayerIndex != -1)
 	{
 		ImGui::Separator();
-		UpdateRugosityRangeSettings();
 
-		ImGui::Text("Rugosity distribution : ");
-		static char CurrentRugosityDistributionEdit[1024];
-		static glm::vec2 CurrentRugosityDistribution = glm::vec2();
-		static float LastRugosityDistributionValue = 0.0f;
+		ImGui::Text("Distribution : ");
+		static char CurrentDistributionEdit[1024];
+		static glm::vec2 CurrentDistribution = glm::vec2();
+		static float LastDistributionValue = 0.0f;
 
 		ImGui::SetNextItemWidth(62);
-		if (ImGui::InputText("##RugosityDistributionEdit", CurrentRugosityDistributionEdit, IM_ARRAYSIZE(CurrentRugosityDistributionEdit), ImGuiInputTextFlags_EnterReturnsTrue) ||
-			ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##RugosityDistributionEdit"))
+		if (ImGui::InputText("##DistributionEdit", CurrentDistributionEdit, IM_ARRAYSIZE(CurrentDistributionEdit), ImGuiInputTextFlags_EnterReturnsTrue) ||
+			ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##DistributionEdit"))
 		{
 
 		}
@@ -968,24 +668,15 @@ void UIManager::RenderUserModeMainWindow()
 		ImGui::SameLine();
 		if (ImGui::Button("Calculate Distribution", ImVec2(167, 19)))
 		{
-			if (MESH_MANAGER.ActiveMesh != nullptr && abs(MESH_MANAGER.ActiveMesh->maxRugorsity) < 100000)
-			{
-				float NewValue = float(atof(CurrentRugosityDistributionEdit));
-				if (NewValue != 0.0f)
-				{
-					if (NewValue < 1.0f)
-						NewValue = 1.0f;
-
-					LastRugosityDistributionValue = NewValue;
-					CurrentRugosityDistribution = RUGOSITY_MANAGER.RugosityAreaDistribution(NewValue);
-				}
-			}
+			float NewValue = float(atof(CurrentDistributionEdit));
+			LastDistributionValue = NewValue;
+			CurrentDistribution = LayerValuesAreaDistribution(&MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->CurrentLayerIndex], NewValue);
 		}
 
-		if (CurrentRugosityDistribution != glm::vec2())
+		if (CurrentDistribution != glm::vec2())
 		{
-			ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastRugosityDistributionValue)) + " rugosity : " + std::to_string(CurrentRugosityDistribution.x / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
-			ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastRugosityDistributionValue)) + " rugosity : " + std::to_string(CurrentRugosityDistribution.y / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
+			ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.x / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
+			ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.y / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
 		}
 	}
 
@@ -997,7 +688,7 @@ void UIManager::RenderUserModeMainWindow()
 		APPLICATION.GetWindowSize(&WindowW, &WindowH);
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
-		float Progress = float(RUGOSITY_MANAGER.newSDFSeen) / float(RUGOSITY_MANAGER.SmoothingFactor);
+		float Progress = float(RUGOSITY_MANAGER.JitterDoneCount) / float(RUGOSITY_MANAGER.JitterToDoCount);
 		std::string ProgressText = "Progress: " + std::to_string(Progress * 100.0f);
 		ProgressText += " %";
 		ImGui::SetCursorPosX(90);
@@ -1013,10 +704,6 @@ void UIManager::RenderUserModeMainWindow()
 void UIManager::RenderMainWindow()
 {
 	ImGui::Begin("Settings", nullptr);
-
-	/*ImGui::Text(("FillGraphDataPoints_TotalTime: " + std::to_string(FillGraphDataPoints_TotalTime)).c_str());
-	ImGui::Text(("AreaWithRugosities_TotalTime: " + std::to_string(AreaWithRugosities_TotalTime)).c_str());
-	ImGui::Text(("SetDataPoints_Time: " + std::to_string(SetDataPoints)).c_str());*/
 
 	ImGui::Checkbox("Developer UI", &DeveloperMode);
 
@@ -1111,7 +798,7 @@ void UIManager::Render()
 	RenderMainWindow();
 	RenderLegend();
 	RenderLayerChooseWindow();
-	RenderRugosityHistogram();
+	RenderHistogram();
 	RenderAboutWindow();
 }
 
@@ -1259,7 +946,7 @@ void UIManager::OnMeshUpdate()
 	LINE_RENDERER.SyncWithGPU();
 
 	UI.Graph.Clear();
-	UI.RugosityColorRange.Clear();
+	UI.HeatMapColorRange.Clear();
 }
 
 float UIManager::GetAreaToMeasureRugosity()
@@ -1286,26 +973,26 @@ void UIManager::OnRugosityCalculationsStart()
 {
 	UI.bCloseProgressPopup = false;
 	ImGui::OpenPopup("Calculating...");
-
-	UI.Graph.Clear();
-	UI.RugosityColorRange.Clear();
 }
 
 void UIManager::OnRugosityCalculationsEnd()
 {
-	UI.Graph.Clear();
-	UI.FillGraphDataPoints(UI.CurrentBinCount);
+	MESH_MANAGER.ActiveMesh->AddLayer(RUGOSITY_MANAGER.Result);
+	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption("Rugosity");
 
-	float NormalizedPosition = 0.0f;
-	const int CaptionsCount = 8;
-	const float PositionStep = 1.0f / CaptionsCount;
-	for (size_t i = 0; i <= CaptionsCount; i++)
+	std::vector<float> TrianglesToStandardDeviation;
+	for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
 	{
-		UI.Graph.Legend.SetCaption(i == 0 ? NormalizedPosition + 0.0075f : NormalizedPosition,
-			TruncateAfterDot(std::to_string(MESH_MANAGER.ActiveMesh->minRugorsity + (MESH_MANAGER.ActiveMesh->maxRugorsity - MESH_MANAGER.ActiveMesh->minRugorsity) * NormalizedPosition)));
-		
-		NormalizedPosition += PositionStep;
+		std::vector<float> CurrentTriangleResults;
+		for (int j = 0; j < RUGOSITY_MANAGER.JitterToDoCount; j++)
+		{
+			CurrentTriangleResults.push_back(RUGOSITY_MANAGER.PerJitterResult[j][i]);
+		}
+
+		TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
 	}
+	MESH_MANAGER.ActiveMesh->AddLayer(TrianglesToStandardDeviation);
+	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption("Standard deviation");
 
 	UI.bCloseProgressPopup = true;
 }
@@ -1373,23 +1060,38 @@ void UIManager::RenderLegend()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 	ImGui::SetNextWindowPos(ImVec2(2, 20));
 	ImGui::SetNextWindowSize(ImVec2(150, 670));
-	ImGui::Begin("Rugosity Legend", nullptr,
+	ImGui::Begin("Heat map legend", nullptr,
 									ImGuiWindowFlags_NoMove |
 									ImGuiWindowFlags_NoResize |
 									ImGuiWindowFlags_NoCollapse |
 									ImGuiWindowFlags_NoScrollbar);
 
-	if (RugosityColorRange.GetColorRangeFunction() == nullptr)
-		RugosityColorRange.SetColorRangeFunction(TurboColorMapValue);
+	if (HeatMapColorRange.GetColorRangeFunction() == nullptr)
+		HeatMapColorRange.SetColorRangeFunction(TurboColorMapValue);
 
-	RugosityColorRange.Render();
+	HeatMapColorRange.Render();
 
 	static char CurrentRugosityMax[1024];
-	static float LastValue = RugosityColorRange.GetCeilingValue();
-	if (MESH_MANAGER.ActiveMesh != nullptr && abs(MESH_MANAGER.ActiveMesh->maxRugorsity) < 100000 && LastValue != RugosityColorRange.GetCeilingValue())
+	static float LastValue = HeatMapColorRange.GetCeilingValue();
+	if (MESH_MANAGER.ActiveMesh != nullptr && MESH_MANAGER.ActiveMesh->CurrentLayerIndex != -1)
 	{
-		LastValue = RugosityColorRange.GetCeilingValue();
-		strcpy(CurrentRugosityMax, TruncateAfterDot(std::to_string(RugosityColorRange.GetCeilingValue() * MESH_MANAGER.ActiveMesh->maxRugorsity)).c_str());
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->CurrentLayerIndex];
+		if (abs(CurrentLayer->Max) < 100000 && LastValue != HeatMapColorRange.GetCeilingValue())
+		{
+			LastValue = HeatMapColorRange.GetCeilingValue();
+			strcpy(CurrentRugosityMax, TruncateAfterDot(std::to_string(HeatMapColorRange.GetCeilingValue() * CurrentLayer->Max)).c_str());
+		}
+
+		HeatMapColorRange.Legend.Clear();
+		HeatMapColorRange.Legend.SetCaption(1.0f, "max: " + TruncateAfterDot(std::to_string(CurrentLayer->Max)));
+
+		HeatMapColorRange.Legend.SetCaption(HeatMapColorRange.GetCeilingValue(), "current: " + TruncateAfterDot(std::to_string(CurrentLayer->Max * HeatMapColorRange.GetCeilingValue())));
+
+		const float MiddleOfUsedRange = (HeatMapColorRange.GetCeilingValue() + CurrentLayer->MinVisible / CurrentLayer->Max) / 2.0f;
+		HeatMapColorRange.Legend.SetCaption(MiddleOfUsedRange, "middle: " + TruncateAfterDot(std::to_string(CurrentLayer->Max * MiddleOfUsedRange)));
+		HeatMapColorRange.Legend.SetCaption(CurrentLayer->MinVisible / CurrentLayer->Max, "min: " + TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
+
+		CurrentLayer->MaxVisible = HeatMapColorRange.GetCeilingValue() * CurrentLayer->Max;
 	}
 
 	ImGui::SetCursorPosX(10);
@@ -1404,16 +1106,15 @@ void UIManager::RenderLegend()
 	ImGui::SameLine();
 	if (ImGui::Button("Set", ImVec2(62, 19)))
 	{
-		if (MESH_MANAGER.ActiveMesh != nullptr && abs(MESH_MANAGER.ActiveMesh->maxRugorsity) < 100000)
+		if (MESH_MANAGER.ActiveMesh != nullptr)
 		{
-			float NewValue = float(atof(CurrentRugosityMax));
-			if (NewValue != 0.0f)
-			{
-				if (NewValue < 1.0f)
-					NewValue = 1.0f;
+			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->CurrentLayerIndex];
 
-				RugosityColorRange.SetCeilingValue(NewValue / float(MESH_MANAGER.ActiveMesh->maxRugorsity));
-			}
+			float NewValue = float(atof(CurrentRugosityMax));
+			if (NewValue < CurrentLayer->Min)
+				NewValue = CurrentLayer->Min;
+
+			HeatMapColorRange.SetCeilingValue(NewValue / float(CurrentLayer->Max));
 		}
 	}
 
@@ -1431,7 +1132,24 @@ void UIManager::RenderLayerChooseWindow()
 	int MainWindowH = 0;
 	APPLICATION.GetWindowSize(&MainWindowW, &MainWindowH);
 
-	const float CurrentWindowW = 188.0f;
+	int TotalWidthNeeded = 0;
+	if (MESH_MANAGER.ActiveMesh != nullptr)
+	{
+		TotalWidthNeeded += ImGui::CalcTextSize("No Layer").x + 18;
+		for (int i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
+		{
+			ImVec2 CurrentTextSize = ImGui::CalcTextSize(MESH_MANAGER.ActiveMesh->Layers[i].GetCaption().c_str());
+			TotalWidthNeeded += CurrentTextSize.x;
+			TotalWidthNeeded += 18;
+		}
+	}
+
+	if (TotalWidthNeeded == 0)
+	{
+		TotalWidthNeeded = ImGui::CalcTextSize("No Data.").x + 18;
+	}
+
+	const float CurrentWindowW = TotalWidthNeeded/*288.0f*/;
 	const float CurrentWindowH = 30.0f;
 
 	ImGui::SetNextWindowPos(ImVec2(MainWindowW / 2.0f - CurrentWindowW / 2.0f, 21));
@@ -1481,14 +1199,17 @@ void UIManager::RenderLayerChooseWindow()
 			if (ImGui::Button("No Layer"))
 			{
 				MESH_MANAGER.ActiveMesh->CurrentLayerIndex = i;
+				AfterLayerChange();
 			}
 		}
 		else
 		{
 			ImGui::SetCursorPosY(YPosition);
-			if (ImGui::Button(MESH_MANAGER.ActiveMesh->Layers[i].GetCaption().c_str()))
+			if (ImGui::Button((MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() + "##" + std::to_string(i)).c_str()))
 			{
 				MESH_MANAGER.ActiveMesh->CurrentLayerIndex = i;
+				MESH_MANAGER.ActiveMesh->Layers[i].FillDataToGPU();
+				AfterLayerChange();
 			}
 		}
 		
@@ -1496,79 +1217,6 @@ void UIManager::RenderLayerChooseWindow()
 	}
 
 	ImGui::PopStyleVar(3);
-	ImGui::End();
-	return;
-
-
-	ImGui::SameLine();
-	ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.1f, 0.6f, 0.8f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.5f, 0.7f, 0.8f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.0f, 1.6f, 0.6f));
-	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 7);
-	if (ImGui::Button("Model") && MESH_MANAGER.ActiveMesh != nullptr)
-	{
-		MESH_MANAGER.ActiveMesh->ColorMode = 0;
-		if (MESH_MANAGER.ActiveMesh->getColorCount() != 0)
-			MESH_MANAGER.ActiveMesh->ColorMode = 1;
-	}
-	ImGui::PopStyleColor(4);
-
-	if (MESH_MANAGER.ActiveMesh != nullptr)
-	{
-		if (MESH_MANAGER.ActiveMesh->ColorMode == 5)
-		{
-			ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(0.0f, 1.0f, 0.5f));
-		}
-		else
-		{
-			ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(1.0f, 1.6f, 1.6f));
-		}
-	}
-	else
-	{
-		ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(1.0f, 1.6f, 1.6f));
-	}
-
-	ImGui::SameLine();
-	ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.1f, 0.6f, 0.8f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.5f, 0.7f, 0.8f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.0f, 1.6f, 0.6f));
-	if (ImGui::Button("Rugosity") && MESH_MANAGER.ActiveMesh != nullptr)
-	{
-		MESH_MANAGER.ActiveMesh->ColorMode = 5;
-	}
-	ImGui::PopStyleColor(4);
-
-	if (MESH_MANAGER.ActiveMesh != nullptr)
-	{
-		if (MESH_MANAGER.ActiveMesh->ColorMode == 6)
-		{
-			ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(0.0f, 1.0f, 0.5f));
-		}
-		else
-		{
-			ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(1.0f, 1.6f, 1.6f));
-		}
-	}
-	else
-	{
-		ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(1.0f, 1.6f, 1.6f));
-	}
-
-	ImGui::SameLine();
-	ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.1f, 0.6f, 0.8f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.5f, 0.7f, 0.8f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.0f, 1.6f, 0.6f));
-	if (ImGui::Button("Height") && MESH_MANAGER.ActiveMesh != nullptr)
-	{
-		MESH_MANAGER.ActiveMesh->ColorMode = 6;
-	}
-	ImGui::PopStyleColor(4);
-
-	ImGui::PopStyleVar(1);
-
-	ImGui::PopStyleVar();
-	ImGui::PopStyleVar();
 	ImGui::End();
 }
 
@@ -1618,6 +1266,8 @@ void UIManager::FillGraphDataPoints(const int BinsCount)
 	std::vector<float> MaxRugosity;
 	MaxRugosity.resize(BinsCount);
 
+	MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->CurrentLayerIndex];
+
 	TIME.BeginTimeStamp("AreaWithRugosities Time");
 
 	for (size_t i = 0; i < BinsCount; i++)
@@ -1625,18 +1275,18 @@ void UIManager::FillGraphDataPoints(const int BinsCount)
 		const double NormalizedPixelPosition = double(i) / (BinsCount);
 		const double NextNormalizedPixelPosition = double(i + 1) / (BinsCount);
 
-		MinRugosity[i] = MESH_MANAGER.ActiveMesh->minRugorsity + (MESH_MANAGER.ActiveMesh->maxRugorsity - MESH_MANAGER.ActiveMesh->minRugorsity) * NormalizedPixelPosition;
-		MaxRugosity[i] = MESH_MANAGER.ActiveMesh->minRugorsity + (MESH_MANAGER.ActiveMesh->maxRugorsity - MESH_MANAGER.ActiveMesh->minRugorsity) * NextNormalizedPixelPosition;
+		MinRugosity[i] = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * NormalizedPixelPosition;
+		MaxRugosity[i] = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * NextNormalizedPixelPosition;
 	}
 
 	int CurrentIndex = 0;
 	double CurrentArea = 0.0;
-	for (int i = 0; i < RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex.size(); i++)
+	for (int i = 0; i < CurrentLayer->ValueTriangleAreaAndIndex.size(); i++)
 	{
-		const double CurrentRugosity = std::get<0>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex[i]);
+		const double CurrentRugosity = std::get<0>(CurrentLayer->ValueTriangleAreaAndIndex[i]);
 		if (CurrentRugosity >= MinRugosity[CurrentIndex] && CurrentRugosity <= MaxRugosity[CurrentIndex])
 		{
-			CurrentArea += std::get<1>(RUGOSITY_MANAGER.RugosityTriangleAreaAndIndex[i]);
+			CurrentArea += std::get<1>(CurrentLayer->ValueTriangleAreaAndIndex[i]);
 		}
 		else if (CurrentRugosity > MaxRugosity[CurrentIndex])
 		{
@@ -1707,7 +1357,7 @@ void UIManager::FillGraphDataPoints(const int BinsCount)
 	FillGraphDataPointsTotalTime = TIME.EndTimeStamp("FillGraphDataPoints Time");
 }
 
-void UIManager::RenderRugosityHistogram()
+void UIManager::RenderHistogram()
 {
 	static int LastWindowW = 0;
 
@@ -1719,7 +1369,7 @@ void UIManager::RenderRugosityHistogram()
 		if (MESH_MANAGER.ActiveMesh != nullptr &&
 			bPixelBins &&
 			LastWindowW != window->SizeFull.x &&
-			!MESH_MANAGER.ActiveMesh->TrianglesRugosity.empty())
+			MESH_MANAGER.ActiveMesh->CurrentLayerIndex != -1)
 		{
 			LastWindowW = window->SizeFull.x;
 			FillGraphDataPoints(CurrentBinCount);
@@ -1780,7 +1430,7 @@ void UIManager::RenderRugosityHistogram()
 				if (CurrentBinCount != TempInt)
 				{
 					CurrentBinCount = TempInt;
-					if (MESH_MANAGER.ActiveMesh != nullptr && !MESH_MANAGER.ActiveMesh->TrianglesRugosity.empty())
+					if (MESH_MANAGER.ActiveMesh != nullptr && MESH_MANAGER.ActiveMesh->CurrentLayerIndex != -1)
 						FillGraphDataPoints(CurrentBinCount);
 				}
 			}
@@ -1791,7 +1441,6 @@ void UIManager::RenderRugosityHistogram()
 
 	ImGui::PopStyleVar();
 	ImGui::PopStyleVar();
-	
 }
 
 bool UIManager::GetOutputSelectionToFile()
@@ -1873,4 +1522,81 @@ void UIManager::RenderAboutWindow()
 
 		ImGui::EndPopup();
 	}
+}
+
+glm::dvec2 UIManager::LayerValuesAreaDistribution(MeshLayer* Layer, float Value)
+{
+	if (Layer == nullptr || Layer->GetParentMesh() == nullptr || Layer->TrianglesToData.empty() || Layer->GetParentMesh()->TrianglesArea.empty())
+		return glm::dvec2(0.0);
+
+	float FirstBin = 0.0;
+	float SecondBin = 0.0;
+
+	FEMesh* Mesh = Layer->GetParentMesh();
+
+	for (int i = 0; i < Mesh->Triangles.size(); i++)
+	{
+		if (Layer->TrianglesToData[i] <= Value)
+		{
+			FirstBin += float(Mesh->TrianglesArea[i]);
+		}
+		else
+		{
+			SecondBin += float(Mesh->TrianglesArea[i]);
+		}
+	}
+
+	return glm::dvec2(FirstBin, SecondBin);
+}
+
+void UIManager::AfterLayerChange()
+{
+	if (MESH_MANAGER.ActiveMesh == nullptr)
+		return;
+
+	UI.Graph.Clear();
+	UI.HeatMapColorRange.Clear();
+
+	if (MESH_MANAGER.ActiveMesh->CurrentLayerIndex != -1)
+	{
+		UI.FillGraphDataPoints(UI.CurrentBinCount);
+
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->CurrentLayerIndex];
+
+		float NormalizedPosition = 0.0f;
+		const int CaptionsCount = 8;
+		const float PositionStep = 1.0f / CaptionsCount;
+		for (size_t i = 0; i <= CaptionsCount; i++)
+		{
+			UI.Graph.Legend.SetCaption(i == 0 ? NormalizedPosition + 0.0075f : NormalizedPosition,
+				TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * NormalizedPosition)));
+
+			NormalizedPosition += PositionStep;
+		}
+
+		float MiddleOfRange = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) / 2.0f;
+		HeatMapColorRange.SetCeilingValue(MiddleOfRange / CurrentLayer->Max);
+		HeatMapColorRange.SetRangeBottomLimit(CurrentLayer->Min / CurrentLayer->Max);
+	}
+}
+
+float UIManager::FindStandardDeviation(std::vector<float> DataPoints)
+{
+	float Mean = 0.0f;
+	for (int i = 0; i < DataPoints.size(); i++)
+	{
+		Mean += DataPoints[i];
+	}
+	Mean /= DataPoints.size();
+
+	float NewMean = 0.0f;
+	for (int i = 0; i < DataPoints.size(); i++)
+	{
+		DataPoints[i] -= Mean;
+		DataPoints[i] = std::pow(DataPoints[i], 2.0);
+		NewMean += DataPoints[i];
+	}
+	NewMean /= DataPoints.size();
+
+	return std::sqrt(NewMean);
 }

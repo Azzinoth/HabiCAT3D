@@ -354,91 +354,6 @@ bool FEMesh::SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius)
 	return Result;
 }
 
-void FEMesh::fillRugosityDataToGPU(int RugosityLayerIndex)
-{
-	Layers.push_back(MeshLayer(this, TrianglesRugosity));
-	Layers.back().FillDataToGPU();
-
-
-	return;
-
-	const int posSize = getPositionsCount();
-	float* positions = new float[posSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(getPositionsBufferID(), 0, sizeof(float) * posSize, positions));
-
-	const int indexSize = getIndicesCount();
-	int* indices = new int[indexSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(getIndicesBufferID(), 0, sizeof(int) * indexSize, indices));
-
-	std::vector<float> positionsVector;
-	for (size_t i = 0; i < posSize; i++)
-	{
-		positionsVector.push_back(positions[i]);
-	}
-
-	std::vector<int> indexVector;
-	for (size_t i = 0; i < indexSize; i++)
-	{
-		indexVector.push_back(indices[i]);
-	}
-
-	delete positions;
-	delete indices;
-
-	rugosityData.resize(posSize);
-	auto getVertexOfFace = [&](int faceIndex) {
-		std::vector<int> result;
-		result.push_back(indexVector[faceIndex * 3]);
-		result.push_back(indexVector[faceIndex * 3 + 1]);
-		result.push_back(indexVector[faceIndex * 3 + 2]);
-
-		return result;
-	};
-
-	auto setRugosityOfVertex = [&](int index, float value) {
-		rugosityData[index * 3] = value;
-		rugosityData[index * 3 + 1] = value;
-		rugosityData[index * 3 + 2] = value;
-	};
-
-	auto setRugosityOfFace = [&](int faceIndex, float value) {
-		const std::vector<int> faceVertex = getVertexOfFace(faceIndex);
-
-		for (size_t i = 0; i < faceVertex.size(); i++)
-		{
-			setRugosityOfVertex(faceVertex[i], value);
-		}
-	};
-
-	for (size_t i = 0; i < Triangles.size(); i++)
-	{
-		setRugosityOfFace(static_cast<int>(i), TrianglesRugosity[i]);
-	}
-
-	FE_GL_ERROR(glBindVertexArray(vaoID));
-
-	if (RugosityLayerIndex == 0)
-	{
-		FirstLayerBufferID = 0;
-		vertexAttributes |= FE_RUGOSITY_FIRST;
-		FE_GL_ERROR(glGenBuffers(1, &FirstLayerBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, FirstLayerBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * rugosityData.size(), rugosityData.data(), GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, 0));
-	}
-	else
-	{
-		SecondLayerBufferID = 0;
-		vertexAttributes |= FE_RUGOSITY_SECOND;
-		FE_GL_ERROR(glGenBuffers(1, &SecondLayerBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, SecondLayerBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * rugosityData.size(), rugosityData.data(), GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(9, 3, GL_FLOAT, false, 0, 0));
-	}
-
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-}
-
 void FEMesh::UpdateAverageNormal()
 {
 	AverageNormal = glm::vec3();
@@ -520,6 +435,15 @@ MeshLayer::MeshLayer(FEMesh* Parent, const std::vector<float> TrianglesToData)
 
 	MinVisible = Min;
 	MaxVisible = Max;
+
+	ValueTriangleAreaAndIndex.clear();
+	for (int i = 0; i < Parent->Triangles.size(); i++)
+	{
+		ValueTriangleAreaAndIndex.push_back(std::make_tuple(TrianglesToData[i], Parent->TrianglesArea[i], i));
+	}
+
+	// sort() function will sort by 1st element of tuple.
+	std::sort(ValueTriangleAreaAndIndex.begin(), ValueTriangleAreaAndIndex.end());
 }
 
 MeshLayer::~MeshLayer() {};
