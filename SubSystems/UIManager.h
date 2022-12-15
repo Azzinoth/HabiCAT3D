@@ -31,11 +31,11 @@ namespace FocalEngine
 
 		static void OnMeshUpdate();
 
-		float GetAreaToMeasureRugosity();
-		void SetAreaToMeasureRugosity(float NewValue);
+		float GetRadiusOfAreaToMeasure();
+		void SetRadiusOfAreaToMeasure(float NewValue);
 
-		int GetRugositySelectionMode();
-		void SetRugositySelectionMode(int NewValue);
+		int GetLayerSelectionMode();
+		void SetLayerSelectionMode(int NewValue);
 
 		bool GetIsModelCamera();
 		void SetIsModelCamera(bool NewValue);
@@ -60,8 +60,8 @@ namespace FocalEngine
 		bool bModelCamera = true;
 		bool bCloseProgressPopup = false;
 
-		float AreaToMeasureRugosity = 1.0f;
-		int RugositySelectionMode = 0;
+		float RadiusOfAreaToMeasure = 1.0f;
+		int LayerSelectionMode = 0;
 
 		FEColorRangeAdjuster HeatMapColorRange;
 
@@ -79,7 +79,7 @@ namespace FocalEngine
 		float AreaWithRugositiesTotalTime = 0.0f;
 		
 		static void OnRugosityCalculationsStart();
-		static void OnRugosityCalculationsEnd();
+		static void OnRugosityCalculationsEnd(MeshLayer NewLayer);
 
 		bool bOutputSelectionToFile = false;
 

@@ -7,6 +7,14 @@
 
 namespace FocalEngine
 {
+	struct MeshLayerDebugInfo
+	{
+		uint64_t StartCalculationsTime;
+		uint64_t EndCalculationsTime;
+
+		std::string Type = "MeshLayerDebugInfo";
+	};
+
 	class FEMesh;
 	class MeshLayer
 	{
@@ -19,6 +27,8 @@ namespace FocalEngine
 		MeshLayer();
 		MeshLayer(FEMesh* Parent, std::vector<float> TrianglesToData);
 		~MeshLayer();
+
+		MeshLayerDebugInfo* DebugInfo = nullptr;
 
 		std::string GetCaption();
 		void SetCaption(std::string NewValue);
@@ -126,5 +136,6 @@ namespace FocalEngine
 		int CurrentLayerIndex = -1;
 
 		void AddLayer(std::vector<float> TrianglesToData);
+		void AddLayer(MeshLayer NewLayer);
 	};
 }

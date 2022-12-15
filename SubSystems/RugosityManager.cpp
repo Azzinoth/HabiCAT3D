@@ -4,7 +4,7 @@ using namespace FocalEngine;
 RugosityManager* RugosityManager::Instance = nullptr;
 float RugosityManager::LastTimeTookForCalculation = 0.0f;
 void(*RugosityManager::OnRugosityCalculationsStartCallbackImpl)(void) = nullptr;
-void(*RugosityManager::OnRugosityCalculationsEndCallbackImpl)(void) = nullptr;
+void(*RugosityManager::OnRugosityCalculationsEndCallbackImpl)(MeshLayer) = nullptr;
 
 RugosityManager::RugosityManager()
 {
@@ -143,7 +143,11 @@ void RugosityManager::calculateSDFCallback(void* OutputData)
 	}
 	else
 	{
-		LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
+		//LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
+
+		//MeshLayer New
+		//RUGOSITY_MANAGER.Result
+
 		OnRugosityCalculationsEnd();
 	}
 }
@@ -339,6 +343,7 @@ void RugosityManager::OnRugosityCalculationsStart()
 	RUGOSITY_MANAGER.JitterDoneCount = 0;
 
 	TIME.BeginTimeStamp("CalculateRugorsityTotal");
+	RUGOSITY_MANAGER.StartTime = TIME.GetTimeStamp();
 
 	if (OnRugosityCalculationsStartCallbackImpl != nullptr)
 		OnRugosityCalculationsStartCallbackImpl();
@@ -346,19 +351,32 @@ void RugosityManager::OnRugosityCalculationsStart()
 
 void RugosityManager::OnRugosityCalculationsEnd()
 {
+	MeshLayer NewLayer;
+	NewLayer.TrianglesToData = RUGOSITY_MANAGER.Result;
+
+	NewLayer.DebugInfo = new RugosityMeshLayerDebugInfo();
+	RugosityMeshLayerDebugInfo* DebugInfo = reinterpret_cast<RugosityMeshLayerDebugInfo*>(NewLayer.DebugInfo);
+	DebugInfo->StartCalculationsTime = RUGOSITY_MANAGER.StartTime;
+	DebugInfo->EndCalculationsTime = TIME.GetTimeStamp();
+	DebugInfo->JitterCount = RUGOSITY_MANAGER.JitterDoneCount;
+	DebugInfo->ResolutonInM = RUGOSITY_MANAGER.ResolutonInM;
+	DebugInfo->bWeightedNormals = RUGOSITY_MANAGER.bWeightedNormals;
+	DebugInfo->bNormalizedNormals = RUGOSITY_MANAGER.bNormalizedNormals;
+	DebugInfo->bUseFindSmallestRugosity = RUGOSITY_MANAGER.bUseFindSmallestRugosity;
+	DebugInfo->bUseCGALVariant = RUGOSITY_MANAGER.bUseCGALVariant;
+
+	LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
+
 	if (OnRugosityCalculationsEndCallbackImpl != nullptr)
-		OnRugosityCalculationsEndCallbackImpl();
+		OnRugosityCalculationsEndCallbackImpl(NewLayer);
 }
 
-void RugosityManager::SetOnRugosityCalculationsEndCallback(void(*Func)(void))
+void RugosityManager::SetOnRugosityCalculationsEndCallback(void(*Func)(MeshLayer))
 {
 	OnRugosityCalculationsEndCallbackImpl = Func;
 }
 
-void RugosityManager::ForceOnRugosityCalculationsEnd()
+RugosityMeshLayerDebugInfo::RugosityMeshLayerDebugInfo()
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
-		return;
-
-	OnRugosityCalculationsEnd();
+	Type = "RugosityMeshLayerDebugInfo";
 }

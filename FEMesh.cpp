@@ -404,11 +404,19 @@ double FEMesh::TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 Poi
 					  pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
 }
 
-
 void FEMesh::AddLayer(std::vector<float> TrianglesToData)
 {
 	if (TrianglesToData.size() == Triangles.size())
 		Layers.push_back(MeshLayer(this, TrianglesToData));
+}
+
+void FEMesh::AddLayer(MeshLayer NewLayer)
+{
+	if (NewLayer.TrianglesToData.size() == Triangles.size())
+	{
+		NewLayer.SetParentMesh(this);
+		Layers.push_back(NewLayer);
+	}
 }
 
 MeshLayer::MeshLayer() {};
@@ -421,7 +429,7 @@ MeshLayer::MeshLayer(FEMesh* Parent, const std::vector<float> TrianglesToData)
 	if (TrianglesToData.size() != Parent->Triangles.size())
 		return;
 
-	SetParentMesh(Parent);
+	this->ParentMesh = Parent;
 	this->TrianglesToData = TrianglesToData;
 
 	Min = FLT_MAX;
@@ -455,7 +463,35 @@ FEMesh* MeshLayer::GetParentMesh()
 
 void MeshLayer::SetParentMesh(FEMesh* NewValue)
 {
-	ParentMesh = NewValue;
+	if (NewValue == nullptr)
+		return;
+
+	if (TrianglesToData.size() != NewValue->Triangles.size())
+		return;
+
+	this->ParentMesh = NewValue;
+	this->TrianglesToData = TrianglesToData;
+
+	Min = FLT_MAX;
+	Max = -FLT_MAX;
+
+	for (size_t i = 0; i < TrianglesToData.size(); i++)
+	{
+		Min = std::min(Min, TrianglesToData[i]);
+		Max = std::max(Max, TrianglesToData[i]);
+	}
+
+	MinVisible = Min;
+	MaxVisible = Max;
+
+	ValueTriangleAreaAndIndex.clear();
+	for (int i = 0; i < NewValue->Triangles.size(); i++)
+	{
+		ValueTriangleAreaAndIndex.push_back(std::make_tuple(TrianglesToData[i], NewValue->TrianglesArea[i], i));
+	}
+
+	// sort() function will sort by 1st element of tuple.
+	std::sort(ValueTriangleAreaAndIndex.begin(), ValueTriangleAreaAndIndex.end());
 }
 
 void MeshLayer::FillRawData()
@@ -554,7 +590,7 @@ std::string MeshLayer::GetCaption()
 	return Caption;
 }
 
-void MeshLayer::SetCaption(std::string NewValue)
+void MeshLayer::SetCaption(const std::string NewValue)
 {
 	Caption = NewValue;
 }
@@ -564,7 +600,7 @@ std::string MeshLayer::GetNote()
 	return UserNote;
 }
 
-void MeshLayer::SetNote(std::string NewValue)
+void MeshLayer::SetNote(const std::string NewValue)
 {
 	UserNote = NewValue;
 }

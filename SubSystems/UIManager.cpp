@@ -541,35 +541,35 @@ void UIManager::RenderUserModeMainWindow()
 
 	ImGui::Separator();
 	ImGui::Text("Selection mode:");
-	if (ImGui::RadioButton("None", &RugositySelectionMode, 0))
+	if (ImGui::RadioButton("None", &LayerSelectionMode, 0))
 	{
 		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
 		LINE_RENDERER.clearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
 
-	if (ImGui::RadioButton("Triangles", &RugositySelectionMode, 1))
+	if (ImGui::RadioButton("Triangles", &LayerSelectionMode, 1))
 	{
 		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
 		LINE_RENDERER.clearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
 
-	if (ImGui::RadioButton("Area", &RugositySelectionMode, 2))
+	if (ImGui::RadioButton("Area", &LayerSelectionMode, 2))
 	{
 		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
 		LINE_RENDERER.clearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
 
-	if (RugositySelectionMode == 2)
+	if (LayerSelectionMode == 2)
 	{
 		ImGui::Text("Radius of area to measure: ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(128);
-		ImGui::DragFloat("##AreaToMeasureRugosity", &AreaToMeasureRugosity, 0.01f);
-		if (AreaToMeasureRugosity < 0.1f)
-			AreaToMeasureRugosity = 0.1f;
+		ImGui::DragFloat("##RadiusOfAreaToMeasure", &RadiusOfAreaToMeasure, 0.01f);
+		if (RadiusOfAreaToMeasure < 0.1f)
+			RadiusOfAreaToMeasure = 0.1f;
 
 		ImGui::Checkbox("Output selection data to file", &bOutputSelectionToFile);
 	}
@@ -949,24 +949,24 @@ void UIManager::OnMeshUpdate()
 	UI.HeatMapColorRange.Clear();
 }
 
-float UIManager::GetAreaToMeasureRugosity()
+float UIManager::GetRadiusOfAreaToMeasure()
 {
-	return AreaToMeasureRugosity;
+	return RadiusOfAreaToMeasure;
 }
 
-void UIManager::SetAreaToMeasureRugosity(const float NewValue)
+void UIManager::SetRadiusOfAreaToMeasure(const float NewValue)
 {
-	AreaToMeasureRugosity = NewValue;
+	RadiusOfAreaToMeasure = NewValue;
 }
 
-int UIManager::GetRugositySelectionMode()
+int UIManager::GetLayerSelectionMode()
 {
-	return RugositySelectionMode;
+	return LayerSelectionMode;
 }
 
-void UIManager::SetRugositySelectionMode(const int NewValue)
+void UIManager::SetLayerSelectionMode(const int NewValue)
 {
-	RugositySelectionMode = NewValue;
+	LayerSelectionMode = NewValue;
 }
 
 void UIManager::OnRugosityCalculationsStart()
@@ -975,9 +975,9 @@ void UIManager::OnRugosityCalculationsStart()
 	ImGui::OpenPopup("Calculating...");
 }
 
-void UIManager::OnRugosityCalculationsEnd()
+void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 {
-	MESH_MANAGER.ActiveMesh->AddLayer(RUGOSITY_MANAGER.Result);
+	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption("Rugosity");
 
 	std::vector<float> TrianglesToStandardDeviation;
@@ -1574,8 +1574,16 @@ void UIManager::AfterLayerChange()
 			NormalizedPosition += PositionStep;
 		}
 
-		float MiddleOfRange = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) / 2.0f;
-		HeatMapColorRange.SetCeilingValue(MiddleOfRange / CurrentLayer->Max);
+		if (CurrentLayer->MaxVisible == CurrentLayer->Max)
+		{
+			float MiddleOfRange = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) / 2.0f;
+			HeatMapColorRange.SetCeilingValue(MiddleOfRange / CurrentLayer->Max);
+		}
+		else
+		{
+			HeatMapColorRange.SetCeilingValue(CurrentLayer->MaxVisible / CurrentLayer->Max);
+		}
+		
 		HeatMapColorRange.SetRangeBottomLimit(CurrentLayer->Min / CurrentLayer->Max);
 	}
 }

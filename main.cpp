@@ -237,7 +237,7 @@ void OutputSeletedAreaInfoToFile()
 	if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() < 2)
 		return;
 
-	std::string Text = "Area radius : " + std::to_string(UI.GetAreaToMeasureRugosity());
+	std::string Text = "Area radius : " + std::to_string(UI.GetRadiusOfAreaToMeasure());
 	LOG.Add(Text, "Selections");
 
 	Text = "Area approximate center : X - ";
@@ -288,13 +288,13 @@ void mouseButtonCallback(int button, int action, int mods)
 	{
 		if (MESH_MANAGER.ActiveMesh != nullptr)
 		{
-			if (UI.GetRugositySelectionMode() == 1)
+			if (UI.GetLayerSelectionMode() == 1)
 			{
 				MESH_MANAGER.ActiveMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
 			}
-			else if (UI.GetRugositySelectionMode() == 2)
+			else if (UI.GetLayerSelectionMode() == 2)
 			{
-				if (MESH_MANAGER.ActiveMesh->SelectTrianglesInRadius(mouseRay(mouseX, mouseY), currentCamera, UI.GetAreaToMeasureRugosity()) &&
+				if (MESH_MANAGER.ActiveMesh->SelectTrianglesInRadius(mouseRay(mouseX, mouseY), currentCamera, UI.GetRadiusOfAreaToMeasure()) &&
 					UI.GetOutputSelectionToFile())
 				{
 					OutputSeletedAreaInfoToFile();
@@ -369,7 +369,7 @@ void RenderFEMesh(FEMesh* Mesh)
 		MESH_MANAGER.MeshShader->getParameter("LayerMax")->updateData(float(Mesh->Layers[Mesh->CurrentLayerIndex].MaxVisible));
 	}
 	
-	if (Mesh->TriangleSelected.size() > 1 && UI.GetRugositySelectionMode() == 2)
+	if (Mesh->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
 	{
 		MESH_MANAGER.MeshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(Mesh->LastMeasuredRugosityAreaRadius);
 		MESH_MANAGER.MeshShader->getParameter("MeasuredRugosityAreaCenter")->updateData(Mesh->LastMeasuredRugosityAreaCenter);

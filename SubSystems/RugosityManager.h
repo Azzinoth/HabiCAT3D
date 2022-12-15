@@ -20,6 +20,20 @@ namespace FocalEngine
 		float GridScale = 2.5f;
 	};
 
+	struct RugosityMeshLayerDebugInfo : public MeshLayerDebugInfo
+	{
+		int JitterCount;
+		float ResolutonInM;
+
+		bool bWeightedNormals;
+		bool bNormalizedNormals;
+
+		bool bUseFindSmallestRugosity;
+		bool bUseCGALVariant;
+
+		RugosityMeshLayerDebugInfo();
+	};
+
 	class RugosityManager
 	{
 	public:
@@ -61,13 +75,11 @@ namespace FocalEngine
 		float GetLastTimeTookForCalculation();
 
 		void SetOnRugosityCalculationsStartCallback(void(*Func)(void));
-		void SetOnRugosityCalculationsEndCallback(void(*Func)(void));
+		void SetOnRugosityCalculationsEndCallback(void(*Func)(MeshLayer));
 
 		std::string GetUsedRugosityAlgorithmName();
 		void SetUsedRugosityAlgorithmName(std::string name);
 		std::vector<std::string> RugosityAlgorithmList;
-
-		static void ForceOnRugosityCalculationsEnd();
 
 		std::vector<std::vector<float>> PerJitterResult;
 		std::vector<float> Result;
@@ -93,7 +105,9 @@ namespace FocalEngine
 		static void(*OnRugosityCalculationsStartCallbackImpl)(void);
 
 		static void OnRugosityCalculationsEnd();
-		static void(*OnRugosityCalculationsEndCallbackImpl)(void);
+		static void(*OnRugosityCalculationsEndCallbackImpl)(MeshLayer);
+
+		uint64_t StartTime;
 	};
 
 	#define RUGOSITY_MANAGER RugosityManager::getInstance()
