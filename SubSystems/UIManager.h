@@ -93,6 +93,8 @@ namespace FocalEngine
 		void AfterLayerChange();
 
 		float FindStandardDeviation(std::vector<float> DataPoints);
+
+		FETexture* TestTexture = nullptr;
 	};
 
 	#define UI UIManager::getInstance()

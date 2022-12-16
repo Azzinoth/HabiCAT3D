@@ -94,6 +94,7 @@ void AddHeightLayer()
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return;
 
+	uint64_t StarTime = TIME.GetTimeStamp();
 	FEMesh* Mesh = MESH_MANAGER.ActiveMesh;
 
 	double Min = DBL_MAX;
@@ -119,7 +120,9 @@ void AddHeightLayer()
 
 	Mesh->AddLayer(TrianglesHeight);
 	Mesh->Layers.back().SetCaption("Height");
-	Mesh->Layers.back().FillDataToGPU();
+	Mesh->Layers.back().DebugInfo = new RugosityMeshLayerDebugInfo();
+	Mesh->Layers.back().DebugInfo->StartCalculationsTime = StarTime;
+	Mesh->Layers.back().DebugInfo->EndCalculationsTime = TIME.GetTimeStamp();
 }
 
 void AfterMeshLoads()
@@ -129,19 +132,7 @@ void AfterMeshLoads()
 
 	UI.SetIsModelCamera(true);
 
-	//glm::vec3 AverageNormal = MESH_MANAGER.ActiveMesh->GetAverageNormal();
-	//glm::vec3 TransformedCenter = MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(MESH_MANAGER.ActiveMesh->AABB.getCenter(), 1.0f);
-
 	MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(MESH_MANAGER.ActiveMesh->GetAverageNormal()));
-
-	// When loading from binary format we would have that data in file.
-	/*if (!MESH_MANAGER.ActiveMesh->rugosityData.empty() && !MESH_MANAGER.ActiveMesh->TrianglesRugosity.empty())
-	{
-		MESH_MANAGER.ActiveMesh->AddLayer(MESH_MANAGER.ActiveMesh->TrianglesRugosity);
-		MESH_MANAGER.ActiveMesh->Layers.back().SetCaption("Rugosity");
-
-		RUGOSITY_MANAGER.ForceOnRugosityCalculationsEnd();
-	}*/
 
 	AddHeightLayer();
 }
@@ -347,11 +338,7 @@ void mouseButtonCallback(int button, int action, int mods)
 			else
 			{
 				RUGOSITY_MANAGER.currentSDF->MouseClick(mouseX, mouseY);
-
 				RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
-				/*LINE_RENDERER.clearAll();
-				addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
-				LINE_RENDERER.SyncWithGPU();*/
 			}
 		}
 	}

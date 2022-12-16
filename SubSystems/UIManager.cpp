@@ -12,6 +12,8 @@ UIManager::UIManager()
 	RUGOSITY_MANAGER.SetOnRugosityCalculationsStartCallback(OnRugosityCalculationsStart);
 
 	MESH_MANAGER.AddLoadCallback(UIManager::OnMeshUpdate);
+
+	TestTexture = FETexture::LoadPNGTexture("E:\\Rust\\2.png");
 }
 
 UIManager::~UIManager() {}
@@ -703,8 +705,25 @@ void UIManager::RenderUserModeMainWindow()
 
 void UIManager::RenderMainWindow()
 {
-	ImGui::Begin("Settings", nullptr);
+	//ImVec2 MainWindowPos = ImVec2(APPLICATION.GetWindowXPosition(), APPLICATION.GetWindowYPosition());
+	//ImVec2 MainWindowSize = ImVec2(APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
 
+	//ImGui::GetWindowDrawList()->AddRectFilled(MainWindowPos,
+	//	MainWindowPos + MainWindowSize - ImVec2(window->Pos.x, window->Pos.y),
+	//	ImColor(56.0f / 255.0f, 165.0f / 255.0f, /*237*/0.0f / 255.0f, 45.0f / 255.0f));
+
+	ImGui::Image((void*)(intptr_t)TestTexture->GetTextureID(), ImVec2(512, 512));
+	
+
+	ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove);
+
+	ImGuiWindow* window = ImGui::FindWindowByName("Settings");
+	if (window != nullptr)
+	{
+		window->Pos.x = APPLICATION.GetWindowWidth() - (window->SizeFull.x + 1);
+		window->Pos.y = 20;
+
+	}
 	ImGui::Checkbox("Developer UI", &DeveloperMode);
 
 	ShowCameraTransform();
@@ -980,6 +999,7 @@ void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption("Rugosity");
 
+	uint64_t StarTime = TIME.GetTimeStamp();
 	std::vector<float> TrianglesToStandardDeviation;
 	for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
 	{
@@ -993,6 +1013,9 @@ void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 	}
 	MESH_MANAGER.ActiveMesh->AddLayer(TrianglesToStandardDeviation);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption("Standard deviation");
+	MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo = new RugosityMeshLayerDebugInfo();
+	MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo->StartCalculationsTime = StarTime;
+	MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo->EndCalculationsTime = TIME.GetTimeStamp();
 
 	UI.bCloseProgressPopup = true;
 }
@@ -1132,6 +1155,8 @@ void UIManager::RenderLayerChooseWindow()
 	int MainWindowH = 0;
 	APPLICATION.GetWindowSize(&MainWindowW, &MainWindowH);
 
+	int AvailableWidth = MainWindowW / 2.0f;
+	int CurrentRow = 0;
 	int TotalWidthNeeded = 0;
 	if (MESH_MANAGER.ActiveMesh != nullptr)
 	{
@@ -1148,8 +1173,12 @@ void UIManager::RenderLayerChooseWindow()
 	{
 		TotalWidthNeeded = ImGui::CalcTextSize("No Data.").x + 18;
 	}
+	else if (TotalWidthNeeded > AvailableWidth)
+	{
+		TotalWidthNeeded = AvailableWidth;
+	}
 
-	const float CurrentWindowW = TotalWidthNeeded/*288.0f*/;
+	const float CurrentWindowW = TotalWidthNeeded;
 	const float CurrentWindowH = 30.0f;
 
 	ImGui::SetNextWindowPos(ImVec2(MainWindowW / 2.0f - CurrentWindowW / 2.0f, 21));
@@ -1455,24 +1484,21 @@ void UIManager::SetOutputSelectionToFile(const bool NewValue)
 
 void UIManager::ApplyStandardWindowsSizeAndPosition()
 {
-	int W, H;
-	APPLICATION.GetWindowSize(&W, &H);
-
-	ImGuiWindow* window = ImGui::FindWindowByName("Settings");
+	/*ImGuiWindow* window = ImGui::FindWindowByName("Settings");
 	if (window != nullptr)
 	{
 		window->Pos.x = W - (window->SizeFull.x + 1);
 		window->Pos.y = 20;
-	}
+	}*/
 
-	window = ImGui::FindWindowByName("Histogram");
+	ImGuiWindow* window = ImGui::FindWindowByName("Histogram");
 	if (window != nullptr)
 	{
-		window->SizeFull.x = W * 0.5;
-		window->Pos.x = W / 2 - window->SizeFull.x / 2;
+		window->SizeFull.x = APPLICATION.GetWindowWidth() * 0.5;
+		window->Pos.x = APPLICATION.GetWindowWidth() / 2 - window->SizeFull.x / 2;
 
-		window->SizeFull.y = H * 0.35;
-		window->Pos.y = H - 10 - window->SizeFull.y;
+		window->SizeFull.y = APPLICATION.GetWindowHeight() * 0.35;
+		window->Pos.y = APPLICATION.GetWindowHeight() - 10 - window->SizeFull.y;
 	}
 }
 

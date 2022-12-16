@@ -17,6 +17,11 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # *************** THIRD_PARTY ***************
 
+file(GLOB lodepng_SRC
+	"ThirdParty/lodepng/lodepng.cpp"
+	"ThirdParty/lodepng/lodepng.h"
+)
+
 file(GLOB imgui_SRC
 	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui.cpp"
 	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_demo.cpp"
@@ -77,8 +82,12 @@ file(GLOB source_SRC
 	"FECoreIncludes.h"
 	"FEFileSystem.cpp"
 	"FEFileSystem.h"
+	"FEObject.cpp"
+	"FEObject.h"
 	"FEShader.cpp"
 	"FEShader.h"
+	"FETexture.cpp"
+	"FETexture.h"
 	"FEMesh.cpp"
 	"FEMesh.h"
 	"main.cpp"
@@ -94,6 +103,7 @@ add_executable(RugosityCalculator WIN32
 								  ${SubSystems_SRC}
 								  ${BasicApplicationSubSystem_SRC}
 								  # *************** THIRD_PARTY ***************
+								  ${lodepng_SRC}
 								  ${imgui_SRC}
 )
 
@@ -107,6 +117,7 @@ source_group("Source Files" FILES ${source_SRC})
 source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
 source_group("Source Files/SubSystems/BasicApplication" FILES ${BasicApplicationSubSystem_SRC})
 # *************** THIRD_PARTY ***************
+source_group("Source Files/ThirdParty/lodepng" FILES ${lodepng_SRC})
 source_group("Source Files/ThirdParty/imgui" FILES ${imgui_SRC})
 
 # set FEBasicApplication as the startup project
