@@ -13,7 +13,7 @@ UIManager::UIManager()
 
 	MESH_MANAGER.AddLoadCallback(UIManager::OnMeshUpdate);
 
-	TestTexture = FETexture::LoadPNGTexture("E:\\Rust\\2.png");
+	DeleteIcon = FETexture::LoadPNGTexture("C:\\Users\\kandr\\Downloads\\RugosityCalculator\\DeleteIcon.png");
 }
 
 UIManager::~UIManager() {}
@@ -705,58 +705,106 @@ void UIManager::RenderUserModeMainWindow()
 
 void UIManager::RenderMainWindow()
 {
-	//ImVec2 MainWindowPos = ImVec2(APPLICATION.GetWindowXPosition(), APPLICATION.GetWindowYPosition());
-	//ImVec2 MainWindowSize = ImVec2(APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
-
-	//ImGui::GetWindowDrawList()->AddRectFilled(MainWindowPos,
-	//	MainWindowPos + MainWindowSize - ImVec2(window->Pos.x, window->Pos.y),
-	//	ImColor(56.0f / 255.0f, 165.0f / 255.0f, /*237*/0.0f / 255.0f, 45.0f / 255.0f));
-
-	ImGui::Image((void*)(intptr_t)TestTexture->GetTextureID(), ImVec2(512, 512));
-	
-
-	ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove);
-
-	ImGuiWindow* window = ImGui::FindWindowByName("Settings");
-	if (window != nullptr)
+	/*if (ImGui::Begin("BackgoundCanvas", nullptr, ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoBackground |
+		ImGuiWindowFlags_NoTitleBar))
 	{
+		ImGuiWindow* window = ImGui::FindWindowByName("BackgoundCanvas");
+		if (window != nullptr)
+		{
+			window->Pos = ImVec2(0.0f, 0.0f);
+			window->SizeFull = ImVec2(APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
+		}
+
+		ImGuiWindow* SettingsWindow = ImGui::FindWindowByName("Settings");
+		ImGuiWindow* LegendWindow = ImGui::FindWindowByName("Heat map legend");
+		if (SettingsWindow != nullptr && LegendWindow != nullptr)
+		{
+			window->Pos.x = APPLICATION.GetWindowWidth() - (window->SizeFull.x + 1);
+			window->Pos.y = 20;
+
+			ImVec2 MainWindowPos = ImVec2(APPLICATION.GetWindowXPosition(), APPLICATION.GetWindowYPosition());
+			ImVec2 MainWindowSize = ImVec2(APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
+
+			ImVec2 Start;
+			Start.x = LegendWindow->Pos.x + LegendWindow->SizeFull.x;
+			Start.y = 20;
+
+			ImVec2 End;
+			End.x = SettingsWindow->Pos.x;
+			End.y = APPLICATION.GetWindowHeight() - 20;
+
+			ImGui::GetWindowDrawList()->AddRectFilled(Start,
+				End,
+				ImColor(56.0f / 255.0f, 165.0f / 255.0f, 0.0f / 255.0f, 45.0f / 255.0f));
+		}
+
+		ImGui::End();
+	}*/
+
+	if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove))
+	{
+		ImGuiWindow* window = ImGui::FindWindowByName("Settings");
 		window->Pos.x = APPLICATION.GetWindowWidth() - (window->SizeFull.x + 1);
 		window->Pos.y = 20;
 
-	}
-	ImGui::Checkbox("Developer UI", &DeveloperMode);
-
-	ShowCameraTransform();
-
-	ImGui::Text("Rugosity algorithm: ");
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(190);
-	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
-	if (ImGui::BeginCombo("##ChooseRugosityAlgorithm", (RUGOSITY_MANAGER.GetUsedRugosityAlgorithmName()).c_str(), ImGuiWindowFlags_None))
-	{
-		for (size_t i = 0; i < RUGOSITY_MANAGER.RugosityAlgorithmList.size(); i++)
+		/*if (ImGui::Button("Add dummy layer"))
 		{
-			bool is_selected = (RUGOSITY_MANAGER.GetUsedRugosityAlgorithmName() == RUGOSITY_MANAGER.RugosityAlgorithmList[i]);
-			if (ImGui::Selectable(RUGOSITY_MANAGER.RugosityAlgorithmList[i].c_str(), is_selected))
+			std::string TempString = "DummyLayer";
+			int ToDelete = rand() % (TempString.size() - 1);
+			TempString.erase(TempString.begin(), TempString.begin() + ToDelete);
+
+			DummyLayers.push_back(TempString);
+		}*/
+
+		if (MESH_MANAGER.ActiveMesh != nullptr && MESH_MANAGER.ActiveMesh->CurrentLayerIndex != -1)
+		{
+			ImGui::Text("Layer caption: ");
+			if (ImGui::Button("Delete"))
 			{
-				RUGOSITY_MANAGER.SetUsedRugosityAlgorithmName(RUGOSITY_MANAGER.RugosityAlgorithmList[i]);
+				int IndexToDelete = MESH_MANAGER.ActiveMesh->CurrentLayerIndex;
+				MESH_MANAGER.ActiveMesh->CurrentLayerIndex = -1;
+				AfterLayerChange();
+
+				MESH_MANAGER.ActiveMesh->Layers.erase(MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete,
+													  MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete + 1);
 			}
-
-			if (is_selected)
-				ImGui::SetItemDefaultFocus();
 		}
-		ImGui::EndCombo();
-	}
+		
+		ImGui::Checkbox("Developer UI", &DeveloperMode);
 
-	if (MESH_MANAGER.ActiveMesh != nullptr)
-	{
-		if (DeveloperMode)
+		ShowCameraTransform();
+
+		ImGui::Text("Rugosity algorithm: ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(190);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
+		if (ImGui::BeginCombo("##ChooseRugosityAlgorithm", (RUGOSITY_MANAGER.GetUsedRugosityAlgorithmName()).c_str(), ImGuiWindowFlags_None))
 		{
-			RenderDeveloperModeMainWindow();
+			for (size_t i = 0; i < RUGOSITY_MANAGER.RugosityAlgorithmList.size(); i++)
+			{
+				bool is_selected = (RUGOSITY_MANAGER.GetUsedRugosityAlgorithmName() == RUGOSITY_MANAGER.RugosityAlgorithmList[i]);
+				if (ImGui::Selectable(RUGOSITY_MANAGER.RugosityAlgorithmList[i].c_str(), is_selected))
+				{
+					RUGOSITY_MANAGER.SetUsedRugosityAlgorithmName(RUGOSITY_MANAGER.RugosityAlgorithmList[i]);
+				}
+
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
 		}
-		else
+
+		if (MESH_MANAGER.ActiveMesh != nullptr)
 		{
-			RenderUserModeMainWindow();
+			if (DeveloperMode)
+			{
+				RenderDeveloperModeMainWindow();
+			}
+			else
+			{
+				RenderUserModeMainWindow();
+			}
 		}
 	}
 
@@ -1146,52 +1194,113 @@ void UIManager::RenderLegend()
 	ImGui::End();
 }
 
+void UIManager::GetUsableSpaceForLayerList(ImVec2& UsableSpaceStart, ImVec2& UsableSpaceEnd)
+{
+	ImGuiWindow* SettingsWindow = ImGui::FindWindowByName("Settings");
+	ImGuiWindow* LegendWindow = ImGui::FindWindowByName("Heat map legend");
+
+	UsableSpaceStart = ImVec2(0.0f, 0.0f);
+	UsableSpaceEnd = ImVec2(APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
+	if (SettingsWindow != nullptr && LegendWindow != nullptr)
+	{
+		UsableSpaceStart.x = LegendWindow->Pos.x + LegendWindow->SizeFull.x;
+		UsableSpaceStart.y = 20;
+
+		UsableSpaceEnd.x = SettingsWindow->Pos.x;
+		UsableSpaceEnd.y = APPLICATION.GetWindowHeight() - 20;
+	}
+}
+
+ImVec2 UIManager::GetLayerListButtonSize(std::string ButtonText)
+{
+	ImVec2 Result;
+
+	ImVec2 TextSize = ImGui::CalcTextSize(ButtonText.c_str());
+	Result.x = TextSize.x + GImGui->Style.FramePadding.x * 2.0f;
+	Result.y = TextSize.y + GImGui->Style.FramePadding.y * 2.0f;
+
+	return TextSize;
+}
+
+int UIManager::TotalWidthNeededForLayerList(int ButtonUsed)
+{
+	int Result = 0;
+
+	const int ButtonSpacing = 6;
+	const int FirstLastButtonPadding = 4;
+
+	ButtonUsed = std::min(size_t(ButtonUsed), MESH_MANAGER.ActiveMesh->Layers.size()/*DummyLayers.size()*/);
+
+	if (ButtonUsed == 0)
+		return Result;
+
+	Result += GetLayerListButtonSize("No Layer").x + 16;
+	for (int i = 0; i < ButtonUsed; i++)
+	{
+		//ImVec2 CurrentTextSize = ImGui::CalcTextSize(/*MESH_MANAGER.ActiveMesh->Layers[i].GetCaption()*/DummyLayers[i].c_str());
+		//TotalWidthNeeded += CurrentTextSize.x;
+		//TotalWidthNeeded += 16;
+
+		Result += GetLayerListButtonSize(MESH_MANAGER.ActiveMesh->Layers[i].GetCaption()/*DummyLayers[i]*/).x + ButtonSpacing * 2.0f + 4;
+	}
+
+	Result += FirstLastButtonPadding * 2.0f;
+	
+	return Result;
+}
+
 void UIManager::RenderLayerChooseWindow()
 {
+	static int RowCount = 1;
+
+	const int ButtonSpacing = 6;
+	const int FirstLastButtonPadding = 4;
+	const int RowHeight = 26;
+
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
-	int MainWindowW = 0;
-	int MainWindowH = 0;
-	APPLICATION.GetWindowSize(&MainWindowW, &MainWindowH);
+	ImVec2 UsableSpaceStart, UsableSpaceEnd;
+	GetUsableSpaceForLayerList(UsableSpaceStart, UsableSpaceEnd);
 
-	int AvailableWidth = MainWindowW / 2.0f;
-	int CurrentRow = 0;
+	int UsableSpaceCenter = UsableSpaceStart.x + (UsableSpaceEnd.x - UsableSpaceStart.x) / 2.0f;
+	int UsableSpaceWidth = UsableSpaceEnd.x - UsableSpaceStart.x;
+
 	int TotalWidthNeeded = 0;
-	if (MESH_MANAGER.ActiveMesh != nullptr)
-	{
-		TotalWidthNeeded += ImGui::CalcTextSize("No Layer").x + 18;
-		for (int i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
-		{
-			ImVec2 CurrentTextSize = ImGui::CalcTextSize(MESH_MANAGER.ActiveMesh->Layers[i].GetCaption().c_str());
-			TotalWidthNeeded += CurrentTextSize.x;
-			TotalWidthNeeded += 18;
-		}
-	}
 
+	if (MESH_MANAGER.ActiveMesh != nullptr)
+		TotalWidthNeeded = TotalWidthNeededForLayerList(MESH_MANAGER.ActiveMesh->Layers.size()/*DummyLayers.size()*/);
 	if (TotalWidthNeeded == 0)
 	{
-		TotalWidthNeeded = ImGui::CalcTextSize("No Data.").x + 18;
+		if (MESH_MANAGER.ActiveMesh == nullptr)
+		{
+			TotalWidthNeeded = ImGui::CalcTextSize("No Data.").x + 18;
+		}
+		else
+		{
+			TotalWidthNeeded = GetLayerListButtonSize("No Layer").x + 16;
+			TotalWidthNeeded += FirstLastButtonPadding * 2.0f;
+		}
 	}
-	else if (TotalWidthNeeded > AvailableWidth)
+	else if (TotalWidthNeeded > UsableSpaceWidth - 10.0f)
 	{
-		TotalWidthNeeded = AvailableWidth;
+		TotalWidthNeeded = UsableSpaceWidth - 10.0f;
 	}
 
 	const float CurrentWindowW = TotalWidthNeeded;
-	const float CurrentWindowH = 30.0f;
+	const float CurrentWindowH = 6 + RowHeight * RowCount;
 
-	ImGui::SetNextWindowPos(ImVec2(MainWindowW / 2.0f - CurrentWindowW / 2.0f, 21));
+	ImVec2 LayerListWindowPosition = ImVec2(UsableSpaceCenter - CurrentWindowW / 2.0f, 21);
+	ImGui::SetNextWindowPos(LayerListWindowPosition);
 	ImGui::SetNextWindowSize(ImVec2(CurrentWindowW, CurrentWindowH));
-	ImGui::Begin("Layers", nullptr,
-		ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoCollapse |
-		ImGuiWindowFlags_NoScrollbar |
-		ImGuiWindowFlags_NoTitleBar);
+	ImGui::Begin("Layers", nullptr, ImGuiWindowFlags_NoMove |
+									ImGuiWindowFlags_NoResize |
+									ImGuiWindowFlags_NoCollapse |
+									ImGuiWindowFlags_NoScrollbar |
+									ImGuiWindowFlags_NoTitleBar);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f);
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (MESH_MANAGER.ActiveMesh == nullptr/*DummyLayers.size() == 0*/)
 	{
 		std::string NoDataText = "No Data.";
 		ImVec2 TextSize = ImGui::CalcTextSize(NoDataText.c_str());
@@ -1205,8 +1314,10 @@ void UIManager::RenderLayerChooseWindow()
 		return;
 	}
 
+	int CurrentRow = 0;
+	int PreviousButtonWidth = 0;
 	int YPosition = ImGui::GetCursorPosY() + 7;
-	for (int i = -1; i < int(MESH_MANAGER.ActiveMesh->Layers.size()); i++)
+	for (int i = -1; i < int(MESH_MANAGER.ActiveMesh->Layers.size()/*DummyLayers.size()*/); i++)
 	{
 		ImGui::SameLine();
 		ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.1f, 0.6f, 0.8f));
@@ -1233,17 +1344,42 @@ void UIManager::RenderLayerChooseWindow()
 		}
 		else
 		{
-			ImGui::SetCursorPosY(YPosition);
-			if (ImGui::Button((MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() + "##" + std::to_string(i)).c_str()))
+			if (ImGui::GetCursorPosX() + GetLayerListButtonSize(/*DummyLayers[i]*/MESH_MANAGER.ActiveMesh->Layers[i].GetCaption()).x + ButtonSpacing * 2.0f + 4 > (UsableSpaceWidth - 10))
+			{
+				ImGui::SetCursorPosX(FirstLastButtonPadding * 2.0f);
+				CurrentRow++;
+			}
+
+			ImGui::SetCursorPosY(YPosition + CurrentRow * RowHeight);
+			if (ImGui::Button((/*DummyLayers[i]*/MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() + "##" + std::to_string(i)).c_str()))
 			{
 				MESH_MANAGER.ActiveMesh->CurrentLayerIndex = i;
 				MESH_MANAGER.ActiveMesh->Layers[i].FillDataToGPU();
 				AfterLayerChange();
 			}
+
+			//ImVec2 PreviousCursorPosition = ImGui::GetCursorPos();
+
+			//ImGui::SameLine();
+			//ImVec4 Transparent = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+			//ImGui::PushStyleColor(ImGuiCol_Button, Transparent);
+			//ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 4);
+			//ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 20);
+			//ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+			//if (ImGui::ImageButton((void*)(intptr_t)DeleteIcon->GetTextureID(), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), 0/*, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1)*/))
+			//{
+			//	// Some
+			//}
+			//ImGui::PopStyleColor();
+			//ImGui::PopStyleVar();
+
+			//ImGui::SetCursorPos(PreviousCursorPosition);
 		}
 		
 		ImGui::PopStyleColor(4);
 	}
+
+	RowCount = CurrentRow + 1;
 
 	ImGui::PopStyleVar(3);
 	ImGui::End();
@@ -1484,13 +1620,6 @@ void UIManager::SetOutputSelectionToFile(const bool NewValue)
 
 void UIManager::ApplyStandardWindowsSizeAndPosition()
 {
-	/*ImGuiWindow* window = ImGui::FindWindowByName("Settings");
-	if (window != nullptr)
-	{
-		window->Pos.x = W - (window->SizeFull.x + 1);
-		window->Pos.y = 20;
-	}*/
-
 	ImGuiWindow* window = ImGui::FindWindowByName("Histogram");
 	if (window != nullptr)
 	{

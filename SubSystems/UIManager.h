@@ -94,7 +94,13 @@ namespace FocalEngine
 
 		float FindStandardDeviation(std::vector<float> DataPoints);
 
-		FETexture* TestTexture = nullptr;
+		FETexture* DeleteIcon = nullptr;
+		std::vector<std::string> DummyLayers;
+
+		void GetUsableSpaceForLayerList(ImVec2& UsableSpaceStart, ImVec2& UsableSpaceEnd);
+		ImVec2 GetLayerListButtonSize(std::string ButtonText);
+
+		int TotalWidthNeededForLayerList(int ButtonUsed);
 	};
 
 	#define UI UIManager::getInstance()
