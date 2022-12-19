@@ -61,10 +61,24 @@ file(GLOB SubSystems_SRC
 	"SubSystems/FESDF.h"
 	"SubSystems/RugosityManager.cpp"
 	"SubSystems/RugosityManager.h"
-	"SubSystems/UIComponents.cpp"
-	"SubSystems/UIComponents.h"
-	"SubSystems/UIManager.cpp"
-	"SubSystems/UIManager.h"
+)
+
+file(GLOB Layers_SRC
+	"SubSystems/Layers/HeightLayerProducer.cpp"
+	"SubSystems/Layers/HeightLayerProducer.h"
+	"SubSystems/Layers/CompareLayerProducer.cpp"
+	"SubSystems/Layers/CompareLayerProducer.h"
+	"SubSystems/Layers/LayerManager.cpp"
+	"SubSystems/Layers/LayerManager.h"
+)
+
+file(GLOB SubSystems_UI_SRC
+	"SubSystems/UI/UIComponents.cpp"
+	"SubSystems/UI/UIComponents.h"
+	"SubSystems/UI/NewLayerWindow.cpp"
+	"SubSystems/UI/NewLayerWindow.h"
+	"SubSystems/UI/UIManager.cpp"
+	"SubSystems/UI/UIManager.h"
 )
 
 file(GLOB BasicApplicationSubSystem_SRC
@@ -101,6 +115,8 @@ add_executable(RugosityCalculator WIN32
 								  ${source_SRC}
 								  # *************** SUB_SYSTEM ***************
 								  ${SubSystems_SRC}
+								  ${Layers_SRC}
+								  ${SubSystems_UI_SRC}
 								  ${BasicApplicationSubSystem_SRC}
 								  # *************** THIRD_PARTY ***************
 								  ${lodepng_SRC}
@@ -115,6 +131,8 @@ target_link_libraries(RugosityCalculator opengl32.lib)
 source_group("Source Files" FILES ${source_SRC})
 # *************** SUB_SYSTEM ***************
 source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
+source_group("Source Files/SubSystems/Layers" FILES ${Layers_SRC})
+source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
 source_group("Source Files/SubSystems/BasicApplication" FILES ${BasicApplicationSubSystem_SRC})
 # *************** THIRD_PARTY ***************
 source_group("Source Files/ThirdParty/lodepng" FILES ${lodepng_SRC})

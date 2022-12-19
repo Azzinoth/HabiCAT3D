@@ -1,6 +1,7 @@
 #pragma once
 
-#include "UIComponents.h"
+#include "NewLayerWindow.h"
+#include "../Layers/LayerManager.h"
 
 namespace FocalEngine
 {
@@ -58,7 +59,9 @@ namespace FocalEngine
 
 		bool DeveloperMode = false;
 		bool bModelCamera = true;
-		bool bCloseProgressPopup = false;
+
+		bool bShouldOpenProgressPopup = false;
+		bool bShouldCloseProgressPopup = false;
 
 		float RadiusOfAreaToMeasure = 1.0f;
 		int LayerSelectionMode = 0;
@@ -90,17 +93,19 @@ namespace FocalEngine
 		void OpenAboutWindow();
 		void RenderAboutWindow();
 
-		void AfterLayerChange();
+		static void AfterLayerChange();
 
 		float FindStandardDeviation(std::vector<float> DataPoints);
 
-		FETexture* DeleteIcon = nullptr;
+		FETexture* AddNewLayerIcon = nullptr;
 		std::vector<std::string> DummyLayers;
 
 		void GetUsableSpaceForLayerList(ImVec2& UsableSpaceStart, ImVec2& UsableSpaceEnd);
 		ImVec2 GetLayerListButtonSize(std::string ButtonText);
 
 		int TotalWidthNeededForLayerList(int ButtonUsed);
+
+		void RenderSettingsWindow();
 	};
 
 	#define UI UIManager::getInstance()

@@ -222,21 +222,30 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 	File.read(IndexBuffer, IndexCout * 4);
 
 	File.read(Buffer, 4);
-	const int RugosityDataCount = *(int*)Buffer;
-	std::vector<float> RugosityData;
-	if (RugosityDataCount != 0)
-	{
-		RugosityData.resize(RugosityDataCount);
-		File.read((char*)RugosityData.data(), RugosityDataCount * 4);
-	}
+	const int LayerCount = *(int*)Buffer;
+	std::vector<MeshLayer> Layers;
+	Layers.resize(LayerCount);
 
-	File.read(Buffer, 4);
-	const int TrianglesRugosityDataCount = *(int*)Buffer;
-	std::vector<float> TrianglesRugosityData;
-	if (TrianglesRugosityDataCount != 0)
+	for (size_t i = 0; i < Layers.size(); i++)
 	{
-		TrianglesRugosityData.resize(TrianglesRugosityDataCount);
-		File.read((char*)TrianglesRugosityData.data(), TrianglesRugosityDataCount * 4);
+		Layers[i].SetCaption(FILE_SYSTEM.ReadFEString(File));
+		Layers[i].SetNote(FILE_SYSTEM.ReadFEString(File));
+
+		// TrianglesToData
+		File.read(Buffer, 4);
+		const int TrianglesToDataCout = *(int*)Buffer;
+		std::vector<float> TrianglesData;
+		Layers[i].TrianglesToData.resize(TrianglesToDataCout);
+		File.read((char*)Layers[i].TrianglesToData.data(), TrianglesToDataCout * 4);
+
+		// Debug info.
+		File.read(Buffer, 4);
+		const int DebugInfoPresent = *(int*)Buffer;
+		if (DebugInfoPresent)
+		{
+			Layers[i].DebugInfo = new MeshLayerDebugInfo();
+			Layers[i].DebugInfo->FromFile(File);
+		}
 	}
 
 	FEAABB MeshAABB;
@@ -280,13 +289,9 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	NewMesh->fillTrianglesData();
 
-	if (RugosityDataCount != 0 && TrianglesRugosityDataCount != 0)
+	for (size_t i = 0; i < Layers.size(); i++)
 	{
-		/*NewMesh->rugosityData = RugosityData;
-		NewMesh->TrianglesRugosity = TrianglesRugosityData;*/
-
-		NewMesh->AddLayer(TrianglesRugosityData);
-		NewMesh->Layers.back().SetCaption("Rugosity");
+		NewMesh->AddLayer(Layers[i]);
 	}
 
 	return NewMesh;
@@ -393,13 +398,28 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 	file.write((char*)&Count, sizeof(int));
 	file.write((char*)Indices, sizeof(int) * Count);
 
-	/*Count = Mesh->rugosityData.size();
+	Count = Mesh->Layers.size();
 	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Mesh->rugosityData.data(), sizeof(float) * Count);
 
-	Count = Mesh->TrianglesRugosity.size();
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Mesh->TrianglesRugosity.data(), sizeof(float) * Count);*/
+	for (size_t i = 0; i < Mesh->Layers.size(); i++)
+	{
+		Count = static_cast<int>(Mesh->Layers[i].GetCaption().size());
+		file.write((char*)&Count, sizeof(int));
+		file.write((char*)Mesh->Layers[i].GetCaption().c_str(), sizeof(char) * Count);
+
+		Count = static_cast<int>(Mesh->Layers[i].GetNote().size());
+		file.write((char*)&Count, sizeof(int));
+		file.write((char*)Mesh->Layers[i].GetNote().c_str(), sizeof(char) * Count);
+
+		Count = Mesh->Layers[i].TrianglesToData.size();
+		file.write((char*)&Count, sizeof(int));
+		file.write((char*)Mesh->Layers[i].TrianglesToData.data(), sizeof(float) * Count);
+
+		Count = Mesh->Layers[i].DebugInfo != nullptr;
+		file.write((char*)&Count, sizeof(int));
+		if (Count)
+			Mesh->Layers[i].DebugInfo->ToFile(file);
+	}
 
 	FEAABB TempAABB(Positions, Mesh->getPositionsCount());
 	file.write((char*)&TempAABB.getMin()[0], sizeof(float));

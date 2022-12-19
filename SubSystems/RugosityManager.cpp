@@ -343,7 +343,7 @@ void RugosityManager::OnRugosityCalculationsStart()
 	RUGOSITY_MANAGER.JitterDoneCount = 0;
 
 	TIME.BeginTimeStamp("CalculateRugorsityTotal");
-	RUGOSITY_MANAGER.StartTime = TIME.GetTimeStamp();
+	RUGOSITY_MANAGER.StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	if (OnRugosityCalculationsStartCallbackImpl != nullptr)
 		OnRugosityCalculationsStartCallbackImpl();
@@ -354,16 +354,21 @@ void RugosityManager::OnRugosityCalculationsEnd()
 	MeshLayer NewLayer;
 	NewLayer.TrianglesToData = RUGOSITY_MANAGER.Result;
 
-	NewLayer.DebugInfo = new RugosityMeshLayerDebugInfo();
-	RugosityMeshLayerDebugInfo* DebugInfo = reinterpret_cast<RugosityMeshLayerDebugInfo*>(NewLayer.DebugInfo);
-	DebugInfo->StartCalculationsTime = RUGOSITY_MANAGER.StartTime;
-	DebugInfo->EndCalculationsTime = TIME.GetTimeStamp();
-	DebugInfo->JitterCount = RUGOSITY_MANAGER.JitterDoneCount;
-	DebugInfo->ResolutonInM = RUGOSITY_MANAGER.ResolutonInM;
-	DebugInfo->bWeightedNormals = RUGOSITY_MANAGER.bWeightedNormals;
-	DebugInfo->bNormalizedNormals = RUGOSITY_MANAGER.bNormalizedNormals;
-	DebugInfo->bUseFindSmallestRugosity = RUGOSITY_MANAGER.bUseFindSmallestRugosity;
-	DebugInfo->bUseCGALVariant = RUGOSITY_MANAGER.bUseCGALVariant;
+	NewLayer.DebugInfo = new MeshLayerDebugInfo();
+	NewLayer.DebugInfo->Type = "RugosityMeshLayerDebugInfo";
+	NewLayer.DebugInfo->AddEntry("Start time", RUGOSITY_MANAGER.StartTime);
+	NewLayer.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+
+	std::string AlgorithmUsed = RUGOSITY_MANAGER.RugosityAlgorithmList[0];
+	if (RUGOSITY_MANAGER.bUseFindSmallestRugosity)
+		AlgorithmUsed = RUGOSITY_MANAGER.RugosityAlgorithmList[1];
+
+	if (RUGOSITY_MANAGER.bUseCGALVariant)
+		AlgorithmUsed = RUGOSITY_MANAGER.RugosityAlgorithmList[2];
+
+	NewLayer.DebugInfo->AddEntry("Algorithm used", AlgorithmUsed);
+	NewLayer.DebugInfo->AddEntry("Jitter count", RUGOSITY_MANAGER.JitterDoneCount);
+	NewLayer.DebugInfo->AddEntry("Resolution used", std::to_string(RUGOSITY_MANAGER.ResolutonInM) + " m.");
 
 	LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
 
@@ -374,9 +379,4 @@ void RugosityManager::OnRugosityCalculationsEnd()
 void RugosityManager::SetOnRugosityCalculationsEndCallback(void(*Func)(MeshLayer))
 {
 	OnRugosityCalculationsEndCallbackImpl = Func;
-}
-
-RugosityMeshLayerDebugInfo::RugosityMeshLayerDebugInfo()
-{
-	Type = "RugosityMeshLayerDebugInfo";
 }

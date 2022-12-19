@@ -604,3 +604,186 @@ void MeshLayer::SetNote(const std::string NewValue)
 {
 	UserNote = NewValue;
 }
+
+std::string DebugEntry::ToString()
+{
+	std::string Result;
+
+	if (Type == "bool")
+	{
+		Result += Name + ": " + std::to_string(*reinterpret_cast<bool*>(RawData));
+	}
+	else if (Type == "int")
+	{
+		Result += Name + ": " + std::to_string(*reinterpret_cast<int*>(RawData));
+	}
+	else if (Type == "float")
+	{
+		Result += Name + ": " + std::to_string(*reinterpret_cast<float*>(RawData));
+	}
+	else if (Type == "double")
+	{
+		Result += Name + ": " + std::to_string(*reinterpret_cast<double*>(RawData));
+	}
+	else if (Type == "uint64_t")
+	{
+		Result += Name + ": " + TIME.NanosecondTimeStampToDate(*reinterpret_cast<uint64_t*>(RawData));
+	}
+	else if (Type == "std::string")
+	{
+		Result += Name + ": " + std::string(RawData);
+	}
+
+	return Result;
+}
+
+DebugEntry::DebugEntry() {};
+
+DebugEntry::DebugEntry(const std::string Type, const int Size, char* RawData)
+{
+	this->Type = Type;
+	this->Size = Size;
+	this->RawData = new char[Size];
+	memcpy(this->RawData, RawData, Size);
+	if (Type == "std::string")
+		this->RawData[this->Size - 1] = '\0';
+}
+
+std::string MeshLayerDebugInfo::ToString()
+{
+	std::string Result;
+
+	for (size_t i = 0; i < Entries.size(); i++)
+	{
+		Result += Entries[i].ToString();
+		Result += "\n";
+	}
+
+	return Result;
+}
+
+void MeshLayerDebugInfo::FromFile(std::fstream& File)
+{
+	char* Buffer8 = new char[1];
+	char* Buffer32 = new char[4];
+	char* Buffer64 = new char[8];
+
+	File.read(Buffer32, 4);
+	const int EntriesCount = *(int*)Buffer32;
+
+	std::string Type;
+	std::string Name;
+	int EntrySize;
+	for (size_t i = 0; i < EntriesCount; i++)
+	{
+		Type = FILE_SYSTEM.ReadFEString(File);
+		Name = FILE_SYSTEM.ReadFEString(File);
+
+		File.read(Buffer32, 4);
+		EntrySize = *(int*)Buffer32;
+
+		char* TempBuffer = new char[EntrySize];
+		File.read(TempBuffer, EntrySize);
+
+		DebugEntry NewEntry(Type, EntrySize, TempBuffer);
+		NewEntry.Name = Name;
+		delete[] TempBuffer;
+
+		Entries.push_back(NewEntry);
+	}
+
+	delete[] Buffer8;
+	delete[] Buffer32;
+	delete[] Buffer64;
+}
+
+void MeshLayerDebugInfo::ToFile(std::fstream& File)
+{
+	int Count = Entries.size();
+	File.write((char*)&Count, sizeof(int));
+
+	std::string TempType;
+	for (size_t i = 0; i < Entries.size(); i++)
+	{
+		TempType = Entries[i].Type;
+
+		Count = TempType.size();
+		File.write((char*)&Count, sizeof(int));
+		File.write(TempType.data(), sizeof(char) * Count);
+
+		Count = Entries[i].Name.size();
+		File.write((char*)&Count, sizeof(int));
+		File.write(Entries[i].Name.data(), sizeof(char) * Count);
+
+		Count = Entries[i].Size;
+		File.write((char*)&Count, sizeof(int));
+		File.write(Entries[i].RawData, sizeof(char) * Count);
+	}
+}
+
+void MeshLayerDebugInfo::AddEntry(const std::string Name, const bool Data)
+{
+	DebugEntry Entry;
+	Entry.Name = Name;
+	Entry.Type = "bool";
+	Entry.RawData = new char[1];
+	Entry.Size = 1;
+	memcpy(Entry.RawData, &Data, 1);
+	Entries.push_back(Entry);
+}
+
+void MeshLayerDebugInfo::AddEntry(const std::string Name, const int Data)
+{
+	DebugEntry Entry;
+	Entry.Name = Name;
+	Entry.Type = "int";
+	Entry.RawData = new char[4];
+	Entry.Size = 4;
+	memcpy(Entry.RawData, &Data, 4);
+	Entries.push_back(Entry);
+}
+
+void MeshLayerDebugInfo::AddEntry(const std::string Name, const float Data)
+{
+	DebugEntry Entry;
+	Entry.Name = Name;
+	Entry.Type = "float";
+	Entry.RawData = new char[4];
+	Entry.Size = 4;
+	memcpy(Entry.RawData, &Data, 4);
+	Entries.push_back(Entry);
+}
+
+void MeshLayerDebugInfo::AddEntry(const std::string Name, const double Data)
+{
+	DebugEntry Entry;
+	Entry.Name = Name;
+	Entry.Type = "double";
+	Entry.RawData = new char[8];
+	Entry.Size = 8;
+	memcpy(Entry.RawData, &Data, 8);
+	Entries.push_back(Entry);
+}
+
+void MeshLayerDebugInfo::AddEntry(const std::string Name, const uint64_t Data)
+{
+	DebugEntry Entry;
+	Entry.Name = Name;
+	Entry.Type = "uint64_t";
+	Entry.RawData = new char[8];
+	Entry.Size = 8;
+	memcpy(Entry.RawData, &Data, 8);
+	Entries.push_back(Entry);
+}
+
+void MeshLayerDebugInfo::AddEntry(const std::string Name, const std::string Data)
+{
+	DebugEntry Entry;
+	Entry.Name = Name;
+	Entry.Type = "std::string";
+	Entry.RawData = new char[Data.size() + 1];
+	Entry.Size = Data.size() + 1;
+	memcpy(Entry.RawData, Data.data(), Data.size());
+	Entry.RawData[Data.size()] = '\0';
+	Entries.push_back(Entry);
+}

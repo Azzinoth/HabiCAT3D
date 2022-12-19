@@ -20,20 +20,6 @@ namespace FocalEngine
 		float GridScale = 2.5f;
 	};
 
-	struct RugosityMeshLayerDebugInfo : public MeshLayerDebugInfo
-	{
-		int JitterCount;
-		float ResolutonInM;
-
-		bool bWeightedNormals;
-		bool bNormalizedNormals;
-
-		bool bUseFindSmallestRugosity;
-		bool bUseCGALVariant;
-
-		RugosityMeshLayerDebugInfo();
-	};
-
 	class RugosityManager
 	{
 	public:

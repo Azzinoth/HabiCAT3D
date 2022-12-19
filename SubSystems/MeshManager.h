@@ -1,5 +1,6 @@
 #pragma once
 #include "../FEMesh.h"
+#include "Layers/HeightLayerProducer.h"
 using namespace FocalEngine;
 
 static const char* const sTestVS = R"(
@@ -218,19 +219,19 @@ vec3 getCorrectColor()
 	if (LayerIndex == -1)
 		return result;
 	
-	float normalizedRugorsity = (FS_IN.FirstLayer - LayerMin) / (LayerMax - LayerMin);
-	normalizedRugorsity = clamp(normalizedRugorsity, 0, 1);
+	float NormalizedValue = (FS_IN.FirstLayer - LayerMin) / (LayerMax - LayerMin);
+	NormalizedValue = clamp(NormalizedValue, 0, 1);
 
 	switch (HeatMapType)
     {
         case 3:
-				result = getScaledColor(normalizedRugorsity);
+				result = getScaledColor(NormalizedValue);
                 break;
         case 4:
-				result = getRainbowScaledColor(normalizedRugorsity);
+				result = getRainbowScaledColor(NormalizedValue);
                 break;
 		case 5:
-				result = getTurboColormapValue(normalizedRugorsity);
+				result = getTurboColormapValue(NormalizedValue);
                 break;
     }
 
@@ -244,15 +245,6 @@ void main(void)
 
 	vec3 firstRugosityLayer = getCorrectColor();
 	vec3 finalBaseColor = firstRugosityLayer;
-
-	//vec3 magenta = vec3(1.0, 0.0, 1.0);
-	//float normalizedRugorsity = (FS_IN.AdditionalLayer - LayerMin) / (LayerMax - LayerMin);
-	//normalizedRugorsity = clamp(normalizedRugorsity, 0, 1);
-	//vec3 secondRugosityLayer = magenta * normalizedRugorsity;
-
-	//vec3 finalBaseColor = firstRugosityLayer;
-	//if (normalizedRugorsity > 0.7)
-	//	finalBaseColor = secondRugosityLayer;
 
 	if (MeasuredRugosityAreaRadius > 0.0)
 	{

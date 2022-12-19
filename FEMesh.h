@@ -7,12 +7,39 @@
 
 namespace FocalEngine
 {
+	struct DebugEntry
+	{
+		DebugEntry();
+		DebugEntry(std::string Type, int Size, char* RawData);
+
+		std::string Name;
+		char* RawData = nullptr;
+		std::string Type;
+		int Size;
+
+		std::string ToString();
+	};
+
 	struct MeshLayerDebugInfo
 	{
 		uint64_t StartCalculationsTime;
 		uint64_t EndCalculationsTime;
 
 		std::string Type = "MeshLayerDebugInfo";
+
+		virtual std::string ToString();
+
+		virtual void FromFile(std::fstream& File);
+		virtual void ToFile(std::fstream& File);
+
+		std::vector<DebugEntry> Entries;
+
+		void AddEntry(std::string Name, bool Data);
+		void AddEntry(std::string Name, int Data);
+		void AddEntry(std::string Name, float Data);
+		void AddEntry(std::string Name, double Data);
+		void AddEntry(std::string Name, uint64_t Data);
+		void AddEntry(std::string Name, std::string Data);
 	};
 
 	class FEMesh;
@@ -51,8 +78,10 @@ namespace FocalEngine
 		std::vector<std::tuple<double, double, int>> ValueTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
 	};
 
+	class LayerManager;
 	class FEMesh
 	{
+		friend LayerManager;
 	public:
 		FEMesh(GLuint VaoID, unsigned int VertexCount, int VertexBuffersTypes, std::string Name);
 		~FEMesh();
@@ -133,9 +162,11 @@ namespace FocalEngine
 		static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
 
 		std::vector<MeshLayer> Layers;
-		int CurrentLayerIndex = -1;
 
 		void AddLayer(std::vector<float> TrianglesToData);
 		void AddLayer(MeshLayer NewLayer);
+
+	private:
+		int CurrentLayerIndex = -1;
 	};
 }

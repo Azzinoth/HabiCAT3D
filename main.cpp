@@ -1,5 +1,5 @@
 
-#include "SubSystems/UIManager.h"
+#include "SubSystems/UI/UIManager.h"
 using namespace FocalEngine;
 
 FEBasicCamera* currentCamera = nullptr;
@@ -92,42 +92,6 @@ void ScrollCall(double Xoffset, double Yoffset)
 		reinterpret_cast<FEModelViewCamera*>(currentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(currentCamera)->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->AABB.getSize() * 0.05f);
 }
 
-void AddHeightLayer()
-{
-	if (MESH_MANAGER.ActiveMesh == nullptr)
-		return;
-
-	uint64_t StarTime = TIME.GetTimeStamp();
-	FEMesh* Mesh = MESH_MANAGER.ActiveMesh;
-
-	double Min = DBL_MAX;
-	std::vector<float> TrianglesHeight;
-	for (size_t i = 0; i < Mesh->Triangles.size(); i++)
-	{
-		float AverageTriangleHeight = 0.0f;
-		for (size_t j = 0; j < 3; j++)
-		{
-			double CurrentHeight = glm::dot(glm::vec3(Mesh->Position->getTransformMatrix() * glm::vec4(Mesh->Triangles[i][j], 1.0)), Mesh->AverageNormal);
-			AverageTriangleHeight += CurrentHeight;
-		}
-
-		TrianglesHeight.push_back(AverageTriangleHeight / 3.0f);
-		Min = std::min(float(Min), TrianglesHeight.back());
-	}
-
-	// Smallest value should be 0.0f.
-	for (size_t i = 0; i < TrianglesHeight.size(); i++)
-	{
-		TrianglesHeight[i] += abs(Min);
-	}
-
-	Mesh->AddLayer(TrianglesHeight);
-	Mesh->Layers.back().SetCaption("Height");
-	Mesh->Layers.back().DebugInfo = new RugosityMeshLayerDebugInfo();
-	Mesh->Layers.back().DebugInfo->StartCalculationsTime = StarTime;
-	Mesh->Layers.back().DebugInfo->EndCalculationsTime = TIME.GetTimeStamp();
-}
-
 void AfterMeshLoads()
 {
 	MESH_MANAGER.ActiveMesh->Position->setPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
@@ -137,7 +101,8 @@ void AfterMeshLoads()
 
 	MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(MESH_MANAGER.ActiveMesh->GetAverageNormal()));
 
-	AddHeightLayer();
+	if (MESH_MANAGER.ActiveMesh->Layers.empty())
+		MESH_MANAGER.ActiveMesh->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
 }
 
 void LoadMesh(std::string FileName)
@@ -351,12 +316,12 @@ void RenderFEMesh(FEMesh* Mesh)
 {
 	MESH_MANAGER.MeshShader->getParameter("HaveColor")->updateData(Mesh->getColorCount() != 0);
 	MESH_MANAGER.MeshShader->getParameter("HeatMapType")->updateData(Mesh->HeatMapType);
-	MESH_MANAGER.MeshShader->getParameter("LayerIndex")->updateData(Mesh->CurrentLayerIndex);
+	MESH_MANAGER.MeshShader->getParameter("LayerIndex")->updateData(LAYER_MANAGER.GetActiveLayerIndex());
 	
-	if (Mesh->CurrentLayerIndex != -1)
+	if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
 	{
-		MESH_MANAGER.MeshShader->getParameter("LayerMin")->updateData(float(Mesh->Layers[Mesh->CurrentLayerIndex].MinVisible));
-		MESH_MANAGER.MeshShader->getParameter("LayerMax")->updateData(float(Mesh->Layers[Mesh->CurrentLayerIndex].MaxVisible));
+		MESH_MANAGER.MeshShader->getParameter("LayerMin")->updateData(float(Mesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MinVisible));
+		MESH_MANAGER.MeshShader->getParameter("LayerMax")->updateData(float(Mesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MaxVisible));
 	}
 	
 	if (Mesh->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
@@ -395,6 +360,7 @@ void windowResizeCallback(int width, int height)
 
 	UI.ApplyStandardWindowsSizeAndPosition();
 }
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
