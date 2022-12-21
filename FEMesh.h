@@ -49,7 +49,11 @@ namespace FocalEngine
 		std::string Caption = "Layer caption";
 		std::string UserNote;
 
+		float Mean = -FLT_MAX;
+		float Median = -FLT_MAX;
+
 		void FillRawData();
+		void CalculateInitData();
 	public:
 		MeshLayer();
 		MeshLayer(FEMesh* Parent, std::vector<float> TrianglesToData);
@@ -66,6 +70,9 @@ namespace FocalEngine
 		FEMesh* GetParentMesh();
 		void SetParentMesh(FEMesh* NewValue);
 
+		float GetMean();
+		float GetMedian();
+
 		float Min = FLT_MAX;
 		float MinVisible = FLT_MAX;
 		float Max = -FLT_MAX;
@@ -78,9 +85,11 @@ namespace FocalEngine
 		std::vector<std::tuple<double, double, int>> ValueTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
 	};
 
+	class MeshManager;
 	class LayerManager;
 	class FEMesh
 	{
+		friend MeshManager;
 		friend LayerManager;
 	public:
 		FEMesh(GLuint VaoID, unsigned int VertexCount, int VertexBuffersTypes, std::string Name);
@@ -166,6 +175,7 @@ namespace FocalEngine
 		void AddLayer(std::vector<float> TrianglesToData);
 		void AddLayer(MeshLayer NewLayer);
 
+		std::string FileName;
 	private:
 		int CurrentLayerIndex = -1;
 	};

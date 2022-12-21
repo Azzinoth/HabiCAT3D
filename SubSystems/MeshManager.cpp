@@ -323,6 +323,7 @@ FEMesh* MeshManager::LoadMesh(std::string FileName)
 		return Result;
 	}
 
+	Result->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
 	ActiveMesh = Result;
 
 	for (size_t i = 0; i < ClientLoadCallbacks.size(); i++)

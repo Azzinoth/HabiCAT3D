@@ -83,6 +83,8 @@ uniform float LayerMax;
 uniform vec3 MeasuredRugosityAreaCenter;
 uniform float MeasuredRugosityAreaRadius;
 
+uniform float AmbientFactor;
+
 layout (location = 0) out vec4 out_Color;
 
 // Copyright 2019 Google LLC.
@@ -241,7 +243,7 @@ vec3 getCorrectColor()
 void main(void)
 {
 	float diffuseFactor = max(dot(FS_IN.vertexNormal, lightDirection), 0.15);
-	vec3 ambientColor = vec3(0.55f, 0.73f, 0.87f) * 2.8f;
+	vec3 ambientColor = vec3(0.55f, 0.73f, 0.87f) * AmbientFactor; // 2.8f
 
 	vec3 firstRugosityLayer = getCorrectColor();
 	vec3 finalBaseColor = firstRugosityLayer;

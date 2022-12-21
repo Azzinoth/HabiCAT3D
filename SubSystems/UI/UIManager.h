@@ -49,6 +49,9 @@ namespace FocalEngine
 		void ApplyStandardWindowsSizeAndPosition();
 
 		glm::dvec2 LayerValuesAreaDistribution(MeshLayer* Layer, float Value);
+
+		float GetAmbientLightFactor();
+		void SetAmbientLightFactor(float NewValue);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 
@@ -106,6 +109,8 @@ namespace FocalEngine
 		int TotalWidthNeededForLayerList(int ButtonUsed);
 
 		void RenderSettingsWindow();
+
+		float AmbientLightFactor = 2.8f;
 	};
 
 	#define UI UIManager::getInstance()

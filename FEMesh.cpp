@@ -432,26 +432,7 @@ MeshLayer::MeshLayer(FEMesh* Parent, const std::vector<float> TrianglesToData)
 	this->ParentMesh = Parent;
 	this->TrianglesToData = TrianglesToData;
 
-	Min = FLT_MAX;
-	Max = -FLT_MAX;
-
-	for (size_t i = 0; i < TrianglesToData.size(); i++)
-	{
-		Min = std::min(Min, TrianglesToData[i]);
-		Max = std::max(Max, TrianglesToData[i]);
-	}
-
-	MinVisible = Min;
-	MaxVisible = Max;
-
-	ValueTriangleAreaAndIndex.clear();
-	for (int i = 0; i < Parent->Triangles.size(); i++)
-	{
-		ValueTriangleAreaAndIndex.push_back(std::make_tuple(TrianglesToData[i], Parent->TrianglesArea[i], i));
-	}
-
-	// sort() function will sort by 1st element of tuple.
-	std::sort(ValueTriangleAreaAndIndex.begin(), ValueTriangleAreaAndIndex.end());
+	CalculateInitData();
 }
 
 MeshLayer::~MeshLayer() {};
@@ -472,22 +453,48 @@ void MeshLayer::SetParentMesh(FEMesh* NewValue)
 	this->ParentMesh = NewValue;
 	this->TrianglesToData = TrianglesToData;
 
-	Min = FLT_MAX;
-	Max = -FLT_MAX;
+	CalculateInitData();
+}
 
+void MeshLayer::CalculateInitData()
+{
+	Min = FLT_MAX;
+	MinVisible = FLT_MAX;
+	Max = -FLT_MAX;
+	MaxVisible = FLT_MAX;
+
+	Mean = -FLT_MAX;
+	Median = -FLT_MAX;
+
+	if (ParentMesh == nullptr)
+		return;
+
+	double TotalSum = 0.0;
 	for (size_t i = 0; i < TrianglesToData.size(); i++)
 	{
 		Min = std::min(Min, TrianglesToData[i]);
 		Max = std::max(Max, TrianglesToData[i]);
+
+		TotalSum += TrianglesToData[i];
 	}
 
+	std::vector<float> SortedData = TrianglesToData;
+	std::sort(SortedData.begin(), SortedData.end());
+	int MaxVisiableIndex = SortedData.size() * 0.85;
+
 	MinVisible = Min;
-	MaxVisible = Max;
+	MaxVisible = SortedData[MaxVisiableIndex];
+
+	if (!TrianglesToData.empty())
+	{
+		Mean = TotalSum / TrianglesToData.size();
+		Median = SortedData[SortedData.size() / 2];
+	}
 
 	ValueTriangleAreaAndIndex.clear();
-	for (int i = 0; i < NewValue->Triangles.size(); i++)
+	for (int i = 0; i < ParentMesh->Triangles.size(); i++)
 	{
-		ValueTriangleAreaAndIndex.push_back(std::make_tuple(TrianglesToData[i], NewValue->TrianglesArea[i], i));
+		ValueTriangleAreaAndIndex.push_back(std::make_tuple(TrianglesToData[i], ParentMesh->TrianglesArea[i], i));
 	}
 
 	// sort() function will sort by 1st element of tuple.
@@ -603,6 +610,16 @@ std::string MeshLayer::GetNote()
 void MeshLayer::SetNote(const std::string NewValue)
 {
 	UserNote = NewValue;
+}
+
+float MeshLayer::GetMean()
+{
+	return Mean;
+}
+
+float MeshLayer::GetMedian()
+{
+	return Median;
 }
 
 std::string DebugEntry::ToString()

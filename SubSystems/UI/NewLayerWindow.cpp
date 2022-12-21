@@ -7,6 +7,12 @@ NewLayerWindow::NewLayerWindow()
 	LayerTypesNames.push_back("Height");
 	LayerTypesNames.push_back("Rugosity");
 	LayerTypesNames.push_back("Comapare layers");
+	LayerTypesNames.push_back("Triangles area");
+	LayerTypesNames.push_back("Triangles edges");
+
+	TrianglesEdgesModeNames.push_back("Max triangle edge length");
+	TrianglesEdgesModeNames.push_back("Min triangle edge length");
+	TrianglesEdgesModeNames.push_back("Mean triangle edge length");
 };
 
 NewLayerWindow::~NewLayerWindow() {};
@@ -125,6 +131,22 @@ void NewLayerWindow::AddLayer()
 			InternalClose();
 			break;
 		}
+		case 3:
+		{
+			MESH_MANAGER.ActiveMesh->AddLayer(AREA_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
+			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+
+			InternalClose();
+			break;
+		}
+		case 4:
+		{
+			MESH_MANAGER.ActiveMesh->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh, TrianglesEdgesMode));
+			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+
+			InternalClose();
+			break;
+		}
 	}
 }
 
@@ -152,6 +174,9 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 			if (ImGui::Selectable(RUGOSITY_MANAGER.RugosityAlgorithmList[i].c_str(), is_selected))
 			{
 				RUGOSITY_MANAGER.SetUsedRugosityAlgorithmName(RUGOSITY_MANAGER.RugosityAlgorithmList[i]);
+				RUGOSITY_MANAGER.bDeleteOutliers = true;
+				if (i != 0)
+					RUGOSITY_MANAGER.bDeleteOutliers = false;
 			}
 
 			if (is_selected)
@@ -159,6 +184,8 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 		}
 		ImGui::EndCombo();
 	}
+
+	ImGui::Checkbox("Delete outliers", &RUGOSITY_MANAGER.bDeleteOutliers);
 
 	ImGui::Text("Grid size:");
 	static int SmallScaleFeatures = 0;
@@ -208,8 +235,6 @@ void NewLayerWindow::RenderCompareLayerSettings()
 	std::string FirstString = "Choose layer";
 	if (FirstChoosenLayerIndex != -1)
 		FirstString = MESH_MANAGER.ActiveMesh->Layers[FirstChoosenLayerIndex].GetCaption();
-	//int FirstChoosenLayerIndex = -1;
-	//int SecondChoosenLayerIndex = -1;
 
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
 	ImGui::Text("First layer: ");
@@ -256,6 +281,42 @@ void NewLayerWindow::RenderCompareLayerSettings()
 		}
 		ImGui::EndCombo();
 	}
+
+	bool TempBool = COMPARE_LAYER_PRODUCER.GetShouldNormalize();
+	ImGui::Checkbox("Normalize before compare", &TempBool);
+	COMPARE_LAYER_PRODUCER.SetShouldNormalize(TempBool);
+}
+
+void NewLayerWindow::RenderAreaLayerSettings()
+{
+	const std::string Text = "No settings available.";
+
+	ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2.0f - ImGui::CalcTextSize(Text.c_str()).x / 2.0f);
+	ImGui::SetCursorPosY(ImGui::GetWindowHeight() / 2.0f - ImGui::CalcTextSize(Text.c_str()).y / 2.0f);
+	ImGui::Text(Text.c_str());
+}
+
+void NewLayerWindow::RenderTrianglesEdgesLayerSettings()
+{
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+	ImGui::Text("Choose in what information you are interested: ");
+	ImGui::SetNextItemWidth(240);
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+	if (ImGui::BeginCombo("##ChooseOptionLayer", TrianglesEdgesModeNames[TrianglesEdgesMode].c_str(), ImGuiWindowFlags_None))
+	{
+		for (size_t i = 0; i < TrianglesEdgesModeNames.size(); i++)
+		{
+			bool is_selected = (i == TrianglesEdgesMode);
+			if (ImGui::Selectable(TrianglesEdgesModeNames[i].c_str(), is_selected))
+			{
+				TrianglesEdgesMode = i;
+			}
+
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
 }
 
 void NewLayerWindow::RenderSettings()
@@ -275,6 +336,16 @@ void NewLayerWindow::RenderSettings()
 		case 2:
 		{
 			RenderCompareLayerSettings();
+			break;
+		}
+		case 3:
+		{
+			RenderAreaLayerSettings();
+			break;
+		}
+		case 4:
+		{
+			RenderTrianglesEdgesLayerSettings();
 			break;
 		}
 	}

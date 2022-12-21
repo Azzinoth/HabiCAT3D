@@ -369,6 +369,28 @@ void RugosityManager::OnRugosityCalculationsEnd()
 	NewLayer.DebugInfo->AddEntry("Algorithm used", AlgorithmUsed);
 	NewLayer.DebugInfo->AddEntry("Jitter count", RUGOSITY_MANAGER.JitterDoneCount);
 	NewLayer.DebugInfo->AddEntry("Resolution used", std::to_string(RUGOSITY_MANAGER.ResolutonInM) + " m.");
+	
+	std::string DeleteOutliers = "No";
+	// Remove outliers.
+	if (RUGOSITY_MANAGER.bDeleteOutliers)
+	{
+		DeleteOutliers = "Yes";
+		float OutlierBeginValue = FLT_MAX;
+
+		std::vector<float> SortedData = NewLayer.TrianglesToData;
+		std::sort(SortedData.begin(), SortedData.end());
+
+		int OutlierBeginPosition = SortedData.size() * 0.99;
+		OutlierBeginValue = SortedData[OutlierBeginPosition];
+		float NewMax = SortedData[OutlierBeginPosition - 1];
+
+		for (int i = 0; i < NewLayer.TrianglesToData.size(); i++)
+		{
+			if (NewLayer.TrianglesToData[i] >= OutlierBeginValue)
+				NewLayer.TrianglesToData[i] = NewMax;
+		}
+	}
+	NewLayer.DebugInfo->AddEntry("Delete outliers", DeleteOutliers);
 
 	LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
 

@@ -1,0 +1,16 @@
+#pragma once
+
+#include "LayerManager.h"
+using namespace FocalEngine;
+
+class AreaLayerProducer
+{
+public:
+	SINGLETON_PUBLIC_PART(AreaLayerProducer)
+
+	MeshLayer Calculate(FEMesh* Mesh);
+private:
+	SINGLETON_PRIVATE_PART(AreaLayerProducer)
+};
+
+#define AREA_LAYER_PRODUCER AreaLayerProducer::getInstance()

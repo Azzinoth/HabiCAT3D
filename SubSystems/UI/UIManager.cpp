@@ -1640,12 +1640,12 @@ void UIManager::RenderAboutWindow()
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
-		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 12\\19\\2022";
+		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 12\\21\\2022";
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
 		ImGui::Text(Text.c_str());
 
-		Text = "commit 77e650dfd3d9b7205337fa72e536cc0dd29cdde2";
+		Text = "commit 7ad436afecf5dfda9b5a7aea382705ce11c4c074";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
 		ImGui::Text(Text.c_str());
@@ -1777,11 +1777,6 @@ void UIManager::RenderSettingsWindow()
 					ImGui::SetCursorPosY(ImGui::GetWindowHeight() / 2.0f - ImGui::CalcTextSize(NoInfoText.c_str()).y / 2.0f);
 
 					ImGui::Text(NoInfoText.c_str());
-
-					/*ImGui::EndTabItem();
-					ImGui::EndTabBar();
-					ImGui::End();
-					return;*/
 				}
 
 				if (NoInfoText.empty())
@@ -1812,8 +1807,29 @@ void UIManager::RenderSettingsWindow()
 
 						MESH_MANAGER.ActiveMesh->Layers.erase(MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete,
 															  MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete + 1);
+					
+						ImGui::PopStyleColor(3);
+						ImGui::EndTabItem();
+						ImGui::EndTabBar();
+						ImGui::End();
+
+						return;
 					}
 					ImGui::PopStyleColor(3);
+
+					ImGui::Text("Mean:");
+					ImGui::SameLine();
+					std::string MeanText = "No data.";
+					if (Layer->GetMean() != -FLT_MAX)
+						MeanText = std::to_string(Layer->GetMean());
+					ImGui::Text(MeanText.c_str());
+
+					ImGui::Text("Median:");
+					ImGui::SameLine();
+					std::string MedianText = "No data.";
+					if (Layer->GetMedian() != -FLT_MAX)
+						MedianText = std::to_string(Layer->GetMedian());
+					ImGui::Text(MedianText.c_str());
 
 					ImGui::Text("Notes:");
 					static char CurrentLayerUserNotes[1024];
@@ -1977,8 +1993,19 @@ void UIManager::RenderSettingsWindow()
 
 			if (MESH_MANAGER.ActiveMesh != nullptr)
 			{
-				if (ImGui::BeginTabItem("Camera"))
+				if (ImGui::BeginTabItem("General"))
 				{
+					ImGui::Checkbox("Wireframe", &bWireframeMode);
+
+					ImGui::Text("Ambiant light scale:");
+					ImGui::SetNextItemWidth(150);
+					ImGui::DragFloat("##AmbiantLightScale", &AmbientLightFactor, 0.025f);
+					ImGui::SameLine();
+					if (ImGui::Button("Reset"))
+					{
+						AmbientLightFactor = 2.8f;
+					}
+
 					bool TempBool = bModelCamera;
 					if (ImGui::Checkbox("Model camera", &TempBool))
 					{
@@ -1986,6 +2013,44 @@ void UIManager::RenderSettingsWindow()
 					}
 
 					ShowCameraTransform();
+
+					ImGui::Separator();
+					if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+					{
+						ImGui::Text("Visualization of SDF:");
+
+						if (ImGui::RadioButton("Do not draw", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 0))
+						{
+							RUGOSITY_MANAGER.currentSDF->RenderingMode = 0;
+
+							RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+							//LINE_RENDERER.clearAll();
+							//LINE_RENDERER.SyncWithGPU();
+						}
+
+						if (ImGui::RadioButton("Show cells with triangles", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 1))
+						{
+							RUGOSITY_MANAGER.currentSDF->RenderingMode = 1;
+
+							RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+							//LINE_RENDERER.clearAll();
+							//addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
+							//LINE_RENDERER.SyncWithGPU();
+						}
+
+						if (ImGui::RadioButton("Show all cells", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 2))
+						{
+							RUGOSITY_MANAGER.currentSDF->RenderingMode = 2;
+
+							RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+							//LINE_RENDERER.clearAll();
+							//addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
+							//LINE_RENDERER.SyncWithGPU();
+						}
+
+						ImGui::Separator();
+					}
+
 					ImGui::EndTabItem();
 				}
 			}
@@ -1995,4 +2060,14 @@ void UIManager::RenderSettingsWindow()
 	}
 
 	ImGui::End();
+}
+
+float UIManager::GetAmbientLightFactor()
+{
+	return AmbientLightFactor;
+}
+
+void UIManager::SetAmbientLightFactor(float NewValue)
+{
+	AmbientLightFactor = NewValue;
 }

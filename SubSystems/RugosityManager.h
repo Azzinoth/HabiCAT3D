@@ -30,6 +30,7 @@ namespace FocalEngine
 
 		bool bWeightedNormals = true;
 		bool bNormalizedNormals = true;
+		bool bDeleteOutliers = true;
 
 		int SDFDimention = 16;
 

@@ -92,6 +92,8 @@ void ScrollCall(double Xoffset, double Yoffset)
 		reinterpret_cast<FEModelViewCamera*>(currentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(currentCamera)->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->AABB.getSize() * 0.05f);
 }
 
+static std::string FileNameForSelectionOutput = "Selections";
+
 void AfterMeshLoads()
 {
 	MESH_MANAGER.ActiveMesh->Position->setPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
@@ -103,6 +105,8 @@ void AfterMeshLoads()
 
 	if (MESH_MANAGER.ActiveMesh->Layers.empty())
 		MESH_MANAGER.ActiveMesh->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
+
+	FileNameForSelectionOutput = MESH_MANAGER.ActiveMesh->FileName;
 }
 
 void LoadMesh(std::string FileName)
@@ -197,7 +201,7 @@ void OutputSeletedAreaInfoToFile()
 		return;
 
 	std::string Text = "Area radius : " + std::to_string(UI.GetRadiusOfAreaToMeasure());
-	LOG.Add(Text, "Selections");
+	LOG.Add(Text, FileNameForSelectionOutput);
 
 	Text = "Area approximate center : X - ";
 	const glm::vec3 Center = MESH_MANAGER.ActiveMesh->TrianglesCentroids[MESH_MANAGER.ActiveMesh->TriangleSelected[0]];
@@ -206,7 +210,7 @@ void OutputSeletedAreaInfoToFile()
 	Text += std::to_string(Center.y);
 	Text += " Z - ";
 	Text += std::to_string(Center.z);
-	LOG.Add(Text, "Selections");
+	LOG.Add(Text, FileNameForSelectionOutput);
 
 	for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
 	{
@@ -222,7 +226,7 @@ void OutputSeletedAreaInfoToFile()
 
 		Total /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
 		Text += std::to_string(Total);
-		LOG.Add(Text, "Selections");
+		LOG.Add(Text, FileNameForSelectionOutput);
 	}
 }
 
@@ -314,6 +318,7 @@ void mouseButtonCallback(int button, int action, int mods)
 
 void RenderFEMesh(FEMesh* Mesh)
 {
+	MESH_MANAGER.MeshShader->getParameter("AmbientFactor")->updateData(UI.GetAmbientLightFactor());
 	MESH_MANAGER.MeshShader->getParameter("HaveColor")->updateData(Mesh->getColorCount() != 0);
 	MESH_MANAGER.MeshShader->getParameter("HeatMapType")->updateData(Mesh->HeatMapType);
 	MESH_MANAGER.MeshShader->getParameter("LayerIndex")->updateData(LAYER_MANAGER.GetActiveLayerIndex());

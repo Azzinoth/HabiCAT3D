@@ -132,15 +132,15 @@ std::vector<triangleData> SDF::GetTrianglesData()
 		// We are taking index of last vertex because all verticies of triangle should have same normal.
 		const glm::vec3 TriangleNormal = glm::vec3(FENormals[VertexPosition], FENormals[VertexPosition + 1], FENormals[VertexPosition + 2]);
 
-		// First triangle side lenght
-		float FirstSideLenght = glm::length(FirstVertex - SecondVertex);
-		float SecondSideLenght = glm::length(FirstVertex - ThirdVertex);
-		float ThirdSideLenght = glm::length(SecondVertex - ThirdVertex);
+		// First triangle side length
+		float FirstSideLength = glm::length(FirstVertex - SecondVertex);
+		float SecondSideLength = glm::length(FirstVertex - ThirdVertex);
+		float ThirdSideLength = glm::length(SecondVertex - ThirdVertex);
 
 		triangleData data;
 		data.centroid = CurrentCentroid;
 		data.normal = TriangleNormal;
-		data.maxSideLength = std::max(std::max(FirstSideLenght, SecondSideLenght), ThirdSideLenght);
+		data.maxSideLength = std::max(std::max(FirstSideLength, SecondSideLength), ThirdSideLength);
 		Result.push_back(data);
 	}
 

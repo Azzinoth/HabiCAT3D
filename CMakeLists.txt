@@ -66,6 +66,10 @@ file(GLOB SubSystems_SRC
 file(GLOB Layers_SRC
 	"SubSystems/Layers/HeightLayerProducer.cpp"
 	"SubSystems/Layers/HeightLayerProducer.h"
+	"SubSystems/Layers/AreaLayerProducer.cpp"
+	"SubSystems/Layers/AreaLayerProducer.h"
+	"SubSystems/Layers/TriangleEdgeLayerProducer.cpp"
+	"SubSystems/Layers/TriangleEdgeLayerProducer.h"
 	"SubSystems/Layers/CompareLayerProducer.cpp"
 	"SubSystems/Layers/CompareLayerProducer.h"
 	"SubSystems/Layers/LayerManager.cpp"

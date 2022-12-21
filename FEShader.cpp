@@ -303,14 +303,14 @@ FEShader::FEShader(std::string name, const char* vertexText, const char* fragmen
 	this->glslVersion = glslVersion;
 	testCompilationMode = testCompilation;
 	//setName(name);
-	size_t textLenght = 0;
+	size_t textLength = 0;
 
 	if (vertexText != nullptr)
 	{
 		vertexShaderID = loadShader(vertexText, GL_VERTEX_SHADER);
-		textLenght = strlen(vertexText);
-		vertexShaderText = new char[textLenght + 1];
-		strcpy_s(vertexShaderText, textLenght + 1, vertexText);
+		textLength = strlen(vertexText);
+		vertexShaderText = new char[textLength + 1];
+		strcpy_s(vertexShaderText, textLength + 1, vertexText);
 	}
 
 	if (tessControlText != nullptr)
@@ -340,9 +340,9 @@ FEShader::FEShader(std::string name, const char* vertexText, const char* fragmen
 	if (fragmentText != nullptr)
 	{
 		fragmentShaderID = loadShader(fragmentText, GL_FRAGMENT_SHADER);
-		textLenght = strlen(fragmentText);
-		fragmentShaderText = new char[textLenght + 1];
-		strcpy_s(fragmentShaderText, textLenght + 1, fragmentText);
+		textLength = strlen(fragmentText);
+		fragmentShaderText = new char[textLength + 1];
+		strcpy_s(fragmentShaderText, textLength + 1, fragmentText);
 	}
 
 	if (computeText != nullptr)

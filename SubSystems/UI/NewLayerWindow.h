@@ -1,4 +1,8 @@
 #include "UIComponents.h"
+
+#include "../Layers/HeightLayerProducer.h"
+#include "../Layers/AreaLayerProducer.h"
+#include "../Layers/TriangleEdgeLayerProducer.h"
 #include "../Layers/CompareLayerProducer.h"
 
 class NewLayerWindow
@@ -19,6 +23,11 @@ class NewLayerWindow
 	void RenderCompareLayerSettings();
 	int FirstChoosenLayerIndex = -1;
 	int SecondChoosenLayerIndex = -1;
+
+	void RenderAreaLayerSettings();
+	void RenderTrianglesEdgesLayerSettings();
+	std::vector<std::string> TrianglesEdgesModeNames;
+	int TrianglesEdgesMode = 0;
 
 	void RenderSettings();
 public:
