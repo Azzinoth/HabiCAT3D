@@ -32,7 +32,7 @@ void NewLayerWindow::Close()
 
 void NewLayerWindow::Render()
 {
-	const ImVec2 CurrentWinowSize = ImVec2(512, 256);
+	const ImVec2 CurrentWinowSize = ImVec2(512, 285);
 	const ImVec2 CurrentWinowPosition = ImVec2(APPLICATION.GetWindowWidth() / 2.0f - CurrentWinowSize.x / 2.0f, APPLICATION.GetWindowHeight() / 2.0f - CurrentWinowSize.y / 2.0f);
 
 	ImGui::SetNextWindowPos(CurrentWinowPosition);
@@ -117,7 +117,7 @@ void NewLayerWindow::AddLayer()
 		case 1:
 		{
 			RUGOSITY_MANAGER.JitterToDoCount = 64;
-			RUGOSITY_MANAGER.calculateRugorsityWithJitterAsyn();
+			RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
 			MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 
 			InternalClose();
@@ -186,6 +186,7 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 	}
 
 	ImGui::Checkbox("Delete outliers", &RUGOSITY_MANAGER.bDeleteOutliers);
+	ImGui::Checkbox("bTestJitter", &RUGOSITY_MANAGER.bTestJitter);
 
 	ImGui::Text("Grid size:");
 	static int SmallScaleFeatures = 0;

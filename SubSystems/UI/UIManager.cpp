@@ -106,7 +106,7 @@ void UIManager::ShowCameraTransform()
 	if (!bModelCamera)
 	{
 		// ********* POSITION *********
-		glm::vec3 cameraPosition = CurrentCamera->getPosition();
+		glm::vec3 cameraPosition = CurrentCamera->GetPosition();
 
 		ImGui::Text("Position : ");
 		ImGui::SameLine();
@@ -121,7 +121,7 @@ void UIManager::ShowCameraTransform()
 		ImGui::SetNextItemWidth(70);
 		ImGui::DragFloat("##Z pos", &cameraPosition[2], 0.1f);
 
-		CurrentCamera->setPosition(cameraPosition);
+		CurrentCamera->SetPosition(cameraPosition);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
@@ -138,7 +138,7 @@ void UIManager::ShowCameraTransform()
 		}
 
 		// ********* ROTATION *********
-		glm::vec3 CameraRotation = glm::vec3(CurrentCamera->getYaw(), CurrentCamera->getPitch(), CurrentCamera->getRoll());
+		glm::vec3 CameraRotation = glm::vec3(CurrentCamera->GetYaw(), CurrentCamera->GetPitch(), CurrentCamera->GetRoll());
 
 		ImGui::Text("Rotation : ");
 		ImGui::SameLine();
@@ -160,9 +160,9 @@ void UIManager::ShowCameraTransform()
 			APPLICATION.SetClipboardText(CameraRotationToStr());
 		}
 
-		CurrentCamera->setYaw(CameraRotation[0]);
-		CurrentCamera->setPitch(CameraRotation[1]);
-		CurrentCamera->setRoll(CameraRotation[2]);
+		CurrentCamera->SetYaw(CameraRotation[0]);
+		CurrentCamera->SetPitch(CameraRotation[1]);
+		CurrentCamera->SetRoll(CameraRotation[2]);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
@@ -171,14 +171,14 @@ void UIManager::ShowCameraTransform()
 			StrToCameraRotation(APPLICATION.GetClipboardText());
 		}
 
-		float CameraSpeed = CurrentCamera->getMovementSpeed();
+		float CameraSpeed = CurrentCamera->GetMovementSpeed();
 		ImGui::Text("Camera speed: ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(70);
 		ImGui::DragFloat("##Camera_speed", &CameraSpeed, 0.01f, 0.01f, 100.0f);
-		CurrentCamera->setMovementSpeed(CameraSpeed);
+		CurrentCamera->SetMovementSpeed(CameraSpeed);
 
-		CurrentCamera->updateViewMatrix();
+		CurrentCamera->UpdateViewMatrix();
 
 		if (DeveloperMode)
 		{
@@ -316,7 +316,7 @@ void UIManager::RenderDeveloperModeMainWindow()
 
 	if (ImGui::Button("Generate second rugosity layer"))
 	{
-		RUGOSITY_MANAGER.calculateRugorsityWithJitterAsyn(1);
+		RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync(1);
 	}
 
 	ImGui::Separator();
@@ -347,7 +347,7 @@ void UIManager::RenderDeveloperModeMainWindow()
 	{
 		TIME.BeginTimeStamp("TimeTookToJitter");
 
-		RUGOSITY_MANAGER.calculateRugorsityWithJitterAsyn();
+		RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
 
 		TimeTookToJitter = float(TIME.EndTimeStamp("TimeTookToJitter"));
 	}
@@ -495,7 +495,7 @@ void UIManager::RenderUserModeMainWindow()
 	if (ImGui::Button("Calculate rugosity"))
 	{
 		RUGOSITY_MANAGER.JitterToDoCount = 64;
-		RUGOSITY_MANAGER.calculateRugorsityWithJitterAsyn();
+		RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
 
 		MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 	}
@@ -834,7 +834,7 @@ void UIManager::Render()
 
 std::string UIManager::CameraPositionToStr()
 {
-	const glm::vec3 CameraPosition = CurrentCamera->getPosition();
+	const glm::vec3 CameraPosition = CurrentCamera->GetPosition();
 	return "( X:" + std::to_string(CameraPosition.x) + " Y:" + std::to_string(CameraPosition.y) + " Z:" + std::to_string(CameraPosition.z) + " )";
 }
 
@@ -897,12 +897,12 @@ void UIManager::StrToCameraPosition(std::string Text)
 
 	const float Z = float(atof(temp.c_str()));
 
-	CurrentCamera->setPosition(glm::vec3(X, Y, Z));
+	CurrentCamera->SetPosition(glm::vec3(X, Y, Z));
 }
 
 std::string UIManager::CameraRotationToStr()
 {
-	const glm::vec3 CameraRotation = glm::vec3(CurrentCamera->getYaw(), CurrentCamera->getPitch(), CurrentCamera->getRoll());
+	const glm::vec3 CameraRotation = glm::vec3(CurrentCamera->GetYaw(), CurrentCamera->GetPitch(), CurrentCamera->GetRoll());
 	return "( X:" + std::to_string(CameraRotation.x) + " Y:" + std::to_string(CameraRotation.y) + " Z:" + std::to_string(CameraRotation.z) + " )";
 }
 
@@ -965,9 +965,9 @@ void UIManager::StrToCameraRotation(std::string Text)
 
 	const float Z = float(atof(temp.c_str()));
 
-	CurrentCamera->setYaw(X);
-	CurrentCamera->setPitch(Y);
-	CurrentCamera->setRoll(Z);
+	CurrentCamera->SetYaw(X);
+	CurrentCamera->SetPitch(Y);
+	CurrentCamera->SetRoll(Z);
 }
 
 void UIManager::OnMeshUpdate()
@@ -1372,13 +1372,13 @@ void UIManager::SetIsModelCamera(const bool NewValue)
 {
 	SwapCameraImpl(NewValue);
 
-	CurrentCamera->reset();
-	CurrentCamera->setFarPlane(MESH_MANAGER.ActiveMesh->AABB.getSize() * 5.0f);
+	CurrentCamera->Reset();
+	CurrentCamera->SetFarPlane(MESH_MANAGER.ActiveMesh->AABB.getSize() * 5.0f);
 
 	int MainWindowW = 0;
 	int MainWindowH = 0;
 	APPLICATION.GetWindowSize(&MainWindowW, &MainWindowH);
-	CurrentCamera->setAspectRatio(float(MainWindowW) / float(MainWindowH));
+	CurrentCamera->SetAspectRatio(float(MainWindowW) / float(MainWindowH));
 
 	if (NewValue)
 	{
@@ -1387,12 +1387,12 @@ void UIManager::SetIsModelCamera(const bool NewValue)
 	}
 	else
 	{
-		CurrentCamera->setPosition(glm::vec3(0.0f, 0.0f, MESH_MANAGER.ActiveMesh->AABB.getSize() * 1.5f));
-		CurrentCamera->setYaw(0.0f);
-		CurrentCamera->setPitch(0.0f);
-		CurrentCamera->setRoll(0.0f);
+		CurrentCamera->SetPosition(glm::vec3(0.0f, 0.0f, MESH_MANAGER.ActiveMesh->AABB.getSize() * 1.5f));
+		CurrentCamera->SetYaw(0.0f);
+		CurrentCamera->SetPitch(0.0f);
+		CurrentCamera->SetRoll(0.0f);
 
-		CurrentCamera->setMovementSpeed(MESH_MANAGER.ActiveMesh->AABB.getSize() / 5.0f);
+		CurrentCamera->SetMovementSpeed(MESH_MANAGER.ActiveMesh->AABB.getSize() / 5.0f);
 	}
 
 	bModelCamera = NewValue;

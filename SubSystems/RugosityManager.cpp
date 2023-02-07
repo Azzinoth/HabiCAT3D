@@ -157,7 +157,7 @@ void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
 	const SDFInitData* Input = reinterpret_cast<SDFInitData*>(InputData);
 	SDF* Output = reinterpret_cast<SDF*>(OutputData);
 
-	FEAABB finalAABB = Input->mesh->AABB;
+	FEAABB finalAABB = Input->Mesh->AABB;
 
 	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
 	if (Input->UseJitterExpandedAABB)
@@ -166,9 +166,9 @@ void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
 		finalAABB = finalAABB.transform(transformMatrix);
 	}
 
-	const float cellSize = finalAABB.getSize() / Input->dimentions;
+	const float cellSize = finalAABB.getSize() / Input->Dimentions;
 
-	const glm::vec3 center = Input->mesh->AABB.getCenter() + glm::vec3(Input->shiftX, Input->shiftY, Input->shiftZ) * cellSize;
+	const glm::vec3 center = Input->Mesh->AABB.getCenter() + glm::vec3(Input->ShiftX, Input->ShiftY, Input->ShiftZ) * cellSize;
 	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
 	finalAABB = SDFAABB;
 
@@ -191,13 +191,13 @@ void RugosityManager::RunCreationOfSDFAsync(bool bJitter)
 	OnRugosityCalculationsStart();
 
 	SDFInitData* InputData = new SDFInitData();
-	InputData->dimentions = SDFDimention;
-	InputData->mesh = MESH_MANAGER.ActiveMesh;
+	InputData->Dimentions = SDFDimention;
+	InputData->Mesh = MESH_MANAGER.ActiveMesh;
 	InputData->UseJitterExpandedAABB = bJitter;
 
-	InputData->shiftX = RUGOSITY_MANAGER.shiftX;
-	InputData->shiftY = RUGOSITY_MANAGER.shiftY;
-	InputData->shiftZ = RUGOSITY_MANAGER.shiftZ;
+	InputData->ShiftX = RUGOSITY_MANAGER.shiftX;
+	InputData->ShiftY = RUGOSITY_MANAGER.shiftY;
+	InputData->ShiftZ = RUGOSITY_MANAGER.shiftZ;
 	InputData->GridScale = RUGOSITY_MANAGER.GridScale;
 
 	SDF* OutputData = new SDF();
@@ -208,40 +208,161 @@ void RugosityManager::RunCreationOfSDFAsync(bool bJitter)
 	THREAD_POOL.Execute(calculateSDFAsync, InputData, OutputData, calculateSDFCallback);
 }
 
-void RugosityManager::calculateRugorsityWithJitterAsyn(int RugosityLayerIndex)
+void RugosityManager::CalculateRugorsityWithJitterAsync(int RugosityLayerIndex)
 {
 	OnRugosityCalculationsStart();
 
 	RUGOSITY_MANAGER.RugosityLayerIndex = RugosityLayerIndex;
 
-	RunCreationOfSDFAsync(true);
+	//RunCreationOfSDFAsync(true);
 
 	// In cells
-	float kernelSize = 0.5;
-	kernelSize *= 2.0f;
-	kernelSize *= 100.0f;
+	float KernelSize = 0.5;
+	KernelSize *= 2.0f;
+	KernelSize *= 100.0f;
 
-	for (size_t i = 0; i < JitterToDoCount - 1; i++)
+	/*struct GridModifications
 	{
-		RUGOSITY_MANAGER.shiftX = rand() % int(kernelSize);
-		RUGOSITY_MANAGER.shiftX -= kernelSize / 2.0f;
+		float ShiftX = 0.0f;
+		float ShiftY = 0.0f;
+		float ShiftZ = 0.0f;
+
+		float GridScale = 2.5f;
+	};
+	std::vector<GridModifications> Modifications;*/
+
+	static std::vector<float> Modifications = {
+		0.300000f, 0.100000f, 0.020000f, 1.430000f,
+		0.450000f, 0.130000f, 0.090000f, 1.410000f,
+		0.410000f, -0.310000f, 0.300000f, 1.390000f,
+		0.340000f, 0.130000f, 0.470000f, 1.330000f,
+		-0.390000f, 0.060000f, -0.440000f, 1.400000f,
+		-0.350000f, -0.020000f, 0.380000f, 1.340000f,
+		-0.300000f, 0.480000f, -0.500000f, 1.280000f,
+		-0.390000f, 0.060000f, 0.370000f, 1.290000f,
+		-0.120000f, 0.270000f, 0.300000f, 1.300000f,
+		0.030000f, -0.060000f, -0.290000f, 1.410000f,
+		-0.240000f, -0.130000f, -0.130000f, 1.250000f,
+		0.220000f, -0.320000f, 0.160000f, 1.300000f,
+		-0.360000f, -0.010000f, -0.190000f, 1.270000f,
+		-0.200000f, -0.220000f, -0.140000f, 1.440000f,
+		0.340000f, -0.100000f, -0.060000f, 1.280000f,
+		-0.210000f, 0.290000f, 0.090000f, 1.270000f,
+		0.130000f, 0.010000f, 0.180000f, 1.250000f,
+		0.090000f, 0.460000f, 0.350000f, 1.460000f,
+		-0.500000f, -0.090000f, 0.320000f, 1.250000f,
+		-0.200000f, 0.080000f, -0.320000f, 1.260000f,
+		-0.390000f, -0.440000f, 0.420000f, 1.410000f,
+		0.260000f, -0.040000f, 0.400000f, 1.440000f,
+		-0.020000f, -0.010000f, 0.290000f, 1.400000f,
+		-0.020000f, -0.370000f, 0.280000f, 1.390000f,
+		0.240000f, -0.320000f, -0.290000f, 1.410000f,
+		-0.100000f, 0.360000f, -0.110000f, 1.420000f,
+		-0.270000f, -0.490000f, 0.470000f, 1.250000f,
+		-0.450000f, 0.390000f, -0.310000f, 1.280000f,
+		0.440000f, -0.290000f, -0.360000f, 1.460000f,
+		0.000000f, -0.050000f, -0.370000f, 1.400000f,
+		-0.060000f, 0.120000f, 0.430000f, 1.270000f,
+		-0.490000f, 0.410000f, 0.150000f, 1.270000f,
+		-0.500000f, 0.370000f, -0.040000f, 1.390000f,
+		0.380000f, -0.210000f, 0.040000f, 1.320000f,
+		0.280000f, 0.340000f, -0.430000f, 1.270000f,
+		-0.410000f, -0.450000f, 0.330000f, 1.430000f,
+		-0.180000f, -0.370000f, 0.070000f, 1.280000f,
+		-0.110000f, -0.310000f, 0.400000f, 1.300000f,
+		-0.060000f, 0.270000f, 0.240000f, 1.320000f,
+		-0.390000f, 0.480000f, 0.180000f, 1.260000f,
+		-0.390000f, 0.100000f, 0.070000f, 1.330000f,
+		-0.260000f, -0.230000f, 0.450000f, 1.430000f,
+		0.480000f, 0.080000f, -0.140000f, 1.470000f,
+		0.330000f, -0.380000f, -0.350000f, 1.310000f,
+		0.180000f, 0.200000f, -0.330000f, 1.490000f,
+		-0.230000f, -0.110000f, 0.070000f, 1.250000f,
+		0.190000f, -0.230000f, -0.330000f, 1.480000f,
+		0.480000f, 0.150000f, 0.290000f, 1.410000f,
+		-0.210000f, 0.240000f, 0.180000f, 1.320000f,
+		0.450000f, -0.230000f, 0.240000f, 1.480000f,
+		0.400000f, 0.370000f, -0.060000f, 1.450000f,
+		0.080000f, -0.500000f, 0.200000f, 1.370000f,
+		-0.240000f, -0.380000f, 0.440000f, 1.430000f,
+		-0.230000f, -0.210000f, 0.240000f, 1.390000f,
+		-0.320000f, -0.050000f, 0.330000f, 1.370000f,
+		-0.030000f, -0.470000f, -0.320000f, 1.480000f,
+		0.320000f, 0.160000f, 0.460000f, 1.460000f,
+		0.270000f, 0.430000f, 0.410000f, 1.380000f,
+		0.240000f, -0.470000f, -0.190000f, 1.430000f,
+		0.480000f, -0.420000f, -0.240000f, 1.490000f,
+		-0.400000f, -0.270000f, 0.060000f, 1.450000f,
+		0.280000f, 0.430000f, -0.010000f, 1.490000f,
+		-0.190000f, 0.110000f, -0.100000f, 1.450000f,
+		-0.210000f, -0.040000f, 0.340000f, 1.440000f,
+	};
+
+	std::vector<float> ModificationsTest;
+	float Step = 0.3f;
+	float Start = -0.2f;
+
+	for (size_t i = 0; i < 4; i++)
+	{
+		for (size_t j = 0; j < 4; j++)
+		{
+			for (size_t k = 0; k < 4; k++)
+			{
+				ModificationsTest.push_back(Start + Step * i);
+				ModificationsTest.push_back(Start + Step * j);
+				ModificationsTest.push_back(Start + Step * k);
+				ModificationsTest.push_back(1.0f /*+ Step / 3 * i * j * k*/);
+			}
+		}
+	}
+
+	std::vector<float>* WhatToUse = &Modifications;
+	if (bTestJitter)
+		WhatToUse = &ModificationsTest;
+	JitterToDoCount = WhatToUse->size() / 4;
+
+	//JitterToDoCount = 1;
+
+	for (size_t i = 0; i < JitterToDoCount; i++)
+	{
+		/*RUGOSITY_MANAGER.shiftX = rand() % int(KernelSize);
+		RUGOSITY_MANAGER.shiftX -= KernelSize / 2.0f;
 		RUGOSITY_MANAGER.shiftX /= 100.0f;
 
-		RUGOSITY_MANAGER.shiftY = rand() % int(kernelSize);
-		RUGOSITY_MANAGER.shiftY -= kernelSize / 2.0f;
+		RUGOSITY_MANAGER.shiftY = rand() % int(KernelSize);
+		RUGOSITY_MANAGER.shiftY -= KernelSize / 2.0f;
 		RUGOSITY_MANAGER.shiftY /= 100.0f;
 
-		RUGOSITY_MANAGER.shiftZ = rand() % int(kernelSize);
-		RUGOSITY_MANAGER.shiftZ -= kernelSize / 2.0f;
+		RUGOSITY_MANAGER.shiftZ = rand() % int(KernelSize);
+		RUGOSITY_MANAGER.shiftZ -= KernelSize / 2.0f;
 		RUGOSITY_MANAGER.shiftZ /= 100.0f;
 
 		RUGOSITY_MANAGER.GridScale = DEFAULT_GRID_SIZE;
 		float TempGridScale = rand() % GRID_VARIANCE;
 		TempGridScale /= 100.0f;
-		RUGOSITY_MANAGER.GridScale += TempGridScale;
+		RUGOSITY_MANAGER.GridScale += TempGridScale;*/
+
+		RUGOSITY_MANAGER.shiftX = WhatToUse->operator[](i * 4);
+		RUGOSITY_MANAGER.shiftY = WhatToUse->operator[](i * 4 + 1);
+		RUGOSITY_MANAGER.shiftZ = WhatToUse->operator[](i * 4 + 2);
+		RUGOSITY_MANAGER.GridScale = WhatToUse->operator[](i * 4 + 3);
+
+		/*GridModifications New;
+		New.ShiftX = RUGOSITY_MANAGER.shiftX;
+		New.ShiftY = RUGOSITY_MANAGER.shiftY;
+		New.ShiftZ = RUGOSITY_MANAGER.shiftZ;
+
+		New.GridScale = RUGOSITY_MANAGER.GridScale;
+
+		Modifications.push_back(New);
+
+		Result += std::to_string(New.ShiftX) + ", " + std::to_string(New.ShiftY) + ", " + std::to_string(New.ShiftZ) + ", " + std::to_string(New.GridScale) + ",\n";*/
 
 		RunCreationOfSDFAsync(true);
 	}
+
+	int y = 0;
+	y++;
 }
 
 std::string RugosityManager::colorSchemeIndexToString(int index)

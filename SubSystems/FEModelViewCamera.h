@@ -7,26 +7,37 @@ namespace FocalEngine
 	class FEModelViewCamera : public FEBasicCamera
 	{
 	public:
-		FEModelViewCamera(std::string name);
+		FEModelViewCamera(std::string Name);
 		~FEModelViewCamera();
 
-		void keyboardInput(int key, int scancode, int action, int mods) final;
-		void mouseMoveInput(double xpos, double ypos) final;
-		void move(float deltaTime = 0.0f);
+		void KeyboardInput(int Key, int Scancode, int Action, int Mods) final;
+		void MouseMoveInput(double Xpos, double Ypos) final;
+		void MouseScrollInput(double Xoffset, double Yoffset) final;
+		void Move(float DeltaTime = 0.0f) override;
 
-		void reset() override;
-		void updateViewMatrix();
+		void Reset() override;
+		void UpdateViewMatrix() override;
 
-		double CurrentPolarAngle = 90.0;
-		double CurrentAzimutAngle = 90.0;
+		double GetPolarAngle();
+		void SetPolarAngle(double NewValue);
+		double GetAzimutAngle();
+		void SetAzimutAngle(double NewValue);
 
 		double GetDistanceToModel();
 		void SetDistanceToModel(double NewValue);
-	private:
-		int lastMouseX = 0;
-		int lastMouseY = 0;
 
-		double DistancetoModel = 10.0;
+		glm::vec3 GetTrackingObjectPosition();
+		void SetTrackingObjectPosition(glm::vec3 NewValue);
+	private:
+		int LastMouseX = 0;
+		int LastMouseY = 0;
+
+		double DistanceToModel = 10.0;
+		double CurrentPolarAngle = 90.0;
+		double CurrentAzimutAngle = 90.0;
+
+		glm::vec3 TrackingObjectPosition = glm::vec3(0.0f);
+
 		glm::dvec3 PolarToCartesian(double PolarAngle, double AzimutAngle, double R = 1.0);
 	};
 }

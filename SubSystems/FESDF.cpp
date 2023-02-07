@@ -11,10 +11,10 @@ glm::dvec3 mouseRay(double mouseX, double mouseY, FEBasicCamera* currentCamera)
 	normalizedMouseCoords.y = 1.0f - (2.0f * (mouseY)) / H;
 
 	const glm::dvec4 clipCoords = glm::dvec4(normalizedMouseCoords.x, normalizedMouseCoords.y, -1.0, 1.0);
-	glm::dvec4 eyeCoords = glm::inverse(currentCamera->getProjectionMatrix()) * clipCoords;
+	glm::dvec4 eyeCoords = glm::inverse(currentCamera->GetProjectionMatrix()) * clipCoords;
 	eyeCoords.z = -1.0f;
 	eyeCoords.w = 0.0f;
-	glm::dvec3 worldRay = glm::inverse(currentCamera->getViewMatrix()) * eyeCoords;
+	glm::dvec3 worldRay = glm::inverse(currentCamera->GetViewMatrix()) * eyeCoords;
 	worldRay = glm::normalize(worldRay);
 
 	return worldRay;
@@ -449,6 +449,11 @@ void SDF::CalculateRugosity()
 		{
 			for (size_t k = 0; k < Data[i][j].size(); k++)
 			{
+				if (i == 28 && j == 47 && k == 68)
+				{
+					int y = 0;
+					y++;
+				}
 				CalculateCellRugosity(&Data[i][j][k]);
 			}
 		}
@@ -485,7 +490,7 @@ void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 T
 					continue;
 
 				FEAABB FinalAABB = Data[i][j][k].AABB.transform(TransformMat).transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
-				if (FinalAABB.rayIntersect(CurrentCamera->getPosition(), mouseRay(MouseX, MouseY, CurrentCamera), DistanceToCell))
+				if (FinalAABB.rayIntersect(CurrentCamera->GetPosition(), mouseRay(MouseX, MouseY, CurrentCamera), DistanceToCell))
 				{
 					if (LastDistanceToCell > DistanceToCell)
 					{

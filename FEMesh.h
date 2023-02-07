@@ -46,6 +46,7 @@ namespace FocalEngine
 	class MeshLayer
 	{
 		FEMesh* ParentMesh = nullptr;
+		std::string ID;
 		std::string Caption = "Layer caption";
 		std::string UserNote;
 

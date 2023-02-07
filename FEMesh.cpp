@@ -257,7 +257,7 @@ bool FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 			TranformedTrianglePoints[j] = Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
-		const bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, TranformedTrianglePoints, currentDistance);
+		const bool hit = intersectWithTriangle(currentCamera->GetPosition(), MouseRay, TranformedTrianglePoints, currentDistance);
 
 		if (hit && currentDistance < lastDistance)
 		{
@@ -291,7 +291,7 @@ glm::vec3 FEMesh::IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentC
 
 		glm::vec3 HitPosition;
 		//bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, Triangles[i], currentDistance, &HitPosition);
-		const bool hit = intersectWithTriangle(currentCamera->getPosition(), MouseRay, TranformedTrianglePoints, currentDistance, &HitPosition);
+		const bool hit = intersectWithTriangle(currentCamera->GetPosition(), MouseRay, TranformedTrianglePoints, currentDistance, &HitPosition);
 
 		if (hit && currentDistance < lastDistance)
 		{

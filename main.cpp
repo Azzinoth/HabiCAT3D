@@ -16,7 +16,7 @@ void SwapCamera(bool bModelCamera)
 	{
 		currentCamera = new FEFreeCamera("mainCamera");
 	}
-	currentCamera->setIsInputActive(false);
+	currentCamera->SetIsInputActive(false);
 
 	UI.SetCamera(currentCamera);
 	RUGOSITY_MANAGER.currentCamera = currentCamera;
@@ -35,10 +35,10 @@ glm::dvec3 mouseRay(double mouseX, double mouseY)
 	normalizedMouseCoords.y = 1.0f - (2.0f * (mouseY)) / H;
 
 	const glm::dvec4 clipCoords = glm::dvec4(normalizedMouseCoords.x, normalizedMouseCoords.y, -1.0, 1.0);
-	glm::dvec4 eyeCoords = glm::inverse(currentCamera->getProjectionMatrix()) * clipCoords;
+	glm::dvec4 eyeCoords = glm::inverse(currentCamera->GetProjectionMatrix()) * clipCoords;
 	eyeCoords.z = -1.0f;
 	eyeCoords.w = 0.0f;
-	glm::dvec3 worldRay = glm::inverse(currentCamera->getViewMatrix()) * eyeCoords;
+	glm::dvec3 worldRay = glm::inverse(currentCamera->GetViewMatrix()) * eyeCoords;
 	worldRay = glm::normalize(worldRay);
 
 	return worldRay;
@@ -64,11 +64,11 @@ void renderTargetCenterForCamera()
 	{
 		FEFreeCamera* FreeCamera = reinterpret_cast<FEFreeCamera*>(currentCamera);
 
-		FreeCamera->setRenderTargetCenterX(centerX);
-		FreeCamera->setRenderTargetCenterY(centerY);
+		FreeCamera->SetRenderTargetCenterX(centerX);
+		FreeCamera->SetRenderTargetCenterY(centerY);
 
-		FreeCamera->setRenderTargetShiftX(shiftX);
-		FreeCamera->setRenderTargetShiftY(shiftY);
+		FreeCamera->SetRenderTargetShiftX(shiftX);
+		FreeCamera->SetRenderTargetShiftY(shiftY);
 	}
 }
 
@@ -122,7 +122,7 @@ void LoadMesh(std::string FileName)
 void mouseMoveCallback(double xpos, double ypos)
 {
 	if (currentCamera != nullptr)
-		currentCamera->mouseMoveInput(xpos, ypos);
+		currentCamera->MouseMoveInput(xpos, ypos);
 
 	mouseX = xpos;
 	mouseY = ypos;
@@ -130,7 +130,7 @@ void mouseMoveCallback(double xpos, double ypos)
 
 void keyButtonCallback(int key, int scancode, int action, int mods)
 {
-	currentCamera->keyboardInput(key, scancode, action, mods);
+	currentCamera->KeyboardInput(key, scancode, action, mods);
 }
 
 void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
@@ -234,17 +234,17 @@ void mouseButtonCallback(int button, int action, int mods)
 {
 	if (ImGui::GetIO().WantCaptureMouse)
 	{
-		currentCamera->setIsInputActive(false);
+		currentCamera->SetIsInputActive(false);
 		return;
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS)
 	{
-		currentCamera->setIsInputActive(true);
+		currentCamera->SetIsInputActive(true);
 	}
 	else if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_RELEASE)
 	{
-		currentCamera->setIsInputActive(false);
+		currentCamera->SetIsInputActive(false);
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
@@ -361,7 +361,7 @@ void windowResizeCallback(int width, int height)
 {
 	int W, H;
 	APPLICATION.GetWindowSize(&W, &H);
-	currentCamera->setAspectRatio(float(W) / float(H));
+	currentCamera->SetAspectRatio(float(W) / float(H));
 
 	UI.ApplyStandardWindowsSizeAndPosition();
 }
@@ -392,8 +392,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
 
 	currentCamera = new FEModelViewCamera("mainCamera");
-	currentCamera->setIsInputActive(false);
-	currentCamera->setAspectRatio(1280.0f / 720.0f);
+	currentCamera->SetIsInputActive(false);
+	currentCamera->SetAspectRatio(1280.0f / 720.0f);
 
 	UI.SetCamera(currentCamera);
 	RUGOSITY_MANAGER.currentCamera = currentCamera;
@@ -408,7 +408,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		APPLICATION.BeginFrame();
 
 		renderTargetCenterForCamera();
-		currentCamera->move(10);
+		currentCamera->Move(10);
 
 		//ImGui::ShowDemoWindow();
 
@@ -423,10 +423,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					iterator->second.updateData(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
 
 				if (iterator->second.nameHash == FEViewMatrix_hash)
-					iterator->second.updateData(currentCamera->getViewMatrix());
+					iterator->second.updateData(currentCamera->GetViewMatrix());
 
 				if (iterator->second.nameHash == FEProjectionMatrix_hash)
-					iterator->second.updateData(currentCamera->getProjectionMatrix());
+					iterator->second.updateData(currentCamera->GetProjectionMatrix());
 
 				iterator++;
 			}

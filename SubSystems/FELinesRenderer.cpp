@@ -34,10 +34,10 @@ void FELinesRenderer::Render(FEBasicCamera* camera)
 	while (iterator != LineShader->parameters.end())
 	{
 		if (iterator->second.nameHash == int(std::hash<std::string>{}("FEViewMatrix")))
-			iterator->second.updateData(camera->getViewMatrix());
+			iterator->second.updateData(camera->GetViewMatrix());
 
 		if (iterator->second.nameHash == int(std::hash<std::string>{}("FEProjectionMatrix")))
-			iterator->second.updateData(camera->getProjectionMatrix());
+			iterator->second.updateData(camera->GetProjectionMatrix());
 
 		iterator++;
 	}

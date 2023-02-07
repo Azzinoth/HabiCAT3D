@@ -9,13 +9,13 @@ namespace FocalEngine
 
 	struct SDFInitData
 	{
-		FEMesh* mesh = nullptr;
-		int dimentions = 4;
+		FEMesh* Mesh = nullptr;
+		int Dimentions = 4;
 		bool UseJitterExpandedAABB = false;
 
-		float shiftX = 0.0f;
-		float shiftY = 0.0f;
-		float shiftZ = 0.0f;
+		float ShiftX = 0.0f;
+		float ShiftY = 0.0f;
+		float ShiftZ = 0.0f;
 
 		float GridScale = 2.5f;
 	};
@@ -40,7 +40,7 @@ namespace FocalEngine
 		static void calculateSDFAsync(void* InputData, void* OutputData);
 		static void calculateSDFCallback(void* OutputData);
 		void RunCreationOfSDFAsync(bool bJitter = false);
-		void calculateRugorsityWithJitterAsyn(int RugosityLayerIndex = 0);
+		void CalculateRugorsityWithJitterAsync(int RugosityLayerIndex = 0);
 
 		std::vector<std::string> dimentionsList;
 
@@ -70,6 +70,8 @@ namespace FocalEngine
 
 		std::vector<std::vector<float>> PerJitterResult;
 		std::vector<float> Result;
+
+		bool bTestJitter = false;
 	private:
 		SINGLETON_PRIVATE_PART(RugosityManager)
 
