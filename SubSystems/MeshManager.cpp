@@ -67,24 +67,24 @@ FEMesh* MeshManager::RawDataToMesh(float* positions, int posSize,
 	GLuint tangentsBufferID = 0;
 	if (tangents != nullptr)
 	{
-		vertexType |= FE_TANGENTS;
-		// tangents
-		FE_GL_ERROR(glGenBuffers(1, &tangentsBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, tangentsBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * tanSize, tangents, GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(3/*FE_TANGENTS*/, 3, GL_FLOAT, false, 0, 0));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+		//vertexType |= FE_TANGENTS;
+		//// tangents
+		//FE_GL_ERROR(glGenBuffers(1, &tangentsBufferID));
+		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, tangentsBufferID));
+		//FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * tanSize, tangents, GL_STATIC_DRAW));
+		//FE_GL_ERROR(glVertexAttribPointer(3/*FE_TANGENTS*/, 3, GL_FLOAT, false, 0, 0));
+		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
 	}
 
 	GLuint UVBufferID = 0;
 	if (UV != nullptr)
 	{
 		// UV
-		FE_GL_ERROR(glGenBuffers(1, &UVBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, UVBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * UVSize, UV, GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(4/*FE_UV*/, 2, GL_FLOAT, false, 0, 0));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+		//FE_GL_ERROR(glGenBuffers(1, &UVBufferID));
+		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, UVBufferID));
+		//FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * UVSize, UV, GL_STATIC_DRAW));
+		//FE_GL_ERROR(glVertexAttribPointer(4/*FE_UV*/, 2, GL_FLOAT, false, 0, 0));
+		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
 	}
 
 	FEMesh* newMesh = new FEMesh(vaoID, indexSize, vertexType, Name);
@@ -177,6 +177,7 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 	}
 
 	char* Buffer = new char[4];
+	long long ArraySize = 0;
 
 	// version of FEMesh file type
 	File.read(Buffer, 4);
@@ -189,37 +190,43 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	File.read(Buffer, 4);
 	const int VertexCount = *(int*)Buffer;
-	char* VertexBuffer = new char[VertexCount * 4];
-	File.read(VertexBuffer, VertexCount * 4);
+	ArraySize = long long(VertexCount) * long long(4);
+	char* VertexBuffer = new char[ArraySize];
+	File.read(VertexBuffer, ArraySize);
 
 	File.read(Buffer, 4);
 	const int ColorCount = *(int*)Buffer;
 	char* ColorBuffer = nullptr;
 	if (ColorCount != 0)
 	{
-		ColorBuffer = new char[ColorCount * 4];
-		File.read(ColorBuffer, ColorCount * 4);
+		ArraySize = long long(ColorCount) * long long(4);
+		ColorBuffer = new char[ArraySize];
+		File.read(ColorBuffer, ArraySize);
 	}
 
 	File.read(Buffer, 4);
 	const int TexCout = *(int*)Buffer;
-	char* TexBuffer = new char[TexCout * 4];
-	File.read(TexBuffer, TexCout * 4);
+	ArraySize = long long(TexCout) * long long(4);
+	char* TexBuffer = new char[ArraySize];
+	File.read(TexBuffer, ArraySize);
 
 	File.read(Buffer, 4);
 	const int NormCout = *(int*)Buffer;
-	char* NormBuffer = new char[NormCout * 4];
-	File.read(NormBuffer, NormCout * 4);
+	ArraySize = long long(NormCout) * long long(4);
+	char* NormBuffer = new char[ArraySize];
+	File.read(NormBuffer, ArraySize);
 
 	File.read(Buffer, 4);
 	const int TangCout = *(int*)Buffer;
-	char* TangBuffer = new char[TangCout * 4];
-	File.read(TangBuffer, TangCout * 4);
+	ArraySize = long long(TangCout) * long long(4);
+	char* TangBuffer = new char[ArraySize];
+	File.read(TangBuffer, ArraySize);
 
 	File.read(Buffer, 4);
 	const int IndexCout = *(int*)Buffer;
-	char* IndexBuffer = new char[IndexCout * 4];
-	File.read(IndexBuffer, IndexCout * 4);
+	ArraySize = long long(IndexCout) * long long(4);
+	char* IndexBuffer = new char[ArraySize];
+	File.read(IndexBuffer, ArraySize);
 
 	File.read(Buffer, 4);
 	const int LayerCount = *(int*)Buffer;

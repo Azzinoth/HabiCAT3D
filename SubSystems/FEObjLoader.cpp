@@ -186,6 +186,8 @@ void FEObjLoader::readFile(const char* fileName)
 		return;
 	}
 
+#define NEW_LOAD
+#ifdef NEW_LOAD
 	std::ifstream File(fileName, std::ios::binary);
 	const auto begin = File.tellg();
 	File.seekg(0, std::ios::end);
@@ -203,38 +205,40 @@ void FEObjLoader::readFile(const char* fileName)
 			
 		if (NewChar == '\n')
 		{
-			CurrentLine.erase(CurrentLine.end() - 2, CurrentLine.end());
+			CurrentLine.erase(CurrentLine.end() - 1, CurrentLine.end());
 			readLine(std::stringstream(CurrentLine), loadedObjects.back());
 
 			CurrentLine = "";
 		}
 	}
 
-	//std::ifstream file;
-	//file.open(fileName);
+#else
+	std::ifstream file;
+	file.open(fileName);
 
-	//if ((file.rdstate() & std::ifstream::failbit) != 0)
-	//{
-	//	//LOG.add(std::string("can't load file: ") + fileName + " in function FEObjLoader::readFile.", FE_LOG_ERROR, FE_LOG_LOADING);
-	//	return;
-	//}
+	if ((file.rdstate() & std::ifstream::failbit) != 0)
+	{
+		//LOG.add(std::string("can't load file: ") + fileName + " in function FEObjLoader::readFile.", FE_LOG_ERROR, FE_LOG_LOADING);
+		return;
+	}
 
-	//std::stringstream fileData;
-	//// read file to fileData and close it.
-	//fileData << file.rdbuf();
-	//file.close();
+	std::stringstream fileData;
+	// read file to fileData and close it.
+	fileData << file.rdbuf();
+	file.close();
 
-	////size_t testCount = fileData.str().size();
+	//size_t testCount = fileData.str().size();
 
-	//std::string line;
-	//while (std::getline(fileData, line))
-	//{
-	//	// read next line
-	//	std::stringstream lineStream;
-	//	lineStream << line;
+	std::string line;
+	while (std::getline(fileData, line))
+	{
+		// read next line
+		std::stringstream lineStream;
+		lineStream << line;
 
-	//	readLine(lineStream, loadedObjects.back());
-	//}
+		readLine(lineStream, loadedObjects.back());
+	}
+#endif NEW_LOAD
 
 	if (!forceOneMesh)
 	{

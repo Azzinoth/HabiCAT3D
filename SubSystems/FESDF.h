@@ -1,5 +1,7 @@
 #pragma once
 
+//#define NODE_PER_THREAD
+
 #include "MeshManager.h"
 #include "FEFreeCamera.h"
 #include "FEModelViewCamera.h"
@@ -195,7 +197,16 @@ namespace FocalEngine
 		void FillMeshWithRugosityData();
 
 		void CalculateCellRugosity(SDFNode* Node, std::string* DebugInfo = nullptr);
-
+#ifdef NODE_PER_THREAD
+		struct CalculateCellRugosityAsyncData
+		{
+			SDF* SDF;
+			//std::vector<SDFNode*> Nodes;
+			std::vector<glm::vec3> Coordinates;
+			//int x, y, z;
+		};
+		static void CalculateCellRugosityAsync(void* Input, void* Output);
+#endif
 		float TimeTookToGenerateInMS = 0.0f;
 		float TimeTookFillCellsWithTriangleInfo = 0.0f;
 		float TimeTookCalculateRugosity = 0.0f;

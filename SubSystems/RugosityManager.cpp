@@ -188,7 +188,7 @@ void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
 
 void RugosityManager::RunCreationOfSDFAsync(bool bJitter)
 {
-	OnRugosityCalculationsStart();
+	//OnRugosityCalculationsStart();
 
 	SDFInitData* InputData = new SDFInitData();
 	InputData->Dimentions = SDFDimention;
@@ -204,8 +204,12 @@ void RugosityManager::RunCreationOfSDFAsync(bool bJitter)
 	OutputData->bFindSmallestRugosity = RUGOSITY_MANAGER.bUseFindSmallestRugosity;
 	OutputData->bCGALVariant = RUGOSITY_MANAGER.bUseCGALVariant;
 	currentSDF = OutputData;
-
+#ifdef NODE_PER_THREAD
+	calculateSDFAsync(InputData, OutputData);
+	calculateSDFCallback(OutputData);
+#else
 	THREAD_POOL.Execute(calculateSDFAsync, InputData, OutputData, calculateSDFCallback);
+#endif
 }
 
 void RugosityManager::CalculateRugorsityWithJitterAsync(int RugosityLayerIndex)
@@ -298,6 +302,67 @@ void RugosityManager::CalculateRugorsityWithJitterAsync(int RugosityLayerIndex)
 		-0.210000f, -0.040000f, 0.340000f, 1.440000f,
 	};
 
+	static std::vector<float> SphereJitter = {
+		0.0000, 1.0000, -0.0000, 1.430000f,
+		1.0000, 0.0000, -0.0000, 1.410000f,
+		0.0000, 0.0000, -1.0000, 1.390000f,
+		-1.0000, 0.0000, -0.0000, 1.330000f,
+		0.0000, 0.0000, 1.0000, 1.400000f,
+		0.0000, -1.0000, -0.0000, 1.340000f,
+		0.5000, 0.8660, -0.0000, 1.280000f,
+		0.8660, 0.5000, -0.0000, 1.290000f,
+		0.0000, 0.8660, -0.5000, 1.300000f,
+		0.0000, 0.5000, -0.8660, 1.410000f,
+		-0.5000, 0.8660, -0.0000, 1.250000f,
+		-0.8660, 0.5000, -0.0000, 1.300000f,
+		0.0000, 0.8660, 0.5000, 1.270000f,
+		0.0000, 0.5000, 0.8660, 1.440000f,
+		0.5000, -0.8660, -0.0000, 1.280000f,
+		0.8660, -0.5000, -0.0000, 1.270000f,
+		0.0000, -0.8660, -0.5000, 1.250000f,
+		0.0000, -0.5000, -0.8660, 1.460000f,
+		-0.5000, -0.8660, -0.0000, 1.250000f,
+		-0.8660, -0.5000, -0.0000, 1.260000f,
+		0.0000, -0.8660, 0.5000, 1.410000f,
+		0.0000, -0.5000, 0.8660, 1.440000f,
+		0.8660, 0.0000, -0.5000, 1.400000f,
+		0.5000, 0.0000, -0.8660, 1.390000f,
+		-0.5000, 0.0000, -0.8660, 1.410000f,
+		-0.8660, 0.0000, -0.5000, 1.420000f,
+		-0.8660, 0.0000, 0.5000, 1.250000f,
+		-0.5000, 0.0000, 0.8660, 1.280000f,
+		0.5000, 0.0000, 0.8660, 1.460000f,
+		0.8660, 0.0000, 0.5000, 1.400000f,
+		0.5477, 0.6325, -0.5477, 1.270000f,
+		-0.5477, 0.6325, -0.5477, 1.270000f,
+		-0.5477, 0.6325, 0.5477, 1.390000f,
+		0.5477, 0.6325, 0.5477, 1.320000f,
+		0.5477, -0.6325, -0.5477, 1.270000f,
+		-0.5477, -0.6325, -0.5477, 1.430000f,
+		-0.5477, -0.6325, 0.5477, 1.280000f,
+		0.5477, -0.6325, 0.5477, 1.300000f,
+		0.0000, 0.5000, -0.0000, 1.320000f,
+		0.4714, -0.1667, -0.0000, 1.260000f,
+		-0.2357, -0.1667, -0.4082, 1.330000f,
+		-0.2357, -0.1667, 0.4082, 1.430000f,
+		0.2973, 0.4020, -0.0000, 1.470000f,
+		0.4781, 0.1463, -0.0000, 1.310000f,
+		-0.1487, 0.4020, -0.2575, 1.490000f,
+		-0.2391, 0.1463, -0.4140, 1.250000f,
+		-0.1487, 0.4020, 0.2575, 1.480000f,
+		-0.2391, 0.1463, 0.4140, 1.410000f,
+		0.3294, -0.2742, -0.2575, 1.320000f,
+		0.0583, -0.2742, -0.4140, 1.480000f,
+		0.3294, -0.2742, 0.2575, 1.450000f,
+		0.0583, -0.2742, 0.4140, 1.370000f,
+		-0.3877, -0.2742, -0.1565, 1.430000f,
+		-0.3877, -0.2742, 0.1565, 1.390000f,
+		0.2132, 0.2611, -0.3693, 1.370000f,
+		-0.4264, 0.2611, -0.0000, 1.480000f,
+		0.2132, 0.2611, 0.3693, 1.460000f,
+		0.1040, -0.4891, -0.0000, 1.380000f,
+	};
+
 	std::vector<float> ModificationsTest;
 	float Step = 0.3f;
 	float Start = -0.2f;
@@ -317,11 +382,14 @@ void RugosityManager::CalculateRugorsityWithJitterAsync(int RugosityLayerIndex)
 	}
 
 	std::vector<float>* WhatToUse = &Modifications;
-	if (bTestJitter)
+	/*if (bTestJitter)
 		WhatToUse = &ModificationsTest;
-	JitterToDoCount = WhatToUse->size() / 4;
+	if (bTestSphereJitter)
+		WhatToUse = &SphereJitter;*/
 
-	//JitterToDoCount = 1;
+	// This jitter is stable and more easy to explain.
+	WhatToUse = &SphereJitter;
+	JitterToDoCount = WhatToUse->size() / 4;
 
 	for (size_t i = 0; i < JitterToDoCount; i++)
 	{
@@ -360,9 +428,6 @@ void RugosityManager::CalculateRugorsityWithJitterAsync(int RugosityLayerIndex)
 
 		RunCreationOfSDFAsync(true);
 	}
-
-	int y = 0;
-	y++;
 }
 
 std::string RugosityManager::colorSchemeIndexToString(int index)

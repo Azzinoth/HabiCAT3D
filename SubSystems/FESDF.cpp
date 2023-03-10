@@ -443,22 +443,66 @@ void SDF::CalculateRugosity()
 {
 	TIME.BeginTimeStamp("Calculate rugosity");
 
+#ifdef NODE_PER_THREAD
+	int const NODES_PER_THREAD = 300;
+	int CurrrentThreadHaveNodes = 0;
+	// Need to delete InputData!!!
+	CalculateCellRugosityAsyncData* InputData = new CalculateCellRugosityAsyncData();
+	InputData->SDF = this;
+
+	int TotalCellsWithTriangles = 0;
+#endif
 	for (size_t i = 0; i < Data.size(); i++)
 	{
 		for (size_t j = 0; j < Data[i].size(); j++)
 		{
 			for (size_t k = 0; k < Data[i][j].size(); k++)
 			{
-				if (i == 28 && j == 47 && k == 68)
+#ifdef NODE_PER_THREAD
+				if (Data[i][j][k].TrianglesInCell.empty())
+					continue;
+
+				TotalCellsWithTriangles++;
+
+				//InputData->Nodes.push_back(&Data[i][j][k]);
+				//InputData->Nodes.back()->Value += 1;
+				InputData->Coordinates.push_back(glm::vec3(i, j, k));
+				//InputData->x = i;
+				//InputData->y = j;
+				//InputData->z = k;
+
+				CurrrentThreadHaveNodes++;
+
+				if (CurrrentThreadHaveNodes >= NODES_PER_THREAD)
 				{
-					int y = 0;
-					y++;
+					//std::vector<SDFNode*>& View = InputData->Nodes;
+
+					CurrrentThreadHaveNodes = 0;
+					THREAD_POOL.Execute(CalculateCellRugosityAsync, InputData, nullptr, nullptr);
+
+					// Need to delete InputData!!!
+					InputData = new CalculateCellRugosityAsyncData();
+					InputData->SDF = this;
 				}
+#else
 				CalculateCellRugosity(&Data[i][j][k]);
+#endif
 			}
 		}
 	}
 
+#ifdef NODE_PER_THREAD
+	if (CurrrentThreadHaveNodes != 0)
+	{
+		THREAD_POOL.Execute(CalculateCellRugosityAsync, InputData, nullptr, nullptr);
+	}
+
+	while (THREAD_POOL.IsAnyThreadHaveActiveJob())
+	{
+		Sleep(10);
+		THREAD_POOL.Update();
+	}
+#endif
 	TimeTookCalculateRugosity = TIME.EndTimeStamp("Calculate rugosity");
 }
 
@@ -589,6 +633,26 @@ void SDF::FillMeshWithRugosityData()
 
 	TimeTookFillMeshWithRugosityData = TIME.EndTimeStamp("FillMeshWithRugosityData");
 }
+
+#ifdef NODE_PER_THREAD
+void SDF::CalculateCellRugosityAsync(void* Input, void* Output)
+{
+	if (Input != nullptr)
+	{
+		CalculateCellRugosityAsyncData* InputData = reinterpret_cast<CalculateCellRugosityAsyncData*>(Input);
+
+		for (size_t i = 0; i < InputData->Coordinates.size(); i++)
+		{
+			SDFNode* CurrentNode = &InputData->SDF->Data[int(InputData->Coordinates[i].x)][int(InputData->Coordinates[i].y)][int(InputData->Coordinates[i].z)];
+			InputData->SDF->CalculateCellRugosity(CurrentNode);
+		}
+		/*for (size_t i = 0; i < InputData->Nodes.size(); i++)
+		{
+			InputData->SDF->CalculateCellRugosity(InputData->Nodes[i]);
+		}*/
+	}
+}
+#endif
 
 void SDF::CalculateCellRugosity(SDFNode* Node, std::string* DebugInfo)
 {

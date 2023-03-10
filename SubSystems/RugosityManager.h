@@ -71,7 +71,8 @@ namespace FocalEngine
 		std::vector<std::vector<float>> PerJitterResult;
 		std::vector<float> Result;
 
-		bool bTestJitter = false;
+		/*bool bTestJitter = false;
+		bool bTestSphereJitter = false;*/
 	private:
 		SINGLETON_PRIVATE_PART(RugosityManager)
 

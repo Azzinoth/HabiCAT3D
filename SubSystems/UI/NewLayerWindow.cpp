@@ -186,7 +186,8 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 	}
 
 	ImGui::Checkbox("Delete outliers", &RUGOSITY_MANAGER.bDeleteOutliers);
-	ImGui::Checkbox("bTestJitter", &RUGOSITY_MANAGER.bTestJitter);
+	//ImGui::Checkbox("bTestJitter", &RUGOSITY_MANAGER.bTestJitter);
+	//ImGui::Checkbox("bTestSphereJitter", &RUGOSITY_MANAGER.bTestSphereJitter);
 
 	ImGui::Text("Grid size:");
 	static int SmallScaleFeatures = 0;

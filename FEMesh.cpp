@@ -419,7 +419,10 @@ void FEMesh::AddLayer(MeshLayer NewLayer)
 	}
 }
 
-MeshLayer::MeshLayer() {};
+MeshLayer::MeshLayer()
+{
+	ID = APPLICATION.GetUniqueHexID();
+};
 
 MeshLayer::MeshLayer(FEMesh* Parent, const std::vector<float> TrianglesToData)
 {
