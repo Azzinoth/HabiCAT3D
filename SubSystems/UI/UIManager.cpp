@@ -1578,10 +1578,9 @@ void UIManager::RenderHistogram()
 				}
 			}
 		}
-
-		ImGui::End();
 	}
 
+	ImGui::End();
 	ImGui::PopStyleVar();
 	ImGui::PopStyleVar();
 }
@@ -1754,8 +1753,16 @@ void UIManager::RenderSettingsWindow()
 	if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove))
 	{
 		ImGuiWindow* window = ImGui::FindWindowByName("Settings");
+		auto AppW = APPLICATION.GetWindowWidth();
+		if (window->Size.x >= APPLICATION.GetWindowWidth() * 0.9)
+		{
+			window->Size.x = APPLICATION.GetWindowWidth() * 0.3;
+			window->SizeFull.x = APPLICATION.GetWindowWidth() * 0.3;
+		}
+
 		window->Pos.x = APPLICATION.GetWindowWidth() - (window->SizeFull.x + 1);
 		window->Pos.y = 20;
+		
 
 		if (ImGui::BeginTabBar("##Settings", ImGuiTabBarFlags_None))
 		{

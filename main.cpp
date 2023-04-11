@@ -558,9 +558,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		
 		APPLICATION.EndFrame();
 
-		auto ID = GetCurrentProcess();
+		/*auto ID = GetCurrentProcess();
 		auto test = RAMUsed();
-		int y = 0;
+		int y = 0;*/
 	}
 
 	return 0;
