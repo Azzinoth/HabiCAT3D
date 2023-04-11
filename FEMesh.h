@@ -3,7 +3,7 @@
 #include "FETexture.h"
 #include "SubSystems/FEGeometricTools.h"
 
-#define APP_VERSION 0.21
+#define APP_VERSION 0.26
 
 namespace FocalEngine
 {

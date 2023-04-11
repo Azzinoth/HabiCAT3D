@@ -1,3 +1,10 @@
+#include <windows.h>
+#include <psapi.h>
+//#include <ntddk.h>
+
+//#include <pdh.h>
+//#include <pdhmsg.h>
+//#pragma comment(lib, "pdh.lib")
 
 #include "SubSystems/UI/UIManager.h"
 using namespace FocalEngine;
@@ -366,6 +373,87 @@ void windowResizeCallback(int width, int height)
 	UI.ApplyStandardWindowsSizeAndPosition();
 }
 
+float RAMUsed()
+{
+	//PDH_STATUS status;
+	//PDH_HQUERY query;
+	//PDH_HCOUNTER counter;
+	//PDH_FMT_COUNTERVALUE value;
+
+	//// Open a query object
+	//status = PdhOpenQuery(NULL, NULL, &query);
+	//if (status != ERROR_SUCCESS) {
+	//	std::cerr << "Error opening query: " << status << std::endl;
+	//	return 1;
+	//}
+
+	//// Get the current process ID
+	//DWORD process_id = GetCurrentProcessId();
+
+	//// Add the "Private Bytes" performance counter for the current process
+	//char counter_path[MAX_PATH];
+	//sprintf_s(counter_path, sizeof(counter_path), "\\Process(*)\\Private Bytes");
+	//status = PdhAddEnglishCounter(query, counter_path, process_id, &counter);
+	//if (status != ERROR_SUCCESS) {
+	//	std::cerr << "Error adding counter: " << status << std::endl;
+	//	return 1;
+	//}
+
+	//// Collect the performance data
+	//status = PdhCollectQueryData(query);
+	//if (status != ERROR_SUCCESS) {
+	//	std::cerr << "Error collecting data: " << status << std::endl;
+	//	return 1;
+	//}
+
+	//// Get the counter value
+	//status = PdhGetFormattedCounterValue(counter, PDH_FMT_DOUBLE, NULL, &value);
+	//if (status != ERROR_SUCCESS) {
+	//	std::cerr << "Error getting counter value: " << status << std::endl;
+	//	return 1;
+	//}
+
+
+	//// Print the memory usage
+	//std::cout << "Private Bytes: " << value.doubleValue << " bytes" << std::endl;
+
+	//MEMORYSTATUSEX memInfo;
+	//memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+
+	//if (GlobalMemoryStatusEx(&memInfo)) {
+	//	DWORDLONG totalPhysicalMemory = memInfo.ullTotalPhys;
+	//	DWORDLONG freePhysicalMemory = memInfo.ullAvailPhys;
+	//	DWORDLONG usedPhysicalMemory = totalPhysicalMemory - freePhysicalMemory;
+
+	//	double totalPhysicalMemoryInMB = totalPhysicalMemory / 1024.0 / 1024.0;
+	//	double usedPhysicalMemoryInMB = usedPhysicalMemory / 1024.0 / 1024.0;
+	//	double freePhysicalMemoryInMB = freePhysicalMemory / 1024.0 / 1024.0;
+
+	//	double freeRAMPercent = freePhysicalMemoryInMB / totalPhysicalMemoryInMB * 100.0;
+
+	//	std::cout << "Total Physical Memory: " << totalPhysicalMemory << " bytes" << std::endl;
+	//	std::cout << "Free Physical Memory: " << freePhysicalMemory << " bytes" << std::endl;
+	//	std::cout << "Used Physical Memory: " << usedPhysicalMemory << " bytes" << std::endl;
+	//}
+	//else {
+	//	std::cerr << "Error getting memory information" << std::endl;
+	//	return 1;
+	//}
+
+	PROCESS_MEMORY_COUNTERS_EX pmc;
+	GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+	SIZE_T MemCommited = pmc.PrivateUsage;
+	SIZE_T MemWorkingSet = pmc.WorkingSetSize;
+
+	float MemCommitedInKB = float(MemCommited) / 1024.0f;
+	float MemWorkingSetInKB = float(MemWorkingSet) / 1024.0f;
+
+	float MemCommitedInMB = MemCommitedInKB/ 1024.0f;
+	float MemWorkingSetInMB = MemWorkingSetInKB / 1024.0f;
+
+	return MemCommitedInMB;
+}
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -469,6 +557,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		}
 		
 		APPLICATION.EndFrame();
+
+		auto ID = GetCurrentProcess();
+		auto test = RAMUsed();
+		int y = 0;
 	}
 
 	return 0;

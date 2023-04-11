@@ -1640,12 +1640,12 @@ void UIManager::RenderAboutWindow()
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
-		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 12\\21\\2022";
+		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 03\\10\\2023";
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
 		ImGui::Text(Text.c_str());
 
-		Text = "commit 7ad436afecf5dfda9b5a7aea382705ce11c4c074";
+		Text = "commit 25a70be3372fe3bc41c5523c07d67361126456bd";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
 		ImGui::Text(Text.c_str());
