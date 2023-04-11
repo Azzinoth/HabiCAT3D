@@ -4,6 +4,7 @@
 #include "../Layers/AreaLayerProducer.h"
 #include "../Layers/TriangleEdgeLayerProducer.h"
 #include "../Layers/CompareLayerProducer.h"
+#include "../Layers/VectorDispersionLayerProducer.h"
 
 class NewLayerWindow
 {
@@ -28,6 +29,8 @@ class NewLayerWindow
 	void RenderTrianglesEdgesLayerSettings();
 	std::vector<std::string> TrianglesEdgesModeNames;
 	int TrianglesEdgesMode = 0;
+
+	void RenderVectorDispersionSettings();
 
 	void RenderSettings();
 public:

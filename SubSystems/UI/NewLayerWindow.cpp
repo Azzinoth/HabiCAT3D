@@ -6,9 +6,10 @@ NewLayerWindow::NewLayerWindow()
 {
 	LayerTypesNames.push_back("Height");
 	LayerTypesNames.push_back("Rugosity");
-	LayerTypesNames.push_back("Comapare layers");
+	LayerTypesNames.push_back("Compare layers");
 	LayerTypesNames.push_back("Triangles area");
 	LayerTypesNames.push_back("Triangles edges");
+	LayerTypesNames.push_back("Vector dispersion");
 
 	TrianglesEdgesModeNames.push_back("Max triangle edge length");
 	TrianglesEdgesModeNames.push_back("Min triangle edge length");
@@ -142,6 +143,14 @@ void NewLayerWindow::AddLayer()
 		case 4:
 		{
 			MESH_MANAGER.ActiveMesh->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh, TrianglesEdgesMode));
+			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+
+			InternalClose();
+			break;
+		}
+		case 5:
+		{
+			MESH_MANAGER.ActiveMesh->AddLayer(VECTOR_DISPERSION_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh, TrianglesEdgesMode));
 			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
 
 			InternalClose();
@@ -321,6 +330,15 @@ void NewLayerWindow::RenderTrianglesEdgesLayerSettings()
 	}
 }
 
+void NewLayerWindow::RenderVectorDispersionSettings()
+{
+	const std::string Text = "No settings available.";
+
+	ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2.0f - ImGui::CalcTextSize(Text.c_str()).x / 2.0f);
+	ImGui::SetCursorPosY(ImGui::GetWindowHeight() / 2.0f - ImGui::CalcTextSize(Text.c_str()).y / 2.0f);
+	ImGui::Text(Text.c_str());
+}
+
 void NewLayerWindow::RenderSettings()
 {
 	switch (Mode)
@@ -348,6 +366,11 @@ void NewLayerWindow::RenderSettings()
 		case 4:
 		{
 			RenderTrianglesEdgesLayerSettings();
+			break;
+		}
+		case 5:
+		{
+			RenderVectorDispersionSettings();
 			break;
 		}
 	}

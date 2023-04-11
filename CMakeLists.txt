@@ -72,6 +72,8 @@ file(GLOB Layers_SRC
 	"SubSystems/Layers/TriangleEdgeLayerProducer.h"
 	"SubSystems/Layers/CompareLayerProducer.cpp"
 	"SubSystems/Layers/CompareLayerProducer.h"
+	"SubSystems/Layers/VectorDispersionLayerProducer.cpp"
+	"SubSystems/Layers/VectorDispersionLayerProducer.h"
 	"SubSystems/Layers/LayerManager.cpp"
 	"SubSystems/Layers/LayerManager.h"
 )
