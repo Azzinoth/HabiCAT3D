@@ -59,6 +59,8 @@ file(GLOB SubSystems_SRC
 	"SubSystems/MeshManager.h"
 	"SubSystems/FESDF.cpp"
 	"SubSystems/FESDF.h"
+	"SubSystems/JitterManager.cpp"
+	"SubSystems/JitterManager.h"
 	"SubSystems/RugosityManager.cpp"
 	"SubSystems/RugosityManager.h"
 )

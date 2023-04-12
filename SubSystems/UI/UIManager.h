@@ -87,6 +87,8 @@ namespace FocalEngine
 		static void OnRugosityCalculationsStart();
 		static void OnRugosityCalculationsEnd(MeshLayer NewLayer);
 
+		static void OnVectorDispersionCalculationsEnd(MeshLayer NewLayer);
+
 		bool bOutputSelectionToFile = false;
 
 		void RenderDeveloperModeMainWindow();

@@ -336,11 +336,6 @@ void RugosityManager::calculateSDFCallback(void* OutputData)
 	}
 	else
 	{
-		//LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
-
-		//MeshLayer New
-		//RUGOSITY_MANAGER.Result
-
 		OnRugosityCalculationsEnd();
 	}
 }

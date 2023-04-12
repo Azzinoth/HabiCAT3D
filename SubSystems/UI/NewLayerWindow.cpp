@@ -150,8 +150,10 @@ void NewLayerWindow::AddLayer()
 		}
 		case 5:
 		{
-			MESH_MANAGER.ActiveMesh->AddLayer(VECTOR_DISPERSION_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh, TrianglesEdgesMode));
-			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+			/*MESH_MANAGER.ActiveMesh->AddLayer(VECTOR_DISPERSION_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh, TrianglesEdgesMode));
+			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);*/
+
+			VECTOR_DISPERSION_LAYER_PRODUCER.CalculateTEST(MESH_MANAGER.ActiveMesh, TrianglesEdgesMode);
 
 			InternalClose();
 			break;

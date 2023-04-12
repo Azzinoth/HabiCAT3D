@@ -30,93 +30,40 @@ double calculateVectorDispersion(const std::vector<std::vector<double>>& surface
 	return sqrt(sumX / x.size() - meanX * meanX + sumY / y.size() - meanY * meanY + sumZ / z.size() - meanZ * meanZ);
 }
 
-MeshLayer VectorDispersionLayerProducer::Calculate(FEMesh* Mesh, int Mode)
+//CurrentNode->Rugosity = DoubleResult;
+
+void VectorDispersionLayerProducer::CalculateTEST(FEMesh* Mesh, int Mode)
 {
 	MeshLayer Result;
 
 	if (Mesh == nullptr)
-		return Result;
+		return;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	auto TriangleCount = Mesh->Triangles.size();
-	std::vector<double> NormalX;
-	std::vector<double> NormalY;
-	std::vector<double> NormalZ;
+	//SDF* CurrentSDF = new SDF();
+	//FEAABB finalAABB = Mesh->AABB;
+	//int SDFDimention = 16;
 
+	//const float cellSize = finalAABB.getSize() / SDFDimention;
 
+	//const glm::vec3 center = Mesh->AABB.getCenter() + glm::vec3(0.0f/*Input->ShiftX, Input->ShiftY, Input->ShiftZ*/) * cellSize;
+	//const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
+	//finalAABB = SDFAABB;
 
+	//float ResolutonInM = 1.0f;
+	//CurrentSDF->Init(0/*Input->dimentions*/, finalAABB, nullptr, ResolutonInM);
+	//CurrentSDF->FillCellsWithTriangleInfo();
 
+	//Result.TrianglesToData.resize(Mesh->Triangles.size());
 
-
-
-
-
-
-
-
-
-
-	/*SDFInitData* InputData = new SDFInitData();
-	InputData->Dimentions = SDFDimention;
-	InputData->Mesh = MESH_MANAGER.ActiveMesh;
-	InputData->UseJitterExpandedAABB = bJitter;
-
-	InputData->ShiftX = RUGOSITY_MANAGER.shiftX;
-	InputData->ShiftY = RUGOSITY_MANAGER.shiftY;
-	InputData->ShiftZ = RUGOSITY_MANAGER.shiftZ;
-	InputData->GridScale = RUGOSITY_MANAGER.GridScale;*/
-
-	SDF* CurrentSDF = new SDF();
-	//OutputData->bFindSmallestRugosity = RUGOSITY_MANAGER.bUseFindSmallestRugosity;
-	//OutputData->bCGALVariant = RUGOSITY_MANAGER.bUseCGALVariant;
-	//currentSDF = OutputData;
-#ifdef NODE_PER_THREAD
-	calculateSDFAsync(InputData, OutputData);
-	calculateSDFCallback(OutputData);
-#else
-	//THREAD_POOL.Execute(calculateSDFAsync, InputData, OutputData, calculateSDFCallback);
-#endif
-
-
-
-
-	//SDF* Output = reinterpret_cast<SDF*>(OutputData);
-
-	FEAABB finalAABB = Mesh->AABB;
-
-	/*glm::mat4 transformMatrix = glm::identity<glm::mat4>();
-	if (Input->UseJitterExpandedAABB)
-	{
-		transformMatrix = glm::scale(transformMatrix, glm::vec3(Input->GridScale));
-		finalAABB = finalAABB.transform(transformMatrix);
-	}*/
-
-	int SDFDimention = 16;
-
-	const float cellSize = finalAABB.getSize() / SDFDimention;
-
-	const glm::vec3 center = Mesh->AABB.getCenter() + glm::vec3(0.0f/*Input->ShiftX, Input->ShiftY, Input->ShiftZ*/) * cellSize;
-	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
-	finalAABB = SDFAABB;
-
-	float ResolutonInM = 1.0f;
-
-	CurrentSDF->Init(0/*Input->dimentions*/, finalAABB, nullptr, ResolutonInM);
-
-
-	CurrentSDF->FillCellsWithTriangleInfo();
-
-
-	Result.TrianglesToData.resize(Mesh->Triangles.size());
-
-	auto WorkOnNode = [&](SDFNode* CurrentNode){
+	auto WorkOnNode = [&](SDFNode* CurrentNode) {
 		if (CurrentNode->TrianglesInCell.empty())
 			return;
 
-		NormalX.clear();
-		NormalY.clear();
-		NormalZ.clear();
+		std::vector<double> NormalX;
+		std::vector<double> NormalY;
+		std::vector<double> NormalZ;
 
 		for (size_t p = 0; p < CurrentNode->TrianglesInCell.size(); p++)
 		{
@@ -140,83 +87,98 @@ MeshLayer VectorDispersionLayerProducer::Calculate(FEMesh* Mesh, int Mode)
 
 		double DoubleResult = sqrt(sumX / NormalX.size() - meanX * meanX + sumY / NormalY.size() - meanY * meanY + sumZ / NormalZ.size() - meanZ * meanZ);
 
-		for (size_t p = 0; p < CurrentNode->TrianglesInCell.size(); p++)
-		{
-			int TriangleIndex = CurrentNode->TrianglesInCell[p];
-
-			Result.TrianglesToData[TriangleIndex] = DoubleResult;
-		}
+		CurrentNode->Rugosity = DoubleResult;
 	};
 
-	CurrentSDF->RunOnAllNodes(WorkOnNode);
+	JITTER_MANAGER.SetOnCalculationsEndCallback(OnCalculationsEnd);
+	JITTER_MANAGER.CalculateWithSDFJitterAsync(WorkOnNode);
 
+	/*CurrentSDF->RunOnAllNodes(WorkOnNode);
 
-	//for (size_t i = 0; i < CurrentSDF->Data.size(); i++)
-	//{
-	//	for (size_t j = 0; j < CurrentSDF->Data[i].size(); j++)
-	//	{
-	//		for (size_t k = 0; k < CurrentSDF->Data[i][j].size(); k++)
-	//		{
-	//			if (CurrentSDF->Data[i][j][k].TrianglesInCell.empty())
-	//				continue;
-
-	//			NormalX.clear();
-	//			NormalY.clear();
-	//			NormalZ.clear();
-
-	//			for (size_t p = 0; p < CurrentSDF->Data[i][j][k].TrianglesInCell.size(); p++)
-	//			{
-	//				std::vector<glm::vec3> CurrentTriangleNormals = MESH_MANAGER.ActiveMesh->TrianglesNormals[CurrentSDF->Data[i][j][k].TrianglesInCell[p]];
-
-	//				for (size_t l = 0; l < CurrentTriangleNormals.size(); l++)
-	//				{
-	//					NormalX.push_back(CurrentTriangleNormals[l][0]);
-	//					NormalY.push_back(CurrentTriangleNormals[l][1]);
-	//					NormalZ.push_back(CurrentTriangleNormals[l][2]);
-	//				}
-	//			}
-
-	//			double meanX = std::accumulate(NormalX.begin(), NormalX.end(), 0.0) / NormalX.size();
-	//			double meanY = std::accumulate(NormalY.begin(), NormalY.end(), 0.0) / NormalY.size();
-	//			double meanZ = std::accumulate(NormalZ.begin(), NormalZ.end(), 0.0) / NormalZ.size();
-
-	//			double sumX = std::inner_product(NormalX.begin(), NormalX.end(), NormalX.begin(), 0.0);
-	//			double sumY = std::inner_product(NormalY.begin(), NormalY.end(), NormalY.begin(), 0.0);
-	//			double sumZ = std::inner_product(NormalZ.begin(), NormalZ.end(), NormalZ.begin(), 0.0);
-
-	//			double DoubleResult = sqrt(sumX / NormalX.size() - meanX * meanX + sumY / NormalY.size() - meanY * meanY + sumZ / NormalZ.size() - meanZ * meanZ);
-
-	//			for (size_t p = 0; p < CurrentSDF->Data[i][j][k].TrianglesInCell.size(); p++)
-	//			{
-	//				int TriangleIndex = CurrentSDF->Data[i][j][k].TrianglesInCell[p];
-
-	//				Result.TrianglesToData[TriangleIndex] = DoubleResult;
-	//			}
-	//		}
-	//	}
-	//}
-
-	
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector Dispersion"));
 	Result.DebugInfo = new MeshLayerDebugInfo();
 
 	Result.DebugInfo->AddEntry("Start time", StarTime);
-	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));*/
+}
 
-	/*std::string ModeUsed = "Unknown.";
-	if (Mode == 0)
-	{
-		ModeUsed = "Max edge length.";
-	}
-	else if (Mode == 1)
-	{
-		ModeUsed = "Min edge length.";
-	}
-	else if (Mode == 2)
-	{
-		ModeUsed = "Mean edge length.";
-	}
-	Result.DebugInfo->AddEntry("Mode: ", ModeUsed);*/
+//MeshLayer VectorDispersionLayerProducer::Calculate(FEMesh* Mesh, int Mode)
+//{
+//	MeshLayer Result;
+//
+//	if (Mesh == nullptr)
+//		return Result;
+//
+//	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+//
+//	SDF* CurrentSDF = new SDF();
+//	FEAABB finalAABB = Mesh->AABB;
+//	int SDFDimention = 16;
+//
+//	const float cellSize = finalAABB.getSize() / SDFDimention;
+//
+//	const glm::vec3 center = Mesh->AABB.getCenter() + glm::vec3(0.0f/*Input->ShiftX, Input->ShiftY, Input->ShiftZ*/) * cellSize;
+//	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
+//	finalAABB = SDFAABB;
+//
+//	float ResolutonInM = 1.0f;
+//	CurrentSDF->Init(0/*Input->dimentions*/, finalAABB, nullptr, ResolutonInM);
+//	CurrentSDF->FillCellsWithTriangleInfo();
+//
+//	Result.TrianglesToData.resize(Mesh->Triangles.size());
+//
+//	auto WorkOnNode = [&](SDFNode* CurrentNode){
+//		if (CurrentNode->TrianglesInCell.empty())
+//			return;
+//
+//		std::vector<double> NormalX;
+//		std::vector<double> NormalY;
+//		std::vector<double> NormalZ;
+//
+//		for (size_t p = 0; p < CurrentNode->TrianglesInCell.size(); p++)
+//		{
+//			std::vector<glm::vec3> CurrentTriangleNormals = MESH_MANAGER.ActiveMesh->TrianglesNormals[CurrentNode->TrianglesInCell[p]];
+//
+//			for (size_t l = 0; l < CurrentTriangleNormals.size(); l++)
+//			{
+//				NormalX.push_back(CurrentTriangleNormals[l][0]);
+//				NormalY.push_back(CurrentTriangleNormals[l][1]);
+//				NormalZ.push_back(CurrentTriangleNormals[l][2]);
+//			}
+//		}
+//
+//		double meanX = std::accumulate(NormalX.begin(), NormalX.end(), 0.0) / NormalX.size();
+//		double meanY = std::accumulate(NormalY.begin(), NormalY.end(), 0.0) / NormalY.size();
+//		double meanZ = std::accumulate(NormalZ.begin(), NormalZ.end(), 0.0) / NormalZ.size();
+//
+//		double sumX = std::inner_product(NormalX.begin(), NormalX.end(), NormalX.begin(), 0.0);
+//		double sumY = std::inner_product(NormalY.begin(), NormalY.end(), NormalY.begin(), 0.0);
+//		double sumZ = std::inner_product(NormalZ.begin(), NormalZ.end(), NormalZ.begin(), 0.0);
+//
+//		double DoubleResult = sqrt(sumX / NormalX.size() - meanX * meanX + sumY / NormalY.size() - meanY * meanY + sumZ / NormalZ.size() - meanZ * meanZ);
+//
+//		for (size_t p = 0; p < CurrentNode->TrianglesInCell.size(); p++)
+//		{
+//			int TriangleIndex = CurrentNode->TrianglesInCell[p];
+//
+//			Result.TrianglesToData[TriangleIndex] = DoubleResult;
+//		}
+//	};
+//
+//	CurrentSDF->RunOnAllNodes(WorkOnNode);
+//	
+//	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector Dispersion"));
+//	Result.DebugInfo = new MeshLayerDebugInfo();
+//
+//	Result.DebugInfo->AddEntry("Start time", StarTime);
+//	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+//
+//	return Result;
+//}
 
-	return Result;
+void VectorDispersionLayerProducer::OnCalculationsEnd(MeshLayer NewLayer)
+{
+	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
+	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector Dispersion"));
+	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
 }
