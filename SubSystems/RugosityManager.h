@@ -97,6 +97,8 @@ namespace FocalEngine
 		static void OnRugosityCalculationsEnd();
 		static void(*OnRugosityCalculationsEndCallbackImpl)(MeshLayer);
 
+		static void CalculateOneNodeRugosity(SDFNode* CurrentNode);
+
 		uint64_t StartTime;
 	};
 

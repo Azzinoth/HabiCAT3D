@@ -186,7 +186,8 @@ namespace FocalEngine
 		glm::vec3 SelectedCell = glm::vec3(0.0);
 
 		void FillCellsWithTriangleInfo();
-		void CalculateRugosity();
+		//void CalculateRugosity();
+		//void CalculateCellRugosity(SDFNode* Node, std::string* DebugInfo = nullptr);
 
 		//std::vector<glm::vec3> highlightedCells;
 
@@ -196,7 +197,6 @@ namespace FocalEngine
 
 		void FillMeshWithRugosityData();
 
-		void CalculateCellRugosity(SDFNode* Node, std::string* DebugInfo = nullptr);
 #ifdef NODE_PER_THREAD
 		struct CalculateCellRugosityAsyncData
 		{
@@ -225,6 +225,8 @@ namespace FocalEngine
 		int RenderingMode = 0;
 		bool bShowTrianglesInCells = true;
 		void UpdateRenderLines();
+
+		void RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func);
 
 		~SDF()
 		{

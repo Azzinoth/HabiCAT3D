@@ -110,51 +110,91 @@ MeshLayer VectorDispersionLayerProducer::Calculate(FEMesh* Mesh, int Mode)
 
 	Result.TrianglesToData.resize(Mesh->Triangles.size());
 
+	auto WorkOnNode = [&](SDFNode* CurrentNode){
+		if (CurrentNode->TrianglesInCell.empty())
+			return;
 
-	for (size_t i = 0; i < CurrentSDF->Data.size(); i++)
-	{
-		for (size_t j = 0; j < CurrentSDF->Data[i].size(); j++)
+		NormalX.clear();
+		NormalY.clear();
+		NormalZ.clear();
+
+		for (size_t p = 0; p < CurrentNode->TrianglesInCell.size(); p++)
 		{
-			for (size_t k = 0; k < CurrentSDF->Data[i][j].size(); k++)
+			std::vector<glm::vec3> CurrentTriangleNormals = MESH_MANAGER.ActiveMesh->TrianglesNormals[CurrentNode->TrianglesInCell[p]];
+
+			for (size_t l = 0; l < CurrentTriangleNormals.size(); l++)
 			{
-				if (CurrentSDF->Data[i][j][k].TrianglesInCell.empty())
-					continue;
-
-				NormalX.clear();
-				NormalY.clear();
-				NormalZ.clear();
-
-				for (size_t p = 0; p < CurrentSDF->Data[i][j][k].TrianglesInCell.size(); p++)
-				{
-					std::vector<glm::vec3> CurrentTriangleNormals = MESH_MANAGER.ActiveMesh->TrianglesNormals[CurrentSDF->Data[i][j][k].TrianglesInCell[p]];
-
-					for (size_t l = 0; l < CurrentTriangleNormals.size(); l++)
-					{
-						NormalX.push_back(CurrentTriangleNormals[l][0]);
-						NormalY.push_back(CurrentTriangleNormals[l][1]);
-						NormalZ.push_back(CurrentTriangleNormals[l][2]);
-					}
-				}
-
-				double meanX = std::accumulate(NormalX.begin(), NormalX.end(), 0.0) / NormalX.size();
-				double meanY = std::accumulate(NormalY.begin(), NormalY.end(), 0.0) / NormalY.size();
-				double meanZ = std::accumulate(NormalZ.begin(), NormalZ.end(), 0.0) / NormalZ.size();
-
-				double sumX = std::inner_product(NormalX.begin(), NormalX.end(), NormalX.begin(), 0.0);
-				double sumY = std::inner_product(NormalY.begin(), NormalY.end(), NormalY.begin(), 0.0);
-				double sumZ = std::inner_product(NormalZ.begin(), NormalZ.end(), NormalZ.begin(), 0.0);
-
-				double DoubleResult = sqrt(sumX / NormalX.size() - meanX * meanX + sumY / NormalY.size() - meanY * meanY + sumZ / NormalZ.size() - meanZ * meanZ);
-
-				for (size_t p = 0; p < CurrentSDF->Data[i][j][k].TrianglesInCell.size(); p++)
-				{
-					int TriangleIndex = CurrentSDF->Data[i][j][k].TrianglesInCell[p];
-
-					Result.TrianglesToData[TriangleIndex] = DoubleResult;
-				}
+				NormalX.push_back(CurrentTriangleNormals[l][0]);
+				NormalY.push_back(CurrentTriangleNormals[l][1]);
+				NormalZ.push_back(CurrentTriangleNormals[l][2]);
 			}
 		}
-	}
+
+		double meanX = std::accumulate(NormalX.begin(), NormalX.end(), 0.0) / NormalX.size();
+		double meanY = std::accumulate(NormalY.begin(), NormalY.end(), 0.0) / NormalY.size();
+		double meanZ = std::accumulate(NormalZ.begin(), NormalZ.end(), 0.0) / NormalZ.size();
+
+		double sumX = std::inner_product(NormalX.begin(), NormalX.end(), NormalX.begin(), 0.0);
+		double sumY = std::inner_product(NormalY.begin(), NormalY.end(), NormalY.begin(), 0.0);
+		double sumZ = std::inner_product(NormalZ.begin(), NormalZ.end(), NormalZ.begin(), 0.0);
+
+		double DoubleResult = sqrt(sumX / NormalX.size() - meanX * meanX + sumY / NormalY.size() - meanY * meanY + sumZ / NormalZ.size() - meanZ * meanZ);
+
+		for (size_t p = 0; p < CurrentNode->TrianglesInCell.size(); p++)
+		{
+			int TriangleIndex = CurrentNode->TrianglesInCell[p];
+
+			Result.TrianglesToData[TriangleIndex] = DoubleResult;
+		}
+	};
+
+	CurrentSDF->RunOnAllNodes(WorkOnNode);
+
+
+	//for (size_t i = 0; i < CurrentSDF->Data.size(); i++)
+	//{
+	//	for (size_t j = 0; j < CurrentSDF->Data[i].size(); j++)
+	//	{
+	//		for (size_t k = 0; k < CurrentSDF->Data[i][j].size(); k++)
+	//		{
+	//			if (CurrentSDF->Data[i][j][k].TrianglesInCell.empty())
+	//				continue;
+
+	//			NormalX.clear();
+	//			NormalY.clear();
+	//			NormalZ.clear();
+
+	//			for (size_t p = 0; p < CurrentSDF->Data[i][j][k].TrianglesInCell.size(); p++)
+	//			{
+	//				std::vector<glm::vec3> CurrentTriangleNormals = MESH_MANAGER.ActiveMesh->TrianglesNormals[CurrentSDF->Data[i][j][k].TrianglesInCell[p]];
+
+	//				for (size_t l = 0; l < CurrentTriangleNormals.size(); l++)
+	//				{
+	//					NormalX.push_back(CurrentTriangleNormals[l][0]);
+	//					NormalY.push_back(CurrentTriangleNormals[l][1]);
+	//					NormalZ.push_back(CurrentTriangleNormals[l][2]);
+	//				}
+	//			}
+
+	//			double meanX = std::accumulate(NormalX.begin(), NormalX.end(), 0.0) / NormalX.size();
+	//			double meanY = std::accumulate(NormalY.begin(), NormalY.end(), 0.0) / NormalY.size();
+	//			double meanZ = std::accumulate(NormalZ.begin(), NormalZ.end(), 0.0) / NormalZ.size();
+
+	//			double sumX = std::inner_product(NormalX.begin(), NormalX.end(), NormalX.begin(), 0.0);
+	//			double sumY = std::inner_product(NormalY.begin(), NormalY.end(), NormalY.begin(), 0.0);
+	//			double sumZ = std::inner_product(NormalZ.begin(), NormalZ.end(), NormalZ.begin(), 0.0);
+
+	//			double DoubleResult = sqrt(sumX / NormalX.size() - meanX * meanX + sumY / NormalY.size() - meanY * meanY + sumZ / NormalZ.size() - meanZ * meanZ);
+
+	//			for (size_t p = 0; p < CurrentSDF->Data[i][j][k].TrianglesInCell.size(); p++)
+	//			{
+	//				int TriangleIndex = CurrentSDF->Data[i][j][k].TrianglesInCell[p];
+
+	//				Result.TrianglesToData[TriangleIndex] = DoubleResult;
+	//			}
+	//		}
+	//	}
+	//}
 
 	
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector Dispersion"));

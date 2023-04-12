@@ -478,11 +478,11 @@ void UIManager::RenderDeveloperModeMainWindow()
 
 		static std::string debugText;
 
-		if (ImGui::Button("Show debug info"))
-		{
-			RUGOSITY_MANAGER.currentSDF->CalculateCellRugosity(&RUGOSITY_MANAGER.currentSDF->
-				Data[int(RUGOSITY_MANAGER.currentSDF->SelectedCell.x)][int(RUGOSITY_MANAGER.currentSDF->SelectedCell.y)][int(RUGOSITY_MANAGER.currentSDF->SelectedCell.z)], &debugText);
-		}
+		//if (ImGui::Button("Show debug info"))
+		//{
+		//	RUGOSITY_MANAGER.currentSDF->CalculateCellRugosity(&RUGOSITY_MANAGER.currentSDF->
+		//		Data[int(RUGOSITY_MANAGER.currentSDF->SelectedCell.x)][int(RUGOSITY_MANAGER.currentSDF->SelectedCell.y)][int(RUGOSITY_MANAGER.currentSDF->SelectedCell.z)], &debugText);
+		//}
 
 		ImGui::Text(debugText.c_str());
 	}
