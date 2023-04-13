@@ -10,7 +10,6 @@ VectorDispersionLayerProducer::VectorDispersionLayerProducer()
 
 VectorDispersionLayerProducer::~VectorDispersionLayerProducer() {}
 
-
 void VectorDispersionLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult)
 {
 	if (Mesh == nullptr)

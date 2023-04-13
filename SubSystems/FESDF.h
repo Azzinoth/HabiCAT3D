@@ -1,7 +1,5 @@
 #pragma once
 
-//#define NODE_PER_THREAD
-
 #include "MeshManager.h"
 #include "FEFreeCamera.h"
 #include "FEModelViewCamera.h"
@@ -82,17 +80,14 @@ namespace FocalEngine
 
 		std::vector<std::vector<std::vector<SDFNode>>> Data;
 		glm::vec3 AverageNormal;
+		glm::vec3 SelectedCell = glm::vec3(0.0);
 
 		std::vector<triangleData> GetTrianglesData();
 		SDF();
 		SDF(int Dimentions, FEAABB AABB, FEBasicCamera* Camera);
 
 		void Init(int Dimensions, FEAABB AABB, FEBasicCamera* Camera, float ResolutionInM = 0.0f);
-
-		glm::vec3 SelectedCell = glm::vec3(0.0);
-
 		void FillCellsWithTriangleInfo();
-		//std::vector<glm::vec3> highlightedCells;
 
 		void MouseClick(double MouseX, double MouseY, glm::mat4 TransformMat = glm::identity<glm::mat4>());
 
@@ -120,6 +115,7 @@ namespace FocalEngine
 		void UpdateRenderLines();
 
 		void RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func);
+		//float GetSignedDistanceForNode(SDFNode* Node);
 
 		~SDF()
 		{

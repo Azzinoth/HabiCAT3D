@@ -358,8 +358,6 @@ void RugosityManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		AlgorithmUsed = RUGOSITY_MANAGER.RugosityAlgorithmList[2];
 
 	NewLayer.DebugInfo->AddEntry("Algorithm used", AlgorithmUsed);
-	NewLayer.DebugInfo->AddEntry("Jitter count", JITTER_MANAGER.GetJitterDoneCount());
-	NewLayer.DebugInfo->AddEntry("Resolution used", std::to_string(JITTER_MANAGER.GetResolutonInM()) + " m.");
 
 	std::string DeleteOutliers = "No";
 	// Remove outliers.

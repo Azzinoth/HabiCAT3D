@@ -152,6 +152,54 @@ SDF::SDF()
 
 }
 
+//float SDF::GetSignedDistanceForNode(SDFNode* Node)
+//{
+//	float minDistanceToCentroid = FLT_MAX;
+//	int centroidIndex = -1;
+//	glm::vec3 cellCenter = Node->AABB.getCenter();
+//	for (size_t p = 0; p < centroids.size(); p++)
+//	{
+//		float currentDistance = glm::distance(centroids[p].centroid, cellCenter);
+//		if (currentDistance < minDistanceToCentroid)
+//		{
+//			minDistanceToCentroid = currentDistance;
+//			centroidIndex = p;
+//		}
+//	}
+//
+//	if (centroidIndex != -1)
+//	{
+//		glm::vec3 vectorToCentroid = centroids[centroidIndex].centroid - cellCenter;
+//
+//		// Test whether cell is inside or outside of mesh
+//		if (glm::dot(vectorToCentroid, centroids[centroidIndex].normal) >= 0)
+//		{
+//			minDistanceToCentroid = -minDistanceToCentroid;
+//		}
+//
+//		// https://mathinsight.org/distance_point_plane
+//		// Normal of plane
+//		glm::vec3 N = centroids[centroidIndex].normal;
+//		// Point on plane
+//		glm::vec3 C = centroids[centroidIndex].centroid;
+//		glm::vec3 P = cellCenter;
+//
+//		float D = -N.x * C.x - N.y * C.y - N.z * C.z;
+//		float distance = abs(N.x * P.x + N.y * P.y + N.z * P.z + D) / glm::length(N);
+//
+//		// Distance to plane could be a lot greater than distance to triangle
+//		Node->distanceToTrianglePlane = distance;
+//		if (abs(minDistanceToCentroid) > centroids[centroidIndex].maxSideLength / 2.0f)
+//		{
+//			Node->distanceToTrianglePlane = FLT_MAX;
+//			if (minDistanceToCentroid < 0.0f)
+//				minDistanceToCentroid = -minDistanceToCentroid;
+//		}
+//	}
+//
+//	return minDistanceToCentroid;
+//}
+
 SDF::SDF(const int Dimentions, FEAABB AABB, FEBasicCamera* Camera)
 {
 	if (Dimentions < 1 || Dimentions > 4096)
@@ -188,53 +236,8 @@ SDF::SDF(const int Dimentions, FEAABB AABB, FEBasicCamera* Camera)
 			for (size_t k = 0; k < Dimentions; k++)
 			{
 				glm::vec3 CurrentAABBMin = start + glm::vec3(CellSize * i, CellSize * j, CellSize * k);
-
 				Data[i][j][k].AABB = FEAABB(CurrentAABBMin, CurrentAABBMin + glm::vec3(CellSize));
-
-				//float minDistanceToCentroid = FLT_MAX;
-				//int centroidIndex = -1;
-				//glm::vec3 cellCenter = data[i][j][k].AABB.getCenter();
-				//for (size_t p = 0; p < centroids.size(); p++)
-				//{
-				//	float currentDistance = glm::distance(centroids[p].centroid, cellCenter);
-				//	if (currentDistance < minDistanceToCentroid)
-				//	{
-				//		minDistanceToCentroid = currentDistance;
-				//		centroidIndex = p;
-				//	}
-				//}
-
-				//if (centroidIndex != -1)
-				//{
-				//	glm::vec3 vectorToCentroid = centroids[centroidIndex].centroid - cellCenter;
-
-				//	// Test whether cell is inside or outside of mesh
-				//	if (glm::dot(vectorToCentroid, centroids[centroidIndex].normal) >= 0)
-				//	{
-				//		minDistanceToCentroid = -minDistanceToCentroid;
-				//	}
-
-				//	// https://mathinsight.org/distance_point_plane
-				//	// Normal of plane
-				//	glm::vec3 N = centroids[centroidIndex].normal;
-				//	// Point on plane
-				//	glm::vec3 C = centroids[centroidIndex].centroid;
-				//	glm::vec3 P = cellCenter;
-
-				//	float D = -N.x * C.x - N.y * C.y - N.z * C.z;
-				//	float distance = abs(N.x * P.x + N.y * P.y + N.z * P.z + D) / glm::length(N);
-
-				//	// Distance to plane could be a lot greater than distance to triangle
-				//	data[i][j][k].distanceToTrianglePlane = distance;
-				//	if (abs(minDistanceToCentroid) > centroids[centroidIndex].maxSideLength / 2.0f)
-				//	{
-				//		data[i][j][k].distanceToTrianglePlane = FLT_MAX;
-				//		if (minDistanceToCentroid < 0.0f)
-				//			minDistanceToCentroid = -minDistanceToCentroid;
-				//	}
-				//}
-
-				//data[i][j][k].value = minDistanceToCentroid;
+				//float SignedDistance = GetSignedDistanceForNode(&Data[i][j][k]);
 			}
 		}
 	}
@@ -304,53 +307,8 @@ void SDF::Init(int Dimensions, FEAABB AABB, FEBasicCamera* Camera, const float R
 			for (size_t k = 0; k < Dimensions; k++)
 			{
 				glm::vec3 CurrentAABBMin = start + glm::vec3(CellSize * i, CellSize * j, CellSize * k);
-
 				Data[i][j][k].AABB = FEAABB(CurrentAABBMin, CurrentAABBMin + glm::vec3(CellSize));
-
-				//float minDistanceToCentroid = FLT_MAX;
-				//int centroidIndex = -1;
-				//glm::vec3 cellCenter = data[i][j][k].AABB.getCenter();
-				//for (size_t p = 0; p < centroids.size(); p++)
-				//{
-				//	float currentDistance = glm::distance(centroids[p].centroid, cellCenter);
-				//	if (currentDistance < minDistanceToCentroid)
-				//	{
-				//		minDistanceToCentroid = currentDistance;
-				//		centroidIndex = p;
-				//	}
-				//}
-
-				//if (centroidIndex != -1)
-				//{
-				//	glm::vec3 vectorToCentroid = centroids[centroidIndex].centroid - cellCenter;
-
-				//	// Test whether cell is inside or outside of mesh
-				//	if (glm::dot(vectorToCentroid, centroids[centroidIndex].normal) >= 0)
-				//	{
-				//		minDistanceToCentroid = -minDistanceToCentroid;
-				//	}
-
-				//	// https://mathinsight.org/distance_point_plane
-				//	// Normal of plane
-				//	glm::vec3 N = centroids[centroidIndex].normal;
-				//	// Point on plane
-				//	glm::vec3 C = centroids[centroidIndex].centroid;
-				//	glm::vec3 P = cellCenter;
-
-				//	float D = -N.x * C.x - N.y * C.y - N.z * C.z;
-				//	float distance = abs(N.x * P.x + N.y * P.y + N.z * P.z + D) / glm::length(N);
-
-				//	// Distance to plane could be a lot greater than distance to triangle
-				//	data[i][j][k].distanceToTrianglePlane = distance;
-				//	if (abs(minDistanceToCentroid) > centroids[centroidIndex].maxSideLength / 2.0f)
-				//	{
-				//		data[i][j][k].distanceToTrianglePlane = FLT_MAX;
-				//		if (minDistanceToCentroid < 0.0f)
-				//			minDistanceToCentroid = -minDistanceToCentroid;
-				//	}
-				//}
-
-				//data[i][j][k].value = minDistanceToCentroid;
+				//float SignedDistance = GetSignedDistanceForNode(&Data[i][j][k]);
 			}
 		}
 	}
