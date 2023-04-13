@@ -81,8 +81,13 @@ void FEObjLoader::readLine(std::stringstream& lineStream, FERawOBJData* data)
 			lineStream >> sTemp;
 			newVec[i] = std::stof(sTemp);
 		}
+		
+		glm::vec3 NormilizedVector = glm::normalize(newVec);
 
-		data->rawNormalCoordinates.push_back(newVec);
+		if (isnan(NormilizedVector.x) || isnan(NormilizedVector.y) || isnan(NormilizedVector.z))
+			NormilizedVector = glm::vec3(0.0f);
+
+		data->rawNormalCoordinates.push_back(NormilizedVector);
 	}
 	// if this line contains indices
 	else if (sTemp[0] == 'f' && sTemp.size() == 1)
