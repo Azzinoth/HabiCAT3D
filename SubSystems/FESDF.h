@@ -73,7 +73,7 @@ namespace FocalEngine
 		glm::vec3 AverageCellNormal = glm::vec3(0.0f);
 		glm::vec3 CellTrianglesCentroid = glm::vec3(0.0f);
 		FEPlane* ApproximateProjectionPlane = nullptr;
-		double Rugosity = 0.0;
+		double UserData = 0.0;
 	};
 
 	struct SDF
@@ -92,9 +92,6 @@ namespace FocalEngine
 		glm::vec3 SelectedCell = glm::vec3(0.0);
 
 		void FillCellsWithTriangleInfo();
-		//void CalculateRugosity();
-		//void CalculateCellRugosity(SDFNode* Node, std::string* DebugInfo = nullptr);
-
 		//std::vector<glm::vec3> highlightedCells;
 
 		void MouseClick(double MouseX, double MouseY, glm::mat4 TransformMat = glm::identity<glm::mat4>());
@@ -103,16 +100,6 @@ namespace FocalEngine
 
 		void FillMeshWithRugosityData();
 
-#ifdef NODE_PER_THREAD
-		struct CalculateCellRugosityAsyncData
-		{
-			SDF* SDF;
-			//std::vector<SDFNode*> Nodes;
-			std::vector<glm::vec3> Coordinates;
-			//int x, y, z;
-		};
-		static void CalculateCellRugosityAsync(void* Input, void* Output);
-#endif
 		float TimeTookToGenerateInMS = 0.0f;
 		float TimeTookFillCellsWithTriangleInfo = 0.0f;
 		float TimeTookCalculateRugosity = 0.0f;
@@ -124,7 +111,7 @@ namespace FocalEngine
 		bool bFindSmallestRugosity = false;
 		bool bCGALVariant = false;
 
-		std::vector<float> TrianglesRugosity;
+		std::vector<float> TrianglesUserData;
 		
 		bool bFullyLoaded = false;
 

@@ -26,7 +26,6 @@ void SwapCamera(bool bModelCamera)
 	currentCamera->SetIsInputActive(false);
 
 	UI.SetCamera(currentCamera);
-	RUGOSITY_MANAGER.currentCamera = currentCamera;
 }
 
 double mouseX;
@@ -484,7 +483,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	currentCamera->SetAspectRatio(1280.0f / 720.0f);
 
 	UI.SetCamera(currentCamera);
-	RUGOSITY_MANAGER.currentCamera = currentCamera;
 	UI.SwapCameraImpl = SwapCamera;
 
 	MESH_MANAGER.AddLoadCallback(AfterMeshLoads);

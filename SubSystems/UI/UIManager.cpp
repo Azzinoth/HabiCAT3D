@@ -8,6 +8,9 @@ UIManager::UIManager()
 	HeatMapColorRange.SetPosition(ImVec2(0, 20));
 	Graph.SetPosition(ImVec2(5, 20));
 
+	JITTER_MANAGER.SetOnCalculationsStartCallback(OnJitterCalculationsStart);
+	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
+
 	RUGOSITY_MANAGER.SetOnRugosityCalculationsEndCallback(OnRugosityCalculationsEnd);
 	RUGOSITY_MANAGER.SetOnRugosityCalculationsStartCallback(OnRugosityCalculationsStart);
 
@@ -319,26 +322,22 @@ void UIManager::RenderDeveloperModeMainWindow()
 		RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync(1);
 	}
 
-	ImGui::Separator();
+	/*ImGui::Separator();
 	if (ImGui::Button("Generate SDF"))
 	{
 		RUGOSITY_MANAGER.JitterToDoCount = 1;
 		RUGOSITY_MANAGER.RunCreationOfSDFAsync(MESH_MANAGER.ActiveMesh);
-	}
+	}*/
 
 	ImGui::Text(("For current mesh \n Min value : "
-		+ std::to_string(RUGOSITY_MANAGER.LowestResolution)
+		+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
 		+ " m \n Max value : "
-		+ std::to_string(RUGOSITY_MANAGER.HigestResolution) + " m").c_str());
+		+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
 
 	ImGui::SetNextItemWidth(128);
-	ImGui::DragFloat("##ResolutonInM", &RUGOSITY_MANAGER.ResolutonInM, 0.01f);
-
-	if (RUGOSITY_MANAGER.ResolutonInM < RUGOSITY_MANAGER.LowestResolution)
-		RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.LowestResolution;
-
-	if (RUGOSITY_MANAGER.ResolutonInM > RUGOSITY_MANAGER.HigestResolution)
-		RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.HigestResolution;
+	float TempResoluton = JITTER_MANAGER.GetResolutonInM();
+	ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
+	JITTER_MANAGER.SetResolutonInM(TempResoluton);
 
 	ImGui::Checkbox("Weighted normals", &RUGOSITY_MANAGER.bWeightedNormals);
 	ImGui::Checkbox("Normalized normals", &RUGOSITY_MANAGER.bNormalizedNormals);
@@ -352,11 +351,11 @@ void UIManager::RenderDeveloperModeMainWindow()
 		TimeTookToJitter = float(TIME.EndTimeStamp("TimeTookToJitter"));
 	}
 
-	ImGui::SameLine();
+	/*ImGui::SameLine();
 	ImGui::SetNextItemWidth(100);
 	ImGui::DragInt("Smoothing factor", &RUGOSITY_MANAGER.JitterToDoCount);
 	if (RUGOSITY_MANAGER.JitterToDoCount < 2)
-		RUGOSITY_MANAGER.JitterToDoCount = 2;
+		RUGOSITY_MANAGER.JitterToDoCount = 2;*/
 
 	if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
 	{
@@ -474,7 +473,7 @@ void UIManager::RenderDeveloperModeMainWindow()
 			//RENDERER.drawLine(NormalStart, NormalEnd, glm::vec3(0.1f, 0.1f, 0.9f), 0.25f);
 		}
 
-		ImGui::Text(("Rugosity : " + std::to_string(CurrentlySelectedCell.Rugosity)).c_str());
+		ImGui::Text(("Rugosity : " + std::to_string(CurrentlySelectedCell.UserData)).c_str());
 
 		static std::string debugText;
 
@@ -494,7 +493,7 @@ void UIManager::RenderUserModeMainWindow()
 
 	if (ImGui::Button("Calculate rugosity"))
 	{
-		RUGOSITY_MANAGER.JitterToDoCount = 64;
+		//RUGOSITY_MANAGER.JitterToDoCount = 64;
 		RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
 
 		MESH_MANAGER.ActiveMesh->HeatMapType = 5;
@@ -502,12 +501,12 @@ void UIManager::RenderUserModeMainWindow()
 
 	ImGui::Text("Grid size:");
 	static int SmallScaleFeatures = 0;
-	if (ImGui::RadioButton(("Small (Grid size - " + std::to_string(RUGOSITY_MANAGER.LowestResolution) + " m)").c_str(), &SmallScaleFeatures, 0))
+	if (ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 0))
 	{
 
 	}
 
-	if (ImGui::RadioButton(("Large (Grid size - " + std::to_string(RUGOSITY_MANAGER.HigestResolution) + " m)").c_str(), &SmallScaleFeatures, 1))
+	if (ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 1))
 	{
 
 	}
@@ -519,27 +518,23 @@ void UIManager::RenderUserModeMainWindow()
 
 	if (SmallScaleFeatures == 0)
 	{
-		RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.LowestResolution;
+		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
 	}
 	else if (SmallScaleFeatures == 1)
 	{
-		RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.HigestResolution;
+		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
 	}
 	else
 	{
 		ImGui::Text(("For current mesh \n Min value : "
-			+ std::to_string(RUGOSITY_MANAGER.LowestResolution)
+			+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
 			+ " m \n Max value : "
-			+ std::to_string(RUGOSITY_MANAGER.HigestResolution) + " m").c_str());
+			+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
 
 		ImGui::SetNextItemWidth(128);
-		ImGui::DragFloat("##ResolutonInM", &RUGOSITY_MANAGER.ResolutonInM, 0.01f);
-
-		if (RUGOSITY_MANAGER.ResolutonInM < RUGOSITY_MANAGER.LowestResolution)
-			RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.LowestResolution;
-
-		if (RUGOSITY_MANAGER.ResolutonInM > RUGOSITY_MANAGER.HigestResolution)
-			RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.HigestResolution;
+		float TempResoluton = JITTER_MANAGER.GetResolutonInM();
+		ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
+		JITTER_MANAGER.SetResolutonInM(TempResoluton);
 	}
 
 	ImGui::Separator();
@@ -611,7 +606,7 @@ void UIManager::RenderUserModeMainWindow()
 	{
 		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
-		std::string Text = "Area average rugosity : ";
+		std::string Text = "Area average value : ";
 		float TotalRugosity = 0.0f;
 		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
 		{
@@ -819,7 +814,7 @@ void UIManager::Render()
 		APPLICATION.GetWindowSize(&WindowW, &WindowH);
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
-		float Progress = float(RUGOSITY_MANAGER.JitterDoneCount) / float(RUGOSITY_MANAGER.JitterToDoCount);
+		float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
 		std::string ProgressText = "Progress: " + std::to_string(Progress * 100.0f);
 		ProgressText += " %";
 		ImGui::SetCursorPosX(90);
@@ -1005,6 +1000,12 @@ void UIManager::OnRugosityCalculationsStart()
 	UI.bShouldOpenProgressPopup = true;
 }
 
+void UIManager::OnJitterCalculationsStart()
+{
+	UI.bShouldCloseProgressPopup = false;
+	UI.bShouldOpenProgressPopup = true;
+}
+
 void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 {
 	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
@@ -1012,12 +1013,13 @@ void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 	std::vector<float> TrianglesToStandardDeviation;
+	auto PerJitterResult = JITTER_MANAGER.GetPerJitterResult();
 	for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
 	{
 		std::vector<float> CurrentTriangleResults;
-		for (int j = 0; j < RUGOSITY_MANAGER.JitterToDoCount; j++)
+		for (int j = 0; j < JITTER_MANAGER.GetJitterToDoCount(); j++)
 		{
-			CurrentTriangleResults.push_back(RUGOSITY_MANAGER.PerJitterResult[j][i]);
+			CurrentTriangleResults.push_back(PerJitterResult[j][i]);
 		}
 
 		TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
@@ -1033,7 +1035,10 @@ void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 	DebugInfo->AddEntry("Source layer caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());
 
 	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 2);
+}
 
+void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
+{
 	UI.bShouldCloseProgressPopup = true;
 }
 
@@ -1959,7 +1964,7 @@ void UIManager::RenderSettingsWindow()
 					{
 						MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
-						std::string Text = "Area average rugosity : ";
+						std::string Text = "Area average value : ";
 						float TotalRugosity = 0.0f;
 						for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
 						{

@@ -181,14 +181,6 @@ SDF::SDF(const int Dimentions, FEAABB AABB, FEBasicCamera* Camera)
 	const glm::vec3 start = SDFAABB.getMin();
 	const float CellSize = SDFAABB.getSize() / Dimentions;
 
-	/*std::vector<triangleData> centroids = getTrianglesData(mesh);
-	averageNormal = glm::vec3(0.0f);
-	for (size_t i = 0; i < centroids.size(); i++)
-	{
-		averageNormal += centroids[i].normal;
-	}
-	averageNormal /= centroids.size();*/
-
 	for (size_t i = 0; i < Dimentions; i++)
 	{
 		for (size_t j = 0; j < Dimentions; j++)
@@ -272,7 +264,6 @@ void SDF::Init(int Dimensions, FEAABB AABB, FEBasicCamera* Camera, const float R
 
 	const glm::vec3 center = AABB.getCenter();
 
-	//ResolutionInM = 1.0f;
 	const int MinDimensions = AABB.getSize() / ResolutionInM;
 	Dimensions = DimensionsToPOWDimentions(MinDimensions);
 
@@ -439,73 +430,6 @@ void SDF::FillCellsWithTriangleInfo()
 	TimeTookFillCellsWithTriangleInfo = TIME.EndTimeStamp("Fill cells with triangle info");
 }
 
-//void SDF::CalculateRugosity()
-//{
-//	TIME.BeginTimeStamp("Calculate rugosity");
-//
-//#ifdef NODE_PER_THREAD
-//	int const NODES_PER_THREAD = 300;
-//	int CurrrentThreadHaveNodes = 0;
-//	// Need to delete InputData!!!
-//	CalculateCellRugosityAsyncData* InputData = new CalculateCellRugosityAsyncData();
-//	InputData->SDF = this;
-//
-//	int TotalCellsWithTriangles = 0;
-//#endif
-//	for (size_t i = 0; i < Data.size(); i++)
-//	{
-//		for (size_t j = 0; j < Data[i].size(); j++)
-//		{
-//			for (size_t k = 0; k < Data[i][j].size(); k++)
-//			{
-//#ifdef NODE_PER_THREAD
-//				if (Data[i][j][k].TrianglesInCell.empty())
-//					continue;
-//
-//				TotalCellsWithTriangles++;
-//
-//				//InputData->Nodes.push_back(&Data[i][j][k]);
-//				//InputData->Nodes.back()->Value += 1;
-//				InputData->Coordinates.push_back(glm::vec3(i, j, k));
-//				//InputData->x = i;
-//				//InputData->y = j;
-//				//InputData->z = k;
-//
-//				CurrrentThreadHaveNodes++;
-//
-//				if (CurrrentThreadHaveNodes >= NODES_PER_THREAD)
-//				{
-//					//std::vector<SDFNode*>& View = InputData->Nodes;
-//
-//					CurrrentThreadHaveNodes = 0;
-//					THREAD_POOL.Execute(CalculateCellRugosityAsync, InputData, nullptr, nullptr);
-//
-//					// Need to delete InputData!!!
-//					InputData = new CalculateCellRugosityAsyncData();
-//					InputData->SDF = this;
-//				}
-//#else
-//				CalculateCellRugosity(&Data[i][j][k]);
-//#endif
-//			}
-//		}
-//	}
-//
-//#ifdef NODE_PER_THREAD
-//	if (CurrrentThreadHaveNodes != 0)
-//	{
-//		THREAD_POOL.Execute(CalculateCellRugosityAsync, InputData, nullptr, nullptr);
-//	}
-//
-//	while (THREAD_POOL.IsAnyThreadHaveActiveJob())
-//	{
-//		Sleep(10);
-//		THREAD_POOL.Update();
-//	}
-//#endif
-//	TimeTookCalculateRugosity = TIME.EndTimeStamp("Calculate rugosity");
-//}
-
 void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 TransformMat)
 {
 	SelectedCell = glm::vec3(0.0);
@@ -557,57 +481,8 @@ void SDF::FillMeshWithRugosityData()
 
 	TIME.BeginTimeStamp("FillMeshWithRugosityData");
 
-	const int PosSize = MESH_MANAGER.ActiveMesh->getPositionsCount();
-	float* positions = new float[PosSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(MESH_MANAGER.ActiveMesh->getPositionsBufferID(), 0, sizeof(float) * PosSize, positions));
-
-	const int IndexSize = MESH_MANAGER.ActiveMesh->getIndicesCount();
-	int* indices = new int[IndexSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(MESH_MANAGER.ActiveMesh->getIndicesBufferID(), 0, sizeof(int) * IndexSize, indices));
-
-	std::vector<float> PositionsVector;
-	for (size_t i = 0; i < PosSize; i++)
-	{
-		PositionsVector.push_back(positions[i]);
-	}
-
-	std::vector<int> IndexVector;
-	for (size_t i = 0; i < IndexSize; i++)
-	{
-		IndexVector.push_back(indices[i]);
-	}
-
-	delete positions;
-	delete indices;
-
-	float* colors = new float[PosSize];
-
-	auto SetColorOfVertex = [&](const int Index, const glm::vec3 Color) {
-		colors[Index * 3] = Color.x;
-		colors[Index * 3 + 1] = Color.y;
-		colors[Index * 3 + 2] = Color.z;
-	};
-
-	auto GetVertexOfFace = [&](const int FaceIndex) {
-		std::vector<int> result;
-		result.push_back(IndexVector[FaceIndex * 3]);
-		result.push_back(IndexVector[FaceIndex * 3 + 1]);
-		result.push_back(IndexVector[FaceIndex * 3 + 2]);
-
-		return result;
-	};
-
-	auto setColorOfFace = [&](int faceIndex, glm::vec3 color) {
-		const std::vector<int> faceVertex = GetVertexOfFace(faceIndex);
-
-		for (size_t i = 0; i < faceVertex.size(); i++)
-		{
-			SetColorOfVertex(faceVertex[i], color);
-		}
-	};
-
 	std::vector<int> TrianglesRugosityCount;
-	TrianglesRugosity.resize(MESH_MANAGER.ActiveMesh->Triangles.size());
+	TrianglesUserData.resize(MESH_MANAGER.ActiveMesh->Triangles.size());
 	TrianglesRugosityCount.resize(MESH_MANAGER.ActiveMesh->Triangles.size());
 
 	for (size_t i = 0; i < Data.size(); i++)
@@ -620,233 +495,19 @@ void SDF::FillMeshWithRugosityData()
 				{
 					const int TriangleIndex = Data[i][j][k].TrianglesInCell[l];
 					TrianglesRugosityCount[TriangleIndex]++;
-					TrianglesRugosity[TriangleIndex] += static_cast<float>(Data[i][j][k].Rugosity);
+					TrianglesUserData[TriangleIndex] += static_cast<float>(Data[i][j][k].UserData);
 				}
 			}
 		}
 	}
 
-	for (size_t i = 0; i < TrianglesRugosity.size(); i++)
+	for (size_t i = 0; i < TrianglesUserData.size(); i++)
 	{
-		TrianglesRugosity[i] /= TrianglesRugosityCount[i];
+		TrianglesUserData[i] /= TrianglesRugosityCount[i];
 	}
 
 	TimeTookFillMeshWithRugosityData = TIME.EndTimeStamp("FillMeshWithRugosityData");
 }
-
-#ifdef NODE_PER_THREAD
-void SDF::CalculateCellRugosityAsync(void* Input, void* Output)
-{
-	if (Input != nullptr)
-	{
-		CalculateCellRugosityAsyncData* InputData = reinterpret_cast<CalculateCellRugosityAsyncData*>(Input);
-
-		for (size_t i = 0; i < InputData->Coordinates.size(); i++)
-		{
-			SDFNode* CurrentNode = &InputData->SDF->Data[int(InputData->Coordinates[i].x)][int(InputData->Coordinates[i].y)][int(InputData->Coordinates[i].z)];
-			InputData->SDF->CalculateCellRugosity(CurrentNode);
-		}
-		/*for (size_t i = 0; i < InputData->Nodes.size(); i++)
-		{
-			InputData->SDF->CalculateCellRugosity(InputData->Nodes[i]);
-		}*/
-	}
-}
-#endif
-
-//void SDF::CalculateCellRugosity(SDFNode* Node, std::string* DebugInfo)
-//{
-//	if (Node->TrianglesInCell.empty())
-//		return;
-//
-//	float TotalArea = 0.0f;
-//	for (size_t l = 0; l < Node->TrianglesInCell.size(); l++)
-//	{
-//		TotalArea += static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[Node->TrianglesInCell[l]]);
-//	}
-//
-//	auto CalculateCellRugosity = [&](const glm::vec3 PointOnPlane, const glm::vec3 PlaneNormal) {
-//		double Result = 0.0;
-//		const FEPlane* ProjectionPlane = new FEPlane(PointOnPlane, PlaneNormal);
-//
-//		std::vector<float> Rugosities;
-//		for (int l = 0; l < Node->TrianglesInCell.size(); l++)
-//		{
-//			std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[Node->TrianglesInCell[l]];
-//
-//			glm::vec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
-//			glm::vec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
-//			glm::vec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
-//
-//			const double ProjectionArea = TriangleArea(AProjection, BProjection, CProjection);
-//			const double OriginalArea = MESH_MANAGER.ActiveMesh->TrianglesArea[Node->TrianglesInCell[l]];
-//			Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
-//
-//			if (OriginalArea == 0.0 || ProjectionArea == 0.0)
-//				Rugosities.back() = 1.0f;
-//
-//			if (Rugosities.back() > 100.0f)
-//				Rugosities.back() = 100.0f;
-//		}
-//
-//		// Weighted by triangle area rugosity.
-//		for (int l = 0; l < Node->TrianglesInCell.size(); l++)
-//		{
-//			const float CurrentTriangleCoef = static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[Node->TrianglesInCell[l]] / TotalArea);
-//
-//			Result += Rugosities[l] * CurrentTriangleCoef;
-//
-//			if (isnan(Result))
-//				Result = 1.0f;
-//		}
-//
-//		delete ProjectionPlane;
-//		return Result;
-//	};
-//
-//	if (bCGALVariant)
-//	{
-//		std::vector<float> FEVerticesFinal;
-//		std::vector<int> FEIndicesFinal;
-//
-//		for (int l = 0; l < Node->TrianglesInCell.size(); l++)
-//		{
-//			const int TriangleIndex = Node->TrianglesInCell[l];
-//
-//			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][0][0]);
-//			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][0][1]);
-//			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][0][2]);
-//			FEIndicesFinal.push_back(l * 3);
-//
-//			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][1][0]);
-//			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][1][1]);
-//			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][1][2]);
-//			FEIndicesFinal.push_back(l * 3 + 1);
-//
-//			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][2][0]);
-//			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][2][1]);
-//			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][2][2]);
-//			FEIndicesFinal.push_back(l * 3 + 2);
-//		}
-//
-//		// Formating data to CGAL format.
-//		std::vector<Polygon_3> CGALFaces;
-//		CGALFaces.resize(FEIndicesFinal.size() / 3);
-//		int count = 0;
-//		for (size_t i = 0; i < FEIndicesFinal.size(); i += 3)
-//		{
-//			CGALFaces[count].push_back(FEIndicesFinal[i]);
-//			CGALFaces[count].push_back(FEIndicesFinal[i + 1]);
-//			CGALFaces[count].push_back(FEIndicesFinal[i + 2]);
-//			count++;
-//		}
-//
-//		std::vector<Point_3> CGALPoints;
-//		for (size_t i = 0; i < FEVerticesFinal.size(); i += 3)
-//		{
-//			CGALPoints.push_back(Point_3(FEVerticesFinal[i], FEVerticesFinal[i + 1], FEVerticesFinal[i + 2]));
-//		}
-//
-//		Surface_mesh result;
-//
-//		if (!PMP::is_polygon_soup_a_polygon_mesh(CGALFaces))
-//		{
-//			PMP::repair_polygon_soup(CGALPoints, CGALFaces);
-//			PMP::orient_polygon_soup(CGALPoints, CGALFaces);
-//		}
-//
-//		PMP::polygon_soup_to_polygon_mesh(CGALPoints, CGALFaces, result);
-//
-//		Kernel::Plane_3 plane;
-//		Kernel::Point_3 centroid;
-//
-//		Kernel::FT quality = linear_least_squares_fitting_3(result.points().begin(), result.points().end(), plane, centroid,
-//		                                                    CGAL::Dimension_tag<0>());
-//
-//
-//		const auto CGALNormal = plane.perpendicular_line(centroid);
-//
-//		glm::vec3 Normal = glm::vec3(CGALNormal.direction().vector().x(),
-//									 CGALNormal.direction().vector().y(),
-//									 CGALNormal.direction().vector().z());
-//
-//		Normal = glm::normalize(Normal);
-//
-//		Node->Rugosity = CalculateCellRugosity(Node->CellTrianglesCentroid, Normal);
-//
-//		return;
-//	}
-//
-//	// ******* Getting average normal *******
-//	for (size_t l = 0; l < Node->TrianglesInCell.size(); l++)
-//	{
-//		std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[Node->TrianglesInCell[l]];
-//		std::vector<glm::vec3> CurrentTriangleNormals = MESH_MANAGER.ActiveMesh->TrianglesNormals[Node->TrianglesInCell[l]];
-//
-//		if (bWeightedNormals)
-//		{
-//			const float CurrentTriangleCoef = static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[Node->TrianglesInCell[l]] / TotalArea);
-//
-//			Node->AverageCellNormal += CurrentTriangleNormals[0] * CurrentTriangleCoef;
-//			Node->AverageCellNormal += CurrentTriangleNormals[1] * CurrentTriangleCoef;
-//			Node->AverageCellNormal += CurrentTriangleNormals[2] * CurrentTriangleCoef;
-//		}
-//		else
-//		{
-//			Node->AverageCellNormal += CurrentTriangleNormals[0];
-//			Node->AverageCellNormal += CurrentTriangleNormals[1];
-//			Node->AverageCellNormal += CurrentTriangleNormals[2];
-//		}
-//
-//		Node->CellTrianglesCentroid += CurrentTriangle[0];
-//		Node->CellTrianglesCentroid += CurrentTriangle[1];
-//		Node->CellTrianglesCentroid += CurrentTriangle[2];
-//	}
-//
-//	if (!bWeightedNormals)
-//		Node->AverageCellNormal /= Node->TrianglesInCell.size() * 3;
-//
-//	if (bNormalizedNormals)
-//		Node->AverageCellNormal = glm::normalize(Node->AverageCellNormal);
-//	Node->CellTrianglesCentroid /= Node->TrianglesInCell.size() * 3;
-//	// ******* Getting average normal END *******
-//
-//	if (bFindSmallestRugosity)
-//	{
-//		std::unordered_map<int, float> TriangleNormalsToRugosity;
-//		TriangleNormalsToRugosity[-1] = static_cast<float>(CalculateCellRugosity(Node->CellTrianglesCentroid, Node->AverageCellNormal));
-//
-//		/*for (int i = 0; i < node->trianglesInCell.size(); i++)
-//		{
-//			TriangleNormalsToRugosity[i] = CalculateCellRugosity(mesh->Triangles[node->trianglesInCell[i]][2], mesh->TrianglesNormals[node->trianglesInCell[i]][2]);
-//		}*/
-//
-//		for (int i = 0; i < SphereVectors.size(); i++)
-//		{
-//			TriangleNormalsToRugosity[i] = static_cast<float>(CalculateCellRugosity(glm::vec3(0.0f), SphereVectors[i]));
-//		}
-//
-//		double Min = FLT_MAX;
-//		double Max = -FLT_MAX;
-//		auto MapIt = TriangleNormalsToRugosity.begin();
-//		while (MapIt != TriangleNormalsToRugosity.end())
-//		{
-//			if (MapIt->second < Min)
-//			{
-//				Min = MapIt->second;
-//				Node->Rugosity = Min;
-//			}
-//
-//			MapIt++;
-//		}
-//	}
-//	else
-//	{
-//		Node->Rugosity = CalculateCellRugosity(Node->CellTrianglesCentroid, Node->AverageCellNormal);
-//		if (isnan(Node->Rugosity))
-//			Node->Rugosity = 1.0f;
-//	}
-//}
 
 void SDF::AddLinesOfsdf()
 {

@@ -12,6 +12,7 @@ class NewLayerWindow
 
 	bool bShouldOpen = false;
 	bool bShouldClose = false;
+	bool bSmootherResult = false;
 
 	int Mode = 0;
 	std::vector<std::string> LayerTypesNames;

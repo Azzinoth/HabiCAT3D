@@ -1,7 +1,6 @@
 #pragma once
 
 #include <numeric>
-//#include "../FESDF.h"
 #include "../JitterManager.h"
 #include "LayerManager.h"
 using namespace FocalEngine;
@@ -11,12 +10,12 @@ class VectorDispersionLayerProducer
 public:
 	SINGLETON_PUBLIC_PART(VectorDispersionLayerProducer)
 
-	//MeshLayer Calculate(FEMesh* Mesh, int Mode);
-	void CalculateTEST(FEMesh* Mesh, int Mode);
+	void CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult);
 private:
 	SINGLETON_PRIVATE_PART(VectorDispersionLayerProducer)
 
-	static void OnCalculationsEnd(MeshLayer NewLayer);
+	static void OnJitterCalculationsEnd(MeshLayer NewLayer);
+	bool bWaitForJitterResult = false;
 };
 
 #define VECTOR_DISPERSION_LAYER_PRODUCER VectorDispersionLayerProducer::getInstance()
