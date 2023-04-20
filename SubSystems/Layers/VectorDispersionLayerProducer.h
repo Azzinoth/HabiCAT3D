@@ -1,7 +1,6 @@
 #pragma once
 
 #include <numeric>
-#include "../JitterManager.h"
 #include "LayerManager.h"
 using namespace FocalEngine;
 

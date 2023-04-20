@@ -76,6 +76,8 @@ file(GLOB Layers_SRC
 	"SubSystems/Layers/CompareLayerProducer.h"
 	"SubSystems/Layers/VectorDispersionLayerProducer.cpp"
 	"SubSystems/Layers/VectorDispersionLayerProducer.h"
+	"SubSystems/Layers/FractalDimensionLayerProducer.cpp"
+	"SubSystems/Layers/FractalDimensionLayerProducer.h"
 	"SubSystems/Layers/LayerManager.cpp"
 	"SubSystems/Layers/LayerManager.h"
 )

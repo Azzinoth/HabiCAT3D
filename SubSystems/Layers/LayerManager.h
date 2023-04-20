@@ -1,6 +1,6 @@
 #pragma once
 #include "../MeshManager.h"
-//#include "../JitterManager.h"
+#include "../JitterManager.h"
 using namespace FocalEngine;
 
 namespace FocalEngine

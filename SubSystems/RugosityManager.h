@@ -1,4 +1,5 @@
 #pragma once
+#include "FESDF.h"
 #include "JitterManager.h"
 using namespace FocalEngine;
 

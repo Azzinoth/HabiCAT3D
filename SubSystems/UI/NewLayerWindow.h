@@ -5,6 +5,7 @@
 #include "../Layers/TriangleEdgeLayerProducer.h"
 #include "../Layers/CompareLayerProducer.h"
 #include "../Layers/VectorDispersionLayerProducer.h"
+#include "../Layers/FractalDimensionLayerProducer.h"
 
 class NewLayerWindow
 {
@@ -32,6 +33,7 @@ class NewLayerWindow
 	int TrianglesEdgesMode = 0;
 
 	void RenderVectorDispersionSettings();
+	void RenderFractalDimentionSettings();
 
 	void RenderSettings();
 public:
