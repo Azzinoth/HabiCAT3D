@@ -104,8 +104,6 @@ namespace FocalEngine
 	public:
 		SINGLETON_PUBLIC_PART(RugosityManager)
 
-		SDF* currentSDF = nullptr;
-
 		bool bWeightedNormals = true;
 		bool bNormalizedNormals = true;
 		bool bDeleteOutliers = true;

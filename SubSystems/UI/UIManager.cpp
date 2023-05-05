@@ -382,63 +382,63 @@ void UIManager::RenderDeveloperModeMainWindow()
 
 		ImGui::Text(("Total time: " + std::to_string(RUGOSITY_MANAGER.GetLastTimeTookForCalculation())).c_str());
 
-		if (RUGOSITY_MANAGER.currentSDF != nullptr)
-			ImGui::Text(("debugTotalTrianglesInCells: " + std::to_string(RUGOSITY_MANAGER.currentSDF->DebugTotalTrianglesInCells)).c_str());
+		if (DebugSDF != nullptr)
+			ImGui::Text(("debugTotalTrianglesInCells: " + std::to_string(DebugSDF->DebugTotalTrianglesInCells)).c_str());
 
 		ImGui::Separator();
 
-		if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+		if (DebugSDF != nullptr && DebugSDF->bFullyLoaded)
 		{
 			ImGui::Text("Visualization of SDF:");
 
-			if (ImGui::RadioButton("Do not draw", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 0))
+			if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
 			{
-				RUGOSITY_MANAGER.currentSDF->RenderingMode = 0;
+				DebugSDF->RenderingMode = 0;
 
-				RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+				DebugSDF->UpdateRenderLines();
 				//LINE_RENDERER.clearAll();
 				//LINE_RENDERER.SyncWithGPU();
 			}
 
-			if (ImGui::RadioButton("Show cells with triangles", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 1))
+			if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
 			{
-				RUGOSITY_MANAGER.currentSDF->RenderingMode = 1;
+				DebugSDF->RenderingMode = 1;
 
-				RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+				DebugSDF->UpdateRenderLines();
 				//LINE_RENDERER.clearAll();
-				//addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
+				//addLinesOFSDF(DebugSDF);
 				//LINE_RENDERER.SyncWithGPU();
 			}
 
-			if (ImGui::RadioButton("Show all cells", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 2))
+			if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
 			{
-				RUGOSITY_MANAGER.currentSDF->RenderingMode = 2;
+				DebugSDF->RenderingMode = 2;
 
-				RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+				DebugSDF->UpdateRenderLines();
 				//LINE_RENDERER.clearAll();
-				//addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
+				//addLinesOFSDF(DebugSDF);
 				//LINE_RENDERER.SyncWithGPU();
 			}
 
 			ImGui::Separator();
 		}
 	}
-	else if (RUGOSITY_MANAGER.currentSDF != nullptr && !RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+	else if (DebugSDF != nullptr && !DebugSDF->bFullyLoaded)
 	{
 		ImGui::Text("Creating SDF...");
 	}
 
 	ImGui::Separator();
-	if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->SelectedCell != glm::vec3(0.0))
+	if (DebugSDF != nullptr && DebugSDF->SelectedCell != glm::vec3(0.0))
 	{
-		SDFNode CurrentlySelectedCell = RUGOSITY_MANAGER.currentSDF->Data[int(RUGOSITY_MANAGER.currentSDF->SelectedCell.x)][int(RUGOSITY_MANAGER.currentSDF->SelectedCell.y)][int(RUGOSITY_MANAGER.currentSDF->SelectedCell.z)];
+		SDFNode CurrentlySelectedCell = DebugSDF->Data[int(DebugSDF->SelectedCell.x)][int(DebugSDF->SelectedCell.y)][int(DebugSDF->SelectedCell.z)];
 
 		//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
 		ImGui::Text("Selected cell info: ");
 
-		std::string indexes = "i: " + std::to_string(RUGOSITY_MANAGER.currentSDF->SelectedCell.x);
-		indexes += " j: " + std::to_string(RUGOSITY_MANAGER.currentSDF->SelectedCell.y);
-		indexes += " k: " + std::to_string(RUGOSITY_MANAGER.currentSDF->SelectedCell.z);
+		std::string indexes = "i: " + std::to_string(DebugSDF->SelectedCell.x);
+		indexes += " j: " + std::to_string(DebugSDF->SelectedCell.y);
+		indexes += " k: " + std::to_string(DebugSDF->SelectedCell.z);
 		//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
 		ImGui::Text((indexes).c_str());
 
@@ -479,8 +479,8 @@ void UIManager::RenderDeveloperModeMainWindow()
 
 		//if (ImGui::Button("Show debug info"))
 		//{
-		//	RUGOSITY_MANAGER.currentSDF->CalculateCellRugosity(&RUGOSITY_MANAGER.currentSDF->
-		//		Data[int(RUGOSITY_MANAGER.currentSDF->SelectedCell.x)][int(RUGOSITY_MANAGER.currentSDF->SelectedCell.y)][int(RUGOSITY_MANAGER.currentSDF->SelectedCell.z)], &debugText);
+		//	DebugSDF->CalculateCellRugosity(&DebugSDF->
+		//		Data[int(DebugSDF->SelectedCell.x)][int(DebugSDF->SelectedCell.y)][int(DebugSDF->SelectedCell.z)], &debugText);
 		//}
 
 		ImGui::Text(debugText.c_str());
@@ -1040,6 +1040,7 @@ void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 {
 	UI.bShouldCloseProgressPopup = true;
+	UI.CurrentJitterStepIndexVisualize = JITTER_MANAGER.GetLastUsedJitterSettings().size() - 1;
 }
 
 void UIManager::OnVectorDispersionCalculationsEnd(MeshLayer NewLayer)
@@ -1786,6 +1787,65 @@ float UIManager::FindStandardDeviation(std::vector<float> DataPoints)
 	return std::sqrt(NewMean);
 }
 
+void UIManager::InitDebugSDF(size_t JitterIndex)
+{
+	if (JitterIndex >= JITTER_MANAGER.GetJitterToDoCount())
+		return;
+
+	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
+		return;
+
+	std::vector<SDFInitData_Jitter> UsedSettings;
+	UsedSettings = JITTER_MANAGER.GetLastUsedJitterSettings();
+
+	if (UsedSettings.size() == 0)
+		return;
+		
+	if (JitterIndex < 0 || JitterIndex >= UsedSettings.size())
+		JitterIndex = UsedSettings.size() - 1;
+
+	// We are working with jitter manager
+	// that means that layer should have this info.
+	float CurrentLayerResolutionInM = 0.0f;
+	MeshLayer* Layer = LAYER_MANAGER.GetActiveLayer();
+	for (size_t i = 0; i < Layer->DebugInfo->Entries.size(); i++)
+	{
+		if (Layer->DebugInfo->Entries[i].Name == "Resolution used")
+		{
+			std::string Data = Layer->DebugInfo->Entries[i].RawData;
+			Data.erase(Data.begin() + Data.find(" m."), Data.end());
+			CurrentLayerResolutionInM = atof(Data.c_str());
+			break;
+		}
+	}
+
+	if (CurrentLayerResolutionInM <= 0.0f)
+		return;
+
+	ImGui::Text("Individual jitter steps: ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(190);
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
+
+	delete DebugSDF;
+	DebugSDF = new SDF();
+
+	SDFInitData_Jitter* CurrentSettings = &UsedSettings[JitterIndex];
+	FEAABB finalAABB = MESH_MANAGER.ActiveMesh->AABB;
+
+	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
+	transformMatrix = glm::scale(transformMatrix, glm::vec3(CurrentSettings->GridScale));
+	finalAABB = finalAABB.transform(transformMatrix);
+
+	const glm::vec3 center = MESH_MANAGER.ActiveMesh->AABB.getCenter() + glm::vec3(CurrentSettings->ShiftX, CurrentSettings->ShiftY, CurrentSettings->ShiftZ) * CurrentLayerResolutionInM;
+	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
+	finalAABB = SDFAABB;
+
+	DebugSDF->Init(0, finalAABB, nullptr, CurrentLayerResolutionInM);
+	DebugSDF->FillCellsWithTriangleInfo();
+	DebugSDF->bFullyLoaded = true;
+}
+
 void UIManager::RenderSettingsWindow()
 {
 	if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove))
@@ -2060,36 +2120,99 @@ void UIManager::RenderSettingsWindow()
 					ShowCameraTransform();
 
 					ImGui::Separator();
-					if (RUGOSITY_MANAGER.currentSDF != nullptr && RUGOSITY_MANAGER.currentSDF->bFullyLoaded)
+					if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
 					{
+						if (DebugSDF == nullptr)
+							UI.InitDebugSDF(JITTER_MANAGER.GetJitterToDoCount() - 1);
+
+						std::vector<SDFInitData_Jitter> UsedSettings;
+						UsedSettings = JITTER_MANAGER.GetLastUsedJitterSettings();
+
+						if (UsedSettings.size() > 0)
+						{
+							if (CurrentJitterStepIndexVisualize < 0 || CurrentJitterStepIndexVisualize >= UsedSettings.size())
+								CurrentJitterStepIndexVisualize = UsedSettings.size() - 1;
+
+							//// We are working with jitter manager
+							//// that means that layer should have this info
+							//float CurrentLayerResolutionInM = 0.0f;
+							//MeshLayer* Layer = LAYER_MANAGER.GetActiveLayer();
+							//for (size_t i = 0; i < Layer->DebugInfo->Entries.size(); i++)
+							//{
+							//	if (Layer->DebugInfo->Entries[i].Name == "Resolution used")
+							//	{
+							//		std::string Data = Layer->DebugInfo->Entries[i].RawData;
+							//		Data.erase(Data.begin() + Data.find(" m."), Data.end());
+							//		CurrentLayerResolutionInM = atof(Data.c_str());
+							//	}
+							//}
+
+							//if (CurrentLayerResolutionInM > 0.0f)
+							//{
+								ImGui::Text("Individual jitter steps: ");
+								ImGui::SameLine();
+								ImGui::SetNextItemWidth(190);
+								ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
+								if (ImGui::BeginCombo("##ChooseJitterStep", std::to_string(CurrentJitterStepIndexVisualize).c_str(), ImGuiWindowFlags_None))
+								{
+									for (size_t i = 0; i < UsedSettings.size(); i++)
+									{
+										bool is_selected = (CurrentJitterStepIndexVisualize == i);
+										if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
+										{
+											CurrentJitterStepIndexVisualize = i;
+											int LastSDFRendetingMode = DebugSDF->RenderingMode;
+											InitDebugSDF(CurrentJitterStepIndexVisualize);
+											DebugSDF->RenderingMode = LastSDFRendetingMode;
+											if (DebugSDF->RenderingMode == 1)
+											{
+												DebugSDF->RenderingMode = 1;
+												DebugSDF->UpdateRenderLines();
+											}
+										}
+
+										if (is_selected)
+											ImGui::SetItemDefaultFocus();
+									}
+									ImGui::EndCombo();
+								}
+
+								std::string JitterInfo = "ShiftX: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftX);
+								JitterInfo += " ShiftY: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftY);
+								JitterInfo += " ShiftZ: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftZ);
+								JitterInfo += " GridScale: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].GridScale);
+								ImGui::Text(JitterInfo.c_str());
+							//}
+						}
+						
 						ImGui::Text("Visualization of SDF:");
 
-						if (ImGui::RadioButton("Do not draw", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 0))
+						if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
 						{
-							RUGOSITY_MANAGER.currentSDF->RenderingMode = 0;
+							DebugSDF->RenderingMode = 0;
 
-							RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+							DebugSDF->UpdateRenderLines();
 							//LINE_RENDERER.clearAll();
 							//LINE_RENDERER.SyncWithGPU();
 						}
 
-						if (ImGui::RadioButton("Show cells with triangles", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 1))
+						if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
 						{
-							RUGOSITY_MANAGER.currentSDF->RenderingMode = 1;
+							DebugSDF->RenderingMode = 1;
+							DebugSDF->UpdateRenderLines();
 
-							RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
 							//LINE_RENDERER.clearAll();
-							//addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
+							//addLinesOFSDF(DebugSDF);
 							//LINE_RENDERER.SyncWithGPU();
 						}
 
-						if (ImGui::RadioButton("Show all cells", &RUGOSITY_MANAGER.currentSDF->RenderingMode, 2))
+						if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
 						{
-							RUGOSITY_MANAGER.currentSDF->RenderingMode = 2;
+							DebugSDF->RenderingMode = 2;
 
-							RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+							DebugSDF->UpdateRenderLines();
 							//LINE_RENDERER.clearAll();
-							//addLinesOFSDF(RUGOSITY_MANAGER.currentSDF);
+							//addLinesOFSDF(DebugSDF);
 							//LINE_RENDERER.SyncWithGPU();
 						}
 

@@ -138,9 +138,6 @@ namespace FocalEngine
 
 	struct SDFInitData_Jitter
 	{
-		FEMesh* Mesh = nullptr;
-		int Dimentions = 4;
-
 		float ShiftX = 0.0f;
 		float ShiftY = 0.0f;
 		float ShiftZ = 0.0f;
@@ -169,10 +166,14 @@ namespace FocalEngine
 		int GetJitterToDoCount();
 
 		std::vector<std::vector<float>> GetPerJitterResult();
+
+		SDF* GetLastUsedSDF();
+		std::vector<SDFInitData_Jitter> GetLastUsedJitterSettings();
 	private:
 		SINGLETON_PRIVATE_PART(JitterManager)
 
-		SDF* currentSDF = nullptr;
+		SDF* LastUsedSDF = nullptr;
+		std::vector<SDFInitData_Jitter> LastUsedJitterSettings;
 		std::function<void(SDFNode* currentNode)> CurrentFunc;
 
 		int JitterDoneCount = 0;
@@ -181,7 +182,6 @@ namespace FocalEngine
 		float ResolutonInM = 1.0f;
 		float LowestPossibleResolution = -1.0f;
 		float HigestPossibleResolution = -1.0f;
-		int SDFDimention = 16;
 
 		float ShiftX = 0.0f;
 		float ShiftY = 0.0f;

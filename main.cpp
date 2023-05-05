@@ -273,9 +273,9 @@ void mouseButtonCallback(int button, int action, int mods)
 			UpdateMeshSelectedTrianglesRendering(MESH_MANAGER.ActiveMesh);
 		}
 
-		if (MESH_MANAGER.ActiveMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr)
+		if (MESH_MANAGER.ActiveMesh != nullptr && JITTER_MANAGER.GetLastUsedSDF() != nullptr)
 		{
-			if (RUGOSITY_MANAGER.currentSDF->RenderingMode == 0)
+			if (JITTER_MANAGER.GetLastUsedSDF()->RenderingMode == 0)
 			{
 				/*LINE_RENDERER.clearAll();
 
@@ -315,8 +315,8 @@ void mouseButtonCallback(int button, int action, int mods)
 			}
 			else
 			{
-				RUGOSITY_MANAGER.currentSDF->MouseClick(mouseX, mouseY);
-				RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+				JITTER_MANAGER.GetLastUsedSDF()->MouseClick(mouseX, mouseY);
+				JITTER_MANAGER.GetLastUsedSDF()->UpdateRenderLines();
 			}
 		}
 	}

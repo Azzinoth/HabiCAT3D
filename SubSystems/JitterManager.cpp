@@ -21,8 +21,8 @@ void JitterManager::OnMeshUpdate()
 
 	JITTER_MANAGER.ResolutonInM = JITTER_MANAGER.LowestPossibleResolution;
 
-	delete JITTER_MANAGER.currentSDF;
-	JITTER_MANAGER.currentSDF = nullptr;
+	delete JITTER_MANAGER.LastUsedSDF;
+	JITTER_MANAGER.LastUsedSDF = nullptr;
 }
 
 float JitterManager::GetResolutonInM()
@@ -73,12 +73,21 @@ void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* curr
 		ShiftsToUse = &PseudoRandom64;
 
 	JitterToDoCount = ShiftsToUse->size() / 4;
+	LastUsedJitterSettings.clear();
+	LastUsedJitterSettings.resize(JitterToDoCount);
+
 	for (size_t i = 0; i < JitterToDoCount; i++)
 	{
 		ShiftX = ShiftsToUse->operator[](i * 4);
 		ShiftY = ShiftsToUse->operator[](i * 4 + 1);
 		ShiftZ = ShiftsToUse->operator[](i * 4 + 2);
 		GridScale = ShiftsToUse->operator[](i * 4 + 3);
+
+		// For debug purposes.
+		LastUsedJitterSettings[i].ShiftX = ShiftX;
+		LastUsedJitterSettings[i].ShiftY = ShiftY;
+		LastUsedJitterSettings[i].ShiftZ = ShiftZ;
+		LastUsedJitterSettings[i].GridScale = GridScale;
 
 		RunCreationOfSDFAsync();
 	}
@@ -87,8 +96,6 @@ void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* curr
 void JitterManager::RunCreationOfSDFAsync()
 {
 	SDFInitData_Jitter* InputData = new SDFInitData_Jitter();
-	InputData->Dimentions = SDFDimention;
-	InputData->Mesh = MESH_MANAGER.ActiveMesh;
 
 	InputData->ShiftX = ShiftX;
 	InputData->ShiftY = ShiftY;
@@ -96,7 +103,7 @@ void JitterManager::RunCreationOfSDFAsync()
 	InputData->GridScale = GridScale;
 
 	SDF* OutputData = new SDF();
-	currentSDF = OutputData;
+	LastUsedSDF = OutputData;
 
 	THREAD_POOL.Execute(RunCalculationOnSDFAsync, InputData, OutputData, AfterCalculationFinishSDFCallback);
 }
@@ -135,15 +142,13 @@ void JitterManager::RunCalculationOnSDFAsync(void* InputData, void* OutputData)
 	const SDFInitData_Jitter* Input = reinterpret_cast<SDFInitData_Jitter*>(InputData);
 	SDF* Output = reinterpret_cast<SDF*>(OutputData);
 
-	FEAABB finalAABB = Input->Mesh->AABB;
+	FEAABB finalAABB = MESH_MANAGER.ActiveMesh->AABB;
 
 	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
 	transformMatrix = glm::scale(transformMatrix, glm::vec3(Input->GridScale));
 	finalAABB = finalAABB.transform(transformMatrix);
 
-	const float cellSize = finalAABB.getSize() / Input->Dimentions;
-
-	const glm::vec3 center = Input->Mesh->AABB.getCenter() + glm::vec3(Input->ShiftX, Input->ShiftY, Input->ShiftZ) * cellSize;
+	const glm::vec3 center = MESH_MANAGER.ActiveMesh->AABB.getCenter() + glm::vec3(Input->ShiftX, Input->ShiftY, Input->ShiftZ) * JITTER_MANAGER.ResolutonInM;
 	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
 	finalAABB = SDFAABB;
 
@@ -163,15 +168,15 @@ void JitterManager::AfterCalculationFinishSDFCallback(void* OutputData)
 {
 	SDF* Input = reinterpret_cast<SDF*>(OutputData);
 
-	JITTER_MANAGER.currentSDF = Input;
+	JITTER_MANAGER.LastUsedSDF = Input;
 	JITTER_MANAGER.JitterDoneCount++;
 
-	JITTER_MANAGER.MoveResultDataFromSDF(JITTER_MANAGER.currentSDF);
+	JITTER_MANAGER.MoveResultDataFromSDF(JITTER_MANAGER.LastUsedSDF);
 
 	if (JITTER_MANAGER.JitterDoneCount != JITTER_MANAGER.JitterToDoCount)
 	{
-		delete JITTER_MANAGER.currentSDF;
-		JITTER_MANAGER.currentSDF = nullptr;
+		delete JITTER_MANAGER.LastUsedSDF;
+		JITTER_MANAGER.LastUsedSDF = nullptr;
 	}
 	else
 	{
@@ -282,4 +287,14 @@ void JitterManager::SetOnCalculationsEndCallback(std::function<void(MeshLayer Cu
 std::vector<std::vector<float>> JitterManager::GetPerJitterResult()
 {
 	return JITTER_MANAGER.PerJitterResult;
+}
+
+SDF* JitterManager::GetLastUsedSDF()
+{
+	return LastUsedSDF;
+}
+
+std::vector<SDFInitData_Jitter> JitterManager::GetLastUsedJitterSettings()
+{
+	return LastUsedJitterSettings;
 }

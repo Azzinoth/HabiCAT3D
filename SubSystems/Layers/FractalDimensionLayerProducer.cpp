@@ -45,7 +45,8 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 		return;
 
 	// Generate a sequence of box sizes
-	std::vector<double> boxSizes = generateBoxSizes(1.0 / 256, 0.5, 2);
+	double VozelSize = CurrentNode->AABB.getMax()[0] - CurrentNode->AABB.getMin()[0];
+	std::vector<double> boxSizes = { VozelSize / 64.0, VozelSize / 32.0, VozelSize / 16.0, VozelSize / 8.0, VozelSize / 4.0 };//generateBoxSizes(1.0 / 64.0, 0.5, 2.0);
 
 	std::vector<double> logInverseSizes;
 	std::vector<double> logCounts;
@@ -90,7 +91,6 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 								glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.getMin()[0], (y + 1) * boxSize + CurrentNode->AABB.getMin()[1], (z + 1) * boxSize + CurrentNode->AABB.getMin()[2]);
 								FEAABB box(boxMin, boxMax);
 
-								//if (intersect(triangle, box))
 								if (box.AABBIntersect(TriangleBBox))
 								{
 									grid[x][y][z] = true;
@@ -112,35 +112,12 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 	std::pair<double, double> coefficients = linearRegression(logInverseSizes, logCounts);
 	double FractalDimension = coefficients.first;
 
+	/*if (FractalDimension < 2.0)
+		FractalDimension = 2.0;
+	else if (FractalDimension > 3.0)
+		FractalDimension = 3.0;*/
+
 	CurrentNode->UserData = FractalDimension;
-
-	//std::vector<double> NormalX;
-	//std::vector<double> NormalY;
-	//std::vector<double> NormalZ;
-
-	//for (size_t p = 0; p < CurrentNode->TrianglesInCell.size(); p++)
-	//{
-	//	std::vector<glm::vec3> CurrentTriangleNormals = MESH_MANAGER.ActiveMesh->TrianglesNormals[CurrentNode->TrianglesInCell[p]];
-
-	//	for (size_t l = 0; l < CurrentTriangleNormals.size(); l++)
-	//	{
-	//		NormalX.push_back(CurrentTriangleNormals[l][0]);
-	//		NormalY.push_back(CurrentTriangleNormals[l][1]);
-	//		NormalZ.push_back(CurrentTriangleNormals[l][2]);
-	//	}
-	//}
-
-	//double meanX = std::accumulate(NormalX.begin(), NormalX.end(), 0.0) / NormalX.size();
-	//double meanY = std::accumulate(NormalY.begin(), NormalY.end(), 0.0) / NormalY.size();
-	//double meanZ = std::accumulate(NormalZ.begin(), NormalZ.end(), 0.0) / NormalZ.size();
-
-	//double sumX = std::inner_product(NormalX.begin(), NormalX.end(), NormalX.begin(), 0.0);
-	//double sumY = std::inner_product(NormalY.begin(), NormalY.end(), NormalY.begin(), 0.0);
-	//double sumZ = std::inner_product(NormalZ.begin(), NormalZ.end(), NormalZ.begin(), 0.0);
-
-	//double DoubleResult = sqrt(sumX / NormalX.size() - meanX * meanX + sumY / NormalY.size() - meanY * meanY + sumZ / NormalZ.size() - meanZ * meanZ);
-
-	//CurrentNode->UserData = DoubleResult;
 }
 
 void FractalDimensionLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult)

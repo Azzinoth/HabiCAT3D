@@ -10,6 +10,8 @@ namespace FocalEngine
 	public:
 		SINGLETON_PUBLIC_PART(LayerManager)
 
+		MeshLayer* GetActiveLayer();
+
 		std::string SuitableNewLayerCaption(std::string Base);
 		//bool AddLayer(std::vector<float> TrianglesToData);
 		//bool AddLayer(MeshLayer NewLayer);

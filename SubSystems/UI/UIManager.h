@@ -115,6 +115,9 @@ namespace FocalEngine
 		void RenderSettingsWindow();
 
 		float AmbientLightFactor = 2.8f;
+		int CurrentJitterStepIndexVisualize = 0;
+		SDF* DebugSDF = nullptr;
+		void InitDebugSDF(size_t JitterIndex);
 	};
 
 	#define UI UIManager::getInstance()
