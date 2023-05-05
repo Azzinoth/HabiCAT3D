@@ -2133,56 +2133,41 @@ void UIManager::RenderSettingsWindow()
 							if (CurrentJitterStepIndexVisualize < 0 || CurrentJitterStepIndexVisualize >= UsedSettings.size())
 								CurrentJitterStepIndexVisualize = UsedSettings.size() - 1;
 
-							//// We are working with jitter manager
-							//// that means that layer should have this info
-							//float CurrentLayerResolutionInM = 0.0f;
-							//MeshLayer* Layer = LAYER_MANAGER.GetActiveLayer();
-							//for (size_t i = 0; i < Layer->DebugInfo->Entries.size(); i++)
-							//{
-							//	if (Layer->DebugInfo->Entries[i].Name == "Resolution used")
-							//	{
-							//		std::string Data = Layer->DebugInfo->Entries[i].RawData;
-							//		Data.erase(Data.begin() + Data.find(" m."), Data.end());
-							//		CurrentLayerResolutionInM = atof(Data.c_str());
-							//	}
-							//}
-
-							//if (CurrentLayerResolutionInM > 0.0f)
-							//{
-								ImGui::Text("Individual jitter steps: ");
-								ImGui::SameLine();
-								ImGui::SetNextItemWidth(190);
-								ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
-								if (ImGui::BeginCombo("##ChooseJitterStep", std::to_string(CurrentJitterStepIndexVisualize).c_str(), ImGuiWindowFlags_None))
+							ImGui::Text("Individual jitter steps: ");
+							ImGui::SameLine();
+							ImGui::SetNextItemWidth(190);
+							ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
+							if (ImGui::BeginCombo("##ChooseJitterStep", std::to_string(CurrentJitterStepIndexVisualize).c_str(), ImGuiWindowFlags_None))
+							{
+								for (size_t i = 0; i < UsedSettings.size(); i++)
 								{
-									for (size_t i = 0; i < UsedSettings.size(); i++)
+									bool is_selected = (CurrentJitterStepIndexVisualize == i);
+									if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
 									{
-										bool is_selected = (CurrentJitterStepIndexVisualize == i);
-										if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
+										CurrentJitterStepIndexVisualize = i;
+										int LastSDFRendetingMode = DebugSDF->RenderingMode;
+
+										InitDebugSDF(CurrentJitterStepIndexVisualize);
+
+										DebugSDF->RenderingMode = LastSDFRendetingMode;
+										if (DebugSDF->RenderingMode == 1)
 										{
-											CurrentJitterStepIndexVisualize = i;
-											int LastSDFRendetingMode = DebugSDF->RenderingMode;
-											InitDebugSDF(CurrentJitterStepIndexVisualize);
-											DebugSDF->RenderingMode = LastSDFRendetingMode;
-											if (DebugSDF->RenderingMode == 1)
-											{
-												DebugSDF->RenderingMode = 1;
-												DebugSDF->UpdateRenderLines();
-											}
+											DebugSDF->RenderingMode = 1;
+											DebugSDF->UpdateRenderLines();
 										}
-
-										if (is_selected)
-											ImGui::SetItemDefaultFocus();
 									}
-									ImGui::EndCombo();
-								}
 
-								std::string JitterInfo = "ShiftX: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftX);
-								JitterInfo += " ShiftY: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftY);
-								JitterInfo += " ShiftZ: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftZ);
-								JitterInfo += " GridScale: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].GridScale);
-								ImGui::Text(JitterInfo.c_str());
-							//}
+									if (is_selected)
+										ImGui::SetItemDefaultFocus();
+								}
+								ImGui::EndCombo();
+							}
+
+							std::string JitterInfo = "ShiftX: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftX);
+							JitterInfo += " ShiftY: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftY);
+							JitterInfo += " ShiftZ: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftZ);
+							JitterInfo += " GridScale: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].GridScale);
+							ImGui::Text(JitterInfo.c_str());
 						}
 						
 						ImGui::Text("Visualization of SDF:");
