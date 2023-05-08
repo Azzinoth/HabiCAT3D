@@ -33,6 +33,62 @@ RugosityManager::RugosityManager()
 
 RugosityManager::~RugosityManager() {}
 
+typedef CGAL::Exact_predicates_exact_constructions_kernel  Kernel2;
+typedef Kernel2::Point_2                                   Point_2;
+typedef CGAL::Polygon_2<Kernel2>                           Polygon_2;
+typedef std::vector<Polygon_2>                             Polygon_vector;
+typedef CGAL::Polygon_set_2<Kernel2>                       Polygon_set_2;
+
+double calculate_area(const Polygon_set_2& polygon_set)
+{
+	typedef CGAL::Polygon_with_holes_2<Kernel2> Polygon_with_holes_2;
+	typedef std::vector<Polygon_with_holes_2>   Pwh_vector;
+
+	double area = 0;
+	Pwh_vector result_polygons;
+	polygon_set.polygons_with_holes(std::back_inserter(result_polygons));
+
+	for (const Polygon_with_holes_2& polygon : result_polygons)
+	{
+		area += CGAL::to_double(polygon.outer_boundary().area());
+		for (auto it = polygon.holes_begin(); it != polygon.holes_end(); ++it)
+		{
+			area -= CGAL::to_double(it->area());
+		}
+	}
+
+	return area;
+}
+
+void create_local_coordinate_system(const glm::vec3& normal, glm::vec3& u, glm::vec3& v)
+{
+	glm::vec3 temp(1, 0, 0);
+	if (glm::length(glm::cross(normal, temp)) < 0.01) {
+		temp = glm::vec3(0, 1, 0);
+	}
+	u = glm::normalize(glm::cross(normal, temp));
+	v = glm::cross(normal, u);
+}
+
+Point_2 project_to_local_coordinates(const glm::vec3& point, const glm::vec3& u, const glm::vec3& v)
+{
+	double x = glm::dot(point, u);
+	double y = glm::dot(point, v);
+	return Point_2(x, y);
+}
+
+Polygon_2 create_2d_triangle(const glm::vec3& AProjection, const glm::vec3& BProjection, const glm::vec3& CProjection, const glm::vec3& normal)
+{
+	glm::vec3 u, v;
+	create_local_coordinate_system(normal, u, v);
+
+	Polygon_2 triangle;
+	triangle.push_back(project_to_local_coordinates(AProjection, u, v));
+	triangle.push_back(project_to_local_coordinates(BProjection, u, v));
+	triangle.push_back(project_to_local_coordinates(CProjection, u, v));
+	return triangle;
+}
+
 void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 {
 	if (CurrentNode->TrianglesInCell.empty())
@@ -44,40 +100,111 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 		TotalArea += static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[l]]);
 	}
 
-
 	auto CalculateCellRugosity = [&](const glm::vec3 PointOnPlane, const glm::vec3 PlaneNormal) {
 		double Result = 0.0;
 		const FEPlane* ProjectionPlane = new FEPlane(PointOnPlane, PlaneNormal);
 
-		std::vector<float> Rugosities;
-		for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
+		if (RUGOSITY_MANAGER.bOverlapAware)
 		{
-			std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentNode->TrianglesInCell[l]];
+			glm::vec3 u, v;
+			create_local_coordinate_system(PlaneNormal, u, v);
 
-			glm::vec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
-			glm::vec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
-			glm::vec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
+			Polygon_vector Triangles;
+			for (int i = 0; i < CurrentNode->TrianglesInCell.size(); i++)
+			{
+				std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentNode->TrianglesInCell[i]];
 
-			const double ProjectionArea = SDF::TriangleArea(AProjection, BProjection, CProjection);
-			const double OriginalArea = MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[l]];
-			Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
+				glm::vec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
+				glm::vec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
+				glm::vec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
 
-			if (OriginalArea == 0.0 || ProjectionArea == 0.0)
-				Rugosities.back() = 1.0f;
+				Polygon_2 TempTriangle;
+				TempTriangle.push_back(project_to_local_coordinates(AProjection, u, v));
+				TempTriangle.push_back(project_to_local_coordinates(BProjection, u, v));
+				TempTriangle.push_back(project_to_local_coordinates(CProjection, u, v));
 
-			if (Rugosities.back() > 100.0f)
-				Rugosities.back() = 100.0f;
-		}
+				if (TempTriangle.is_simple() && TempTriangle.is_convex() && !TempTriangle.is_empty())
+				{
+					if (!CGAL::is_ccw_strongly_convex_2(TempTriangle.vertices_begin(), TempTriangle.vertices_end()))
+						TempTriangle.reverse_orientation();
 
-		// Weighted by triangle area rugosity.
-		for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
-		{
-			const float CurrentTriangleCoef = static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
+					Triangles.push_back(TempTriangle);
+				}
+			}
 
-			Result += Rugosities[l] * CurrentTriangleCoef;
+			std::vector<Polygon_set_2> TriangleGroups;
+			for (size_t i = 0; i < Triangles.size(); i++)
+			{
+				if (i == 0)
+				{
+					TriangleGroups.push_back(Polygon_set_2(Triangles[0]));
+					continue;
+				}
 
+				bool NeedNewGroup = true;
+				for (size_t j = 0; j < TriangleGroups.size(); j++)
+				{
+					if (TriangleGroups[j].do_intersect(Triangles[i]))
+					{
+						TriangleGroups[j].join(Triangles[i]);
+						NeedNewGroup = false;
+						break;
+					}
+				}
+
+				if (NeedNewGroup)
+					TriangleGroups.push_back(Polygon_set_2(Triangles[i]));
+			}
+
+			double TotalProjectedArea = 0.0;
+			for (size_t i = 0; i < TriangleGroups.size(); i++)
+			{
+				TotalProjectedArea += calculate_area(TriangleGroups[i]);
+			}
+
+			if (TotalProjectedArea == 0)
+			{
+				Result = 1.0f;
+			}
+			else
+			{
+				Result = TotalArea / TotalProjectedArea;
+			}
+			
 			if (isnan(Result))
 				Result = 1.0f;
+		}
+		else
+		{
+			std::vector<float> Rugosities;
+			for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
+			{
+				std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentNode->TrianglesInCell[l]];
+
+				glm::vec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
+				glm::vec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
+				glm::vec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
+
+				const double ProjectionArea = SDF::TriangleArea(AProjection, BProjection, CProjection);
+				const double OriginalArea = MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[l]];
+				Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
+
+				if (OriginalArea == 0.0 || ProjectionArea == 0.0)
+					Rugosities.back() = 1.0f;
+
+				if (Rugosities.back() > 100.0f)
+					Rugosities.back() = 100.0f;
+			}
+
+			// Weighted by triangle area rugosity.
+			for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
+			{
+				const float CurrentTriangleCoef = static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
+				Result += Rugosities[l] * CurrentTriangleCoef;
+
+				if (isnan(Result))
+					Result = 1.0f;
+			}
 		}
 
 		delete ProjectionPlane;

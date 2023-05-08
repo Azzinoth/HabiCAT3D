@@ -3,6 +3,12 @@
 #include "JitterManager.h"
 using namespace FocalEngine;
 
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <CGAL/Polygon_2.h>
+#include <CGAL/Boolean_set_operations_2.h>
+#include <CGAL/Polygon_set_2.h>
+#include <CGAL/convexity_check_2.h>
+
 namespace FocalEngine
 {
 	static std::vector<glm::vec3> SphereVectors = {
@@ -107,6 +113,7 @@ namespace FocalEngine
 		bool bWeightedNormals = true;
 		bool bNormalizedNormals = true;
 		bool bDeleteOutliers = true;
+		bool bOverlapAware = true;
 
 		void CalculateRugorsityWithJitterAsync(int RugosityLayerIndex = 0);
 

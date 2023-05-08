@@ -215,6 +215,7 @@ void UIManager::ShowCameraTransform()
 void UIManager::SetCamera(FEBasicCamera* NewCamera)
 {
 	CurrentCamera = NewCamera;
+	SDF::CurrentCamera = CurrentCamera;
 }
 
 bool UIManager::GetWireFrameMode()
@@ -1841,7 +1842,7 @@ void UIManager::InitDebugSDF(size_t JitterIndex)
 	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
 	finalAABB = SDFAABB;
 
-	DebugSDF->Init(0, finalAABB, nullptr, CurrentLayerResolutionInM);
+	DebugSDF->Init(0, finalAABB, CurrentLayerResolutionInM);
 	DebugSDF->FillCellsWithTriangleInfo();
 	DebugSDF->bFullyLoaded = true;
 }
@@ -2223,4 +2224,9 @@ float UIManager::GetAmbientLightFactor()
 void UIManager::SetAmbientLightFactor(float NewValue)
 {
 	AmbientLightFactor = NewValue;
+}
+
+SDF* UIManager::GetDebugSDF()
+{
+	return DebugSDF;
 }

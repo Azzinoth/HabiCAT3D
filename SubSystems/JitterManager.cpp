@@ -152,7 +152,7 @@ void JitterManager::RunCalculationOnSDFAsync(void* InputData, void* OutputData)
 	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
 	finalAABB = SDFAABB;
 
-	Output->Init(0, finalAABB, nullptr, JITTER_MANAGER.ResolutonInM);
+	Output->Init(0, finalAABB, JITTER_MANAGER.ResolutonInM);
 
 	Output->FillCellsWithTriangleInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");

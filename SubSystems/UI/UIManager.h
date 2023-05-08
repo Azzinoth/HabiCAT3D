@@ -52,6 +52,8 @@ namespace FocalEngine
 
 		float GetAmbientLightFactor();
 		void SetAmbientLightFactor(float NewValue);
+
+		SDF* GetDebugSDF();
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 

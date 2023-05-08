@@ -76,7 +76,7 @@ namespace FocalEngine
 
 	struct SDF
 	{
-		FEBasicCamera* CurrentCamera = nullptr;
+		static FEBasicCamera* CurrentCamera;
 
 		std::vector<std::vector<std::vector<SDFNode>>> Data;
 		glm::vec3 AverageNormal;
@@ -84,9 +84,9 @@ namespace FocalEngine
 
 		std::vector<triangleData> GetTrianglesData();
 		SDF();
-		SDF(int Dimentions, FEAABB AABB, FEBasicCamera* Camera);
+		SDF(int Dimentions, FEAABB AABB);
 
-		void Init(int Dimensions, FEAABB AABB, FEBasicCamera* Camera, float ResolutionInM = 0.0f);
+		void Init(int Dimensions, FEAABB AABB, float ResolutionInM = 0.0f);
 		void FillCellsWithTriangleInfo();
 
 		void MouseClick(double MouseX, double MouseY, glm::mat4 TransformMat = glm::identity<glm::mat4>());

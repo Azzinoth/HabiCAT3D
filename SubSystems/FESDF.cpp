@@ -1,6 +1,8 @@
 #include "FESDF.h"
 using namespace FocalEngine;
 
+FEBasicCamera* SDF::CurrentCamera = nullptr;
+
 glm::dvec3 mouseRay(double mouseX, double mouseY, FEBasicCamera* currentCamera)
 {
 	int W, H;
@@ -200,7 +202,7 @@ SDF::SDF()
 //	return minDistanceToCentroid;
 //}
 
-SDF::SDF(const int Dimentions, FEAABB AABB, FEBasicCamera* Camera)
+SDF::SDF(const int Dimentions, FEAABB AABB)
 {
 	if (Dimentions < 1 || Dimentions > 4096)
 		return;
@@ -210,8 +212,6 @@ SDF::SDF(const int Dimentions, FEAABB AABB, FEBasicCamera* Camera)
 		return;
 
 	TIME.BeginTimeStamp("SDF Generation");
-
-	CurrentCamera = Camera;
 
 	const glm::vec3 center = AABB.getCenter();
 	FEAABB SDFAABB = FEAABB(center - glm::vec3(AABB.getSize() / 2.0f), center + glm::vec3(AABB.getSize() / 2.0f));
@@ -259,11 +259,9 @@ int DimensionsToPOWDimentions(const int Dimentions)
 	return 0;
 }
 
-void SDF::Init(int Dimensions, FEAABB AABB, FEBasicCamera* Camera, const float ResolutionInM)
+void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 {
 	TIME.BeginTimeStamp("SDF Generation");
-
-	CurrentCamera = Camera;
 
 	const glm::vec3 center = AABB.getCenter();
 
@@ -390,6 +388,9 @@ void SDF::FillCellsWithTriangleInfo()
 
 void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 TransformMat)
 {
+	if (CurrentCamera == nullptr)
+		return;
+
 	SelectedCell = glm::vec3(0.0);
 
 	for (size_t i = 0; i < Data.size(); i++)
