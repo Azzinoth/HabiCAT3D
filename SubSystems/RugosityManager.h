@@ -113,7 +113,7 @@ namespace FocalEngine
 		bool bWeightedNormals = true;
 		bool bNormalizedNormals = true;
 		bool bDeleteOutliers = true;
-		bool bOverlapAware = true;
+		bool bOverlapAware = false;
 
 		void CalculateRugorsityWithJitterAsync(int RugosityLayerIndex = 0);
 
