@@ -394,31 +394,23 @@ void UIManager::RenderDeveloperModeMainWindow()
 
 			if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
 			{
-				DebugSDF->RenderingMode = 0;
-
-				DebugSDF->UpdateRenderLines();
-				//LINE_RENDERER.clearAll();
-				//LINE_RENDERER.SyncWithGPU();
+				UpdateRenderingMode(DebugSDF, 0);
+				//DebugSDF->RenderingMode = 0;
+				//DebugSDF->UpdateRenderedLines();
 			}
 
 			if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
 			{
-				DebugSDF->RenderingMode = 1;
-
-				DebugSDF->UpdateRenderLines();
-				//LINE_RENDERER.clearAll();
-				//addLinesOFSDF(DebugSDF);
-				//LINE_RENDERER.SyncWithGPU();
+				UpdateRenderingMode(DebugSDF, 1);
+				//DebugSDF->RenderingMode = 1;
+				//DebugSDF->UpdateRenderedLines();
 			}
 
 			if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
 			{
-				DebugSDF->RenderingMode = 2;
-
-				DebugSDF->UpdateRenderLines();
-				//LINE_RENDERER.clearAll();
-				//addLinesOFSDF(DebugSDF);
-				//LINE_RENDERER.SyncWithGPU();
+				UpdateRenderingMode(DebugSDF, 2);
+				//DebugSDF->RenderingMode = 2;
+				//DebugSDF->UpdateRenderedLines();
 			}
 
 			ImGui::Separator();
@@ -430,7 +422,7 @@ void UIManager::RenderDeveloperModeMainWindow()
 	}
 
 	ImGui::Separator();
-	if (DebugSDF != nullptr && DebugSDF->SelectedCell != glm::vec3(0.0))
+	if (DebugSDF != nullptr && DebugSDF->SelectedCell != glm::vec3(-1.0))
 	{
 		SDFNode CurrentlySelectedCell = DebugSDF->Data[int(DebugSDF->SelectedCell.x)][int(DebugSDF->SelectedCell.y)][int(DebugSDF->SelectedCell.z)];
 
@@ -1010,6 +1002,8 @@ void UIManager::OnJitterCalculationsStart()
 void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 {
 	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
+	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
+	
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -1026,6 +1020,7 @@ void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 		TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
 	}
 	MESH_MANAGER.ActiveMesh->AddLayer(TrianglesToStandardDeviation);
+	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::STANDARD_DEVIATION);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
 	MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo = new MeshLayerDebugInfo();
@@ -1736,34 +1731,40 @@ void UIManager::AfterLayerChange()
 	UI.Graph.Clear();
 	UI.HeatMapColorRange.Clear();
 
-	if (LAYER_MANAGER.GetActiveLayerIndex() != -1 && MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Min != MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Max)
+	if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
 	{
-		UI.FillGraphDataPoints(UI.CurrentBinCount);
-
-		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-
-		float NormalizedPosition = 0.0f;
-		const int CaptionsCount = 8;
-		const float PositionStep = 1.0f / CaptionsCount;
-		for (size_t i = 0; i <= CaptionsCount; i++)
+		if (MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Min != MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Max)
 		{
-			UI.Graph.Legend.SetCaption(i == 0 ? NormalizedPosition + 0.0075f : NormalizedPosition,
-				TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * NormalizedPosition)));
+			UI.FillGraphDataPoints(UI.CurrentBinCount);
 
-			NormalizedPosition += PositionStep;
+			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+
+			float NormalizedPosition = 0.0f;
+			const int CaptionsCount = 8;
+			const float PositionStep = 1.0f / CaptionsCount;
+			for (size_t i = 0; i <= CaptionsCount; i++)
+			{
+				UI.Graph.Legend.SetCaption(i == 0 ? NormalizedPosition + 0.0075f : NormalizedPosition,
+					TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * NormalizedPosition)));
+
+				NormalizedPosition += PositionStep;
+			}
+
+			if (CurrentLayer->MaxVisible == CurrentLayer->Max)
+			{
+				float MiddleOfRange = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) / 2.0f;
+				UI.HeatMapColorRange.SetCeilingValue(MiddleOfRange / CurrentLayer->Max);
+			}
+			else
+			{
+				UI.HeatMapColorRange.SetCeilingValue(CurrentLayer->MaxVisible / CurrentLayer->Max);
+			}
+
+			UI.HeatMapColorRange.SetRangeBottomLimit(CurrentLayer->Min / CurrentLayer->Max);
 		}
 
-		if (CurrentLayer->MaxVisible == CurrentLayer->Max)
-		{
-			float MiddleOfRange = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) / 2.0f;
-			UI.HeatMapColorRange.SetCeilingValue(MiddleOfRange / CurrentLayer->Max);
-		}
-		else
-		{
-			UI.HeatMapColorRange.SetCeilingValue(CurrentLayer->MaxVisible / CurrentLayer->Max);
-		}
-		
-		UI.HeatMapColorRange.SetRangeBottomLimit(CurrentLayer->Min / CurrentLayer->Max);
+		if (UI.GetDebugSDF() != nullptr)
+			UI.UpdateRenderingMode(UI.GetDebugSDF(), UI.GetDebugSDF()->RenderingMode);
 	}
 }
 
@@ -2153,8 +2154,9 @@ void UIManager::RenderSettingsWindow()
 										DebugSDF->RenderingMode = LastSDFRendetingMode;
 										if (DebugSDF->RenderingMode == 1)
 										{
-											DebugSDF->RenderingMode = 1;
-											DebugSDF->UpdateRenderLines();
+											UpdateRenderingMode(DebugSDF, 1);
+											//DebugSDF->RenderingMode = 1;
+											//DebugSDF->UpdateRenderedLines();
 										}
 									}
 
@@ -2175,17 +2177,21 @@ void UIManager::RenderSettingsWindow()
 
 						if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
 						{
-							DebugSDF->RenderingMode = 0;
+							UpdateRenderingMode(DebugSDF, 0);
 
-							DebugSDF->UpdateRenderLines();
+							//DebugSDF->RenderingMode = 0;
+							//DebugSDF->UpdateRenderedLines();
+
 							//LINE_RENDERER.clearAll();
 							//LINE_RENDERER.SyncWithGPU();
 						}
 
 						if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
 						{
-							DebugSDF->RenderingMode = 1;
-							DebugSDF->UpdateRenderLines();
+							UpdateRenderingMode(DebugSDF, 1);
+
+							//DebugSDF->RenderingMode = 1;
+							//DebugSDF->UpdateRenderedLines();
 
 							//LINE_RENDERER.clearAll();
 							//addLinesOFSDF(DebugSDF);
@@ -2194,9 +2200,11 @@ void UIManager::RenderSettingsWindow()
 
 						if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
 						{
-							DebugSDF->RenderingMode = 2;
+							UpdateRenderingMode(DebugSDF, 2);
 
-							DebugSDF->UpdateRenderLines();
+							//DebugSDF->RenderingMode = 2;
+							//DebugSDF->UpdateRenderedLines();
+
 							//LINE_RENDERER.clearAll();
 							//addLinesOFSDF(DebugSDF);
 							//LINE_RENDERER.SyncWithGPU();
@@ -2229,4 +2237,45 @@ void UIManager::SetAmbientLightFactor(float NewValue)
 SDF* UIManager::GetDebugSDF()
 {
 	return DebugSDF;
+}
+
+void UIManager::UpdateRenderingMode(SDF* SDF, int NewRenderingMode)
+{
+	if (NewRenderingMode < 0)
+		return;
+
+	SDF->RenderingMode = NewRenderingMode;
+	SDF->UpdateRenderedLines();
+
+	if (LAYER_TYPE::UNKNOWN)
+		return;
+
+	MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
+	if (CurrentLayer == nullptr)
+		return;
+
+	switch (CurrentLayer->GetType())
+	{
+		case LAYER_TYPE::RUGOSITY:
+		{
+			RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(SDF);
+			break;
+		}
+
+		case LAYER_TYPE::VECTOR_DISPERSION:
+		{
+			VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(SDF);
+			break;
+		}
+		
+		case LAYER_TYPE::FRACTAL_DIMENSION:
+		{
+			FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(SDF);
+			break;
+		}
+
+		default:
+			break;
+	}
+	
 }

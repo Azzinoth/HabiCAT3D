@@ -391,7 +391,7 @@ void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 T
 	if (CurrentCamera == nullptr)
 		return;
 
-	SelectedCell = glm::vec3(0.0);
+	SelectedCell = glm::vec3(-1.0);
 
 	for (size_t i = 0; i < Data.size(); i++)
 	{
@@ -468,7 +468,7 @@ void SDF::FillMeshWithRugosityData()
 	TimeTookFillMeshWithRugosityData = TIME.EndTimeStamp("FillMeshWithRugosityData");
 }
 
-void SDF::AddLinesOfsdf()
+void SDF::AddLinesOfSDF()
 {
 	for (size_t i = 0; i < Data.size(); i++)
 	{
@@ -476,13 +476,13 @@ void SDF::AddLinesOfsdf()
 		{
 			for (size_t k = 0; k < Data[i][j].size(); k++)
 			{
-				bool render = false;
+				bool bNeedToRender = false;
 				Data[i][j][k].bWasRenderedLastFrame = false;
 
 				if (!Data[i][j][k].TrianglesInCell.empty() || RenderingMode == 2)
-					render = true;
+					bNeedToRender = true;
 
-				if (render)
+				if (bNeedToRender)
 				{
 					glm::vec3 color = glm::vec3(0.1f, 0.6f, 0.1f);
 					if (Data[i][j][k].bSelected)
@@ -492,7 +492,7 @@ void SDF::AddLinesOfsdf()
 
 					Data[i][j][k].bWasRenderedLastFrame = true;
 
-					if (bShowTrianglesInCells && Data[i][j][k].bSelected)
+					/*if (bShowTrianglesInCells && Data[i][j][k].bSelected)
 					{
 						for (size_t l = 0; l < Data[i][j][k].TrianglesInCell.size(); l++)
 						{
@@ -508,18 +508,18 @@ void SDF::AddLinesOfsdf()
 							LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 							LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 						}
-					}
+					}*/
 				}
 			}
 		}
 	}
 }
 
-void SDF::UpdateRenderLines()
+void SDF::UpdateRenderedLines()
 {
 	LINE_RENDERER.clearAll();
 	if (RenderingMode != 0)
-		AddLinesOfsdf();
+		AddLinesOfSDF();
 	LINE_RENDERER.SyncWithGPU();
 }
 
@@ -534,6 +534,8 @@ void SDF::RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func)
 		{
 			for (size_t k = 0; k < Data[i][j].size(); k++)
 			{
+				// Delete this line, just for testing
+				//Func(&Data[55][73][65]);
 				Func(&Data[i][j][k]);
 			}
 		}

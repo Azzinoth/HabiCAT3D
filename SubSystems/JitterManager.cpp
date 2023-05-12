@@ -73,6 +73,7 @@ void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* curr
 		ShiftsToUse = &PseudoRandom64;
 
 	JitterToDoCount = ShiftsToUse->size() / 4;
+	//JitterToDoCount = 1;
 	LastUsedJitterSettings.clear();
 	LastUsedJitterSettings.resize(JitterToDoCount);
 

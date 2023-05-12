@@ -64,6 +64,33 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 
 	VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult = false;
 	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
+	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector dispersion"));
 	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+}
+
+void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
+{
+	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
+		return;
+
+	Grid->UpdateRenderedLines();
+
+	SDFNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
+	for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
+	{
+		const auto CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
+
+		std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
+		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+		{
+			TranformedTrianglePoints[j] = MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+		}
+
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+	}
+
+	LINE_RENDERER.SyncWithGPU();
 }

@@ -345,7 +345,8 @@ void mouseButtonCallback(int button, int action, int mods)
 			else
 			{
 				UI.GetDebugSDF()->MouseClick(mouseX, mouseY);
-				UI.GetDebugSDF()->UpdateRenderLines();
+				UI.UpdateRenderingMode(UI.GetDebugSDF(), UI.GetDebugSDF()->RenderingMode);
+				//UI.GetDebugSDF()->UpdateRenderedLines();
 			}
 		}
 	}

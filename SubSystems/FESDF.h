@@ -80,7 +80,7 @@ namespace FocalEngine
 
 		std::vector<std::vector<std::vector<SDFNode>>> Data;
 		glm::vec3 AverageNormal;
-		glm::vec3 SelectedCell = glm::vec3(0.0);
+		glm::vec3 SelectedCell = glm::vec3(-1.0);
 
 		std::vector<triangleData> GetTrianglesData();
 		SDF();
@@ -112,7 +112,7 @@ namespace FocalEngine
 
 		int RenderingMode = 0;
 		bool bShowTrianglesInCells = true;
-		void UpdateRenderLines();
+		void UpdateRenderedLines();
 
 		void RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func);
 		//float GetSignedDistanceForNode(SDFNode* Node);
@@ -123,6 +123,6 @@ namespace FocalEngine
 		}
 
 	private:
-		void AddLinesOfsdf();
+		void AddLinesOfSDF();
 	};
 }

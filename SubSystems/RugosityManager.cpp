@@ -41,7 +41,7 @@ typedef CGAL::Polygon_set_2<Kernel2>                       Polygon_set_2;
 
 double calculate_area(const Polygon_set_2& polygon_set)
 {
-	TIME.BeginTimeStamp("calculate_area time");
+	//TIME.BeginTimeStamp("calculate_area time");
 
 	typedef CGAL::Polygon_with_holes_2<Kernel2> Polygon_with_holes_2;
 	typedef std::vector<Polygon_with_holes_2>   Pwh_vector;
@@ -59,9 +59,9 @@ double calculate_area(const Polygon_set_2& polygon_set)
 		}
 	}
 
-	double calculate_area_time = TIME.EndTimeStamp("calculate_area time");
+	/*double calculate_area_time = TIME.EndTimeStamp("calculate_area time");
 	LOG.Add(std::to_string(calculate_area_time), "calculate_area");
-	LOG.Add("========================================================", "calculate_area");
+	LOG.Add("========================================================", "calculate_area");*/
 
 	return area;
 }
@@ -100,7 +100,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 	if (CurrentNode->TrianglesInCell.empty())
 		return;
 
-	//TIME.BeginTimeStamp("CalculateOneNodeRugosity time");
+	TIME.BeginTimeStamp("CalculateOneNodeRugosity time");
 
 	float TotalArea = 0.0f;
 	for (size_t l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
@@ -114,7 +114,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 
 		if (RUGOSITY_MANAGER.bOverlapAware)
 		{
-			TIME.BeginTimeStamp("CalculateCellRugosity time");
+			//TIME.BeginTimeStamp("CalculateCellRugosity time");
 			glm::vec3 u, v;
 			create_local_coordinate_system(PlaneNormal, u, v);
 
@@ -132,64 +132,126 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 				TempTriangle.push_back(project_to_local_coordinates(BProjection, u, v));
 				TempTriangle.push_back(project_to_local_coordinates(CProjection, u, v));
 
-				//if (TempTriangle.is_simple() && TempTriangle.is_convex() && !TempTriangle.is_empty())
-				//{
-					if (!CGAL::is_ccw_strongly_convex_2(TempTriangle.vertices_begin(), TempTriangle.vertices_end()))
-						TempTriangle.reverse_orientation();
+				if (!CGAL::is_ccw_strongly_convex_2(TempTriangle.vertices_begin(), TempTriangle.vertices_end()))
+					TempTriangle.reverse_orientation();
 
-					Triangles.push_back(TempTriangle);
-				//}
+				Triangles.push_back(TempTriangle);
 			}
 
-			double TimeTookCalculateRugosity = TIME.EndTimeStamp("CalculateCellRugosity time");
+			/*double TimeTookCalculateRugosity = TIME.EndTimeStamp("CalculateCellRugosity time");
 			LOG.Add(std::to_string(TimeTookCalculateRugosity), "CalculateCellRugosity");
 			LOG.Add("triangle count: " + std::to_string(CurrentNode->TrianglesInCell.size()), "CalculateCellRugosity");
-			LOG.Add("========================================================", "CalculateCellRugosity");
+			LOG.Add("========================================================", "CalculateCellRugosity");*/
 
 
-			TIME.BeginTimeStamp("TriangleGroups time");
-			//std::vector<Polygon_set_2> TriangleGroups;
-			////TriangleGroups.push_back(Polygon_set_2(Triangles.begin()));
-			//for (size_t i = 0; i < Triangles.size(); i++)
-			//{
-			//	if (i == 0)
-			//	{
-			//		TriangleGroups.push_back(Polygon_set_2(Triangles[0]));
-			//		continue;
-			//	}
-
-			//	TriangleGroups[0].join(Triangles[i]);
-			//	/*bool NeedNewGroup = true;
-			//	for (size_t j = 0; j < TriangleGroups.size(); j++)
-			//	{
-			//		if (TriangleGroups[j].do_intersect(Triangles[i]))
-			//		{
-			//			TriangleGroups[j].join(Triangles[i]);
-			//			NeedNewGroup = false;
-			//			break;
-			//		}
-			//	}
-
-			//	if (NeedNewGroup)
-			//		TriangleGroups.push_back(Polygon_set_2(Triangles[i]));*/
-			//}
-
+			//TIME.BeginTimeStamp("TriangleGroups time");
 			Polygon_set_2 TriangleGroup;
-			for (size_t i = 0; i < Triangles.size(); i++)
+			std::vector<int> CGALFailedIndexes;
+
+			std::vector<int> Ranges;
+			try
 			{
-				TriangleGroup.join(Triangles[i]);
+				TriangleGroup.join(Triangles.begin(), Triangles.end());
+			}
+			catch (...)
+			{
+				for (size_t i = 0; i < Triangles.size(); i++)
+				{
+					try
+					{
+						TriangleGroup.join(Triangles[i]);
+					}
+					catch (...)
+					{
+						CGALFailedIndexes.push_back(i);
+					}
+				}
+
+				for (size_t i = 0; i < CGALFailedIndexes.size(); i++)
+				{
+					TotalArea -= static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[CGALFailedIndexes[i]]]);
+				}
+
+				//for (size_t i = 0; i < Triangles.size(); i++)
+				//{
+				//	if (i == 0)
+				//	{
+				//		TriangleGroups.push_back(Polygon_set_2(Triangles[0]));
+				//		continue;
+				//	}
+				//	
+				//	bool NeedNewGroup = true;
+				//	for (size_t j = 0; j < TriangleGroups.size(); j++)
+				//	{
+				//		try
+				//		{
+				//			TriangleGroups[j].join(Triangles[i]);
+				//			NeedNewGroup = false;
+				//			break;
+				//		}
+				//		catch (...)
+				//		{
+				//			int y = 0;
+				//			y++;
+				//			break;
+				//		}
+
+				//		/*if (TriangleGroups[j].do_intersect(Triangles[i]))
+				//		{
+				//			TriangleGroups[j].join(Triangles[i]);
+				//			NeedNewGroup = false;
+				//			break;
+				//		}*/
+				//	}
+
+				//	if (NeedNewGroup)
+				//		TriangleGroups.push_back(Polygon_set_2(Triangles[i]));
+				//	
+				//}
+
+
+
+
+
+
+
+				/*Ranges.push_back(0);
+				for (size_t i = 0; i < Triangles.size(); i++)
+				{
+					try
+					{
+						TriangleGroup.join(Triangles[i]);
+					}
+					catch (...)
+					{
+						Ranges.push_back(i - 1);
+						int y = 0;
+						y++;
+						break;
+					}
+				}
+
+				for (size_t i = Ranges.back(); i < Triangles.size(); i++)
+				{
+					try
+					{
+						TriangleGroup.join(Triangles[i]);
+					}
+					catch (...)
+					{
+						Ranges.push_back(i - 1);
+						int y = 0;
+						y++;
+					}
+				}*/
 			}
 
-			double TimeTookCalculateRugosity2 = TIME.EndTimeStamp("TriangleGroups time");
+			/*double TimeTookCalculateRugosity2 = TIME.EndTimeStamp("TriangleGroups time");
 			LOG.Add(std::to_string(TimeTookCalculateRugosity2), "TriangleGroups");
 			LOG.Add("triangle count: " + std::to_string(CurrentNode->TrianglesInCell.size()), "TriangleGroups");
-			LOG.Add("========================================================", "TriangleGroups");
+			LOG.Add("========================================================", "TriangleGroups");*/
 
 			double TotalProjectedArea = 0.0;
-			/*for (size_t i = 0; i < TriangleGroups.size(); i++)
-			{
-				TotalProjectedArea += calculate_area(TriangleGroups[i]);
-			}*/
 			TotalProjectedArea = calculate_area(TriangleGroup);
 
 			if (TotalProjectedArea == 0)
@@ -203,7 +265,6 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 			
 			if (isnan(Result))
 				Result = 1.0f;
-
 		}
 		else
 		{
@@ -548,4 +609,30 @@ void RugosityManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 
 	if (OnRugosityCalculationsEndCallbackImpl != nullptr)
 		OnRugosityCalculationsEndCallbackImpl(NewLayer);
+}
+
+void RugosityManager::RenderDebugInfoForSelectedNode(SDF* Grid)
+{
+	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
+		return;
+
+	Grid->UpdateRenderedLines();
+
+	SDFNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
+	for (size_t i = 0; i < 3/*CurrentlySelectedCell->TrianglesInCell.size()*/; i++)
+	{
+		const auto CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
+
+		std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
+		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+		{
+			TranformedTrianglePoints[j] = MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+		}
+
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+	}
+
+	LINE_RENDERER.SyncWithGPU();
 }

@@ -137,6 +137,8 @@ namespace FocalEngine
 		std::string GetUsedRugosityAlgorithmName();
 		void SetUsedRugosityAlgorithmName(std::string name);
 		std::vector<std::string> RugosityAlgorithmList;
+
+		void RenderDebugInfoForSelectedNode(SDF* Grid);
 	private:
 		SINGLETON_PRIVATE_PART(RugosityManager)
 

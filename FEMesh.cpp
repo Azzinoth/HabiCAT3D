@@ -625,6 +625,17 @@ float MeshLayer::GetMedian()
 	return Median;
 }
 
+
+LAYER_TYPE MeshLayer::GetType()
+{
+	return Type;
+}
+
+void MeshLayer::SetType(LAYER_TYPE NewValue)
+{
+	Type = NewValue;
+}
+
 std::string DebugEntry::ToString()
 {
 	std::string Result;

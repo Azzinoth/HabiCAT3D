@@ -10,6 +10,7 @@ public:
 	SINGLETON_PUBLIC_PART(VectorDispersionLayerProducer)
 
 	void CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult);
+	void RenderDebugInfoForSelectedNode(SDF* Grid);
 private:
 	SINGLETON_PRIVATE_PART(VectorDispersionLayerProducer)
 

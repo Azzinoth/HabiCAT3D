@@ -174,6 +174,110 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 
 	FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult = false;
 	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
+	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::FRACTAL_DIMENSION);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal dimension"));
 	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+}
+
+void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
+{
+	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
+		return;
+
+	Grid->UpdateRenderedLines();
+
+	SDFNode* CurrentNode = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
+
+
+	// Generate a sequence of box sizes
+	double VozelSize = CurrentNode->AABB.getMax()[0] - CurrentNode->AABB.getMin()[0];
+	std::vector<double> boxSizes = { VozelSize / 64.0, VozelSize / 32.0, VozelSize / 16.0, VozelSize / 8.0, VozelSize / 4.0 };
+
+	std::vector<double> logInverseSizes;
+	std::vector<double> logCounts;
+
+
+	double boxSize = boxSizes[0];
+
+	// Create a 3D grid that covers the entire bounding box
+	int gridX = static_cast<int>(glm::ceil((CurrentNode->AABB.getMax()[0] - CurrentNode->AABB.getMin()[0]) / boxSize));
+	int gridY = static_cast<int>(glm::ceil((CurrentNode->AABB.getMax()[1] - CurrentNode->AABB.getMin()[1]) / boxSize));
+	int gridZ = static_cast<int>(glm::ceil((CurrentNode->AABB.getMax()[2] - CurrentNode->AABB.getMin()[2]) / boxSize));
+
+	int count = 0;
+	std::vector<std::vector<std::vector<bool>>> grid(gridX, std::vector<std::vector<bool>>(gridY, std::vector<bool>(gridZ, false)));
+
+	int minGridX = static_cast<int>(CurrentNode->AABB.getMin()[0] / boxSize);
+	int minGridY = static_cast<int>(CurrentNode->AABB.getMin()[1] / boxSize);
+	int minGridZ = static_cast<int>(CurrentNode->AABB.getMin()[2] / boxSize);
+	int maxGridX = static_cast<int>(CurrentNode->AABB.getMax()[0] / boxSize);
+	int maxGridY = static_cast<int>(CurrentNode->AABB.getMax()[1] / boxSize);
+	int maxGridZ = static_cast<int>(CurrentNode->AABB.getMax()[2] / boxSize);
+
+	for (int x = 0; x <= maxGridX; ++x)
+	{
+		for (int y = 0; y <= maxGridY; ++y)
+		{
+			for (int z = 0; z <= maxGridZ; ++z)
+			{
+				glm::vec3 boxMin(x * boxSize + CurrentNode->AABB.getMin()[0], y * boxSize + CurrentNode->AABB.getMin()[1], z * boxSize + CurrentNode->AABB.getMin()[2]);
+				glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.getMin()[0], (y + 1) * boxSize + CurrentNode->AABB.getMin()[1], (z + 1) * boxSize + CurrentNode->AABB.getMin()[2]);
+				FEAABB box(boxMin, boxMax);
+
+				LINE_RENDERER.RenderAABB(box, glm::vec3(1.0, 0.0, 0.0));
+			}
+		}
+	}
+
+	//int minGridX = static_cast<int>((TriangleBBox.getMin()[0] - CurrentNode->AABB.getMin()[0]) / boxSize);
+	//int minGridY = static_cast<int>((TriangleBBox.getMin()[1] - CurrentNode->AABB.getMin()[1]) / boxSize);
+	//int minGridZ = static_cast<int>((TriangleBBox.getMin()[2] - CurrentNode->AABB.getMin()[2]) / boxSize);
+	//int maxGridX = static_cast<int>((TriangleBBox.getMax()[0] - CurrentNode->AABB.getMin()[0]) / boxSize);
+	//int maxGridY = static_cast<int>((TriangleBBox.getMax()[1] - CurrentNode->AABB.getMin()[1]) / boxSize);
+	//int maxGridZ = static_cast<int>((TriangleBBox.getMax()[2] - CurrentNode->AABB.getMin()[2]) / boxSize);
+
+	/*for (int x = minGridX; x <= maxGridX; ++x)
+	{
+		for (int y = minGridY; y <= maxGridY; ++y)
+		{
+			for (int z = minGridZ; z <= maxGridZ; ++z)
+			{
+				if (x >= 0 && x < gridX && y >= 0 && y < gridY && z >= 0 && z < gridZ)
+				{
+					if (!grid[x][y][z])
+					{
+						glm::vec3 boxMin(x * boxSize + CurrentNode->AABB.getMin()[0], y * boxSize + CurrentNode->AABB.getMin()[1], z * boxSize + CurrentNode->AABB.getMin()[2]);
+						glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.getMin()[0], (y + 1) * boxSize + CurrentNode->AABB.getMin()[1], (z + 1) * boxSize + CurrentNode->AABB.getMin()[2]);
+						FEAABB box(boxMin, boxMax);
+
+						if (box.AABBIntersect(TriangleBBox))
+						{
+							grid[x][y][z] = true;
+							++count;
+						}
+					}
+				}
+			}
+		}
+	}*/
+
+
+
+
+	/*for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
+	{
+		const auto CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
+
+		std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
+		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+		{
+			TranformedTrianglePoints[j] = MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+		}
+
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+	}*/
+
+	LINE_RENDERER.SyncWithGPU();
 }
