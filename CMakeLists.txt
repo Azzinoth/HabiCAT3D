@@ -91,6 +91,17 @@ file(GLOB SubSystems_UI_SRC
 	"SubSystems/UI/UIManager.h"
 )
 
+file(GLOB BasicApplicationNetworkSubSystem_SRC
+	"SubSystems/FEBasicApplication/SubSystems/Networking/FENetworkingBaseClasses.cpp"
+	"SubSystems/FEBasicApplication/SubSystems/Networking/FENetworkingBaseClasses.h"
+	"SubSystems/FEBasicApplication/SubSystems/Networking/FEClientSideNetworkConnection.cpp"
+	"SubSystems/FEBasicApplication/SubSystems/Networking/FEClientSideNetworkConnection.h"
+	"SubSystems/FEBasicApplication/SubSystems/Networking/FEServerSideNetworkConnection.cpp"
+	"SubSystems/FEBasicApplication/SubSystems/Networking/FEServerSideNetworkConnection.h"
+	"SubSystems/FEBasicApplication/SubSystems/Networking/FENetworking.cpp"
+	"SubSystems/FEBasicApplication/SubSystems/Networking/FENetworking.h"
+)
+
 file(GLOB BasicApplicationSubSystem_SRC
 	"SubSystems/FEBasicApplication/FEBasicApplication.cpp"
 	"SubSystems/FEBasicApplication/FEBasicApplication.h"
@@ -100,6 +111,8 @@ file(GLOB BasicApplicationSubSystem_SRC
 	"SubSystems/FEBasicApplication/FELog.h"
 	"SubSystems/FEBasicApplication/FETime.cpp"
 	"SubSystems/FEBasicApplication/FETime.h"
+	"SubSystems/FEBasicApplication/FEUniqueID.cpp"
+	"SubSystems/FEBasicApplication/FEUniqueID.h"
 )
 
 file(GLOB source_SRC
@@ -128,12 +141,13 @@ add_executable(RugosityCalculator WIN32
 								  ${Layers_SRC}
 								  ${SubSystems_UI_SRC}
 								  ${BasicApplicationSubSystem_SRC}
+								  ${BasicApplicationNetworkSubSystem_SRC}
 								  # *************** THIRD_PARTY ***************
 								  ${lodepng_SRC}
 								  ${imgui_SRC}
 )
 
-target_link_libraries(RugosityCalculator glew32.lib)
+target_link_libraries(RugosityCalculator glew32s.lib)
 target_link_libraries(RugosityCalculator glfw3.lib)
 target_link_libraries(RugosityCalculator glfw3dll.lib)
 target_link_libraries(RugosityCalculator opengl32.lib)
@@ -144,6 +158,7 @@ source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
 source_group("Source Files/SubSystems/Layers" FILES ${Layers_SRC})
 source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
 source_group("Source Files/SubSystems/BasicApplication" FILES ${BasicApplicationSubSystem_SRC})
+source_group("Source Files/SubSystems/BasicApplication/SubSystems/Networking" FILES ${BasicApplicationNetworkSubSystem_SRC})
 # *************** THIRD_PARTY ***************
 source_group("Source Files/ThirdParty/lodepng" FILES ${lodepng_SRC})
 source_group("Source Files/ThirdParty/imgui" FILES ${imgui_SRC})

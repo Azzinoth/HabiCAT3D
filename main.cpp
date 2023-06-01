@@ -1,5 +1,4 @@
-#include <windows.h>
-#include <psapi.h>
+
 //#include <ntddk.h>
 
 //#include <pdh.h>
@@ -37,6 +36,9 @@
 
 #include "SubSystems/UI/UIManager.h"
 using namespace FocalEngine;
+
+#include <windows.h>
+#include <psapi.h>
 
 FEBasicCamera* currentCamera = nullptr;
 
