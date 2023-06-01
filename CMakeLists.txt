@@ -15,21 +15,13 @@ set(CMAKE_CXX_FLAGS_RELEASE "/MP")
 # defined projects like INSTALL.vcproj and ZERO_CHECK.vcproj
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+add_subdirectory(SubSystems/FEBasicApplication)
+
 # *************** THIRD_PARTY ***************
 
 file(GLOB lodepng_SRC
 	"ThirdParty/lodepng/lodepng.cpp"
 	"ThirdParty/lodepng/lodepng.h"
-)
-
-file(GLOB imgui_SRC
-	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui.cpp"
-	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_demo.cpp"
-	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_draw.cpp"
-	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_impl_glfw.cpp"
-	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_impl_opengl3.cpp"
-	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_tables.cpp"
-	"SubSystems/FEBasicApplication/ThirdParty/imgui/imgui_widgets.cpp"
 )
 
 # *************** SUB_SYSTEM ***************
@@ -91,30 +83,6 @@ file(GLOB SubSystems_UI_SRC
 	"SubSystems/UI/UIManager.h"
 )
 
-file(GLOB BasicApplicationNetworkSubSystem_SRC
-	"SubSystems/FEBasicApplication/SubSystems/Networking/FENetworkingBaseClasses.cpp"
-	"SubSystems/FEBasicApplication/SubSystems/Networking/FENetworkingBaseClasses.h"
-	"SubSystems/FEBasicApplication/SubSystems/Networking/FEClientSideNetworkConnection.cpp"
-	"SubSystems/FEBasicApplication/SubSystems/Networking/FEClientSideNetworkConnection.h"
-	"SubSystems/FEBasicApplication/SubSystems/Networking/FEServerSideNetworkConnection.cpp"
-	"SubSystems/FEBasicApplication/SubSystems/Networking/FEServerSideNetworkConnection.h"
-	"SubSystems/FEBasicApplication/SubSystems/Networking/FENetworking.cpp"
-	"SubSystems/FEBasicApplication/SubSystems/Networking/FENetworking.h"
-)
-
-file(GLOB BasicApplicationSubSystem_SRC
-	"SubSystems/FEBasicApplication/FEBasicApplication.cpp"
-	"SubSystems/FEBasicApplication/FEBasicApplication.h"
-	"SubSystems/FEBasicApplication/FEThreadPool.cpp"
-	"SubSystems/FEBasicApplication/FEThreadPool.h"
-	"SubSystems/FEBasicApplication/FELog.cpp"
-	"SubSystems/FEBasicApplication/FELog.h"
-	"SubSystems/FEBasicApplication/FETime.cpp"
-	"SubSystems/FEBasicApplication/FETime.h"
-	"SubSystems/FEBasicApplication/FEUniqueID.cpp"
-	"SubSystems/FEBasicApplication/FEUniqueID.h"
-)
-
 file(GLOB source_SRC
 	"FECoreIncludes.h"
 	"FEFileSystem.cpp"
@@ -140,12 +108,12 @@ add_executable(RugosityCalculator WIN32
 								  ${SubSystems_SRC}
 								  ${Layers_SRC}
 								  ${SubSystems_UI_SRC}
-								  ${BasicApplicationSubSystem_SRC}
-								  ${BasicApplicationNetworkSubSystem_SRC}
 								  # *************** THIRD_PARTY ***************
 								  ${lodepng_SRC}
 								  ${imgui_SRC}
 )
+
+target_link_libraries(RugosityCalculator FEBasicApplication)
 
 target_link_libraries(RugosityCalculator glew32s.lib)
 target_link_libraries(RugosityCalculator glfw3.lib)
@@ -157,13 +125,10 @@ source_group("Source Files" FILES ${source_SRC})
 source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
 source_group("Source Files/SubSystems/Layers" FILES ${Layers_SRC})
 source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
-source_group("Source Files/SubSystems/BasicApplication" FILES ${BasicApplicationSubSystem_SRC})
-source_group("Source Files/SubSystems/BasicApplication/SubSystems/Networking" FILES ${BasicApplicationNetworkSubSystem_SRC})
 # *************** THIRD_PARTY ***************
 source_group("Source Files/ThirdParty/lodepng" FILES ${lodepng_SRC})
-source_group("Source Files/ThirdParty/imgui" FILES ${imgui_SRC})
 
-# set FEBasicApplication as the startup project
+# set as the startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT RugosityCalculator)
 
 include_directories(
