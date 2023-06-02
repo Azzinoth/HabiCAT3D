@@ -15,7 +15,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "/MP")
 # defined projects like INSTALL.vcproj and ZERO_CHECK.vcproj
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-add_subdirectory(SubSystems/FEBasicApplication)
+if(NOT TARGET FEBasicApplication)
+  add_subdirectory(SubSystems/FEBasicApplication)
+endif()
 
 # *************** THIRD_PARTY ***************
 
@@ -98,8 +100,8 @@ file(GLOB source_SRC
 	"main.cpp"
 )
 
-link_directories("SubSystems/FEBasicApplication/ThirdParty/glew2/lib/$(PlatformTarget)")
-link_directories("SubSystems/FEBasicApplication/ThirdParty/GLFW/lib/$(PlatformTarget)")
+link_directories(${GLEW_LIB_DIR})
+link_directories(${GLFW_LIB_DIR})
 
 # add the executable
 add_executable(RugosityCalculator WIN32
@@ -132,7 +134,7 @@ source_group("Source Files/ThirdParty/lodepng" FILES ${lodepng_SRC})
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT RugosityCalculator)
 
 include_directories(
-	"SubSystems/FEBasicApplication/ThirdParty/glew2/include"
-	"SubSystems/FEBasicApplication/ThirdParty/"
+	${GLEW_INCLUDE_DIR}
+	${BASICAPP_THIRDPARTY_DIR}
 	"ThirdParty/"
 )
