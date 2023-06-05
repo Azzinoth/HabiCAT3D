@@ -10,6 +10,11 @@ project(RugosityCalculator LANGUAGES CXX)
 set(CMAKE_CXX_FLAGS_DEBUG "/MP /Zi /INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF /Od")
 set(CMAKE_CXX_FLAGS_RELEASE "/MP")
 
+# Because of we are catching CGAL exceptions in the loop, we need to enable this flag
+if(MSVC)
+    add_compile_options(/bigobj)
+endif()
+
 # Turn on the ability to create folders to organize projects (.vcproj)
 # It creates "CMakePredefinedTargets" folder by default and adds CMake
 # defined projects like INSTALL.vcproj and ZERO_CHECK.vcproj

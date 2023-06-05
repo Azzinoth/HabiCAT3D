@@ -11,11 +11,14 @@ public:
 
 	void CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult);
 	void RenderDebugInfoForSelectedNode(SDF* Grid);
+	void RenderDebugInfoWindow(SDF* Grid);
 private:
 	SINGLETON_PRIVATE_PART(FractalDimensionLayerProducer)
 
 	static void OnJitterCalculationsEnd(MeshLayer NewLayer);
 	bool bWaitForJitterResult = false;
+	int DebugBoxSizeIndex = 0;
+	int DebugBoxCount = 0;
 
 	static void WorkOnNode(SDFNode* CurrentNode);
 };

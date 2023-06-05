@@ -2210,6 +2210,37 @@ void UIManager::RenderSettingsWindow()
 							//LINE_RENDERER.SyncWithGPU();
 						}
 
+						if (DebugSDF->RenderingMode == 1)
+						{
+							MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
+							if (CurrentLayer == nullptr)
+								return;
+
+							switch (CurrentLayer->GetType())
+							{
+								case LAYER_TYPE::RUGOSITY:
+								{
+									//RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(DebugSDF);
+									break;
+								}
+
+								case LAYER_TYPE::VECTOR_DISPERSION:
+								{
+									//VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugSDF);
+									break;
+								}
+
+								case LAYER_TYPE::FRACTAL_DIMENSION:
+								{
+									FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoWindow(DebugSDF);
+									break;
+								}
+
+								default:
+									break;
+							}
+						}					
+
 						ImGui::Separator();
 					}
 
