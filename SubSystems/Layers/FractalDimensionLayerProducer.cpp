@@ -46,10 +46,11 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 
 	// Generate a sequence of box sizes
 	double VozelSize = CurrentNode->AABB.getMax()[0] - CurrentNode->AABB.getMin()[0];
-	std::vector<double> boxSizes = { VozelSize / 64.0, VozelSize / 32.0, VozelSize / 16.0, VozelSize / 8.0, VozelSize / 4.0 };//generateBoxSizes(1.0 / 64.0, 0.5, 2.0);
+	std::vector<double> boxSizes = { /*VozelSize / 64.0,*/ VozelSize / 32.0, VozelSize / 16.0, VozelSize / 8.0, VozelSize / 4.0 };//generateBoxSizes(1.0 / 64.0, 0.5, 2.0);
 
 	std::vector<double> logInverseSizes;
 	std::vector<double> logCounts;
+	std::vector<int> Counts;
 
 	for (size_t i = 0; i < boxSizes.size(); i++)
 	{
@@ -91,6 +92,15 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 								glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.getMin()[0], (y + 1) * boxSize + CurrentNode->AABB.getMin()[1], (z + 1) * boxSize + CurrentNode->AABB.getMin()[2]);
 								FEAABB box(boxMin, boxMax);
 
+								/*if (!box.AABBIntersect(TriangleBBox) && box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]))
+								{
+									bool Result = box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]);
+									int y = 0;
+									y++;
+
+								}*/
+
+								//if (box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]))
 								if (box.AABBIntersect(TriangleBBox))
 								{
 									grid[x][y][z] = true;
@@ -105,12 +115,18 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 
 		// Store the logarithm values for linear regression
 		logInverseSizes.push_back(std::log(1.0 / boxSize));
+		Counts.push_back(count);
 		logCounts.push_back(std::log(static_cast<double>(count)));
 	}
 
 	// Perform linear regression to estimate the fractal dimension
 	std::pair<double, double> coefficients = linearRegression(logInverseSizes, logCounts);
 	double FractalDimension = coefficients.first;
+
+	if (isnan(FractalDimension))
+	{
+		FractalDimension = 0;
+	}
 
 	/*if (FractalDimension < 2.0)
 		FractalDimension = 2.0;
@@ -181,8 +197,6 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 
 void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 {
-	
-
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
 
@@ -213,6 +227,15 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 	int maxGridY = static_cast<int>(CurrentNode->AABB.getMax()[1] / boxSize);
 	int maxGridZ = static_cast<int>(CurrentNode->AABB.getMax()[2] / boxSize);
 
+
+	for (size_t i = 0; i < CurrentNode->TrianglesInCell.size(); i++)
+	{
+		std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentNode->TrianglesInCell[i]];
+		FEAABB TriangleBBox = FEAABB(CurrentTriangle);
+		TriangleBBox = TriangleBBox.transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
+		LINE_RENDERER.RenderAABB(TriangleBBox, glm::vec3(0.0, 0.0, 1.0));
+	}
+
 	/*for (int x = minGridX; x <= maxGridX; ++x)
 	{
 		for (int y = minGridY; y <= maxGridY; ++y)
@@ -221,11 +244,11 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 			{*/
 
 	DebugBoxCount = 0;
-	for (int x = 0; x <= maxGridX - minGridX; ++x)
+	for (int x = 0; x < maxGridX - minGridX; ++x)
 	{
-		for (int y = 0; y <= maxGridY - minGridY; ++y)
+		for (int y = 0; y < maxGridY - minGridY; ++y)
 		{
-			for (int z = 0; z <= maxGridZ - minGridZ; ++z)
+			for (int z = 0; z < maxGridZ - minGridZ; ++z)
 			{
 				glm::vec3 boxMin(x * boxSize /*+ CurrentNode->AABB.getMin()[0]*/, y * boxSize /*+ CurrentNode->AABB.getMin()[1]*/, z * boxSize /*+ CurrentNode->AABB.getMin()[2]*/);
 				boxMin += CurrentNode->AABB.getMin();
@@ -243,6 +266,15 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 
 					// Calculate the grid cells that the triangle intersects or is contained in
 					FEAABB TriangleBBox = FEAABB(CurrentTriangle);
+
+					/*if (!box.AABBIntersect(TriangleBBox) && box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]))
+					{
+						bool Result = box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]);
+						int y = 0;
+						y++;
+					}*/
+
+					//if (box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]))
 					if (box.AABBIntersect(TriangleBBox))
 					{
 						box = box.transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());

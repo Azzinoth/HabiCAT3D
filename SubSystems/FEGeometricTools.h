@@ -154,6 +154,8 @@ namespace FocalEngine
 		float getSize();
 		glm::vec3 getCenter();
 
+		bool IntersectsTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c);
+
 	private:
 		glm::vec3 min = glm::vec3(0.0f);
 		glm::vec3 max = glm::vec3(0.0f);
