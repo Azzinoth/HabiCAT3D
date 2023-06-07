@@ -21,7 +21,7 @@ namespace FocalEngine
 		bool GetWireFrameMode();
 		void SetWireFrameMode(bool NewValue);
 
-		bool GetDeveloperMode();
+		bool IsInDeveloperMode();
 		void SetDeveloperMode(bool NewValue);
 
 		std::string CameraPositionToStr();
@@ -63,7 +63,7 @@ namespace FocalEngine
 		bool bWireframeMode = false;
 		float TimeTookToJitter = 0.0f;
 
-		bool DeveloperMode = false;
+		bool bDeveloperMode = false;
 		bool bModelCamera = true;
 
 		bool bShouldOpenProgressPopup = false;

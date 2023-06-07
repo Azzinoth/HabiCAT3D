@@ -183,7 +183,7 @@ void UIManager::ShowCameraTransform()
 
 		CurrentCamera->UpdateViewMatrix();
 
-		if (DeveloperMode)
+		if (bDeveloperMode)
 		{
 			ImGui::SameLine();
 			ImGui::Text(("Thread count: " + std::to_string(THREAD_POOL.GetThreadCount())).c_str());
@@ -205,7 +205,7 @@ void UIManager::ShowCameraTransform()
 		ImGui::DragFloat("##CurrentAzimutAngle", &tempFloat, 0.1f);
 		currentCamera->CurrentAzimutAngle = tempFloat;*/
 
-		if (DeveloperMode)
+		if (bDeveloperMode)
 		{
 			ImGui::Text(("Thread count: " + std::to_string(THREAD_POOL.GetThreadCount())).c_str());
 		}
@@ -228,14 +228,14 @@ void UIManager::SetWireFrameMode(const bool NewValue)
 	bWireframeMode = NewValue;
 }
 
-bool UIManager::GetDeveloperMode()
+bool UIManager::IsInDeveloperMode()
 {
-	return DeveloperMode;
+	return bDeveloperMode;
 }
 
 void UIManager::SetDeveloperMode(const bool NewValue)
 {
-	DeveloperMode = NewValue;
+	bDeveloperMode = NewValue;
 }
 
 void UIManager::RenderDeveloperModeMainWindow()
@@ -693,7 +693,7 @@ void UIManager::RenderMainWindow()
 			}
 		}
 		
-		ImGui::Checkbox("Developer UI", &DeveloperMode);
+		ImGui::Checkbox("Developer UI", &bDeveloperMode);
 
 		ShowCameraTransform();
 
@@ -719,7 +719,7 @@ void UIManager::RenderMainWindow()
 
 		if (MESH_MANAGER.ActiveMesh != nullptr)
 		{
-			if (DeveloperMode)
+			if (bDeveloperMode)
 			{
 				RenderDeveloperModeMainWindow();
 			}
@@ -2104,7 +2104,7 @@ void UIManager::RenderSettingsWindow()
 				{
 					ImGui::Checkbox("Wireframe", &bWireframeMode);
 
-					ImGui::Text("Ambiant light scale:");
+					ImGui::Text("Ambiant light intensity:");
 					ImGui::SetNextItemWidth(150);
 					ImGui::DragFloat("##AmbiantLightScale", &AmbientLightFactor, 0.025f);
 					ImGui::SameLine();
@@ -2122,7 +2122,11 @@ void UIManager::RenderSettingsWindow()
 					ShowCameraTransform();
 
 					ImGui::Separator();
-					if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
+					TempBool = IsInDeveloperMode();
+					if (ImGui::Checkbox("Developer mode", &TempBool))
+						SetDeveloperMode(TempBool);
+					
+					if (IsInDeveloperMode() && LAYER_MANAGER.GetActiveLayerIndex() != -1)
 					{
 						if (DebugSDF == nullptr)
 							UI.InitDebugSDF(JITTER_MANAGER.GetJitterToDoCount() - 1);
@@ -2308,5 +2312,4 @@ void UIManager::UpdateRenderingMode(SDF* SDF, int NewRenderingMode)
 		default:
 			break;
 	}
-	
 }
