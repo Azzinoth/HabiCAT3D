@@ -16,6 +16,7 @@ class NewLayerWindow
 	bool bSmootherResult = false;
 
 	int Mode = 0;
+	int FeaturesSizeSelectionMode = 0;
 	std::vector<std::string> LayerTypesNames;
 
 	void InternalClose();
@@ -36,6 +37,7 @@ class NewLayerWindow
 	void RenderFractalDimentionSettings();
 
 	void RenderSettings();
+	void OnModeChanged(int OldMode);
 public:
 	SINGLETON_PUBLIC_PART(NewLayerWindow)
 

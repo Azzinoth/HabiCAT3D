@@ -605,6 +605,12 @@ void RugosityManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	}
 	NewLayer.DebugInfo->AddEntry("Delete outliers", DeleteOutliers);
 
+
+	std::string OverlapAware = "No";
+	if (RUGOSITY_MANAGER.bOverlapAware)
+		OverlapAware = "Yes";
+	NewLayer.DebugInfo->AddEntry("Unique projected area (very slow)", OverlapAware);
+
 	LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
 
 	if (OnRugosityCalculationsEndCallbackImpl != nullptr)

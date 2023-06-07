@@ -92,15 +92,8 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 								glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.getMin()[0], (y + 1) * boxSize + CurrentNode->AABB.getMin()[1], (z + 1) * boxSize + CurrentNode->AABB.getMin()[2]);
 								FEAABB box(boxMin, boxMax);
 
-								/*if (!box.AABBIntersect(TriangleBBox) && box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]))
-								{
-									bool Result = box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]);
-									int y = 0;
-									y++;
-
-								}*/
-
 								//if (box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]))
+								//if (box.AABBIntersect(TriangleBBox))
 								if (box.AABBIntersect(TriangleBBox))
 								{
 									grid[x][y][z] = true;
@@ -236,13 +229,6 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 		LINE_RENDERER.RenderAABB(TriangleBBox, glm::vec3(0.0, 0.0, 1.0));
 	}
 
-	/*for (int x = minGridX; x <= maxGridX; ++x)
-	{
-		for (int y = minGridY; y <= maxGridY; ++y)
-		{
-			for (int z = minGridZ; z <= maxGridZ; ++z)
-			{*/
-
 	DebugBoxCount = 0;
 	for (int x = 0; x < maxGridX - minGridX; ++x)
 	{
@@ -267,14 +253,8 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 					// Calculate the grid cells that the triangle intersects or is contained in
 					FEAABB TriangleBBox = FEAABB(CurrentTriangle);
 
-					/*if (!box.AABBIntersect(TriangleBBox) && box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]))
-					{
-						bool Result = box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]);
-						int y = 0;
-						y++;
-					}*/
-
 					//if (box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]))
+					//if (box.AABBIntersect(TriangleBBox))
 					if (box.AABBIntersect(TriangleBBox))
 					{
 						box = box.transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
