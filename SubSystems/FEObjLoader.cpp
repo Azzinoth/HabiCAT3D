@@ -81,8 +81,13 @@ void FEObjLoader::readLine(std::stringstream& lineStream, FERawOBJData* data)
 			lineStream >> sTemp;
 			newVec[i] = std::stof(sTemp);
 		}
+		
+		glm::vec3 NormilizedVector = glm::normalize(newVec);
 
-		data->rawNormalCoordinates.push_back(newVec);
+		if (isnan(NormilizedVector.x) || isnan(NormilizedVector.y) || isnan(NormilizedVector.z))
+			NormilizedVector = glm::vec3(0.0f);
+
+		data->rawNormalCoordinates.push_back(NormilizedVector);
 	}
 	// if this line contains indices
 	else if (sTemp[0] == 'f' && sTemp.size() == 1)
@@ -186,8 +191,6 @@ void FEObjLoader::readFile(const char* fileName)
 		return;
 	}
 
-#define NEW_LOAD
-#ifdef NEW_LOAD
 	std::ifstream File(fileName, std::ios::binary);
 	const auto begin = File.tellg();
 	File.seekg(0, std::ios::end);
@@ -211,34 +214,6 @@ void FEObjLoader::readFile(const char* fileName)
 			CurrentLine = "";
 		}
 	}
-
-#else
-	std::ifstream file;
-	file.open(fileName);
-
-	if ((file.rdstate() & std::ifstream::failbit) != 0)
-	{
-		//LOG.add(std::string("can't load file: ") + fileName + " in function FEObjLoader::readFile.", FE_LOG_ERROR, FE_LOG_LOADING);
-		return;
-	}
-
-	std::stringstream fileData;
-	// read file to fileData and close it.
-	fileData << file.rdbuf();
-	file.close();
-
-	//size_t testCount = fileData.str().size();
-
-	std::string line;
-	while (std::getline(fileData, line))
-	{
-		// read next line
-		std::stringstream lineStream;
-		lineStream << line;
-
-		readLine(lineStream, loadedObjects.back());
-	}
-#endif NEW_LOAD
 
 	if (!forceOneMesh)
 	{

@@ -1,7 +1,5 @@
 #pragma once
 
-//#define NODE_PER_THREAD
-
 #include "MeshManager.h"
 #include "FEFreeCamera.h"
 #include "FEModelViewCamera.h"
@@ -26,100 +24,6 @@ namespace PMP = CGAL::Polygon_mesh_processing;
 
 namespace FocalEngine
 {
-	static std::vector<glm::vec3> SphereVectors = {
-		glm::vec3(0.0000, 1.0000, -0.0000),
-		glm::vec3(0.5257, 0.8507, -0.0000),
-		glm::vec3(0.1625, 0.8507, -0.5000),
-		glm::vec3(-0.4253, 0.8507, -0.3090),
-		glm::vec3(-0.4253, 0.8507, 0.3090),
-		glm::vec3(0.1625, 0.8507, 0.5000),
-		glm::vec3(0.8944, 0.4472, -0.0000),
-		glm::vec3(0.2764, 0.4472, -0.8507),
-		glm::vec3(-0.7236, 0.4472, -0.5257),
-		glm::vec3(-0.7236, 0.4472, 0.5257),
-		glm::vec3(0.2764, 0.4472, 0.8507),
-		glm::vec3(0.6882, 0.5257, -0.5000),
-		glm::vec3(-0.2629, 0.5257, -0.8090),
-		glm::vec3(-0.8507, 0.5257, 0.0000),
-		glm::vec3(-0.2629, 0.5257, 0.8090),
-		glm::vec3(0.6882, 0.5257, 0.5000),
-		glm::vec3(0.9511, 0.0000, -0.3090),
-		glm::vec3(0.5878, 0.0000, -0.8090),
-		glm::vec3(-0.0000, 0.0000, -1.0000),
-		glm::vec3(-0.5878, 0.0000, -0.8090),
-		glm::vec3(-0.9511, 0.0000, -0.3090),
-		glm::vec3(-0.9511, 0.0000, 0.3090),
-		glm::vec3(-0.5878, 0.0000, 0.8090),
-		glm::vec3(0.0000, 0.0000, 1.0000),
-		glm::vec3(0.5878, 0.0000, 0.8090),
-		glm::vec3(0.9511, 0.0000, 0.3090),
-		glm::vec3(0.2733, 0.9619, -0.0000),
-		glm::vec3(0.0844, 0.9619, -0.2599),
-		glm::vec3(-0.2211, 0.9619, -0.1606),
-		glm::vec3(-0.2211, 0.9619, 0.1606),
-		glm::vec3(0.0844, 0.9619, 0.2599),
-		glm::vec3(0.3618, 0.8944, -0.2629),
-		glm::vec3(-0.1382, 0.8944, -0.4253),
-		glm::vec3(-0.4472, 0.8944, 0.0000),
-		glm::vec3(-0.1382, 0.8944, 0.4253),
-		glm::vec3(0.3618, 0.8944, 0.2629),
-		glm::vec3(0.7382, 0.6746, -0.0000),
-		glm::vec3(0.2281, 0.6746, -0.7020),
-		glm::vec3(-0.5972, 0.6746, -0.4339),
-		glm::vec3(-0.5972, 0.6746, 0.4339),
-		glm::vec3(0.2281, 0.6746, 0.7020),
-		glm::vec3(0.6382, 0.7236, -0.2629),
-		glm::vec3(-0.0528, 0.7236, -0.6882),
-		glm::vec3(-0.6708, 0.7236, -0.1625),
-		glm::vec3(-0.3618, 0.7236, 0.5878),
-		glm::vec3(0.4472, 0.7236, 0.5257),
-		glm::vec3(0.6382, 0.7236, 0.2629),
-		glm::vec3(0.4472, 0.7236, -0.5257),
-		glm::vec3(-0.3618, 0.7236, -0.5878),
-		glm::vec3(-0.6708, 0.7236, 0.1625),
-		glm::vec3(-0.0528, 0.7236, 0.6882),
-		glm::vec3(0.8226, 0.5057, -0.2599),
-		glm::vec3(0.0070, 0.5057, -0.8627),
-		glm::vec3(-0.8183, 0.5057, -0.2733),
-		glm::vec3(-0.5128, 0.5057, 0.6938),
-		glm::vec3(0.5014, 0.5057, 0.7020),
-		glm::vec3(0.8226, 0.5057, 0.2599),
-		glm::vec3(0.5014, 0.5057, -0.7020),
-		glm::vec3(-0.5128, 0.5057, -0.6938),
-		glm::vec3(-0.8183, 0.5057, 0.2733),
-		glm::vec3(0.0070, 0.5057, 0.8627),
-		glm::vec3(0.9593, 0.2325, -0.1606),
-		glm::vec3(0.8618, 0.2764, -0.4253),
-		glm::vec3(0.6708, 0.2764, -0.6882),
-		glm::vec3(0.4492, 0.2325, -0.8627),
-		glm::vec3(0.1437, 0.2325, -0.9619),
-		glm::vec3(-0.1382, 0.2764, -0.9511),
-		glm::vec3(-0.4472, 0.2764, -0.8507),
-		glm::vec3(-0.6816, 0.2325, -0.6938),
-		glm::vec3(-0.8705, 0.2325, -0.4339),
-		glm::vec3(-0.9472, 0.2764, -0.1625),
-		glm::vec3(-0.9472, 0.2764, 0.1625),
-		glm::vec3(-0.8705, 0.2325, 0.4339),
-		glm::vec3(-0.6816, 0.2325, 0.6938),
-		glm::vec3(-0.4472, 0.2764, 0.8507),
-		glm::vec3(-0.1382, 0.2764, 0.9511),
-		glm::vec3(0.1437, 0.2325, 0.9619),
-		glm::vec3(0.4492, 0.2325, 0.8627),
-		glm::vec3(0.6708, 0.2764, 0.6882),
-		glm::vec3(0.8618, 0.2764, 0.4253),
-		glm::vec3(0.9593, 0.2325, 0.1606),
-		glm::vec3(0.8090, 0.0000, -0.5878),
-		glm::vec3(0.3090, 0.0000, -0.9511),
-		glm::vec3(-0.3090, 0.0000, -0.9511),
-		glm::vec3(-0.8090, 0.0000, -0.5878),
-		glm::vec3(-1.0000, 0.0000, 0.0000),
-		glm::vec3(-0.8090, 0.0000, 0.5878),
-		glm::vec3(-0.3090, 0.0000, 0.9511),
-		glm::vec3(0.3090, 0.0000, 0.9511),
-		glm::vec3(0.8090, 0.0000, 0.5878),
-		glm::vec3(1.0000, 0.0000, -0.0000)
-	};
-
 	struct triangleData
 	{
 		glm::vec3 centroid;
@@ -167,28 +71,23 @@ namespace FocalEngine
 		glm::vec3 AverageCellNormal = glm::vec3(0.0f);
 		glm::vec3 CellTrianglesCentroid = glm::vec3(0.0f);
 		FEPlane* ApproximateProjectionPlane = nullptr;
-		double Rugosity = 0.0;
+		double UserData = 0.0;
 	};
 
 	struct SDF
 	{
-		FEBasicCamera* CurrentCamera = nullptr;
+		static FEBasicCamera* CurrentCamera;
 
 		std::vector<std::vector<std::vector<SDFNode>>> Data;
 		glm::vec3 AverageNormal;
+		glm::vec3 SelectedCell = glm::vec3(-1.0);
 
 		std::vector<triangleData> GetTrianglesData();
 		SDF();
-		SDF(int Dimentions, FEAABB AABB, FEBasicCamera* Camera);
+		SDF(int Dimentions, FEAABB AABB);
 
-		void Init(int Dimensions, FEAABB AABB, FEBasicCamera* Camera, float ResolutionInM = 0.0f);
-
-		glm::vec3 SelectedCell = glm::vec3(0.0);
-
+		void Init(int Dimensions, FEAABB AABB, float ResolutionInM = 0.0f);
 		void FillCellsWithTriangleInfo();
-		void CalculateRugosity();
-
-		//std::vector<glm::vec3> highlightedCells;
 
 		void MouseClick(double MouseX, double MouseY, glm::mat4 TransformMat = glm::identity<glm::mat4>());
 
@@ -196,17 +95,6 @@ namespace FocalEngine
 
 		void FillMeshWithRugosityData();
 
-		void CalculateCellRugosity(SDFNode* Node, std::string* DebugInfo = nullptr);
-#ifdef NODE_PER_THREAD
-		struct CalculateCellRugosityAsyncData
-		{
-			SDF* SDF;
-			//std::vector<SDFNode*> Nodes;
-			std::vector<glm::vec3> Coordinates;
-			//int x, y, z;
-		};
-		static void CalculateCellRugosityAsync(void* Input, void* Output);
-#endif
 		float TimeTookToGenerateInMS = 0.0f;
 		float TimeTookFillCellsWithTriangleInfo = 0.0f;
 		float TimeTookCalculateRugosity = 0.0f;
@@ -218,13 +106,16 @@ namespace FocalEngine
 		bool bFindSmallestRugosity = false;
 		bool bCGALVariant = false;
 
-		std::vector<float> TrianglesRugosity;
+		std::vector<float> TrianglesUserData;
 		
 		bool bFullyLoaded = false;
 
 		int RenderingMode = 0;
 		bool bShowTrianglesInCells = true;
-		void UpdateRenderLines();
+		void UpdateRenderedLines();
+
+		void RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func);
+		//float GetSignedDistanceForNode(SDFNode* Node);
 
 		~SDF()
 		{
@@ -232,6 +123,6 @@ namespace FocalEngine
 		}
 
 	private:
-		void AddLinesOfsdf();
+		void AddLinesOfSDF();
 	};
 }

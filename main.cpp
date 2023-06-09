@@ -1,6 +1,44 @@
 
+//#include <ntddk.h>
+
+//#include <pdh.h>
+//#include <pdhmsg.h>
+//#pragma comment(lib, "pdh.lib")
+
+//#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+//#include <CGAL/Polygon_2.h>
+//#include <CGAL/Boolean_set_operations_2.h>
+//#include <CGAL/Polygon_set_2.h>
+
+//typedef CGAL::Exact_predicates_exact_constructions_kernel  Kernel2;
+//typedef Kernel2::Point_2                                   Point_2;
+//typedef CGAL::Polygon_2<Kernel2>                           Polygon_2;
+//typedef std::vector<Polygon_2>                             Polygon_vector;
+//typedef CGAL::Polygon_set_2<Kernel2>                       Polygon_set_2;
+//
+//double calculate_area(const Polygon_set_2& polygon_set) {
+//	typedef CGAL::Polygon_with_holes_2<Kernel2>             Polygon_with_holes_2;
+//	typedef std::vector<Polygon_with_holes_2>               Pwh_vector;
+//
+//	double area = 0;
+//	Pwh_vector result_polygons;
+//	polygon_set.polygons_with_holes(std::back_inserter(result_polygons));
+//
+//	for (const Polygon_with_holes_2& polygon : result_polygons) {
+//		area += CGAL::to_double(polygon.outer_boundary().area());
+//		for (auto it = polygon.holes_begin(); it != polygon.holes_end(); ++it) {
+//			area -= CGAL::to_double(it->area());
+//		}
+//	}
+//
+//	return area;
+//}
+
 #include "SubSystems/UI/UIManager.h"
 using namespace FocalEngine;
+
+#include <windows.h>
+#include <psapi.h>
 
 FEBasicCamera* currentCamera = nullptr;
 
@@ -19,7 +57,6 @@ void SwapCamera(bool bModelCamera)
 	currentCamera->SetIsInputActive(false);
 
 	UI.SetCamera(currentCamera);
-	RUGOSITY_MANAGER.currentCamera = currentCamera;
 }
 
 double mouseX;
@@ -267,9 +304,9 @@ void mouseButtonCallback(int button, int action, int mods)
 			UpdateMeshSelectedTrianglesRendering(MESH_MANAGER.ActiveMesh);
 		}
 
-		if (MESH_MANAGER.ActiveMesh != nullptr && RUGOSITY_MANAGER.currentSDF != nullptr)
+		if (MESH_MANAGER.ActiveMesh != nullptr && UI.GetDebugSDF() != nullptr)
 		{
-			if (RUGOSITY_MANAGER.currentSDF->RenderingMode == 0)
+			if (UI.GetDebugSDF()->RenderingMode == 0)
 			{
 				/*LINE_RENDERER.clearAll();
 
@@ -309,8 +346,9 @@ void mouseButtonCallback(int button, int action, int mods)
 			}
 			else
 			{
-				RUGOSITY_MANAGER.currentSDF->MouseClick(mouseX, mouseY);
-				RUGOSITY_MANAGER.currentSDF->UpdateRenderLines();
+				UI.GetDebugSDF()->MouseClick(mouseX, mouseY);
+				UI.UpdateRenderingMode(UI.GetDebugSDF(), UI.GetDebugSDF()->RenderingMode);
+				//UI.GetDebugSDF()->UpdateRenderedLines();
 			}
 		}
 	}
@@ -366,9 +404,164 @@ void windowResizeCallback(int width, int height)
 	UI.ApplyStandardWindowsSizeAndPosition();
 }
 
+float RAMUsed()
+{
+	//PDH_STATUS status;
+	//PDH_HQUERY query;
+	//PDH_HCOUNTER counter;
+	//PDH_FMT_COUNTERVALUE value;
+
+	//// Open a query object
+	//status = PdhOpenQuery(NULL, NULL, &query);
+	//if (status != ERROR_SUCCESS) {
+	//	std::cerr << "Error opening query: " << status << std::endl;
+	//	return 1;
+	//}
+
+	//// Get the current process ID
+	//DWORD process_id = GetCurrentProcessId();
+
+	//// Add the "Private Bytes" performance counter for the current process
+	//char counter_path[MAX_PATH];
+	//sprintf_s(counter_path, sizeof(counter_path), "\\Process(*)\\Private Bytes");
+	//status = PdhAddEnglishCounter(query, counter_path, process_id, &counter);
+	//if (status != ERROR_SUCCESS) {
+	//	std::cerr << "Error adding counter: " << status << std::endl;
+	//	return 1;
+	//}
+
+	//// Collect the performance data
+	//status = PdhCollectQueryData(query);
+	//if (status != ERROR_SUCCESS) {
+	//	std::cerr << "Error collecting data: " << status << std::endl;
+	//	return 1;
+	//}
+
+	//// Get the counter value
+	//status = PdhGetFormattedCounterValue(counter, PDH_FMT_DOUBLE, NULL, &value);
+	//if (status != ERROR_SUCCESS) {
+	//	std::cerr << "Error getting counter value: " << status << std::endl;
+	//	return 1;
+	//}
+
+
+	//// Print the memory usage
+	//std::cout << "Private Bytes: " << value.doubleValue << " bytes" << std::endl;
+
+	//MEMORYSTATUSEX memInfo;
+	//memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+
+	//if (GlobalMemoryStatusEx(&memInfo)) {
+	//	DWORDLONG totalPhysicalMemory = memInfo.ullTotalPhys;
+	//	DWORDLONG freePhysicalMemory = memInfo.ullAvailPhys;
+	//	DWORDLONG usedPhysicalMemory = totalPhysicalMemory - freePhysicalMemory;
+
+	//	double totalPhysicalMemoryInMB = totalPhysicalMemory / 1024.0 / 1024.0;
+	//	double usedPhysicalMemoryInMB = usedPhysicalMemory / 1024.0 / 1024.0;
+	//	double freePhysicalMemoryInMB = freePhysicalMemory / 1024.0 / 1024.0;
+
+	//	double freeRAMPercent = freePhysicalMemoryInMB / totalPhysicalMemoryInMB * 100.0;
+
+	//	std::cout << "Total Physical Memory: " << totalPhysicalMemory << " bytes" << std::endl;
+	//	std::cout << "Free Physical Memory: " << freePhysicalMemory << " bytes" << std::endl;
+	//	std::cout << "Used Physical Memory: " << usedPhysicalMemory << " bytes" << std::endl;
+	//}
+	//else {
+	//	std::cerr << "Error getting memory information" << std::endl;
+	//	return 1;
+	//}
+
+	PROCESS_MEMORY_COUNTERS_EX pmc;
+	GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+	SIZE_T MemCommited = pmc.PrivateUsage;
+	SIZE_T MemWorkingSet = pmc.WorkingSetSize;
+
+	float MemCommitedInKB = float(MemCommited) / 1024.0f;
+	float MemWorkingSetInKB = float(MemWorkingSet) / 1024.0f;
+
+	float MemCommitedInMB = MemCommitedInKB/ 1024.0f;
+	float MemWorkingSetInMB = MemWorkingSetInKB / 1024.0f;
+
+	return MemCommitedInMB;
+}
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	//// Create a vector of triangles (as Polygon_2 objects)
+	//Polygon_vector triangles;
+
+	//// Construct the first triangle
+	//Polygon_2 triangle1;
+	//triangle1.push_back(Point_2(0, 0));
+	//triangle1.push_back(Point_2(4, 0));
+	//triangle1.push_back(Point_2(2, 4));
+	//triangles.push_back(triangle1);
+
+	//// Construct the second triangle
+	//Polygon_2 triangle2;
+	//triangle2.push_back(Point_2(2, 2));
+	//triangle2.push_back(Point_2(6, 2));
+	//triangle2.push_back(Point_2(4, 6));
+	//triangles.push_back(triangle2);
+
+	//Polygon_2 triangle3;
+	//triangle3.push_back(Point_2(4, -4));
+	//triangle3.push_back(Point_2(6, -2));
+	//triangle3.push_back(Point_2(2, -2));
+	//
+	//
+	//triangles.push_back(triangle3);
+
+	//// Calculate and print the combined area
+	////double combined_area = calculate_combined_area(triangles);
+	////std::cout << "Combined area: " << combined_area << std::endl;
+
+	////is_valid_polygon
+	//
+
+	//std::vector<Polygon_set_2> TriangleGroups;
+	////Polygon_set_2 union_of_triangles;
+
+	//for (size_t i = 0; i < triangles.size(); i++)
+	//{
+	//	//bool temp = CGAL::do_intersect(triangles[i], triangles[i + 1]);
+	//	//Polygon_2::do_intersect(triangles[i + 1]);
+
+	//	if (i == 0)
+	//	{
+	//		TriangleGroups.push_back(Polygon_set_2(triangles[0]));
+	//		continue;
+	//	}
+	//	
+	//	bool NeedNewGroup = true;
+	//	for (size_t j = 0; j < TriangleGroups.size(); j++)
+	//	{
+	//		if (TriangleGroups[j].do_intersect(triangles[i]))
+	//		{
+	//			TriangleGroups[j].join(triangles[i]);
+	//			NeedNewGroup = false;
+	//			break;
+	//		}
+	//	}
+
+	//	if (NeedNewGroup)
+	//		TriangleGroups.push_back(Polygon_set_2(triangles[i]));
+	//	
+	//}
+
+	//double TotalArea = 0.0;
+
+	//for (size_t i = 0; i < TriangleGroups.size(); i++)
+	//{
+	//	TotalArea += calculate_area(TriangleGroups[i]);
+	//}
+
+	// Calculate and print the combined area
+	//double combined_area = calculate_area(union_of_triangles);
+	//std::cout << "Combined area: " << combined_area << std::endl;
+
+
 	LOG.SetFileOutput(true);
 
 	APPLICATION.InitWindow(1280, 720, "Rugosity Calculator");
@@ -396,7 +589,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	currentCamera->SetAspectRatio(1280.0f / 720.0f);
 
 	UI.SetCamera(currentCamera);
-	RUGOSITY_MANAGER.currentCamera = currentCamera;
 	UI.SwapCameraImpl = SwapCamera;
 
 	MESH_MANAGER.AddLoadCallback(AfterMeshLoads);
@@ -469,6 +661,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		}
 		
 		APPLICATION.EndFrame();
+
+		/*auto ID = GetCurrentProcess();
+		auto test = RAMUsed();
+		int y = 0;*/
 	}
 
 	return 0;

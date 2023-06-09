@@ -28,406 +28,434 @@ RugosityManager::RugosityManager()
 	RugosityAlgorithmList.push_back("Min Rugosity");
 	RugosityAlgorithmList.push_back("Least square fitting");
 
-	MESH_MANAGER.AddLoadCallback(RugosityManager::OnMeshUpdate);
+	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
 }
 
 RugosityManager::~RugosityManager() {}
 
-void RugosityManager::OnMeshUpdate()
+typedef CGAL::Exact_predicates_exact_constructions_kernel  Kernel2;
+typedef Kernel2::Point_2                                   Point_2;
+typedef CGAL::Polygon_2<Kernel2>                           Polygon_2;
+typedef std::vector<Polygon_2>                             Polygon_vector;
+typedef CGAL::Polygon_set_2<Kernel2>                       Polygon_set_2;
+
+double calculate_area(const Polygon_set_2& polygon_set)
 {
-	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
-	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
-	FEAABB FinalAABB = MESH_MANAGER.ActiveMesh->AABB.transform(TransformMatrix);
+	//TIME.BeginTimeStamp("calculate_area time");
 
-	const float MaxMeshAABBSize = FinalAABB.getSize();
+	typedef CGAL::Polygon_with_holes_2<Kernel2> Polygon_with_holes_2;
+	typedef std::vector<Polygon_with_holes_2>   Pwh_vector;
 
-	RUGOSITY_MANAGER.LowestResolution = MaxMeshAABBSize / 120;
-	RUGOSITY_MANAGER.HigestResolution = MaxMeshAABBSize / 9;
+	double area = 0;
+	Pwh_vector result_polygons;
+	polygon_set.polygons_with_holes(std::back_inserter(result_polygons));
 
-	RUGOSITY_MANAGER.ResolutonInM = RUGOSITY_MANAGER.LowestResolution;
+	for (const Polygon_with_holes_2& polygon : result_polygons)
+	{
+		area += CGAL::to_double(polygon.outer_boundary().area());
+		for (auto it = polygon.holes_begin(); it != polygon.holes_end(); ++it)
+		{
+			area -= CGAL::to_double(it->area());
+		}
+	}
 
-	delete RUGOSITY_MANAGER.currentSDF;
-	RUGOSITY_MANAGER.currentSDF = nullptr;
+	/*double calculate_area_time = TIME.EndTimeStamp("calculate_area time");
+	LOG.Add(std::to_string(calculate_area_time), "calculate_area");
+	LOG.Add("========================================================", "calculate_area");*/
+
+	return area;
 }
 
-void RugosityManager::MoveRugosityInfoFromSDF(SDF* SDF)
+void create_local_coordinate_system(const glm::vec3& normal, glm::vec3& u, glm::vec3& v)
 {
-	if (SDF == nullptr || SDF->TrianglesRugosity.empty())
+	glm::vec3 temp(1, 0, 0);
+	if (glm::length(glm::cross(normal, temp)) < 0.01) {
+		temp = glm::vec3(0, 1, 0);
+	}
+	u = glm::normalize(glm::cross(normal, temp));
+	v = glm::cross(normal, u);
+}
+
+Point_2 project_to_local_coordinates(const glm::vec3& point, const glm::vec3& u, const glm::vec3& v)
+{
+	double x = glm::dot(point, u);
+	double y = glm::dot(point, v);
+	return Point_2(x, y);
+}
+
+Polygon_2 create_2d_triangle(const glm::vec3& AProjection, const glm::vec3& BProjection, const glm::vec3& CProjection, const glm::vec3& normal)
+{
+	glm::vec3 u, v;
+	create_local_coordinate_system(normal, u, v);
+
+	Polygon_2 triangle;
+	triangle.push_back(project_to_local_coordinates(AProjection, u, v));
+	triangle.push_back(project_to_local_coordinates(BProjection, u, v));
+	triangle.push_back(project_to_local_coordinates(CProjection, u, v));
+	return triangle;
+}
+
+void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
+{
+	if (CurrentNode->TrianglesInCell.empty())
 		return;
 
-	PerJitterResult.resize(PerJitterResult.size() + 1);
+	TIME.BeginTimeStamp("CalculateOneNodeRugosity time");
 
-	if (Result.size() != SDF->TrianglesRugosity.size())
-		Result.resize(SDF->TrianglesRugosity.size());
-
-	for (size_t i = 0; i < Result.size(); i++)
+	float TotalArea = 0.0f;
+	for (size_t l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 	{
-		PerJitterResult.back().push_back(SDF->TrianglesRugosity[i]);
-		Result[i] += SDF->TrianglesRugosity[i];
-		if (Result[i] <= 0.0f)
+		TotalArea += static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[l]]);
+	}
+
+	auto CalculateCellRugosity = [&](const glm::vec3 PointOnPlane, const glm::vec3 PlaneNormal) {
+		double Result = 0.0;
+		const FEPlane* ProjectionPlane = new FEPlane(PointOnPlane, PlaneNormal);
+
+		if (RUGOSITY_MANAGER.bOverlapAware)
 		{
-			Result[i] += 0.000000001f;
-			bWeightedNormals = true;
-		}
-	}
+			//TIME.BeginTimeStamp("CalculateCellRugosity time");
+			glm::vec3 u, v;
+			create_local_coordinate_system(PlaneNormal, u, v);
 
-	if (RUGOSITY_MANAGER.JitterDoneCount == RUGOSITY_MANAGER.JitterToDoCount)
-	{
-		for (size_t i = 0; i < Result.size(); i++)
+			Polygon_vector Triangles;
+			for (int i = 0; i < CurrentNode->TrianglesInCell.size(); i++)
+			{
+				std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentNode->TrianglesInCell[i]];
+
+				glm::vec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
+				glm::vec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
+				glm::vec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
+
+				Polygon_2 TempTriangle;
+				TempTriangle.push_back(project_to_local_coordinates(AProjection, u, v));
+				TempTriangle.push_back(project_to_local_coordinates(BProjection, u, v));
+				TempTriangle.push_back(project_to_local_coordinates(CProjection, u, v));
+
+				if (!CGAL::is_ccw_strongly_convex_2(TempTriangle.vertices_begin(), TempTriangle.vertices_end()))
+					TempTriangle.reverse_orientation();
+
+				Triangles.push_back(TempTriangle);
+			}
+
+			/*double TimeTookCalculateRugosity = TIME.EndTimeStamp("CalculateCellRugosity time");
+			LOG.Add(std::to_string(TimeTookCalculateRugosity), "CalculateCellRugosity");
+			LOG.Add("triangle count: " + std::to_string(CurrentNode->TrianglesInCell.size()), "CalculateCellRugosity");
+			LOG.Add("========================================================", "CalculateCellRugosity");*/
+
+
+			//TIME.BeginTimeStamp("TriangleGroups time");
+			Polygon_set_2 TriangleGroup;
+			std::vector<int> CGALFailedIndexes;
+
+			std::vector<int> Ranges;
+			try
+			{
+				TriangleGroup.join(Triangles.begin(), Triangles.end());
+			}
+			catch (...)
+			{
+				for (size_t i = 0; i < Triangles.size(); i++)
+				{
+					try
+					{
+						TriangleGroup.join(Triangles[i]);
+					}
+					catch (...)
+					{
+						CGALFailedIndexes.push_back(i);
+					}
+				}
+
+				for (size_t i = 0; i < CGALFailedIndexes.size(); i++)
+				{
+					TotalArea -= static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[CGALFailedIndexes[i]]]);
+				}
+
+				//for (size_t i = 0; i < Triangles.size(); i++)
+				//{
+				//	if (i == 0)
+				//	{
+				//		TriangleGroups.push_back(Polygon_set_2(Triangles[0]));
+				//		continue;
+				//	}
+				//	
+				//	bool NeedNewGroup = true;
+				//	for (size_t j = 0; j < TriangleGroups.size(); j++)
+				//	{
+				//		try
+				//		{
+				//			TriangleGroups[j].join(Triangles[i]);
+				//			NeedNewGroup = false;
+				//			break;
+				//		}
+				//		catch (...)
+				//		{
+				//			int y = 0;
+				//			y++;
+				//			break;
+				//		}
+
+				//		/*if (TriangleGroups[j].do_intersect(Triangles[i]))
+				//		{
+				//			TriangleGroups[j].join(Triangles[i]);
+				//			NeedNewGroup = false;
+				//			break;
+				//		}*/
+				//	}
+
+				//	if (NeedNewGroup)
+				//		TriangleGroups.push_back(Polygon_set_2(Triangles[i]));
+				//	
+				//}
+
+
+
+
+
+
+
+				/*Ranges.push_back(0);
+				for (size_t i = 0; i < Triangles.size(); i++)
+				{
+					try
+					{
+						TriangleGroup.join(Triangles[i]);
+					}
+					catch (...)
+					{
+						Ranges.push_back(i - 1);
+						int y = 0;
+						y++;
+						break;
+					}
+				}
+
+				for (size_t i = Ranges.back(); i < Triangles.size(); i++)
+				{
+					try
+					{
+						TriangleGroup.join(Triangles[i]);
+					}
+					catch (...)
+					{
+						Ranges.push_back(i - 1);
+						int y = 0;
+						y++;
+					}
+				}*/
+			}
+
+			/*double TimeTookCalculateRugosity2 = TIME.EndTimeStamp("TriangleGroups time");
+			LOG.Add(std::to_string(TimeTookCalculateRugosity2), "TriangleGroups");
+			LOG.Add("triangle count: " + std::to_string(CurrentNode->TrianglesInCell.size()), "TriangleGroups");
+			LOG.Add("========================================================", "TriangleGroups");*/
+
+			double TotalProjectedArea = 0.0;
+			TotalProjectedArea = calculate_area(TriangleGroup);
+
+			if (TotalProjectedArea == 0)
+			{
+				Result = 1.0f;
+			}
+			else
+			{
+				Result = TotalArea / TotalProjectedArea;
+			}
+			
+			if (isnan(Result))
+				Result = 1.0f;
+		}
+		else
 		{
-			Result[i] /= JitterDoneCount;
+			std::vector<float> Rugosities;
+			for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
+			{
+				std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentNode->TrianglesInCell[l]];
+
+				glm::vec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
+				glm::vec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
+				glm::vec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
+
+				const double ProjectionArea = SDF::TriangleArea(AProjection, BProjection, CProjection);
+				const double OriginalArea = MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[l]];
+				Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
+
+				if (OriginalArea == 0.0 || ProjectionArea == 0.0)
+					Rugosities.back() = 1.0f;
+
+				if (Rugosities.back() > 100.0f)
+					Rugosities.back() = 100.0f;
+			}
+
+			// Weighted by triangle area rugosity.
+			for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
+			{
+				const float CurrentTriangleCoef = static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
+				Result += Rugosities[l] * CurrentTriangleCoef;
+
+				if (isnan(Result))
+					Result = 1.0f;
+			}
 		}
+
+		delete ProjectionPlane;
+		return Result;
+	};
+
+	if (RUGOSITY_MANAGER.bUseCGALVariant)
+	{
+		std::vector<float> FEVerticesFinal;
+		std::vector<int> FEIndicesFinal;
+
+		for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
+		{
+			const int TriangleIndex = CurrentNode->TrianglesInCell[l];
+
+			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][0][0]);
+			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][0][1]);
+			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][0][2]);
+			FEIndicesFinal.push_back(l * 3);
+
+			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][1][0]);
+			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][1][1]);
+			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][1][2]);
+			FEIndicesFinal.push_back(l * 3 + 1);
+
+			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][2][0]);
+			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][2][1]);
+			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->Triangles[TriangleIndex][2][2]);
+			FEIndicesFinal.push_back(l * 3 + 2);
+		}
+
+		// Formating data to CGAL format.
+		std::vector<Polygon_3> CGALFaces;
+		CGALFaces.resize(FEIndicesFinal.size() / 3);
+		int count = 0;
+		for (size_t i = 0; i < FEIndicesFinal.size(); i += 3)
+		{
+			CGALFaces[count].push_back(FEIndicesFinal[i]);
+			CGALFaces[count].push_back(FEIndicesFinal[i + 1]);
+			CGALFaces[count].push_back(FEIndicesFinal[i + 2]);
+			count++;
+		}
+
+		std::vector<Point_3> CGALPoints;
+		for (size_t i = 0; i < FEVerticesFinal.size(); i += 3)
+		{
+			CGALPoints.push_back(Point_3(FEVerticesFinal[i], FEVerticesFinal[i + 1], FEVerticesFinal[i + 2]));
+		}
+
+		Surface_mesh result;
+
+		if (!PMP::is_polygon_soup_a_polygon_mesh(CGALFaces))
+		{
+			PMP::repair_polygon_soup(CGALPoints, CGALFaces);
+			PMP::orient_polygon_soup(CGALPoints, CGALFaces);
+		}
+
+		PMP::polygon_soup_to_polygon_mesh(CGALPoints, CGALFaces, result);
+
+		Kernel::Plane_3 plane;
+		Kernel::Point_3 centroid;
+
+		Kernel::FT quality = linear_least_squares_fitting_3(result.points().begin(), result.points().end(), plane, centroid,
+			CGAL::Dimension_tag<0>());
+
+
+		const auto CGALNormal = plane.perpendicular_line(centroid);
+
+		glm::vec3 Normal = glm::vec3(CGALNormal.direction().vector().x(),
+			CGALNormal.direction().vector().y(),
+			CGALNormal.direction().vector().z());
+
+		Normal = glm::normalize(Normal);
+
+		CurrentNode->UserData = CalculateCellRugosity(CurrentNode->CellTrianglesCentroid, Normal);
+
+		return;
 	}
-}
 
-SDF* RugosityManager::calculateSDF(int dimentions, FEBasicCamera* currentCamera, bool UseJitterExpandedAABB)
-{
-	OnRugosityCalculationsStart();
-
-	FEAABB finalAABB = MESH_MANAGER.ActiveMesh->AABB;
-
-	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
-	if (UseJitterExpandedAABB)
+	// ******* Getting average normal *******
+	for (size_t l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 	{
-		transformMatrix = glm::scale(transformMatrix, glm::vec3(GridScale));
-		finalAABB = finalAABB.transform(transformMatrix);
+		std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentNode->TrianglesInCell[l]];
+		std::vector<glm::vec3> CurrentTriangleNormals = MESH_MANAGER.ActiveMesh->TrianglesNormals[CurrentNode->TrianglesInCell[l]];
+
+		if (RUGOSITY_MANAGER.bWeightedNormals)
+		{
+			const float CurrentTriangleCoef = static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
+
+			CurrentNode->AverageCellNormal += CurrentTriangleNormals[0] * CurrentTriangleCoef;
+			CurrentNode->AverageCellNormal += CurrentTriangleNormals[1] * CurrentTriangleCoef;
+			CurrentNode->AverageCellNormal += CurrentTriangleNormals[2] * CurrentTriangleCoef;
+		}
+		else
+		{
+			CurrentNode->AverageCellNormal += CurrentTriangleNormals[0];
+			CurrentNode->AverageCellNormal += CurrentTriangleNormals[1];
+			CurrentNode->AverageCellNormal += CurrentTriangleNormals[2];
+		}
+
+		CurrentNode->CellTrianglesCentroid += CurrentTriangle[0];
+		CurrentNode->CellTrianglesCentroid += CurrentTriangle[1];
+		CurrentNode->CellTrianglesCentroid += CurrentTriangle[2];
 	}
 
-	const float cellSize = finalAABB.getSize() / dimentions;
+	if (!RUGOSITY_MANAGER.bWeightedNormals)
+		CurrentNode->AverageCellNormal /= CurrentNode->TrianglesInCell.size() * 3;
 
-	//glm::vec3 center = mesh->AABB.getCenter();
-	const glm::vec3 center = MESH_MANAGER.ActiveMesh->AABB.getCenter() + glm::vec3(shiftX, shiftY, shiftZ) * cellSize;
-	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
-	finalAABB = SDFAABB;
+	if (RUGOSITY_MANAGER.bNormalizedNormals)
+		CurrentNode->AverageCellNormal = glm::normalize(CurrentNode->AverageCellNormal);
+	CurrentNode->CellTrianglesCentroid /= CurrentNode->TrianglesInCell.size() * 3;
+	// ******* Getting average normal END *******
 
-
-	//transformMatrix = glm::translate(glm::identity<glm::mat4>(), glm::vec3(finalAABB.getSize() / 2.0f));
-	//finalAABB = finalAABB.transform(transformMatrix);
-
-	/*if (UseJitterExpandedAABB)
+	if (RUGOSITY_MANAGER.bUseFindSmallestRugosity)
 	{
-		transformMatrix = glm::translate(glm::identity<glm::mat4>(), glm::vec3(cellSize * shiftX, cellSize * shiftY, cellSize * shiftZ));
-		finalAABB = finalAABB.transform(transformMatrix);
-	}*/
+		std::unordered_map<int, float> TriangleNormalsToRugosity;
+		TriangleNormalsToRugosity[-1] = static_cast<float>(CalculateCellRugosity(CurrentNode->CellTrianglesCentroid, CurrentNode->AverageCellNormal));
 
-	SDF* result = new SDF(dimentions, finalAABB, currentCamera);
-	result->bFindSmallestRugosity = bUseFindSmallestRugosity;
-	result->bCGALVariant = bUseCGALVariant;
-	result->bWeightedNormals = bWeightedNormals;
-	result->bNormalizedNormals = bNormalizedNormals;
+		for (int i = 0; i < SphereVectors.size(); i++)
+		{
+			TriangleNormalsToRugosity[i] = static_cast<float>(CalculateCellRugosity(glm::vec3(0.0f), SphereVectors[i]));
+		}
 
-	result->FillCellsWithTriangleInfo();
-	result->CalculateRugosity();
+		double Min = FLT_MAX;
+		double Max = -FLT_MAX;
+		auto MapIt = TriangleNormalsToRugosity.begin();
+		while (MapIt != TriangleNormalsToRugosity.end())
+		{
+			if (MapIt->second < Min)
+			{
+				Min = MapIt->second;
+				CurrentNode->UserData = Min;
+			}
 
-	result->FillMeshWithRugosityData();
-	result->bFullyLoaded = true;
-
-	OnRugosityCalculationsEnd();
-
-	return result;
-}
-
-void RugosityManager::calculateSDFCallback(void* OutputData)
-{
-	SDF* Input = reinterpret_cast<SDF*>(OutputData);
-
-	RUGOSITY_MANAGER.currentSDF = Input;
-	RUGOSITY_MANAGER.JitterDoneCount++;
-
-	RUGOSITY_MANAGER.MoveRugosityInfoFromSDF(RUGOSITY_MANAGER.currentSDF);
-
-	if (RUGOSITY_MANAGER.JitterDoneCount != RUGOSITY_MANAGER.JitterToDoCount)
-	{
-		delete RUGOSITY_MANAGER.currentSDF;
-		RUGOSITY_MANAGER.currentSDF = nullptr;
+			MapIt++;
+		}
 	}
 	else
 	{
-		//LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
-
-		//MeshLayer New
-		//RUGOSITY_MANAGER.Result
-
-		OnRugosityCalculationsEnd();
-	}
-}
-
-void RugosityManager::calculateSDFAsync(void* InputData, void* OutputData)
-{
-	const SDFInitData* Input = reinterpret_cast<SDFInitData*>(InputData);
-	SDF* Output = reinterpret_cast<SDF*>(OutputData);
-
-	FEAABB finalAABB = Input->Mesh->AABB;
-
-	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
-	if (Input->UseJitterExpandedAABB)
-	{
-		transformMatrix = glm::scale(transformMatrix, glm::vec3(Input->GridScale));
-		finalAABB = finalAABB.transform(transformMatrix);
+		CurrentNode->UserData = CalculateCellRugosity(CurrentNode->CellTrianglesCentroid, CurrentNode->AverageCellNormal);
+		if (isnan(CurrentNode->UserData))
+			CurrentNode->UserData = 1.0f;
 	}
 
-	const float cellSize = finalAABB.getSize() / Input->Dimentions;
-
-	const glm::vec3 center = Input->Mesh->AABB.getCenter() + glm::vec3(Input->ShiftX, Input->ShiftY, Input->ShiftZ) * cellSize;
-	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
-	finalAABB = SDFAABB;
-
-	Output->Init(0/*Input->dimentions*/, finalAABB, RUGOSITY_MANAGER.currentCamera, RUGOSITY_MANAGER.ResolutonInM);
-
-	Output->bFindSmallestRugosity = RUGOSITY_MANAGER.bUseFindSmallestRugosity;
-	Output->bCGALVariant = RUGOSITY_MANAGER.bUseCGALVariant;
-	Output->bWeightedNormals = RUGOSITY_MANAGER.bWeightedNormals;
-	Output->bNormalizedNormals = RUGOSITY_MANAGER.bNormalizedNormals;
-
-	Output->FillCellsWithTriangleInfo();
-	Output->CalculateRugosity();
-
-	Output->FillMeshWithRugosityData();
-	Output->bFullyLoaded = true;
-}
-
-void RugosityManager::RunCreationOfSDFAsync(bool bJitter)
-{
-	//OnRugosityCalculationsStart();
-
-	SDFInitData* InputData = new SDFInitData();
-	InputData->Dimentions = SDFDimention;
-	InputData->Mesh = MESH_MANAGER.ActiveMesh;
-	InputData->UseJitterExpandedAABB = bJitter;
-
-	InputData->ShiftX = RUGOSITY_MANAGER.shiftX;
-	InputData->ShiftY = RUGOSITY_MANAGER.shiftY;
-	InputData->ShiftZ = RUGOSITY_MANAGER.shiftZ;
-	InputData->GridScale = RUGOSITY_MANAGER.GridScale;
-
-	SDF* OutputData = new SDF();
-	OutputData->bFindSmallestRugosity = RUGOSITY_MANAGER.bUseFindSmallestRugosity;
-	OutputData->bCGALVariant = RUGOSITY_MANAGER.bUseCGALVariant;
-	currentSDF = OutputData;
-#ifdef NODE_PER_THREAD
-	calculateSDFAsync(InputData, OutputData);
-	calculateSDFCallback(OutputData);
-#else
-	THREAD_POOL.Execute(calculateSDFAsync, InputData, OutputData, calculateSDFCallback);
-#endif
+	/*double TimeTookCalculateRugosity = TIME.EndTimeStamp("CalculateOneNodeRugosity time");
+	LOG.Add(std::to_string(TimeTookCalculateRugosity), "CalculateOneNodeRugosity");
+	LOG.Add("triangle count: " + std::to_string(CurrentNode->TrianglesInCell.size()), "CalculateOneNodeRugosity");
+	LOG.Add("========================================================", "CalculateOneNodeRugosity");*/
 }
 
 void RugosityManager::CalculateRugorsityWithJitterAsync(int RugosityLayerIndex)
 {
-	OnRugosityCalculationsStart();
+	if (MESH_MANAGER.ActiveMesh == nullptr)
+		return;
 
-	RUGOSITY_MANAGER.RugosityLayerIndex = RugosityLayerIndex;
+	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	//RunCreationOfSDFAsync(true);
-
-	// In cells
-	float KernelSize = 0.5;
-	KernelSize *= 2.0f;
-	KernelSize *= 100.0f;
-
-	/*struct GridModifications
-	{
-		float ShiftX = 0.0f;
-		float ShiftY = 0.0f;
-		float ShiftZ = 0.0f;
-
-		float GridScale = 2.5f;
-	};
-	std::vector<GridModifications> Modifications;*/
-
-	static std::vector<float> Modifications = {
-		0.300000f, 0.100000f, 0.020000f, 1.430000f,
-		0.450000f, 0.130000f, 0.090000f, 1.410000f,
-		0.410000f, -0.310000f, 0.300000f, 1.390000f,
-		0.340000f, 0.130000f, 0.470000f, 1.330000f,
-		-0.390000f, 0.060000f, -0.440000f, 1.400000f,
-		-0.350000f, -0.020000f, 0.380000f, 1.340000f,
-		-0.300000f, 0.480000f, -0.500000f, 1.280000f,
-		-0.390000f, 0.060000f, 0.370000f, 1.290000f,
-		-0.120000f, 0.270000f, 0.300000f, 1.300000f,
-		0.030000f, -0.060000f, -0.290000f, 1.410000f,
-		-0.240000f, -0.130000f, -0.130000f, 1.250000f,
-		0.220000f, -0.320000f, 0.160000f, 1.300000f,
-		-0.360000f, -0.010000f, -0.190000f, 1.270000f,
-		-0.200000f, -0.220000f, -0.140000f, 1.440000f,
-		0.340000f, -0.100000f, -0.060000f, 1.280000f,
-		-0.210000f, 0.290000f, 0.090000f, 1.270000f,
-		0.130000f, 0.010000f, 0.180000f, 1.250000f,
-		0.090000f, 0.460000f, 0.350000f, 1.460000f,
-		-0.500000f, -0.090000f, 0.320000f, 1.250000f,
-		-0.200000f, 0.080000f, -0.320000f, 1.260000f,
-		-0.390000f, -0.440000f, 0.420000f, 1.410000f,
-		0.260000f, -0.040000f, 0.400000f, 1.440000f,
-		-0.020000f, -0.010000f, 0.290000f, 1.400000f,
-		-0.020000f, -0.370000f, 0.280000f, 1.390000f,
-		0.240000f, -0.320000f, -0.290000f, 1.410000f,
-		-0.100000f, 0.360000f, -0.110000f, 1.420000f,
-		-0.270000f, -0.490000f, 0.470000f, 1.250000f,
-		-0.450000f, 0.390000f, -0.310000f, 1.280000f,
-		0.440000f, -0.290000f, -0.360000f, 1.460000f,
-		0.000000f, -0.050000f, -0.370000f, 1.400000f,
-		-0.060000f, 0.120000f, 0.430000f, 1.270000f,
-		-0.490000f, 0.410000f, 0.150000f, 1.270000f,
-		-0.500000f, 0.370000f, -0.040000f, 1.390000f,
-		0.380000f, -0.210000f, 0.040000f, 1.320000f,
-		0.280000f, 0.340000f, -0.430000f, 1.270000f,
-		-0.410000f, -0.450000f, 0.330000f, 1.430000f,
-		-0.180000f, -0.370000f, 0.070000f, 1.280000f,
-		-0.110000f, -0.310000f, 0.400000f, 1.300000f,
-		-0.060000f, 0.270000f, 0.240000f, 1.320000f,
-		-0.390000f, 0.480000f, 0.180000f, 1.260000f,
-		-0.390000f, 0.100000f, 0.070000f, 1.330000f,
-		-0.260000f, -0.230000f, 0.450000f, 1.430000f,
-		0.480000f, 0.080000f, -0.140000f, 1.470000f,
-		0.330000f, -0.380000f, -0.350000f, 1.310000f,
-		0.180000f, 0.200000f, -0.330000f, 1.490000f,
-		-0.230000f, -0.110000f, 0.070000f, 1.250000f,
-		0.190000f, -0.230000f, -0.330000f, 1.480000f,
-		0.480000f, 0.150000f, 0.290000f, 1.410000f,
-		-0.210000f, 0.240000f, 0.180000f, 1.320000f,
-		0.450000f, -0.230000f, 0.240000f, 1.480000f,
-		0.400000f, 0.370000f, -0.060000f, 1.450000f,
-		0.080000f, -0.500000f, 0.200000f, 1.370000f,
-		-0.240000f, -0.380000f, 0.440000f, 1.430000f,
-		-0.230000f, -0.210000f, 0.240000f, 1.390000f,
-		-0.320000f, -0.050000f, 0.330000f, 1.370000f,
-		-0.030000f, -0.470000f, -0.320000f, 1.480000f,
-		0.320000f, 0.160000f, 0.460000f, 1.460000f,
-		0.270000f, 0.430000f, 0.410000f, 1.380000f,
-		0.240000f, -0.470000f, -0.190000f, 1.430000f,
-		0.480000f, -0.420000f, -0.240000f, 1.490000f,
-		-0.400000f, -0.270000f, 0.060000f, 1.450000f,
-		0.280000f, 0.430000f, -0.010000f, 1.490000f,
-		-0.190000f, 0.110000f, -0.100000f, 1.450000f,
-		-0.210000f, -0.040000f, 0.340000f, 1.440000f,
-	};
-
-	static std::vector<float> SphereJitter = {
-		0.0000, 1.0000, -0.0000, 1.430000f,
-		1.0000, 0.0000, -0.0000, 1.410000f,
-		0.0000, 0.0000, -1.0000, 1.390000f,
-		-1.0000, 0.0000, -0.0000, 1.330000f,
-		0.0000, 0.0000, 1.0000, 1.400000f,
-		0.0000, -1.0000, -0.0000, 1.340000f,
-		0.5000, 0.8660, -0.0000, 1.280000f,
-		0.8660, 0.5000, -0.0000, 1.290000f,
-		0.0000, 0.8660, -0.5000, 1.300000f,
-		0.0000, 0.5000, -0.8660, 1.410000f,
-		-0.5000, 0.8660, -0.0000, 1.250000f,
-		-0.8660, 0.5000, -0.0000, 1.300000f,
-		0.0000, 0.8660, 0.5000, 1.270000f,
-		0.0000, 0.5000, 0.8660, 1.440000f,
-		0.5000, -0.8660, -0.0000, 1.280000f,
-		0.8660, -0.5000, -0.0000, 1.270000f,
-		0.0000, -0.8660, -0.5000, 1.250000f,
-		0.0000, -0.5000, -0.8660, 1.460000f,
-		-0.5000, -0.8660, -0.0000, 1.250000f,
-		-0.8660, -0.5000, -0.0000, 1.260000f,
-		0.0000, -0.8660, 0.5000, 1.410000f,
-		0.0000, -0.5000, 0.8660, 1.440000f,
-		0.8660, 0.0000, -0.5000, 1.400000f,
-		0.5000, 0.0000, -0.8660, 1.390000f,
-		-0.5000, 0.0000, -0.8660, 1.410000f,
-		-0.8660, 0.0000, -0.5000, 1.420000f,
-		-0.8660, 0.0000, 0.5000, 1.250000f,
-		-0.5000, 0.0000, 0.8660, 1.280000f,
-		0.5000, 0.0000, 0.8660, 1.460000f,
-		0.8660, 0.0000, 0.5000, 1.400000f,
-		0.5477, 0.6325, -0.5477, 1.270000f,
-		-0.5477, 0.6325, -0.5477, 1.270000f,
-		-0.5477, 0.6325, 0.5477, 1.390000f,
-		0.5477, 0.6325, 0.5477, 1.320000f,
-		0.5477, -0.6325, -0.5477, 1.270000f,
-		-0.5477, -0.6325, -0.5477, 1.430000f,
-		-0.5477, -0.6325, 0.5477, 1.280000f,
-		0.5477, -0.6325, 0.5477, 1.300000f,
-		0.0000, 0.5000, -0.0000, 1.320000f,
-		0.4714, -0.1667, -0.0000, 1.260000f,
-		-0.2357, -0.1667, -0.4082, 1.330000f,
-		-0.2357, -0.1667, 0.4082, 1.430000f,
-		0.2973, 0.4020, -0.0000, 1.470000f,
-		0.4781, 0.1463, -0.0000, 1.310000f,
-		-0.1487, 0.4020, -0.2575, 1.490000f,
-		-0.2391, 0.1463, -0.4140, 1.250000f,
-		-0.1487, 0.4020, 0.2575, 1.480000f,
-		-0.2391, 0.1463, 0.4140, 1.410000f,
-		0.3294, -0.2742, -0.2575, 1.320000f,
-		0.0583, -0.2742, -0.4140, 1.480000f,
-		0.3294, -0.2742, 0.2575, 1.450000f,
-		0.0583, -0.2742, 0.4140, 1.370000f,
-		-0.3877, -0.2742, -0.1565, 1.430000f,
-		-0.3877, -0.2742, 0.1565, 1.390000f,
-		0.2132, 0.2611, -0.3693, 1.370000f,
-		-0.4264, 0.2611, -0.0000, 1.480000f,
-		0.2132, 0.2611, 0.3693, 1.460000f,
-		0.1040, -0.4891, -0.0000, 1.380000f,
-	};
-
-	std::vector<float> ModificationsTest;
-	float Step = 0.3f;
-	float Start = -0.2f;
-
-	for (size_t i = 0; i < 4; i++)
-	{
-		for (size_t j = 0; j < 4; j++)
-		{
-			for (size_t k = 0; k < 4; k++)
-			{
-				ModificationsTest.push_back(Start + Step * i);
-				ModificationsTest.push_back(Start + Step * j);
-				ModificationsTest.push_back(Start + Step * k);
-				ModificationsTest.push_back(1.0f /*+ Step / 3 * i * j * k*/);
-			}
-		}
-	}
-
-	std::vector<float>* WhatToUse = &Modifications;
-	/*if (bTestJitter)
-		WhatToUse = &ModificationsTest;
-	if (bTestSphereJitter)
-		WhatToUse = &SphereJitter;*/
-
-	// This jitter is stable and more easy to explain.
-	WhatToUse = &SphereJitter;
-	JitterToDoCount = WhatToUse->size() / 4;
-
-	for (size_t i = 0; i < JitterToDoCount; i++)
-	{
-		/*RUGOSITY_MANAGER.shiftX = rand() % int(KernelSize);
-		RUGOSITY_MANAGER.shiftX -= KernelSize / 2.0f;
-		RUGOSITY_MANAGER.shiftX /= 100.0f;
-
-		RUGOSITY_MANAGER.shiftY = rand() % int(KernelSize);
-		RUGOSITY_MANAGER.shiftY -= KernelSize / 2.0f;
-		RUGOSITY_MANAGER.shiftY /= 100.0f;
-
-		RUGOSITY_MANAGER.shiftZ = rand() % int(KernelSize);
-		RUGOSITY_MANAGER.shiftZ -= KernelSize / 2.0f;
-		RUGOSITY_MANAGER.shiftZ /= 100.0f;
-
-		RUGOSITY_MANAGER.GridScale = DEFAULT_GRID_SIZE;
-		float TempGridScale = rand() % GRID_VARIANCE;
-		TempGridScale /= 100.0f;
-		RUGOSITY_MANAGER.GridScale += TempGridScale;*/
-
-		RUGOSITY_MANAGER.shiftX = WhatToUse->operator[](i * 4);
-		RUGOSITY_MANAGER.shiftY = WhatToUse->operator[](i * 4 + 1);
-		RUGOSITY_MANAGER.shiftZ = WhatToUse->operator[](i * 4 + 2);
-		RUGOSITY_MANAGER.GridScale = WhatToUse->operator[](i * 4 + 3);
-
-		/*GridModifications New;
-		New.ShiftX = RUGOSITY_MANAGER.shiftX;
-		New.ShiftY = RUGOSITY_MANAGER.shiftY;
-		New.ShiftZ = RUGOSITY_MANAGER.shiftZ;
-
-		New.GridScale = RUGOSITY_MANAGER.GridScale;
-
-		Modifications.push_back(New);
-
-		Result += std::to_string(New.ShiftX) + ", " + std::to_string(New.ShiftY) + ", " + std::to_string(New.ShiftZ) + ", " + std::to_string(New.GridScale) + ",\n";*/
-
-		RunCreationOfSDFAsync(true);
-	}
+	RUGOSITY_MANAGER.bWaitForJitterResult = true;
+	JITTER_MANAGER.CalculateWithSDFJitterAsync(CalculateOneNodeRugosity);
 }
 
 std::string RugosityManager::colorSchemeIndexToString(int index)
@@ -524,9 +552,7 @@ void RugosityManager::OnRugosityCalculationsStart()
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return;
 
-	RUGOSITY_MANAGER.Result.clear();
-	RUGOSITY_MANAGER.PerJitterResult.clear();
-	RUGOSITY_MANAGER.JitterDoneCount = 0;
+	RUGOSITY_MANAGER.bWaitForJitterResult = true;
 
 	TIME.BeginTimeStamp("CalculateRugorsityTotal");
 	RUGOSITY_MANAGER.StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -535,15 +561,18 @@ void RugosityManager::OnRugosityCalculationsStart()
 		OnRugosityCalculationsStartCallbackImpl();
 }
 
-void RugosityManager::OnRugosityCalculationsEnd()
+void RugosityManager::SetOnRugosityCalculationsEndCallback(void(*Func)(MeshLayer))
 {
-	MeshLayer NewLayer;
-	NewLayer.TrianglesToData = RUGOSITY_MANAGER.Result;
+	OnRugosityCalculationsEndCallbackImpl = Func;
+}
 
-	NewLayer.DebugInfo = new MeshLayerDebugInfo();
+void RugosityManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
+{
+	if (!RUGOSITY_MANAGER.bWaitForJitterResult)
+		return;
+
+	RUGOSITY_MANAGER.bWaitForJitterResult = false;
 	NewLayer.DebugInfo->Type = "RugosityMeshLayerDebugInfo";
-	NewLayer.DebugInfo->AddEntry("Start time", RUGOSITY_MANAGER.StartTime);
-	NewLayer.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 
 	std::string AlgorithmUsed = RUGOSITY_MANAGER.RugosityAlgorithmList[0];
 	if (RUGOSITY_MANAGER.bUseFindSmallestRugosity)
@@ -553,9 +582,7 @@ void RugosityManager::OnRugosityCalculationsEnd()
 		AlgorithmUsed = RUGOSITY_MANAGER.RugosityAlgorithmList[2];
 
 	NewLayer.DebugInfo->AddEntry("Algorithm used", AlgorithmUsed);
-	NewLayer.DebugInfo->AddEntry("Jitter count", RUGOSITY_MANAGER.JitterDoneCount);
-	NewLayer.DebugInfo->AddEntry("Resolution used", std::to_string(RUGOSITY_MANAGER.ResolutonInM) + " m.");
-	
+
 	std::string DeleteOutliers = "No";
 	// Remove outliers.
 	if (RUGOSITY_MANAGER.bDeleteOutliers)
@@ -578,13 +605,40 @@ void RugosityManager::OnRugosityCalculationsEnd()
 	}
 	NewLayer.DebugInfo->AddEntry("Delete outliers", DeleteOutliers);
 
+
+	std::string OverlapAware = "No";
+	if (RUGOSITY_MANAGER.bOverlapAware)
+		OverlapAware = "Yes";
+	NewLayer.DebugInfo->AddEntry("Unique projected area (very slow)", OverlapAware);
+
 	LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
 
 	if (OnRugosityCalculationsEndCallbackImpl != nullptr)
 		OnRugosityCalculationsEndCallbackImpl(NewLayer);
 }
 
-void RugosityManager::SetOnRugosityCalculationsEndCallback(void(*Func)(MeshLayer))
+void RugosityManager::RenderDebugInfoForSelectedNode(SDF* Grid)
 {
-	OnRugosityCalculationsEndCallbackImpl = Func;
+	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
+		return;
+
+	Grid->UpdateRenderedLines();
+
+	SDFNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
+	for (size_t i = 0; i < 3/*CurrentlySelectedCell->TrianglesInCell.size()*/; i++)
+	{
+		const auto CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
+
+		std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
+		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+		{
+			TranformedTrianglePoints[j] = MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+		}
+
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+	}
+
+	LINE_RENDERER.SyncWithGPU();
 }

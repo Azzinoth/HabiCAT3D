@@ -1,5 +1,6 @@
 #pragma once
 #include "../MeshManager.h"
+#include "../JitterManager.h"
 using namespace FocalEngine;
 
 namespace FocalEngine
@@ -8,6 +9,8 @@ namespace FocalEngine
 	{
 	public:
 		SINGLETON_PUBLIC_PART(LayerManager)
+
+		MeshLayer* GetActiveLayer();
 
 		std::string SuitableNewLayerCaption(std::string Base);
 		//bool AddLayer(std::vector<float> TrianglesToData);

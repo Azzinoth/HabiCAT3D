@@ -4,6 +4,8 @@
 #include "../Layers/AreaLayerProducer.h"
 #include "../Layers/TriangleEdgeLayerProducer.h"
 #include "../Layers/CompareLayerProducer.h"
+#include "../Layers/VectorDispersionLayerProducer.h"
+#include "../Layers/FractalDimensionLayerProducer.h"
 
 class NewLayerWindow
 {
@@ -11,8 +13,10 @@ class NewLayerWindow
 
 	bool bShouldOpen = false;
 	bool bShouldClose = false;
+	bool bSmootherResult = false;
 
 	int Mode = 0;
+	int FeaturesSizeSelectionMode = 0;
 	std::vector<std::string> LayerTypesNames;
 
 	void InternalClose();
@@ -29,7 +33,11 @@ class NewLayerWindow
 	std::vector<std::string> TrianglesEdgesModeNames;
 	int TrianglesEdgesMode = 0;
 
+	void RenderVectorDispersionSettings();
+	void RenderFractalDimentionSettings();
+
 	void RenderSettings();
+	void OnModeChanged(int OldMode);
 public:
 	SINGLETON_PUBLIC_PART(NewLayerWindow)
 

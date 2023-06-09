@@ -3,7 +3,7 @@
 #include "FETexture.h"
 #include "SubSystems/FEGeometricTools.h"
 
-#define APP_VERSION 0.21
+#define APP_VERSION 0.47
 
 namespace FocalEngine
 {
@@ -43,12 +43,25 @@ namespace FocalEngine
 	};
 
 	class FEMesh;
+	enum LAYER_TYPE
+	{
+		UNKNOWN = 0,
+		HEIGHT = 1,
+		TRIANGLE_EDGE = 2,
+		AREA = 3,
+		COMPARE = 4,
+		STANDARD_DEVIATION = 5,
+		RUGOSITY = 6,
+		VECTOR_DISPERSION = 7,
+		FRACTAL_DIMENSION = 8
+	};
 	class MeshLayer
 	{
 		FEMesh* ParentMesh = nullptr;
 		std::string ID;
 		std::string Caption = "Layer caption";
 		std::string UserNote;
+		LAYER_TYPE Type = LAYER_TYPE::UNKNOWN;
 
 		float Mean = -FLT_MAX;
 		float Median = -FLT_MAX;
@@ -86,6 +99,9 @@ namespace FocalEngine
 
 		void FillDataToGPU(int LayerIndex = 0);
 		std::vector<std::tuple<double, double, int>> ValueTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
+
+		LAYER_TYPE GetType();
+		void SetType(LAYER_TYPE NewValue);
 	};
 
 	class MeshManager;

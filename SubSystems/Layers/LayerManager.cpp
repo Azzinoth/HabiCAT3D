@@ -115,3 +115,14 @@ int LayerManager::GetActiveLayerIndex()
 
 	return MESH_MANAGER.ActiveMesh->CurrentLayerIndex;
 }
+
+MeshLayer* LayerManager::GetActiveLayer()
+{
+	if (MESH_MANAGER.ActiveMesh == nullptr)
+		return nullptr;
+
+	if (MESH_MANAGER.ActiveMesh->CurrentLayerIndex == -1)
+		return nullptr;
+
+	return &MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->CurrentLayerIndex];
+}

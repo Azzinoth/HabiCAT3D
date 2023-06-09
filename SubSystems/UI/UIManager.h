@@ -21,7 +21,7 @@ namespace FocalEngine
 		bool GetWireFrameMode();
 		void SetWireFrameMode(bool NewValue);
 
-		bool GetDeveloperMode();
+		bool IsInDeveloperMode();
 		void SetDeveloperMode(bool NewValue);
 
 		std::string CameraPositionToStr();
@@ -52,6 +52,9 @@ namespace FocalEngine
 
 		float GetAmbientLightFactor();
 		void SetAmbientLightFactor(float NewValue);
+
+		SDF* GetDebugSDF();
+		void UpdateRenderingMode(SDF* SDF, int NewRenderingMode);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 
@@ -60,7 +63,7 @@ namespace FocalEngine
 		bool bWireframeMode = false;
 		float TimeTookToJitter = 0.0f;
 
-		bool DeveloperMode = false;
+		bool bDeveloperMode = false;
 		bool bModelCamera = true;
 
 		bool bShouldOpenProgressPopup = false;
@@ -84,8 +87,12 @@ namespace FocalEngine
 		float SetDataPoints = 0.0f;
 		float AreaWithRugositiesTotalTime = 0.0f;
 		
+		static void OnJitterCalculationsStart();
 		static void OnRugosityCalculationsStart();
+		static void OnJitterCalculationsEnd(MeshLayer NewLayer);
 		static void OnRugosityCalculationsEnd(MeshLayer NewLayer);
+
+		static void OnVectorDispersionCalculationsEnd(MeshLayer NewLayer);
 
 		bool bOutputSelectionToFile = false;
 
@@ -111,6 +118,9 @@ namespace FocalEngine
 		void RenderSettingsWindow();
 
 		float AmbientLightFactor = 2.8f;
+		int CurrentJitterStepIndexVisualize = 0;
+		SDF* DebugSDF = nullptr;
+		void InitDebugSDF(size_t JitterIndex);
 	};
 
 	#define UI UIManager::getInstance()
