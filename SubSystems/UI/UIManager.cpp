@@ -1663,8 +1663,8 @@ void UIManager::RenderAboutWindow()
 		bShouldOpenAboutWindow = false;
 	}
 
-	int PopupW = 350;
-	int PopupH = 110;
+	int PopupW = 400;
+	int PopupH = 135;
 	ImGui::SetNextWindowSize(ImVec2(PopupW, PopupH));
 	if (ImGui::BeginPopupModal("About", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
 	{
@@ -1674,15 +1674,24 @@ void UIManager::RenderAboutWindow()
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
-		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 03\\10\\2023";
+		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 06\\09\\2023";
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
 		ImGui::Text(Text.c_str());
 
-		Text = "commit 25a70be3372fe3bc41c5523c07d67361126456bd";
+		ImGui::Separator();
+
+		Text = "To submit a bug report or provide feedback, ";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
 		ImGui::Text(Text.c_str());
+
+		Text = "please email me at kberegovyi@ccom.unh.edu.";
+		TextSize = ImGui::CalcTextSize(Text.c_str());
+		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
+		ImGui::Text(Text.c_str());
+
+		ImGui::Separator();
 
 		Text = "UNH CCOM";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
