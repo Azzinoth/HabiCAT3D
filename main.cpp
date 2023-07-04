@@ -133,7 +133,7 @@ static std::string FileNameForSelectionOutput = "Selections";
 
 void AfterMeshLoads()
 {
-	MESH_MANAGER.ActiveMesh->Position->setPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
+	MESH_MANAGER.ActiveMesh->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
 	MESH_MANAGER.ActiveMesh->UpdateAverageNormal();
 
 	UI.SetIsModelCamera(true);
@@ -485,6 +485,302 @@ float RAMUsed()
 	return MemCommitedInMB;
 }
 
+// ************ PART OF DEBUG CODE ************
+
+std::vector<glm::vec3> TrianglePoints;
+FETransformComponent TriangleTransform;
+FEAABB AABBbox;
+bool bAABBTriangleCollision = false;
+
+void ShowTransformConfiguration(const std::string Name, FETransformComponent* Transform)
+{
+	// ********************* POSITION *********************
+	glm::vec3 position = Transform->GetPosition();
+	ImGui::Text("Position : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##X pos : ") + Name).c_str(), &position[0], 0.1f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Y pos : ") + Name).c_str(), &position[1], 0.1f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Z pos : ") + Name).c_str(), &position[2], 0.1f);
+	Transform->SetPosition(position);
+
+	// ********************* ROTATION *********************
+	glm::vec3 rotation = Transform->GetRotation();
+	ImGui::Text("Rotation : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##X rot : ") + Name).c_str(), &rotation[0], 0.1f, -360.0f, 360.0f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Y rot : ") + Name).c_str(), &rotation[1], 0.1f, -360.0f, 360.0f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Z rot : ") + Name).c_str(), &rotation[2], 0.1f, -360.0f, 360.0f);
+	Transform->SetRotation(rotation);
+
+	// ********************* SCALE *********************
+	glm::vec3 scale = Transform->GetScale();
+	ImGui::Text("Scale : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##X scale : ") + Name).c_str(), &scale[0], 0.01f, 0.01f, 1000.0f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Y scale : ") + Name).c_str(), &scale[1], 0.01f, 0.01f, 1000.0f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(50);
+	ImGui::DragFloat((std::string("##Z scale : ") + Name).c_str(), &scale[2], 0.01f, 0.01f, 1000.0f);
+
+	glm::vec3 OldScale = Transform->GetScale();
+	Transform->ChangeXScaleBy(scale[0] - OldScale[0]);
+	Transform->ChangeYScaleBy(scale[1] - OldScale[1]);
+	Transform->ChangeZScaleBy(scale[2] - OldScale[2]);
+}
+
+bool RayTriangleIntersection(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance, glm::vec3* HitPoint)
+{
+	if (triangleVertices.size() != 3)
+		return false;
+
+	const float a = RayDirection[0];
+	const float b = triangleVertices[0][0] - triangleVertices[1][0];
+	const float c = triangleVertices[0][0] - triangleVertices[2][0];
+
+	const float d = RayDirection[1];
+	const float e = triangleVertices[0][1] - triangleVertices[1][1];
+	const float f = triangleVertices[0][1] - triangleVertices[2][1];
+
+	const float g = RayDirection[2];
+	const float h = triangleVertices[0][2] - triangleVertices[1][2];
+	const float j = triangleVertices[0][2] - triangleVertices[2][2];
+
+	const float k = triangleVertices[0][0] - RayOrigin[0];
+	const float l = triangleVertices[0][1] - RayOrigin[1];
+	const float m = triangleVertices[0][2] - RayOrigin[2];
+
+	const glm::mat3 temp0 = glm::mat3(a, b, c,
+		d, e, f,
+		g, h, j);
+
+	const float determinant0 = glm::determinant(temp0);
+
+	const glm::mat3 temp1 = glm::mat3(k, b, c,
+		l, e, f,
+		m, h, j);
+
+	const float determinant1 = glm::determinant(temp1);
+
+	const float t = determinant1 / determinant0;
+
+
+	const glm::mat3 temp2 = glm::mat3(a, k, c,
+		d, l, f,
+		g, m, j);
+
+	const float determinant2 = glm::determinant(temp2);
+	const float u = determinant2 / determinant0;
+
+	const float determinant3 = glm::determinant(glm::mat3(a, b, k,
+		d, e, l,
+		g, h, m));
+
+	const float v = determinant3 / determinant0;
+
+	if (t >= 0.00001 &&
+		u >= 0.00001 && v >= 0.00001 &&
+		u <= 1 && v <= 1 &&
+		u + v >= 0.00001 &&
+		u + v <= 1 && t > 0.00001)
+	{
+		if (HitPoint != nullptr)
+			*HitPoint = triangleVertices[0] + u * (triangleVertices[1] - triangleVertices[0]) + v * (triangleVertices[2] - triangleVertices[0]);
+
+		distance = t;
+		return true;
+	}
+
+	return false;
+}
+
+bool AABBSideTriangleIntersection(FEAABB& box, std::vector<glm::vec3>& triangleVertices)
+{
+	// Define the 8 corners of the AABB
+	std::vector<glm::vec3> corners;
+	corners.push_back(box.getMin());
+	corners.push_back(glm::vec3(box.getMin().x, box.getMin().y, box.getMax().z));
+	corners.push_back(glm::vec3(box.getMin().x, box.getMax().y, box.getMin().z));
+	corners.push_back(glm::vec3(box.getMin().x, box.getMax().y, box.getMax().z));
+	corners.push_back(glm::vec3(box.getMax().x, box.getMin().y, box.getMin().z));
+	corners.push_back(glm::vec3(box.getMax().x, box.getMin().y, box.getMax().z));
+	corners.push_back(glm::vec3(box.getMax().x, box.getMax().y, box.getMin().z));
+	corners.push_back(box.getMax());
+
+	std::vector<std::pair<glm::vec3, glm::vec3>> edgesRays = {
+		{corners[0], corners[1] - corners[0]},
+		{corners[1], corners[3] - corners[1]},
+		{corners[3], corners[2] - corners[3]},
+		{corners[2], corners[0] - corners[2]},
+		{corners[4], corners[5] - corners[4]},
+		{corners[5], corners[7] - corners[5]},
+		{corners[7], corners[6] - corners[7]},
+		{corners[6], corners[4] - corners[6]},
+		{corners[0], corners[4] - corners[0]},
+		{corners[1], corners[5] - corners[1]},
+		{corners[3], corners[7] - corners[3]},
+		{corners[2], corners[6] - corners[2]}
+	};
+
+	// Check each ray for intersection with the triangle
+	for (const auto& ray : edgesRays)
+	{
+		glm::vec3 origin = ray.first;
+		glm::vec3 direction = ray.second;
+
+		float distance;
+		glm::vec3 hitPoint;
+
+		if (RayTriangleIntersection(origin, direction, triangleVertices, distance, &hitPoint))
+		{
+			// If the intersection point is within the length of the AABB side,
+			// then the AABB and triangle intersect
+			if (glm::length(hitPoint - origin) <= glm::length(direction))
+			{
+				LINE_RENDERER.AddLineToBuffer(FELine(hitPoint, hitPoint + direction * glm::vec3(0.1), glm::vec3(1.0f, 0.0f, 0.0f)));
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void AddTriangleLines()
+{
+	std::vector<glm::vec3> TransformedTrianglePoints = TrianglePoints;
+	TransformedTrianglePoints[0] = TriangleTransform.getTransformMatrix() * glm::vec4(TransformedTrianglePoints[0], 1.0f);
+	TransformedTrianglePoints[1] = TriangleTransform.getTransformMatrix() * glm::vec4(TransformedTrianglePoints[1], 1.0f);
+	TransformedTrianglePoints[2] = TriangleTransform.getTransformMatrix() * glm::vec4(TransformedTrianglePoints[2], 1.0f);
+
+	LINE_RENDERER.AddLineToBuffer(FELine(TransformedTrianglePoints[0], TransformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+	LINE_RENDERER.AddLineToBuffer(FELine(TransformedTrianglePoints[0], TransformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+	LINE_RENDERER.AddLineToBuffer(FELine(TransformedTrianglePoints[1], TransformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+
+	//bAABBTriangleCollision = AABBbox.AABBIntersect(FEAABB(TransformedTrianglePoints));
+	//bAABBTriangleCollision = AABBbox.IntersectsTriangle(TransformedTrianglePoints[0], TransformedTrianglePoints[1], TransformedTrianglePoints[2]);
+
+	/*bAABBTriangleCollision = false;
+	if (AABBbox.containsPoint(TransformedTrianglePoints[0]) || AABBbox.containsPoint(TransformedTrianglePoints[1]) || AABBbox.containsPoint(TransformedTrianglePoints[2]))
+		bAABBTriangleCollision = true;
+
+	if (!bAABBTriangleCollision)
+	{
+		bAABBTriangleCollision = AABBSideTriangleIntersection(AABBbox, TransformedTrianglePoints);
+	}*/
+
+	bAABBTriangleCollision = AABBbox.IntersectsTriangle(TransformedTrianglePoints);
+}
+
+void ReRenderAll()
+{
+	LINE_RENDERER.clearAll();
+	LINE_RENDERER.RenderAABB(AABBbox, bAABBTriangleCollision ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f));
+	AddTriangleLines();
+	LINE_RENDERER.SyncWithGPU();
+}
+
+void TestTriangleAndAABBboxIntersections()
+{
+	if (TrianglePoints.size() == 0)
+	{
+		TrianglePoints.push_back(glm::vec3(-0.1f));
+		TrianglePoints.push_back(glm::vec3(1.0f));
+		TrianglePoints.push_back(glm::vec3(-0.5f, 1.0f, 0.0f));
+
+		AABBbox = FEAABB(glm::vec3(0.0f), glm::vec3(1.0f));
+	}
+
+	if (ImGui::Begin("Test Intersections", nullptr, 0))
+	{
+		ImGui::Text("First triangle point : ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##A's X pos : ", &TrianglePoints[0][0], 0.1f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##A's Y pos : ", &TrianglePoints[0][1], 0.1f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##A's Z pos : ", &TrianglePoints[0][2], 0.1f);
+
+
+		ImGui::Text("Second triangle point : ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##B's X pos : ", &TrianglePoints[1][0], 0.1f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##B's Y pos : ", &TrianglePoints[1][1], 0.1f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##B's Z pos : ", &TrianglePoints[1][2], 0.1f);
+
+
+		ImGui::Text("Third triangle point : ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##C's X pos : ", &TrianglePoints[2][0], 0.1f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##C's Y pos : ", &TrianglePoints[2][1], 0.1f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##C's Z pos : ", &TrianglePoints[2][2], 0.1f);
+
+		ShowTransformConfiguration("Triangle transformations", &TriangleTransform);
+
+		glm::vec3 AABBCenter = AABBbox.getCenter();
+		ImGui::Text("AABB box center: ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##Center X pos : ", &AABBCenter[0], 0.1f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##Center Y pos : ", &AABBCenter[1], 0.1f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##Center Z pos : ", &AABBCenter[2], 0.1f);
+
+
+		float AABBSize = AABBbox.getSize();
+		ImGui::SetNextItemWidth(50);
+		ImGui::DragFloat("##AABBSize : ", &AABBSize, 0.1f);
+
+		AABBbox = FEAABB(AABBCenter, AABBSize);
+	}
+
+	ImGui::End();
+	ReRenderAll();
+}
+
+// ************ PART OF DEBUG CODE END ************
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -603,6 +899,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		currentCamera->Move(10);
 
 		//ImGui::ShowDemoWindow();
+		//TestTriangleAndAABBboxIntersections();
 
 		if (MESH_MANAGER.ActiveMesh != nullptr)
 		{

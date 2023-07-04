@@ -34,22 +34,22 @@ FETransformComponent::~FETransformComponent()
 {
 }
 
-glm::vec3 FETransformComponent::getPosition()
+glm::vec3 FETransformComponent::GetPosition()
 {
 	return position;
 }
 
-glm::vec3 FETransformComponent::getRotation()
+glm::vec3 FETransformComponent::GetRotation()
 {
 	return rotationAngles;
 }
 
-glm::vec3 FETransformComponent::getScale()
+glm::vec3 FETransformComponent::GetScale()
 {
 	return scale;
 }
 
-void FETransformComponent::setPosition(glm::vec3 newPosition)
+void FETransformComponent::SetPosition(glm::vec3 newPosition)
 {
 	position = newPosition;
 	update();
@@ -63,7 +63,7 @@ void FETransformComponent::rotateQuaternion(float angle, glm::vec3 axis)
 								   axis.z * sin(angle / 2)) * rotationQuaternion;
 }
 
-void FETransformComponent::setRotation(glm::vec3 newRotation)
+void FETransformComponent::SetRotation(glm::vec3 newRotation)
 {
 	if (rotationAngles == newRotation)
 		return;
@@ -96,7 +96,7 @@ void FETransformComponent::changeScaleUniformlyBy(float delta)
 	update();
 }
 
-void FETransformComponent::changeXScaleBy(float delta)
+void FETransformComponent::ChangeXScaleBy(float delta)
 {
 	if (uniformScaling)
 	{
@@ -110,7 +110,7 @@ void FETransformComponent::changeXScaleBy(float delta)
 	update();
 }
 
-void FETransformComponent::changeYScaleBy(float delta)
+void FETransformComponent::ChangeYScaleBy(float delta)
 {
 	if (uniformScaling)
 	{
@@ -124,7 +124,7 @@ void FETransformComponent::changeYScaleBy(float delta)
 	update();
 }
 
-void FETransformComponent::changeZScaleBy(float delta)
+void FETransformComponent::ChangeZScaleBy(float delta)
 {
 	if (uniformScaling)
 	{
@@ -138,7 +138,7 @@ void FETransformComponent::changeZScaleBy(float delta)
 	update();
 }
 
-void FETransformComponent::setScale(glm::vec3 newScale)
+void FETransformComponent::SetScale(glm::vec3 newScale)
 {
 	scale = newScale;
 	update();
@@ -186,9 +186,9 @@ FETransformComponent FETransformComponent::combine(FETransformComponent& other)
 {
 	FETransformComponent result;
 
-	result.setPosition(getPosition() + other.getPosition());
-	result.setRotation(getRotation() + other.getRotation());
-	result.setScale(getScale() * other.getScale());
+	result.SetPosition(GetPosition() + other.GetPosition());
+	result.SetRotation(GetRotation() + other.GetRotation());
+	result.SetScale(GetScale() * other.GetScale());
 
 	return result;
 }

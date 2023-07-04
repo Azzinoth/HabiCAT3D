@@ -94,7 +94,7 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 
 								//if (box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]))
 								//if (box.AABBIntersect(TriangleBBox))
-								if (box.AABBIntersect(TriangleBBox))
+								if (box.IntersectsTriangle(CurrentTriangle))
 								{
 									grid[x][y][z] = true;
 									++count;
@@ -182,6 +182,7 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		return;
 
 	FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult = false;
+	NewLayer.TrianglesToData.back() = NewLayer.TrianglesToData.back() * 2.0f;
 	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::FRACTAL_DIMENSION);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal dimension"));
@@ -255,7 +256,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 
 					//if (box.IntersectsTriangle(CurrentTriangle[0], CurrentTriangle[1], CurrentTriangle[2]))
 					//if (box.AABBIntersect(TriangleBBox))
-					if (box.AABBIntersect(TriangleBBox))
+					if (box.IntersectsTriangle(CurrentTriangle))
 					{
 						box = box.transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
 						LINE_RENDERER.RenderAABB(box, glm::vec3(1.0, 0.0, 0.0));

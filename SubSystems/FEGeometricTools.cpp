@@ -341,50 +341,167 @@ bool pointInTriangle(glm::vec3 p, glm::vec3 a, glm::vec3 b, glm::vec3 c)
 	return true;
 }
 
-bool FEAABB::IntersectsTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c)
+bool InternalRayTriangleIntersection(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance, glm::vec3* HitPoint)
 {
-	glm::vec3 edges[3] = { b - a, c - b, a - c };
-	glm::vec3 triangleNormal = glm::normalize(glm::cross(edges[0], edges[1]));
-	float planeD = -glm::dot(triangleNormal, a);
+	if (triangleVertices.size() != 3)
+		return false;
 
-	// Plane equation: triangleNormal.x*x + triangleNormal.y*y + triangleNormal.z*z + planeD = 0
+	const float a = RayDirection[0];
+	const float b = triangleVertices[0][0] - triangleVertices[1][0];
+	const float c = triangleVertices[0][0] - triangleVertices[2][0];
 
-	// Check for intersection between the AABB and the plane
-	for (int i = 0; i < 8; ++i)
+	const float d = RayDirection[1];
+	const float e = triangleVertices[0][1] - triangleVertices[1][1];
+	const float f = triangleVertices[0][1] - triangleVertices[2][1];
+
+	const float g = RayDirection[2];
+	const float h = triangleVertices[0][2] - triangleVertices[1][2];
+	const float j = triangleVertices[0][2] - triangleVertices[2][2];
+
+	const float k = triangleVertices[0][0] - RayOrigin[0];
+	const float l = triangleVertices[0][1] - RayOrigin[1];
+	const float m = triangleVertices[0][2] - RayOrigin[2];
+
+	const glm::mat3 temp0 = glm::mat3(a, b, c,
+		d, e, f,
+		g, h, j);
+
+	const float determinant0 = glm::determinant(temp0);
+
+	const glm::mat3 temp1 = glm::mat3(k, b, c,
+		l, e, f,
+		m, h, j);
+
+	const float determinant1 = glm::determinant(temp1);
+
+	const float t = determinant1 / determinant0;
+
+
+	const glm::mat3 temp2 = glm::mat3(a, k, c,
+		d, l, f,
+		g, m, j);
+
+	const float determinant2 = glm::determinant(temp2);
+	const float u = determinant2 / determinant0;
+
+	const float determinant3 = glm::determinant(glm::mat3(a, b, k,
+		d, e, l,
+		g, h, m));
+
+	const float v = determinant3 / determinant0;
+
+	if (t >= 0.00001 &&
+		u >= 0.00001 && v >= 0.00001 &&
+		u <= 1 && v <= 1 &&
+		u + v >= 0.00001 &&
+		u + v <= 1 && t > 0.00001)
 	{
-		glm::vec3 corner = (i & 1 ? max : min);
-		corner.y = (i & 2 ? max.y : min.y);
-		corner.z = (i & 4 ? max.z : min.z);
+		if (HitPoint != nullptr)
+			*HitPoint = triangleVertices[0] + u * (triangleVertices[1] - triangleVertices[0]) + v * (triangleVertices[2] - triangleVertices[0]);
 
-		if (glm::dot(triangleNormal, corner) + planeD < 0)
-		{
-			// One corner of the AABB is on the opposite side of the plane to the triangle, so there is a potential intersection
-			break;
-		}
-
-		if (i == 7)
-		{
-			// All corners of the AABB are on the same side of the plane as the triangle, so there is no intersection
-			return false;
-		}
+		distance = t;
+		return true;
 	}
-
-	return true;
-	// If we've reached this point, the AABB and the plane of the triangle intersect. We need to check if any corner of the AABB lies within the triangle.
-	/*for (int i = 0; i < 8; ++i)
-	{
-		glm::vec3 corner = (i & 1 ? max : min);
-		corner.y = (i & 2 ? max.y : min.y);
-		corner.z = (i & 4 ? max.z : min.z);
-
-		if (pointInTriangle(corner, a, b, c))
-		{
-			return true;
-		}
-	}*/
 
 	return false;
 }
+
+bool FEAABB::IntersectsTriangle(std::vector<glm::vec3>& triangleVertices)
+{
+	if (containsPoint(triangleVertices[0]) || containsPoint(triangleVertices[1]) || containsPoint(triangleVertices[2]))
+		return true;
+
+	// Define the 8 corners of the AABB
+	std::vector<glm::vec3> corners;
+	corners.push_back(getMin());
+	corners.push_back(glm::vec3(getMin().x, getMin().y, getMax().z));
+	corners.push_back(glm::vec3(getMin().x, getMax().y, getMin().z));
+	corners.push_back(glm::vec3(getMin().x, getMax().y, getMax().z));
+	corners.push_back(glm::vec3(getMax().x, getMin().y, getMin().z));
+	corners.push_back(glm::vec3(getMax().x, getMin().y, getMax().z));
+	corners.push_back(glm::vec3(getMax().x, getMax().y, getMin().z));
+	corners.push_back(getMax());
+
+	std::vector<std::pair<glm::vec3, glm::vec3>> edgesRays = {
+		{corners[0], corners[1] - corners[0]},
+		{corners[1], corners[3] - corners[1]},
+		{corners[3], corners[2] - corners[3]},
+		{corners[2], corners[0] - corners[2]},
+		{corners[4], corners[5] - corners[4]},
+		{corners[5], corners[7] - corners[5]},
+		{corners[7], corners[6] - corners[7]},
+		{corners[6], corners[4] - corners[6]},
+		{corners[0], corners[4] - corners[0]},
+		{corners[1], corners[5] - corners[1]},
+		{corners[3], corners[7] - corners[3]},
+		{corners[2], corners[6] - corners[2]}
+	};
+
+	// Check each ray for intersection with the triangle
+	for (const auto& ray : edgesRays)
+	{
+		glm::vec3 origin = ray.first;
+		glm::vec3 direction = ray.second;
+
+		float distance;
+		glm::vec3 hitPoint;
+
+		if (InternalRayTriangleIntersection(origin, direction, triangleVertices, distance, &hitPoint))
+		{
+			// If the intersection point is within the length of the AABB side,
+			// then the AABB and triangle intersect
+			if (glm::length(hitPoint - origin) <= size)
+				return true;
+		}
+	}
+
+	return false;
+}
+
+//bool FEAABB::IntersectsTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c)
+//{
+//	glm::vec3 edges[3] = { b - a, c - b, a - c };
+//	glm::vec3 triangleNormal = glm::normalize(glm::cross(edges[0], edges[1]));
+//	float planeD = -glm::dot(triangleNormal, a);
+//
+//	// Plane equation: triangleNormal.x*x + triangleNormal.y*y + triangleNormal.z*z + planeD = 0
+//
+//	// Check for intersection between the AABB and the plane
+//	for (int i = 0; i < 8; ++i)
+//	{
+//		glm::vec3 corner = (i & 1 ? max : min);
+//		corner.y = (i & 2 ? max.y : min.y);
+//		corner.z = (i & 4 ? max.z : min.z);
+//
+//		if (glm::dot(triangleNormal, corner) + planeD < 0)
+//		{
+//			// One corner of the AABB is on the opposite side of the plane to the triangle, so there is a potential intersection
+//			break;
+//		}
+//
+//		if (i == 7)
+//		{
+//			// All corners of the AABB are on the same side of the plane as the triangle, so there is no intersection
+//			return false;
+//		}
+//	}
+//
+//	return true;
+//	// If we've reached this point, the AABB and the plane of the triangle intersect. We need to check if any corner of the AABB lies within the triangle.
+//	/*for (int i = 0; i < 8; ++i)
+//	{
+//		glm::vec3 corner = (i & 1 ? max : min);
+//		corner.y = (i & 2 ? max.y : min.y);
+//		corner.z = (i & 4 ? max.z : min.z);
+//
+//		if (pointInTriangle(corner, a, b, c))
+//		{
+//			return true;
+//		}
+//	}*/
+//
+//	return false;
+//}
 
 //bool FEAABB::IntersectsTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c)
 //{

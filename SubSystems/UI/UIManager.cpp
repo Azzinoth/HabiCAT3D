@@ -51,7 +51,7 @@ std::string TruncateAfterDot(std::string FloatingPointNumber, const int DigitCou
 void UIManager::ShowTransformConfiguration(const std::string Name, FETransformComponent* Transform)
 {
 	// ********************* POSITION *********************
-	glm::vec3 position = Transform->getPosition();
+	glm::vec3 position = Transform->GetPosition();
 	ImGui::Text("Position : ");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(50);
@@ -64,10 +64,10 @@ void UIManager::ShowTransformConfiguration(const std::string Name, FETransformCo
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(50);
 	ImGui::DragFloat((std::string("##Z pos : ") + Name).c_str(), &position[2], 0.1f);
-	Transform->setPosition(position);
+	Transform->SetPosition(position);
 
 	// ********************* ROTATION *********************
-	glm::vec3 rotation = Transform->getRotation();
+	glm::vec3 rotation = Transform->GetRotation();
 	ImGui::Text("Rotation : ");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(50);
@@ -80,11 +80,11 @@ void UIManager::ShowTransformConfiguration(const std::string Name, FETransformCo
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(50);
 	ImGui::DragFloat((std::string("##Z rot : ") + Name).c_str(), &rotation[2], 0.1f, -360.0f, 360.0f);
-	Transform->setRotation(rotation);
+	Transform->SetRotation(rotation);
 
 	// ********************* SCALE *********************
 	ImGui::Checkbox("Uniform scaling", &Transform->uniformScaling);
-	glm::vec3 scale = Transform->getScale();
+	glm::vec3 scale = Transform->GetScale();
 	ImGui::Text("Scale : ");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(50);
@@ -98,10 +98,10 @@ void UIManager::ShowTransformConfiguration(const std::string Name, FETransformCo
 	ImGui::SetNextItemWidth(50);
 	ImGui::DragFloat((std::string("##Z scale : ") + Name).c_str(), &scale[2], 0.01f, 0.01f, 1000.0f);
 
-	glm::vec3 oldScale = Transform->getScale();
-	Transform->changeXScaleBy(scale[0] - oldScale[0]);
-	Transform->changeYScaleBy(scale[1] - oldScale[1]);
-	Transform->changeZScaleBy(scale[2] - oldScale[2]);
+	glm::vec3 oldScale = Transform->GetScale();
+	Transform->ChangeXScaleBy(scale[0] - oldScale[0]);
+	Transform->ChangeYScaleBy(scale[1] - oldScale[1]);
+	Transform->ChangeZScaleBy(scale[2] - oldScale[2]);
 }
 
 void UIManager::ShowCameraTransform()
