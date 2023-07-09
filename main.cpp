@@ -782,6 +782,31 @@ void TestTriangleAndAABBboxIntersections()
 
 // ************ PART OF DEBUG CODE END ************
 
+GLuint ColorBufferTexture = -1;
+GLuint DepthBufferTexture = -1;
+GLuint FrameBuffer = -1;
+int TextureWidth = 800, TextureHeight = 600;
+
+void CreateFB()
+{
+	glGenFramebuffers(1, &FrameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
+
+	glGenTextures(1, &ColorBufferTexture);
+	glBindTexture(GL_TEXTURE_2D, ColorBufferTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ColorBufferTexture, 0);
+
+	glGenRenderbuffers(1, &DepthBufferTexture);
+	glBindRenderbuffer(GL_RENDERBUFFER, DepthBufferTexture);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DepthBufferTexture);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	//// Create a vector of triangles (as Polygon_2 objects)
@@ -888,6 +913,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	UI.SwapCameraImpl = SwapCamera;
 
 	MESH_MANAGER.AddLoadCallback(AfterMeshLoads);
+
+	CreateFB();
+	//glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
 
 	static bool FirstFrame = true;
 	while (APPLICATION.IsWindowOpened())
