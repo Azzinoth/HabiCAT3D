@@ -15,7 +15,6 @@ namespace FocalEngine
 
 		void SetCamera(FEBasicCamera* NewCamera);
 
-		void RenderMainWindow();
 		void Render();
 
 		bool GetWireFrameMode();
@@ -95,9 +94,6 @@ namespace FocalEngine
 		static void OnVectorDispersionCalculationsEnd(MeshLayer NewLayer);
 
 		bool bOutputSelectionToFile = false;
-
-		void RenderDeveloperModeMainWindow();
-		void RenderUserModeMainWindow();
 
 		bool bShouldOpenAboutWindow = false;
 		void OpenAboutWindow();

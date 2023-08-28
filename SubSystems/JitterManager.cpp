@@ -74,6 +74,9 @@ void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* curr
 
 	JitterToDoCount = ShiftsToUse->size() / 4;
 	//JitterToDoCount = 1;
+	if (DebugJitterToDoCount != -1)
+		JitterToDoCount = DebugJitterToDoCount;
+
 	LastUsedJitterSettings.clear();
 	LastUsedJitterSettings.resize(JitterToDoCount);
 
@@ -298,4 +301,22 @@ SDF* JitterManager::GetLastUsedSDF()
 std::vector<SDFInitData_Jitter> JitterManager::GetLastUsedJitterSettings()
 {
 	return LastUsedJitterSettings;
+}
+
+int JitterManager::GetDebugJitterToDoCount()
+{
+	return DebugJitterToDoCount;
+}
+
+void JitterManager::SetDebugJitterToDoCount(int NewValue)
+{
+	// Deactivate feature.
+	if (NewValue == -1)
+	{
+		DebugJitterToDoCount = -1;
+		return;
+	}
+
+	if (NewValue > 0 && NewValue < SphereJitter.size())
+		DebugJitterToDoCount = NewValue;
 }

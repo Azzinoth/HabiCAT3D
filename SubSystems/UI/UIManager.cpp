@@ -236,501 +236,15 @@ bool UIManager::IsInDeveloperMode()
 void UIManager::SetDeveloperMode(const bool NewValue)
 {
 	bDeveloperMode = NewValue;
-}
 
-void UIManager::RenderDeveloperModeMainWindow()
-{
-	bool TempBool = bModelCamera;
-	if (ImGui::Checkbox("Model camera", &TempBool))
+	if (bDeveloperMode)
 	{
-		SetIsModelCamera(TempBool);
-	}
-
-	// ********************* LIGHT DIRECTION *********************
-	glm::vec3 position = *reinterpret_cast<glm::vec3*>(MESH_MANAGER.MeshShader->getParameter("lightDirection")->data);
-	ImGui::Text("Light direction : ");
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##X pos : ")).c_str(), &position[0], 0.1f);
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##Y pos : ")).c_str(), &position[1], 0.1f);
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##Z pos : ")).c_str(), &position[2], 0.1f);
-
-	MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(position);
-
-	ImGui::Checkbox("Wireframe", &bWireframeMode);
-
-	if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() == 1)
-	{
-		ImGui::Separator();
-		ImGui::Text("Selected triangle information :");
-
-		std::string Text = "Index : " + std::to_string(MESH_MANAGER.ActiveMesh->TriangleSelected[0]);
-		ImGui::Text(Text.c_str());
-
-		Text = "First vertex : ";
-		Text += "x: " + std::to_string(MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[0]][0].x);
-		Text += " y: " + std::to_string(MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[0]][0].y);
-		Text += " z: " + std::to_string(MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[0]][0].z);
-		ImGui::Text(Text.c_str());
-
-		Text = "Second vertex : ";
-		Text += "x: " + std::to_string(MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[0]][1].x);
-		Text += " y: " + std::to_string(MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[0]][1].y);
-		Text += " z: " + std::to_string(MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[0]][1].z);
-		ImGui::Text(Text.c_str());
-
-		Text = "Third vertex : ";
-		Text += "x: " + std::to_string(MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[0]][2].x);
-		Text += " y: " + std::to_string(MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[0]][2].y);
-		Text += " z: " + std::to_string(MESH_MANAGER.ActiveMesh->Triangles[MESH_MANAGER.ActiveMesh->TriangleSelected[0]][2].z);
-		ImGui::Text(Text.c_str());
-
-		Text = "Segment ID : ";
-		if (!MESH_MANAGER.ActiveMesh->originalTrianglesToSegments.empty())
-		{
-			Text += std::to_string(MESH_MANAGER.ActiveMesh->originalTrianglesToSegments[MESH_MANAGER.ActiveMesh->TriangleSelected[0]]);
-		}
-		else
-		{
-			Text += "No information.";
-		}
-		ImGui::Text(Text.c_str());
-
-		Text = "Segment normal : ";
-		if (!MESH_MANAGER.ActiveMesh->originalTrianglesToSegments.empty() && !MESH_MANAGER.ActiveMesh->segmentsNormals.empty())
-		{
-			glm::vec3 normal = MESH_MANAGER.ActiveMesh->segmentsNormals[MESH_MANAGER.ActiveMesh->originalTrianglesToSegments[MESH_MANAGER.ActiveMesh->TriangleSelected[0]]];
-
-			Text += "x: " + std::to_string(normal.x);
-			Text += " y: " + std::to_string(normal.y);
-			Text += " z: " + std::to_string(normal.z);
-		}
-		else
-		{
-			Text += "No information.";
-		}
-		ImGui::Text(Text.c_str());
-	}
-
-	if (ImGui::Button("Generate second rugosity layer"))
-	{
-		RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync(1);
-	}
-
-	/*ImGui::Separator();
-	if (ImGui::Button("Generate SDF"))
-	{
-		RUGOSITY_MANAGER.JitterToDoCount = 1;
-		RUGOSITY_MANAGER.RunCreationOfSDFAsync(MESH_MANAGER.ActiveMesh);
-	}*/
-
-	ImGui::Text(("For current mesh \n Min value : "
-		+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
-		+ " m \n Max value : "
-		+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
-
-	ImGui::SetNextItemWidth(128);
-	float TempResoluton = JITTER_MANAGER.GetResolutonInM();
-	ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
-	JITTER_MANAGER.SetResolutonInM(TempResoluton);
-
-	ImGui::Checkbox("Weighted normals", &RUGOSITY_MANAGER.bWeightedNormals);
-	ImGui::Checkbox("Normalized normals", &RUGOSITY_MANAGER.bNormalizedNormals);
-
-	if (ImGui::Button("Generate SDF with Jitter"))
-	{
-		TIME.BeginTimeStamp("TimeTookToJitter");
-
-		RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
-
-		TimeTookToJitter = float(TIME.EndTimeStamp("TimeTookToJitter"));
-	}
-
-	/*ImGui::SameLine();
-	ImGui::SetNextItemWidth(100);
-	ImGui::DragInt("Smoothing factor", &RUGOSITY_MANAGER.JitterToDoCount);
-	if (RUGOSITY_MANAGER.JitterToDoCount < 2)
-		RUGOSITY_MANAGER.JitterToDoCount = 2;*/
-
-	if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
-	{
-		ImGui::Text("Color scheme: ");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(128);
-		if (ImGui::BeginCombo("##ChooseColorScheme", (RUGOSITY_MANAGER.colorSchemeIndexToString(MESH_MANAGER.ActiveMesh->HeatMapType)).c_str(), ImGuiWindowFlags_None))
-		{
-			for (size_t i = 0; i < RUGOSITY_MANAGER.colorSchemesList.size(); i++)
-			{
-				bool is_selected = ((RUGOSITY_MANAGER.colorSchemeIndexToString(MESH_MANAGER.ActiveMesh->HeatMapType)).c_str() == RUGOSITY_MANAGER.colorSchemesList[i]);
-				if (ImGui::Selectable(RUGOSITY_MANAGER.colorSchemesList[i].c_str(), is_selected))
-				{
-					MESH_MANAGER.ActiveMesh->HeatMapType = RUGOSITY_MANAGER.colorSchemeIndexFromString(RUGOSITY_MANAGER.colorSchemesList[i]);
-				}
-
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-
-		ImGui::Separator();
-
-		ImGui::Text(("Total time: " + std::to_string(RUGOSITY_MANAGER.GetLastTimeTookForCalculation())).c_str());
-
-		if (DebugSDF != nullptr)
-			ImGui::Text(("debugTotalTrianglesInCells: " + std::to_string(DebugSDF->DebugTotalTrianglesInCells)).c_str());
-
-		ImGui::Separator();
-
-		if (DebugSDF != nullptr && DebugSDF->bFullyLoaded)
-		{
-			ImGui::Text("Visualization of SDF:");
-
-			if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
-			{
-				UpdateRenderingMode(DebugSDF, 0);
-				//DebugSDF->RenderingMode = 0;
-				//DebugSDF->UpdateRenderedLines();
-			}
-
-			if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
-			{
-				UpdateRenderingMode(DebugSDF, 1);
-				//DebugSDF->RenderingMode = 1;
-				//DebugSDF->UpdateRenderedLines();
-			}
-
-			if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
-			{
-				UpdateRenderingMode(DebugSDF, 2);
-				//DebugSDF->RenderingMode = 2;
-				//DebugSDF->UpdateRenderedLines();
-			}
-
-			ImGui::Separator();
-		}
-	}
-	else if (DebugSDF != nullptr && !DebugSDF->bFullyLoaded)
-	{
-		ImGui::Text("Creating SDF...");
-	}
-
-	ImGui::Separator();
-	if (DebugSDF != nullptr && DebugSDF->SelectedCell != glm::vec3(-1.0))
-	{
-		SDFNode CurrentlySelectedCell = DebugSDF->Data[int(DebugSDF->SelectedCell.x)][int(DebugSDF->SelectedCell.y)][int(DebugSDF->SelectedCell.z)];
-
-		//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
-		ImGui::Text("Selected cell info: ");
-
-		std::string indexes = "i: " + std::to_string(DebugSDF->SelectedCell.x);
-		indexes += " j: " + std::to_string(DebugSDF->SelectedCell.y);
-		indexes += " k: " + std::to_string(DebugSDF->SelectedCell.z);
-		//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
-		ImGui::Text((indexes).c_str());
-
-		//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
-		ImGui::Text(("value: " + std::to_string(CurrentlySelectedCell.Value)).c_str());
-
-		//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
-		ImGui::Text(("distanceToTrianglePlane: " + std::to_string(CurrentlySelectedCell.DistanceToTrianglePlane)).c_str());
-
-		ImGui::Separator();
-
-		//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
-		ImGui::Text("Rugosity info: ");
-
-		std::string text = "averageCellNormal x: " + std::to_string(CurrentlySelectedCell.AverageCellNormal.x);
-		text += " y: " + std::to_string(CurrentlySelectedCell.AverageCellNormal.y);
-		text += " z: " + std::to_string(CurrentlySelectedCell.AverageCellNormal.z);
-		//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
-		ImGui::Text((text).c_str());
-
-
-		text = "CellTrianglesCentroid x: " + std::to_string(CurrentlySelectedCell.CellTrianglesCentroid.x);
-		text += " y: " + std::to_string(CurrentlySelectedCell.CellTrianglesCentroid.y);
-		text += " z: " + std::to_string(CurrentlySelectedCell.CellTrianglesCentroid.z);
-		//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(15, Ystep));
-		ImGui::Text((text).c_str());
-
-		if (CurrentlySelectedCell.ApproximateProjectionPlane != nullptr)
-		{
-			//glm::vec3 NormalStart = currentlySelectedCell.approximateProjectionPlane->PointOnPlane + choosenEntity->transform.getPosition();
-			//glm::vec3 NormalEnd = NormalStart + currentlySelectedCell.approximateProjectionPlane->Normal;
-			//RENDERER.drawLine(NormalStart, NormalEnd, glm::vec3(0.1f, 0.1f, 0.9f), 0.25f);
-		}
-
-		ImGui::Text(("Rugosity : " + std::to_string(CurrentlySelectedCell.UserData)).c_str());
-
-		static std::string debugText;
-
-		//if (ImGui::Button("Show debug info"))
-		//{
-		//	DebugSDF->CalculateCellRugosity(&DebugSDF->
-		//		Data[int(DebugSDF->SelectedCell.x)][int(DebugSDF->SelectedCell.y)][int(DebugSDF->SelectedCell.z)], &debugText);
-		//}
-
-		ImGui::Text(debugText.c_str());
-	}
-}
-
-void UIManager::RenderUserModeMainWindow()
-{
-	ImGui::Separator();
-
-	if (ImGui::Button("Calculate rugosity"))
-	{
-		//RUGOSITY_MANAGER.JitterToDoCount = 64;
-		RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
-
-		MESH_MANAGER.ActiveMesh->HeatMapType = 5;
-	}
-
-	ImGui::Text("Grid size:");
-	static int SmallScaleFeatures = 0;
-	if (ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 0))
-	{
-
-	}
-
-	if (ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 1))
-	{
-
-	}
-
-	if (ImGui::RadioButton("Custom", &SmallScaleFeatures, 3))
-	{
-
-	}
-
-	if (SmallScaleFeatures == 0)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
-	}
-	else if (SmallScaleFeatures == 1)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
+		JITTER_MANAGER.SetDebugJitterToDoCount(1);
 	}
 	else
 	{
-		ImGui::Text(("For current mesh \n Min value : "
-			+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
-			+ " m \n Max value : "
-			+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
-
-		ImGui::SetNextItemWidth(128);
-		float TempResoluton = JITTER_MANAGER.GetResolutonInM();
-		ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
-		JITTER_MANAGER.SetResolutonInM(TempResoluton);
+		JITTER_MANAGER.SetDebugJitterToDoCount(-1);
 	}
-
-	ImGui::Separator();
-	ImGui::Text("Selection mode:");
-	if (ImGui::RadioButton("None", &LayerSelectionMode, 0))
-	{
-		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
-		LINE_RENDERER.SyncWithGPU();
-	}
-
-	if (ImGui::RadioButton("Triangles", &LayerSelectionMode, 1))
-	{
-		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
-		LINE_RENDERER.SyncWithGPU();
-	}
-
-	if (ImGui::RadioButton("Area", &LayerSelectionMode, 2))
-	{
-		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
-		LINE_RENDERER.SyncWithGPU();
-	}
-
-	if (LayerSelectionMode == 2)
-	{
-		ImGui::Text("Radius of area to measure: ");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(128);
-		ImGui::DragFloat("##RadiusOfAreaToMeasure", &RadiusOfAreaToMeasure, 0.01f);
-		if (RadiusOfAreaToMeasure < 0.1f)
-			RadiusOfAreaToMeasure = 0.1f;
-
-		ImGui::Checkbox("Output selection data to file", &bOutputSelectionToFile);
-	}
-
-	if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() == 1 && LAYER_MANAGER.GetActiveLayerIndex() != -1)
-	{
-		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-
-		ImGui::Separator();
-		ImGui::Text("Selected triangle information :");
-
-		std::string Text = "Triangle value : ";
-		Text += std::to_string(CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[0]]);
-		ImGui::Text(Text.c_str());
-
-		int HeightLayerIndex = -1;
-		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
-		{
-			if (MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() == "Height")
-				HeightLayerIndex = i;
-		}
-
-		Text = "Triangle height : ";
-		double AverageHeight = 0.0;
-		if (HeightLayerIndex != -1)
-		{
-			AverageHeight = MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[0]];
-			AverageHeight -= MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].Min;
-		}
-
-		Text += std::to_string(AverageHeight);
-
-		ImGui::Text(Text.c_str());
-	}
-	else if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() > 1 && LAYER_MANAGER.GetActiveLayerIndex() != -1)
-	{
-		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-
-		std::string Text = "Area average value : ";
-		float TotalRugosity = 0.0f;
-		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
-		{
-			TotalRugosity += CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
-		}
-
-		TotalRugosity /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
-		Text += std::to_string(TotalRugosity);
-
-		ImGui::Text(Text.c_str());
-
-		Text = "Area average height : ";
-		double AverageHeight = 0.0;
-
-		int HeightLayerIndex = -1;
-		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
-		{
-			if (MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() == "Height")
-				HeightLayerIndex = i;
-		}
-
-		if (HeightLayerIndex != -1)
-		{
-			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex];
-
-			for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
-			{
-				double CurrentHeight = CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
-				AverageHeight += CurrentHeight;
-			}
-
-			AverageHeight /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
-			AverageHeight -= CurrentLayer->Min;
-		}
-
-		Text += std::to_string(AverageHeight);
-
-		ImGui::Text(Text.c_str());
-	}
-
-	if (MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
-	{
-		ImGui::Separator();
-
-		ImGui::Text("Distribution : ");
-		static char CurrentDistributionEdit[1024];
-		static glm::vec2 CurrentDistribution = glm::vec2();
-		static float LastDistributionValue = 0.0f;
-
-		ImGui::SetNextItemWidth(62);
-		if (ImGui::InputText("##DistributionEdit", CurrentDistributionEdit, IM_ARRAYSIZE(CurrentDistributionEdit), ImGuiInputTextFlags_EnterReturnsTrue) ||
-			ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##DistributionEdit"))
-		{
-
-		}
-
-		ImGui::SameLine();
-		if (ImGui::Button("Calculate Distribution", ImVec2(167, 19)))
-		{
-			float NewValue = float(atof(CurrentDistributionEdit));
-			LastDistributionValue = NewValue;
-			CurrentDistribution = LayerValuesAreaDistribution(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewValue);
-		}
-
-		if (CurrentDistribution != glm::vec2())
-		{
-			ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.x / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
-			ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.y / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
-		}
-	}
-}
-
-void UIManager::RenderMainWindow()
-{
-	if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove))
-	{
-		ImGuiWindow* window = ImGui::FindWindowByName("Settings");
-		window->Pos.x = APPLICATION.GetWindowWidth() - (window->SizeFull.x + 1);
-		window->Pos.y = 20;
-
-		if (MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
-		{
-			ImGui::Text("Layer caption: ");
-			if (ImGui::Button("Delete"))
-			{
-				int IndexToDelete = LAYER_MANAGER.GetActiveLayerIndex();
-				LAYER_MANAGER.SetActiveLayerIndex(-1);
-
-				MESH_MANAGER.ActiveMesh->Layers.erase(MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete,
-													  MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete + 1);
-			}
-		}
-		
-		ImGui::Checkbox("Developer UI", &bDeveloperMode);
-
-		ShowCameraTransform();
-
-		ImGui::Text("Rugosity algorithm: ");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(190);
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
-		if (ImGui::BeginCombo("##ChooseRugosityAlgorithm", (RUGOSITY_MANAGER.GetUsedRugosityAlgorithmName()).c_str(), ImGuiWindowFlags_None))
-		{
-			for (size_t i = 0; i < RUGOSITY_MANAGER.RugosityAlgorithmList.size(); i++)
-			{
-				bool is_selected = (RUGOSITY_MANAGER.GetUsedRugosityAlgorithmName() == RUGOSITY_MANAGER.RugosityAlgorithmList[i]);
-				if (ImGui::Selectable(RUGOSITY_MANAGER.RugosityAlgorithmList[i].c_str(), is_selected))
-				{
-					RUGOSITY_MANAGER.SetUsedRugosityAlgorithmName(RUGOSITY_MANAGER.RugosityAlgorithmList[i]);
-				}
-
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-
-		if (MESH_MANAGER.ActiveMesh != nullptr)
-		{
-			if (bDeveloperMode)
-			{
-				RenderDeveloperModeMainWindow();
-			}
-			else
-			{
-				RenderUserModeMainWindow();
-			}
-		}
-	}
-
-	ImGui::End();
 }
 
 void UIManager::Render()
@@ -784,7 +298,6 @@ void UIManager::Render()
 		ImGui::EndMainMenuBar();
 	}
 
-	//RenderMainWindow();
 	RenderSettingsWindow();
 	RenderLegend();
 	RenderLayerChooseWindow();
@@ -1457,47 +970,20 @@ void UIManager::FillGraphDataPoints(const int BinsCount)
 		MaxRugosity[i] = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * NextNormalizedPixelPosition;
 	}
 
-	int CurrentIndex = 0;
-	double CurrentArea = 0.0;
-	for (int i = 0; i < CurrentLayer->ValueTriangleAreaAndIndex.size(); i++)
+	for (size_t i = 0; i < BinsCount; i++)
 	{
-		const double CurrentRugosity = std::get<0>(CurrentLayer->ValueTriangleAreaAndIndex[i]);
-		if (CurrentRugosity >= MinRugosity[CurrentIndex] && CurrentRugosity <= MaxRugosity[CurrentIndex])
+		double CurrentArea = 0.0;
+		for (int j = 0; j < CurrentLayer->ValueTriangleAreaAndIndex.size(); j++)
 		{
-			CurrentArea += std::get<1>(CurrentLayer->ValueTriangleAreaAndIndex[i]);
+			const double CurrentRugosity = std::get<0>(CurrentLayer->ValueTriangleAreaAndIndex[j]);
+			if (CurrentRugosity >= MinRugosity[i] && (i == BinsCount - 1 ? CurrentRugosity <= MaxRugosity[i] : CurrentRugosity < MaxRugosity[i]))
+			{
+				CurrentArea += std::get<1>(CurrentLayer->ValueTriangleAreaAndIndex[j]);
+			}
 		}
-		else if (CurrentRugosity > MaxRugosity[CurrentIndex])
-		{
-			DataPoints.push_back(CurrentArea);
-			CurrentIndex++;
-			CurrentArea = 0.0;
 
-			if (CurrentIndex == BinsCount)
-				break;
-		}
+		DataPoints.push_back(CurrentArea);
 	}
-
-	// This could happen because in some algorithms there would be no triangles in some range of rugosities.
-	if (DataPoints.size() < BinsCount)
-	{
-		for (size_t i = DataPoints.size(); i < BinsCount; i++)
-		{
-			DataPoints.push_back(0);
-		}
-	}
-
-	//double AreaWithUnder = 0.0;
-	//double AreaWithAbove = 0.0;
-	//double Value = 3.0;
-	//for (int i = 0; i < DataPoints.size() / 2; i++)
-	//{
-	//	AreaWithUnder += DataPoints[i];
-	//}
-
-	//for (int i = DataPoints.size() / 2; i < DataPoints.size(); i++)
-	//{
-	//	AreaWithAbove += DataPoints[i];
-	//}
 
 	double TotalArea = 0.0;
 	float MaxValue = -FLT_MAX;
@@ -1506,23 +992,6 @@ void UIManager::FillGraphDataPoints(const int BinsCount)
 		TotalArea += DataPoints[i];
 		MaxValue = std::max(DataPoints[i], MaxValue);
 	}
-
-	/*for (size_t i = 0; i < BinsCount; i++)
-	{
-		DataPoints[i] /= TotalArea;
-	}*/
-
-	/*double AddUpTo = 0.0;
-	for (size_t i = 0; i < BinsCount; i++)
-	{
-		AddUpTo += DataPoints[i];
-	}
-
-	int GraphH = Graph.GetSize().y;
-	for (size_t i = 0; i < BinsCount; i++)
-	{
-		DataPoints[i] *= GraphH;
-	}*/
 
 	AreaWithRugositiesTotalTime = TIME.EndTimeStamp("AreaWithRugosities Time");
 
@@ -2135,6 +1604,15 @@ void UIManager::RenderSettingsWindow()
 					if (ImGui::Checkbox("Developer mode", &TempBool))
 						SetDeveloperMode(TempBool);
 					
+					if (IsInDeveloperMode())
+					{
+						int TempValue = JITTER_MANAGER.GetDebugJitterToDoCount();
+						ImGui::Text("Jitter count for next calculation(set -1 to run all jitters): ");
+						ImGui::SetNextItemWidth(120);
+						ImGui::DragInt("##Jitter count", &TempValue);
+						JITTER_MANAGER.SetDebugJitterToDoCount(TempValue);
+					}
+
 					if (IsInDeveloperMode() && LAYER_MANAGER.GetActiveLayerIndex() != -1)
 					{
 						if (DebugSDF == nullptr)

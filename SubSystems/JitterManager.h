@@ -147,6 +147,7 @@ namespace FocalEngine
 
 	class JitterManager
 	{
+		friend class UIManager;
 	public:
 		SINGLETON_PUBLIC_PART(JitterManager)
 
@@ -178,6 +179,9 @@ namespace FocalEngine
 
 		int JitterDoneCount = 0;
 		int JitterToDoCount = 4;
+		int DebugJitterToDoCount = -1;
+		int GetDebugJitterToDoCount();
+		void SetDebugJitterToDoCount(int NewValue);
 
 		float ResolutonInM = 1.0f;
 		float LowestPossibleResolution = -1.0f;
