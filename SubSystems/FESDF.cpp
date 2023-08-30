@@ -517,10 +517,12 @@ void SDF::AddLinesOfSDF()
 
 void SDF::UpdateRenderedLines()
 {
+#ifndef NEW_LINES
 	LINE_RENDERER.clearAll();
 	if (RenderingMode != 0)
 		AddLinesOfSDF();
 	LINE_RENDERER.SyncWithGPU();
+#endif
 }
 
 void SDF::RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func)

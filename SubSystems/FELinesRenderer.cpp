@@ -13,18 +13,15 @@ FELine::FELine(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 Color)
 FELinesRenderer::FELinesRenderer()
 {
 	LineShader = new FEShader("lineShader", LineVS, LineFS);
-
 	glGenVertexArrays(1, &LineVAO);
-	
-	/*AddLineToBuffer(FELine(glm::vec3(0.0f), glm::vec3(10.0f), glm::vec3(1.0f, 1.0f, 0.0f)));
-	SyncWithGPU();
-
-	AddLineToBuffer(FELine(glm::vec3(0.0f), glm::vec3(-10.0f), glm::vec3(1.0f, 0.0f, 0.0f)));
-	SyncWithGPU();*/
 }
 
 void FELinesRenderer::Render(FEBasicCamera* camera)
 {
+#ifdef NEW_LINES
+	SyncWithGPU();  // Ensure GPU buffer is up-to-date
+#endif
+
 	if (PointsToRender == 0)
 		return;
 
@@ -56,6 +53,9 @@ void FELinesRenderer::Render(FEBasicCamera* camera)
 
 void FELinesRenderer::AddLineToBuffer(FELine LineToAdd)
 {
+#ifdef NEW_LINES
+	FrameLines.push_back(LineToAdd);
+#else
 	FELinePoint PointA;
 	PointA.Position = LineToAdd.A;
 	PointA.Color = LineToAdd.Color;
@@ -65,10 +65,54 @@ void FELinesRenderer::AddLineToBuffer(FELine LineToAdd)
 	PointB.Position = LineToAdd.B;
 	PointB.Color = LineToAdd.Color;
 	LinePointVector.push_back(PointB);
+#endif
 }
+
+#ifdef NEW_LINES
+bool FELinesRenderer::LinesAreDifferent() {
+	if (FrameLines.size() * 2 != RenderLinePoints.size()) return true;
+
+	for (size_t i = 0; i < FrameLines.size(); i++) {
+		if (FrameLines[i].A != RenderLinePoints[i * 2].Position ||
+			FrameLines[i].B != RenderLinePoints[i * 2 + 1].Position ||
+			FrameLines[i].Color != RenderLinePoints[i * 2].Color) {  // Assuming FELinePoint has the same color for both A and B
+			return true;
+		}
+	}
+	return false;
+}
+#endif
 
 void FELinesRenderer::SyncWithGPU()
 {
+#ifdef NEW_LINES
+	if(!LinesAreDifferent()) return;
+
+	// Convert FrameLines to RenderLinePoints
+	RenderLinePoints.clear();
+	for (const auto& line : FrameLines) {
+		RenderLinePoints.push_back({ line.A, line.Color });
+		RenderLinePoints.push_back({ line.B, line.Color });
+	}
+
+	PointsToRender = RenderLinePoints.size();
+
+	glBindVertexArray(LineVAO);
+
+	if (LineBuffer != 0)
+		glDeleteBuffers(1, &LineBuffer);
+	glGenBuffers(1, &LineBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, LineBuffer);
+	glBufferData(GL_ARRAY_BUFFER, RenderLinePoints.size() * sizeof(FELinePoint), RenderLinePoints.data(), GL_DYNAMIC_DRAW);
+
+	FE_GL_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(FELinePoint), (void*)0));
+	FE_GL_ERROR(glVertexAttribPointer(1, 3, GL_FLOAT, false, sizeof(FELinePoint), (void*)(3 * sizeof(float))));
+
+	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	FE_GL_ERROR(glBindVertexArray(0));
+
+	FrameLines.clear();
+#else
 	if (LinePointVector.size() == 0)
 		return;
 
@@ -87,12 +131,18 @@ void FELinesRenderer::SyncWithGPU()
 
 	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
 	FE_GL_ERROR(glBindVertexArray(0));
+#endif
 }
 
 void FELinesRenderer::clearAll()
 {
+#ifdef NEW_LINES
+	PointsToRender = 0;
+	FrameLines.clear();
+#else
 	PointsToRender = 0;
 	LinePointVector.clear();
+#endif
 }
 
 void FELinesRenderer::RenderAABB(FEAABB AABB, glm::vec3 color)

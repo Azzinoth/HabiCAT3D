@@ -125,7 +125,7 @@ void ScrollCall(double Xoffset, double Yoffset)
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return;
 
-	if (UI.GetIsModelCamera())
+	if (UI.GetIsModelCamera() && !ImGui::GetIO().WantCaptureMouse)
 		reinterpret_cast<FEModelViewCamera*>(currentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(currentCamera)->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->AABB.getSize() * 0.05f);
 }
 

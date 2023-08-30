@@ -512,6 +512,20 @@ void UIManager::OnJitterCalculationsStart()
 	UI.bShouldOpenProgressPopup = true;
 }
 
+void WriteJitterSettingsToDebugInfo(MeshLayerDebugInfo* DebugInfo, std::vector<SDFInitData_Jitter>& JitterSettings)
+{
+	if (DebugInfo == nullptr)
+		return;
+
+	for (size_t i = 0; i < JitterSettings.size(); i++)
+	{
+		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftX", JitterSettings[i].ShiftX);
+		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftY", JitterSettings[i].ShiftY);
+		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftZ", JitterSettings[i].ShiftZ);
+		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " GridScale", JitterSettings[i].GridScale);
+	}
+}
+
 void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 {
 	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
@@ -543,6 +557,9 @@ void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 	DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 	DebugInfo->AddEntry("Source layer caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());
 
+	// Add per jitter debug info to the standard deviation layer.
+	WriteJitterSettingsToDebugInfo(DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
+
 	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 2);
 }
 
@@ -550,6 +567,19 @@ void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 {
 	UI.bShouldCloseProgressPopup = true;
 	UI.CurrentJitterStepIndexVisualize = JITTER_MANAGER.GetLastUsedJitterSettings().size() - 1;
+
+	// Add per jitter debug info to the layer.
+	WriteJitterSettingsToDebugInfo(NewLayer.DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
+	/*std::vector<SDFInitData_Jitter> UsedSettings;
+	UsedSettings = JITTER_MANAGER.GetLastUsedJitterSettings();
+
+	for (size_t i = 0; i < UsedSettings.size(); i++)
+	{
+		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftX", UsedSettings[i].ShiftX);
+		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftY", UsedSettings[i].ShiftY);
+		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftZ", UsedSettings[i].ShiftZ);
+		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " GridScale", UsedSettings[i].GridScale);
+	}*/
 }
 
 void UIManager::OnVectorDispersionCalculationsEnd(MeshLayer NewLayer)
@@ -1242,7 +1272,10 @@ void UIManager::AfterLayerChange()
 		}
 
 		if (UI.GetDebugSDF() != nullptr)
+		{
+			UI.InitDebugSDF(UI.CurrentJitterStepIndexVisualize);
 			UI.UpdateRenderingMode(UI.GetDebugSDF(), UI.GetDebugSDF()->RenderingMode);
+		}
 	}
 }
 
@@ -1267,6 +1300,52 @@ float UIManager::FindStandardDeviation(std::vector<float> DataPoints)
 	return std::sqrt(NewMean);
 }
 
+std::vector<SDFInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugInfo* DebugInfo)
+{
+	std::vector<SDFInitData_Jitter> Result;
+
+	if (DebugInfo == nullptr)
+		return Result;
+
+	std::istringstream iss(DebugInfo->ToString());
+	std::string Line;
+	SDFInitData_Jitter CurrentData;
+	bool bNewData = true;
+
+	while (std::getline(iss, Line))
+	{
+		if (Line.find("ShiftX:") != std::string::npos)
+		{
+			CurrentData.ShiftX = std::stof(Line.substr(Line.find(":") + 1));
+			bNewData = false;
+		}
+		else if (Line.find("ShiftY:") != std::string::npos)
+		{
+			CurrentData.ShiftY = std::stof(Line.substr(Line.find(":") + 1));
+			bNewData = false;
+		}
+		else if (Line.find("ShiftZ:") != std::string::npos)
+		{
+			CurrentData.ShiftZ = std::stof(Line.substr(Line.find(":") + 1));
+			bNewData = false;
+		}
+		else if (Line.find("GridScale:") != std::string::npos)
+		{
+			CurrentData.GridScale = std::stof(Line.substr(Line.find(":") + 1));
+			Result.push_back(CurrentData);
+			bNewData = true;
+			CurrentData = SDFInitData_Jitter();
+		}
+		else if (bNewData)
+		{
+			// If it's a new "Jitter" line, skip to the next. If it's other text, it will be ignored.
+			continue;
+		}
+	}
+
+	return Result;
+}
+
 void UIManager::InitDebugSDF(size_t JitterIndex)
 {
 	if (JitterIndex >= JITTER_MANAGER.GetJitterToDoCount())
@@ -1276,11 +1355,11 @@ void UIManager::InitDebugSDF(size_t JitterIndex)
 		return;
 
 	std::vector<SDFInitData_Jitter> UsedSettings;
-	UsedSettings = JITTER_MANAGER.GetLastUsedJitterSettings();
+	UsedSettings = ReadJitterSettingsFromDebugInfo(LAYER_MANAGER.GetActiveLayer()->DebugInfo);
 
 	if (UsedSettings.size() == 0)
 		return;
-		
+
 	if (JitterIndex < 0 || JitterIndex >= UsedSettings.size())
 		JitterIndex = UsedSettings.size() - 1;
 
@@ -1301,11 +1380,6 @@ void UIManager::InitDebugSDF(size_t JitterIndex)
 
 	if (CurrentLayerResolutionInM <= 0.0f)
 		return;
-
-	ImGui::Text("Individual jitter steps: ");
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(190);
-	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
 
 	delete DebugSDF;
 	DebugSDF = new SDF();
@@ -1417,7 +1491,7 @@ void UIManager::RenderSettingsWindow()
 					ImGui::Text(MedianText.c_str());
 
 					ImGui::Text("Notes:");
-					static char CurrentLayerUserNotes[1024];
+					static char CurrentLayerUserNotes[10000];
 					strcpy(CurrentLayerUserNotes, Layer->GetNote().c_str());
 					ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 15);
 					if (ImGui::InputTextMultiline("##Notes", CurrentLayerUserNotes, IM_ARRAYSIZE(CurrentLayerUserNotes)))
@@ -1426,7 +1500,7 @@ void UIManager::RenderSettingsWindow()
 					}
 
 					ImGui::Text("Debug Info:");
-					static char CurrentLayerDebugInfo[1024];
+					static char CurrentLayerDebugInfo[10000];
 					std::string DebugInfo;
 					if (Layer->DebugInfo != nullptr)
 						DebugInfo = Layer->DebugInfo->ToString();
@@ -1619,7 +1693,7 @@ void UIManager::RenderSettingsWindow()
 							UI.InitDebugSDF(JITTER_MANAGER.GetJitterToDoCount() - 1);
 
 						std::vector<SDFInitData_Jitter> UsedSettings;
-						UsedSettings = JITTER_MANAGER.GetLastUsedJitterSettings();
+						UsedSettings = ReadJitterSettingsFromDebugInfo(LAYER_MANAGER.GetActiveLayer()->DebugInfo);
 
 						if (UsedSettings.size() > 0)
 						{
@@ -1646,8 +1720,6 @@ void UIManager::RenderSettingsWindow()
 										if (DebugSDF->RenderingMode == 1)
 										{
 											UpdateRenderingMode(DebugSDF, 1);
-											//DebugSDF->RenderingMode = 1;
-											//DebugSDF->UpdateRenderedLines();
 										}
 									}
 
@@ -1669,37 +1741,27 @@ void UIManager::RenderSettingsWindow()
 						if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
 						{
 							UpdateRenderingMode(DebugSDF, 0);
-
-							//DebugSDF->RenderingMode = 0;
-							//DebugSDF->UpdateRenderedLines();
-
-							//LINE_RENDERER.clearAll();
-							//LINE_RENDERER.SyncWithGPU();
 						}
 
 						if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
 						{
+#ifdef NEW_LINES
+							InitDebugSDF(CurrentJitterStepIndexVisualize);
+#endif
 							UpdateRenderingMode(DebugSDF, 1);
-
-							//DebugSDF->RenderingMode = 1;
-							//DebugSDF->UpdateRenderedLines();
-
-							//LINE_RENDERER.clearAll();
-							//addLinesOFSDF(DebugSDF);
-							//LINE_RENDERER.SyncWithGPU();
 						}
 
 						if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
 						{
 							UpdateRenderingMode(DebugSDF, 2);
-
-							//DebugSDF->RenderingMode = 2;
-							//DebugSDF->UpdateRenderedLines();
-
-							//LINE_RENDERER.clearAll();
-							//addLinesOFSDF(DebugSDF);
-							//LINE_RENDERER.SyncWithGPU();
 						}
+
+#ifdef NEW_LINES
+						if (DebugSDF->RenderingMode == 1)
+						{
+							DebugSDF->AddLinesOfSDF();
+						}
+#endif
 
 						if (DebugSDF->RenderingMode == 1)
 						{
@@ -1768,6 +1830,9 @@ void UIManager::UpdateRenderingMode(SDF* SDF, int NewRenderingMode)
 
 	SDF->RenderingMode = NewRenderingMode;
 	SDF->UpdateRenderedLines();
+
+	if (NewRenderingMode == 0)
+		return;
 
 	if (LAYER_TYPE::UNKNOWN)
 		return;

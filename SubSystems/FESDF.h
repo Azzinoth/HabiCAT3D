@@ -122,7 +122,6 @@ namespace FocalEngine
 			Data.clear();
 		}
 
-	private:
 		void AddLinesOfSDF();
 	};
 }

@@ -19,6 +19,10 @@ private:
 	bool bWaitForJitterResult = false;
 	int DebugBoxSizeIndex = 0;
 	int DebugBoxCount = 0;
+	double DebugFractalDimension = 0.0;
+	std::vector<double> DebugLogInverseSizes;
+	std::vector<double> DebugLogCounts;
+	std::vector<int> DebugCounts;
 
 	static void WorkOnNode(SDFNode* CurrentNode);
 };

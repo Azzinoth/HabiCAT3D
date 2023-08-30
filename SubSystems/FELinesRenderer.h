@@ -29,6 +29,8 @@ void main(void)
 }
 )";
 
+//#define NEW_LINES
+
 namespace FocalEngine
 {
 	#define FE_MAX_LINES 1000000
@@ -66,8 +68,13 @@ namespace FocalEngine
 		GLuint LineVAO = 0;
 		GLenum LineBuffer = 0;
 		FEShader* LineShader = nullptr;
-
+#ifdef NEW_LINES
+		std::vector<FELine> FrameLines;
+		std::vector<FELinePoint> RenderLinePoints;
+		bool LinesAreDifferent();
+#else
 		std::vector<FELinePoint> LinePointVector;
+#endif
 		int PointsToRender = 0;
 	};
 
