@@ -46,20 +46,24 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 
 	// Generate a sequence of box sizes
 	double VozelSize = CurrentNode->AABB.getMax()[0] - CurrentNode->AABB.getMin()[0];
-	std::vector<double> boxSizes = { /*VozelSize / 64.0,*/ VozelSize / 32.0, VozelSize / 16.0, VozelSize / 8.0, VozelSize / 4.0 };//generateBoxSizes(1.0 / 64.0, 0.5, 2.0);
+
+	std::vector<double> DivisionFactors = { 32.0, 16.0, 8.0, 4.0 };
+	std::vector<double> BoxSizes;
+	for (size_t i = 0; i < DivisionFactors.size(); i++)
+		BoxSizes.push_back(VozelSize / DivisionFactors[i]);
 
 	std::vector<double> logInverseSizes;
 	std::vector<double> logCounts;
 	std::vector<int> Counts;
 
-	for (size_t i = 0; i < boxSizes.size(); i++)
+	for (size_t i = 0; i < BoxSizes.size(); i++)
 	{
-		double boxSize = boxSizes[i];
+		double boxSize = BoxSizes[i];
 
 		// Create a 3D grid that covers the entire bounding box
-		int gridX = static_cast<int>(glm::ceil((CurrentNode->AABB.getMax()[0] - CurrentNode->AABB.getMin()[0]) / boxSize));
-		int gridY = static_cast<int>(glm::ceil((CurrentNode->AABB.getMax()[1] - CurrentNode->AABB.getMin()[1]) / boxSize));
-		int gridZ = static_cast<int>(glm::ceil((CurrentNode->AABB.getMax()[2] - CurrentNode->AABB.getMin()[2]) / boxSize));
+		int gridX = static_cast<int>(DivisionFactors[i]);
+		int gridY = static_cast<int>(DivisionFactors[i]);
+		int gridZ = static_cast<int>(DivisionFactors[i]);
 
 		int count = 0;
 		std::vector<std::vector<std::vector<bool>>> grid(gridX, std::vector<std::vector<bool>>(gridY, std::vector<bool>(gridZ, false)));
@@ -105,9 +109,9 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 		}
 
 		// Store the logarithm values for linear regression
-		logInverseSizes.push_back(std::log(1.0 / boxSize));
+		logInverseSizes.push_back(std::log10(1.0 / boxSize));
 		Counts.push_back(count);
-		logCounts.push_back(std::log(static_cast<double>(count)));
+		logCounts.push_back(std::log10(static_cast<double>(count)));
 	}
 
 	// Perform linear regression to estimate the fractal dimension
@@ -118,6 +122,12 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 	{
 		FractalDimension = 0;
 	}
+
+	if (FractalDimension < 2.0)
+		FractalDimension = 2.0;
+	
+	if (FractalDimension > 3.0)
+		FractalDimension = 3.0;
 
 	CurrentNode->UserData = FractalDimension;
 }
@@ -194,21 +204,25 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 
 	// Generate a sequence of box sizes
 	double VozelSize = CurrentNode->AABB.getMax()[0] - CurrentNode->AABB.getMin()[0];
-	std::vector<double> boxSizes = { /*VozelSize / 64.0,*/ VozelSize / 32.0, VozelSize / 16.0, VozelSize / 8.0, VozelSize / 4.0 };//generateBoxSizes(1.0 / 64.0, 0.5, 2.0);
+
+	std::vector<double> DivisionFactors = { 32.0, 16.0, 8.0, 4.0 };
+	std::vector<double> BoxSizes;
+	for (size_t i = 0; i < DivisionFactors.size(); i++)
+		BoxSizes.push_back(VozelSize / DivisionFactors[i]);
 
 	std::vector<double> logInverseSizes;
 	std::vector<double> logCounts;
 	std::vector<int> Counts;
 
 	DebugBoxCount = 0;
-	for (size_t i = 0; i < boxSizes.size(); i++)
+	for (size_t i = 0; i < BoxSizes.size(); i++)
 	{
-		double boxSize = boxSizes[i];
+		double boxSize = BoxSizes[i];
 
 		// Create a 3D grid that covers the entire bounding box
-		int gridX = static_cast<int>(glm::ceil((CurrentNode->AABB.getMax()[0] - CurrentNode->AABB.getMin()[0]) / boxSize));
-		int gridY = static_cast<int>(glm::ceil((CurrentNode->AABB.getMax()[1] - CurrentNode->AABB.getMin()[1]) / boxSize));
-		int gridZ = static_cast<int>(glm::ceil((CurrentNode->AABB.getMax()[2] - CurrentNode->AABB.getMin()[2]) / boxSize));
+		int gridX = static_cast<int>(DivisionFactors[i]);
+		int gridY = static_cast<int>(DivisionFactors[i]);
+		int gridZ = static_cast<int>(DivisionFactors[i]);
 
 		int count = 0;
 		std::vector<std::vector<std::vector<bool>>> grid(gridX, std::vector<std::vector<bool>>(gridY, std::vector<bool>(gridZ, false)));
@@ -261,9 +275,9 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 		}
 
 		// Store the logarithm values for linear regression
-		logInverseSizes.push_back(std::log(1.0 / boxSize));
+		logInverseSizes.push_back(std::log10(1.0 / boxSize));
 		Counts.push_back(count);
-		logCounts.push_back(std::log(static_cast<double>(count)));
+		logCounts.push_back(std::log10(static_cast<double>(count)));
 	}
 
 	// Perform linear regression to estimate the fractal dimension

@@ -1348,14 +1348,14 @@ std::vector<SDFInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugIn
 
 void UIManager::InitDebugSDF(size_t JitterIndex)
 {
-	if (JitterIndex >= JITTER_MANAGER.GetJitterToDoCount())
-		return;
-
 	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
 		return;
 
 	std::vector<SDFInitData_Jitter> UsedSettings;
 	UsedSettings = ReadJitterSettingsFromDebugInfo(LAYER_MANAGER.GetActiveLayer()->DebugInfo);
+
+	if (JitterIndex >= UsedSettings.size())
+		return;
 
 	if (UsedSettings.size() == 0)
 		return;
