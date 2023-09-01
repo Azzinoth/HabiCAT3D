@@ -170,6 +170,33 @@ namespace FocalEngine
 
 		SDF* GetLastUsedSDF();
 		std::vector<SDFInitData_Jitter> GetLastUsedJitterSettings();
+
+		/**
+		* @brief Sets the function that determines whether a calculated value should be ignored.
+		*
+		* This function is called for each calculated value in each jitter. If it returns true, the value is ignored.
+		* If it returns false, the value is used to calculate all jitter combined result array.
+		* 
+		* After each calculation, this function will reset to ensure the default behavior is applied.
+		*
+		* @param Func The desired function.
+		*/
+		void SetIgnoreValueFunction(std::function<bool(float Value)> Func);
+
+		/**
+		* @brief Sets the fallback value for the result array.
+		*
+		* This value is used for an element in the result array only if all its
+		* calculated values are ignored. By providing a fallback, we ensure that
+		* the result array has a consistent value in such scenarios, preventing
+		* potential issues from uninitialized or unpredictable data.
+		* 
+		* After each calculation, this value will be reset to 1.0f to ensure that the default behavior is used.
+		*
+		* @param NewValue The desired fallback value.
+		*/
+		void SetFallbackValue(float NewValue);
+
 	private:
 		SINGLETON_PRIVATE_PART(JitterManager)
 
@@ -194,10 +221,10 @@ namespace FocalEngine
 		float GridScale = 1.25f;
 
 		std::vector<float> Result;
-		//std::vector <std::vector<float>> PerSDFTrianglesResult;
-		//void ExtractDataFromSDF(SDF* SDF);
 		std::vector<std::vector<float>> PerJitterResult;
-		
+		std::vector<int> CorrectValuesCounters;
+		float FallbackValue = 1.0f;
+		std::function<bool(float Value)> IgnoreValueFunc = nullptr;
 
 		void RunCreationOfSDFAsync();
 		static void RunCalculationOnSDFAsync(void* InputData, void* OutputData);

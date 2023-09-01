@@ -198,44 +198,47 @@ void JitterManager::MoveResultDataFromSDF(SDF* SDF)
 	if (Result.size() != SDF->TrianglesUserData.size())
 		Result.resize(SDF->TrianglesUserData.size());
 
+	if (CorrectValuesCounters.empty())
+	{
+		CorrectValuesCounters.resize(SDF->TrianglesUserData.size());
+		std::fill(CorrectValuesCounters.begin(), CorrectValuesCounters.end(), 0);
+	}
+
 	for (size_t i = 0; i < Result.size(); i++)
 	{
+		// We will save all results. Even if they are not correct.
 		PerJitterResult.back().push_back(SDF->TrianglesUserData[i]);
-		Result[i] += SDF->TrianglesUserData[i];
+
+		// And if user defined function is not nullptr, we will check if we should ignore this value.
+		if (IgnoreValueFunc != nullptr)
+		{
+			if (!IgnoreValueFunc(SDF->TrianglesUserData[i]))
+			{
+				Result[i] += SDF->TrianglesUserData[i];
+				CorrectValuesCounters[i]++;
+			}
+		}
+		else
+		{
+			Result[i] += SDF->TrianglesUserData[i];
+			CorrectValuesCounters[i]++;
+		}
+		
 	}
 
 	if (JITTER_MANAGER.JitterDoneCount == JITTER_MANAGER.JitterToDoCount)
 	{
 		for (size_t i = 0; i < Result.size(); i++)
 		{
-			Result[i] /= JitterDoneCount;
+			if (CorrectValuesCounters[i] == 0)
+			{
+				Result[i] = FallbackValue;
+				continue;
+			}
+				
+			Result[i] /= CorrectValuesCounters[i];
 		}
 	}
-
-	/*if (SDF == nullptr || PerSDFTrianglesResult.empty())
-		return;
-
-	PerJitterResult.resize(PerJitterResult.size() + 1);
-
-	if (Result.size() != PerSDFTrianglesResult.back().size())
-		Result.resize(PerSDFTrianglesResult.back().size());
-
-	if (Result.size() != SDF->TrianglesUserData.size())
-		Result.resize(SDF->TrianglesUserData.size());
-
-	for (size_t i = 0; i < Result.size(); i++)
-	{
-		PerJitterResult.back().push_back(PerSDFTrianglesResult.back()[i]);
-		Result[i] += PerSDFTrianglesResult.back()[i];
-	}
-
-	if (JITTER_MANAGER.JitterDoneCount == JITTER_MANAGER.JitterToDoCount)
-	{
-		for (size_t i = 0; i < Result.size(); i++)
-		{
-			Result[i] /= JitterDoneCount;
-		}
-	}*/
 }
 
 void JitterManager::OnCalculationsStart()
@@ -246,6 +249,7 @@ void JitterManager::OnCalculationsStart()
 	JITTER_MANAGER.Result.clear();
 	JITTER_MANAGER.PerJitterResult.clear();
 	JITTER_MANAGER.JitterDoneCount = 0;
+	JITTER_MANAGER.CorrectValuesCounters.resize(0);
 
 	TIME.BeginTimeStamp("JitterCalculateTotal");
 	JITTER_MANAGER.StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -259,6 +263,9 @@ void JitterManager::OnCalculationsStart()
 
 void JitterManager::OnCalculationsEnd()
 {
+	JITTER_MANAGER.IgnoreValueFunc = nullptr;
+	JITTER_MANAGER.FallbackValue = 1.0f;
+
 	MeshLayer NewLayer;
 	NewLayer.TrianglesToData = JITTER_MANAGER.Result;
 
@@ -319,4 +326,14 @@ void JitterManager::SetDebugJitterToDoCount(int NewValue)
 
 	if (NewValue > 0 && NewValue < SphereJitter.size())
 		DebugJitterToDoCount = NewValue;
+}
+
+void JitterManager::SetIgnoreValueFunction(std::function<bool(float Value)> Func)
+{
+	IgnoreValueFunc = Func;
+}
+
+void JitterManager::SetFallbackValue(float NewValue)
+{
+	FallbackValue = NewValue;
 }
