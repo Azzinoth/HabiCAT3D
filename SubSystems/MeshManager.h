@@ -84,6 +84,12 @@ uniform float MeasuredRugosityAreaRadius;
 
 uniform float AmbientFactor;
 
+uniform float Time;
+uniform float LayerAbsoluteMin;
+uniform float LayerAbsoluteMax;
+uniform float SelectedRangeMin;
+uniform float SelectedRangeMax;
+
 layout (location = 0) out vec4 out_Color;
 
 // Copyright 2019 Google LLC.
@@ -252,6 +258,23 @@ void main(void)
 		float distanceTo = distance(MeasuredRugosityAreaCenter, FS_IN.worldPosition);
 		if (distanceTo > MeasuredRugosityAreaRadius - 0.05 && distanceTo < MeasuredRugosityAreaRadius + 0.05)
 			finalBaseColor = vec3(0.8f, 0.0f, 0.8f);
+	}
+
+	float NormalizedAbsoluteValue = (FS_IN.FirstLayer - LayerAbsoluteMin) / (LayerAbsoluteMax - LayerAbsoluteMin);
+	NormalizedAbsoluteValue = clamp(NormalizedAbsoluteValue, 0, 1);
+
+	if (SelectedRangeMin != 0.0 || SelectedRangeMax != 0.0)
+	{
+		if (NormalizedAbsoluteValue >= SelectedRangeMin &&
+			NormalizedAbsoluteValue <= SelectedRangeMax)
+		{
+			float TimeFactor = 0.4 * sin(Time * 5.0) + 1.2;
+			finalBaseColor = finalBaseColor * TimeFactor;
+		}
+		else
+		{
+			finalBaseColor = finalBaseColor * 0.5;	
+		}
 	}
 
 	out_Color = vec4(ambientColor * (diffuseFactor * finalBaseColor) * 0.5, 1.0f);

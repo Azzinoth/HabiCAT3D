@@ -1,4 +1,4 @@
-#include "UIComponents.h"
+#include "UIWeightedHistogram.h"
 
 #include "../Layers/HeightLayerProducer.h"
 #include "../Layers/AreaLayerProducer.h"

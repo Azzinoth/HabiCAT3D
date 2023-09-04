@@ -6,7 +6,15 @@ void(*UIManager::SwapCameraImpl)(bool) = nullptr;
 UIManager::UIManager()
 {
 	HeatMapColorRange.SetPosition(ImVec2(0, 20));
-	Graph.SetPosition(ImVec2(5, 20));
+
+	Histogram.SetSize(ImVec2(300, 180));
+	Histogram.SetPosition(ImVec2(20, 60));
+
+	HistogramSelectRegionMin.SetColor(ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
+	HistogramSelectRegionMin.SetOrientation(true);
+
+	HistogramSelectRegionMax.SetColor(ImVec4(0.8f, 0.0f, 0.0f, 1.0f));
+	HistogramSelectRegionMax.SetOrientation(true);
 
 	JITTER_MANAGER.SetOnCalculationsStartCallback(OnJitterCalculationsStart);
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
@@ -301,7 +309,7 @@ void UIManager::Render()
 	RenderSettingsWindow();
 	RenderLegend();
 	RenderLayerChooseWindow();
-	RenderHistogram();
+	RenderHistogramWindow();
 	RenderAboutWindow();
 
 	NEW_LAYER_WINDOW.Render();
@@ -476,7 +484,7 @@ void UIManager::OnMeshUpdate()
 	LINE_RENDERER.clearAll();
 	LINE_RENDERER.SyncWithGPU();
 
-	UI.Graph.Clear();
+	UI.Histogram.Clear();
 	UI.HeatMapColorRange.Clear();
 }
 
@@ -697,19 +705,18 @@ void UIManager::RenderLegend()
 		if (abs(CurrentLayer->Max) < 100000 && LastValue != HeatMapColorRange.GetCeilingValue())
 		{
 			LastValue = HeatMapColorRange.GetCeilingValue();
-			strcpy(CurrentRugosityMax, TruncateAfterDot(std::to_string(HeatMapColorRange.GetCeilingValue() * CurrentLayer->Max)).c_str());
+			strcpy(CurrentRugosityMax, TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())).c_str());
 		}
 
 		HeatMapColorRange.Legend.Clear();
 		HeatMapColorRange.Legend.SetCaption(1.0f, "max: " + TruncateAfterDot(std::to_string(CurrentLayer->Max)));
 
-		HeatMapColorRange.Legend.SetCaption(HeatMapColorRange.GetCeilingValue(), "current: " + TruncateAfterDot(std::to_string(CurrentLayer->Max * HeatMapColorRange.GetCeilingValue())));
+		HeatMapColorRange.Legend.SetCaption(HeatMapColorRange.GetCeilingValue(), "current: " + TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())));
 
 		const float MiddleOfUsedRange = (HeatMapColorRange.GetCeilingValue() + CurrentLayer->MinVisible / CurrentLayer->Max) / 2.0f;
-		HeatMapColorRange.Legend.SetCaption(MiddleOfUsedRange, "middle: " + TruncateAfterDot(std::to_string(CurrentLayer->Max * MiddleOfUsedRange)));
-		HeatMapColorRange.Legend.SetCaption(CurrentLayer->MinVisible / CurrentLayer->Max, "min: " + TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
+		HeatMapColorRange.Legend.SetCaption(0.0f, "min: " + TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
 
-		CurrentLayer->MaxVisible = HeatMapColorRange.GetCeilingValue() * CurrentLayer->Max;
+		CurrentLayer->MaxVisible = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue();
 	}
 
 	ImGui::SetCursorPosX(10);
@@ -732,7 +739,7 @@ void UIManager::RenderLegend()
 			if (NewValue < CurrentLayer->Min)
 				NewValue = CurrentLayer->Min;
 
-			HeatMapColorRange.SetCeilingValue(NewValue / float(CurrentLayer->Max));
+			HeatMapColorRange.SetCeilingValue((NewValue - CurrentLayer->Min) / float(CurrentLayer->Max - CurrentLayer->Min));
 		}
 	}
 
@@ -976,80 +983,48 @@ void UIManager::SetIsModelCamera(const bool NewValue)
 	bModelCamera = NewValue;
 }
 
-void UIManager::FillGraphDataPoints(const int BinsCount)
+void UIManager::UpdateHistogramData(MeshLayer* FromLayer, int NewBinCount)
 {
-	TIME.BeginTimeStamp("FillGraphDataPoints Time");
-	AreaWithRugositiesTotalTime = 0.0f;
+	std::vector<double> Values;
+	std::vector<double> Weights;
 
-	std::vector<float> DataPoints;
-	std::vector<float> MinRugosity;
-	MinRugosity.resize(BinsCount);
-	std::vector<float> MaxRugosity;
-	MaxRugosity.resize(BinsCount);
-
-	MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-
-	TIME.BeginTimeStamp("AreaWithRugosities Time");
-
-	for (size_t i = 0; i < BinsCount; i++)
+	for (const auto& tuple : FromLayer->ValueTriangleAreaAndIndex)
 	{
-		const double NormalizedPixelPosition = double(i) / (BinsCount);
-		const double NextNormalizedPixelPosition = double(i + 1) / (BinsCount);
-
-		MinRugosity[i] = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * NormalizedPixelPosition;
-		MaxRugosity[i] = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * NextNormalizedPixelPosition;
+		Values.push_back(std::get<0>(tuple));
+		Weights.push_back(std::get<1>(tuple));
 	}
 
-	for (size_t i = 0; i < BinsCount; i++)
-	{
-		double CurrentArea = 0.0;
-		for (int j = 0; j < CurrentLayer->ValueTriangleAreaAndIndex.size(); j++)
-		{
-			const double CurrentRugosity = std::get<0>(CurrentLayer->ValueTriangleAreaAndIndex[j]);
-			if (CurrentRugosity >= MinRugosity[i] && (i == BinsCount - 1 ? CurrentRugosity <= MaxRugosity[i] : CurrentRugosity < MaxRugosity[i]))
-			{
-				CurrentArea += std::get<1>(CurrentLayer->ValueTriangleAreaAndIndex[j]);
-			}
-		}
-
-		DataPoints.push_back(CurrentArea);
-	}
-
-	double TotalArea = 0.0;
-	float MaxValue = -FLT_MAX;
-	for (size_t i = 0; i < BinsCount; i++)
-	{
-		TotalArea += DataPoints[i];
-		MaxValue = std::max(DataPoints[i], MaxValue);
-	}
-
-	AreaWithRugositiesTotalTime = TIME.EndTimeStamp("AreaWithRugosities Time");
-
-	TIME.BeginTimeStamp("SetDataPoints Time");
-	Graph.SetDataPoints(DataPoints);
-	Graph.SetCeiling(MaxValue * 1.2f);
-
-	SetDataPoints = TIME.EndTimeStamp("SetDataPoints Time");
-
-	FillGraphDataPointsTotalTime = TIME.EndTimeStamp("FillGraphDataPoints Time");
+	Histogram.FillDataBins(Values, Weights, NewBinCount);
 }
 
-void UIManager::RenderHistogram()
+void UIManager::RenderHistogramWindow()
 {
-	static int LastWindowW = 0;
+	static float LastWindowW = 0.0f;
+	static float LastWindowH = 0.0f;
+	static float Epsilon = 0.001f;
 
-	const ImGuiWindow* window = ImGui::FindWindowByName("Histogram");
-	if (window != nullptr)
+	const ImGuiWindow* HistogramWindow = ImGui::FindWindowByName("Histogram");
+	if (HistogramWindow != nullptr)
 	{
-		Graph.SetSize(ImVec2(window->SizeFull.x - 40, window->SizeFull.y - 50));
-
-		if (MESH_MANAGER.ActiveMesh != nullptr &&
-			bPixelBins &&
-			LastWindowW != window->SizeFull.x &&
-			LAYER_MANAGER.GetActiveLayerIndex() != -1)
+		if (std::abs(LastWindowW - HistogramWindow->SizeFull.x) > Epsilon || std::abs(LastWindowH - HistogramWindow->SizeFull.y) > Epsilon)
 		{
-			LastWindowW = window->SizeFull.x;
-			FillGraphDataPoints(CurrentBinCount);
+			Histogram.SetSize(ImVec2(HistogramWindow->SizeFull.x - 40, HistogramWindow->SizeFull.y - Histogram.GetPosition().y - 50.0f));
+
+			HistogramSelectRegionMin.SetAvailableRange(Histogram.GetSize().x - 1);
+			HistogramSelectRegionMax.SetAvailableRange(Histogram.GetSize().x - 1);
+
+			HistogramSelectRegionMin.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMin.GetRangePosition(), 0.0f));
+			HistogramSelectRegionMax.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMax.GetRangePosition(), 0.0f));
+
+			if (MESH_MANAGER.ActiveMesh != nullptr &&
+				bHistogramPixelBins &&
+				LAYER_MANAGER.GetActiveLayerIndex() != -1)
+			{
+				UpdateHistogramData(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], Histogram.GetCurrentBinCount());
+			}
+
+			LastWindowW = HistogramWindow->SizeFull.x;
+			LastWindowH = HistogramWindow->SizeFull.y;
 		}
 	}
 
@@ -1058,38 +1033,118 @@ void UIManager::RenderHistogram()
 
 	if (ImGui::Begin("Histogram", nullptr))
 	{
-		Graph.Render();
-
-		bool bInterpolate = Graph.IsUsingInterpolation();
-		if (window != nullptr)
-			ImGui::SetCursorPos(ImVec2(10.0f, window->SizeFull.y - 30.0f));
-		if (ImGui::Checkbox("Interpolate", &bInterpolate))
+		if (MESH_MANAGER.ActiveMesh == nullptr || LAYER_MANAGER.GetActiveLayerIndex() == -1)
+			ImGui::BeginDisabled();
+		
+		ImGui::SetCursorPos(ImVec2(12.0f, 30.0f));
+		if (ImGui::Checkbox("Select region mode", &bHistogramSelectRegionMode))
 		{
-			Graph.SetIsUsingInterpolation(bInterpolate);
+			if (MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
+			{
+				Histogram.SetPosition(ImVec2(Histogram.GetPosition().x, bHistogramSelectRegionMode ? 80.0f : 60.0f));
+				Histogram.SetSize(ImVec2(HistogramWindow->SizeFull.x - 40, HistogramWindow->SizeFull.y - Histogram.GetPosition().y - 50.0f));
+
+				if (bHistogramSelectRegionMode)
+				{
+					HistogramSelectRegionMin.SetStartPosition(Histogram.GetPosition());
+					HistogramSelectRegionMin.SetAvailableRange(Histogram.GetSize().x - 1);
+
+					HistogramSelectRegionMax.SetStartPosition(Histogram.GetPosition() + ImVec2(1.0f, 0.0f));
+					HistogramSelectRegionMax.SetAvailableRange(Histogram.GetSize().x - 1);
+					HistogramSelectRegionMax.SetRangePosition(1.0f);
+					HistogramSelectRegionMax.SetPixelPosition(ImVec2(Histogram.GetSize().x, 0.0f));
+				}
+				else
+				{
+					HistogramSelectRegionMin.SetRangePosition(0.0f);
+					HistogramSelectRegionMin.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMin.GetRangePosition(), 0.0f));
+
+					HistogramSelectRegionMax.SetRangePosition(1.0f);
+					HistogramSelectRegionMax.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMax.GetRangePosition(), 0.0f));
+
+					LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMin(0.0f);
+					LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMax(0.0f);
+				}
+			}
 		}
 
-		if (window != nullptr)
-			ImGui::SetCursorPos(ImVec2(130.0f, window->SizeFull.y - 30.0f));
-		if (ImGui::Checkbox("BinCount = Pixels", &bPixelBins))
+		if (MESH_MANAGER.ActiveMesh == nullptr || LAYER_MANAGER.GetActiveLayerIndex() == -1)
+			ImGui::EndDisabled();
+
+		Histogram.Render();
+
+		if (bHistogramSelectRegionMode && MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
 		{
-			if (bPixelBins)
+			HistogramSelectRegionMin.Render();
+			HistogramSelectRegionMax.Render();
+
+			if (HistogramSelectRegionMin.GetRangePosition() + 0.01f >= HistogramSelectRegionMax.GetRangePosition())
 			{
-				CurrentBinCount = window->SizeFull.x - 20;
-			}
-			else
-			{
-				CurrentBinCount = StandardGraphBinCount;
+				HistogramSelectRegionMin.SetRangePosition(HistogramSelectRegionMax.GetRangePosition() - 0.01f);
+				HistogramSelectRegionMin.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMin.GetRangePosition(), 0.0f));
 			}
 
-			FillGraphDataPoints(CurrentBinCount);
+			if (HistogramSelectRegionMax.GetRangePosition() - 0.01f < HistogramSelectRegionMin.GetRangePosition())
+			{
+				HistogramSelectRegionMax.SetRangePosition(HistogramSelectRegionMax.GetRangePosition() + 0.01f);
+				HistogramSelectRegionMax.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMax.GetRangePosition(), 0.0f));
+			}
+
+			// Render text that corresponds to the min value
+			ImGui::SetCursorPos(Histogram.GetPosition() + HistogramSelectRegionMin.GetPixelPosition() - ImVec2(HistogramSelectRegionMin.GetSize() * 0.90f, HistogramSelectRegionMin.GetSize() * 1.65f));
+			std::string MinValue = TruncateAfterDot(std::to_string(LAYER_MANAGER.GetActiveLayer()->Min + LAYER_MANAGER.GetActiveLayer()->Max * HistogramSelectRegionMin.GetRangePosition()), 3);
+			ImGui::Text(MinValue.c_str());
+
+			// Line that corresponds to the min value
+			ImVec2 ArrowPosition = HistogramWindow->Pos + Histogram.GetPosition() + HistogramSelectRegionMin.GetPixelPosition();
+			ImGui::GetWindowDrawList()->AddRectFilled(ArrowPosition - ImVec2(1.0f, 0.0f),
+													  ArrowPosition + ImVec2(1.0f, Histogram.GetSize().y - 1.0f),
+													  ImColor(56.0f / 255.0f, 205.0f / 255.0f, 137.0f / 255.0f, 165.0f / 255.0f));
+
+			// Render text that corresponds to the min value
+			ImGui::SetCursorPos(Histogram.GetPosition() + HistogramSelectRegionMax.GetPixelPosition() - ImVec2(HistogramSelectRegionMax.GetSize() * 0.90f, HistogramSelectRegionMax.GetSize() * 1.65f));
+			std::string MaxValue = TruncateAfterDot(std::to_string(LAYER_MANAGER.GetActiveLayer()->Min + LAYER_MANAGER.GetActiveLayer()->Max * HistogramSelectRegionMax.GetRangePosition()), 3);
+			ImGui::Text(MaxValue.c_str());
+
+			// Line that corresponds to the max value
+			ArrowPosition = HistogramWindow->Pos + Histogram.GetPosition() + HistogramSelectRegionMax.GetPixelPosition();
+			ImGui::GetWindowDrawList()->AddRectFilled(ArrowPosition - ImVec2(1.0f, 0.0f),
+													  ArrowPosition + ImVec2(1.0f, Histogram.GetSize().y - 1.0f),
+													  ImColor(156.0f / 255.0f, 105.0f / 255.0f, 137.0f / 255.0f, 165.0f / 255.0f));
+			
+
+			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+			if (CurrentLayer != nullptr)
+			{
+				CurrentLayer->SetSelectedRangeMin(HistogramSelectRegionMin.GetRangePosition());
+				CurrentLayer->SetSelectedRangeMax(HistogramSelectRegionMax.GetRangePosition());
+			}
+		}
+
+		bool bInterpolate = Histogram.IsUsingInterpolation();
+		if (HistogramWindow != nullptr)
+			ImGui::SetCursorPos(ImVec2(10.0f, Histogram.GetPosition().y + Histogram.GetSize().y + 20.0f));
+
+		if (ImGui::Checkbox("Interpolate", &bInterpolate))
+			Histogram.SetIsUsingInterpolation(bInterpolate);
+		
+		if (HistogramWindow != nullptr)
+			ImGui::SetCursorPos(ImVec2(130.0f, Histogram.GetPosition().y + Histogram.GetSize().y + 20.0f));
+		if (ImGui::Checkbox("BinCount = Pixels", &bHistogramPixelBins))
+		{
+			int NewBinCount = 128;
+			if (bHistogramPixelBins)
+				NewBinCount = HistogramWindow->SizeFull.x - 20;
+
+			UpdateHistogramData(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewBinCount);
 		}
 
 		static char CurrentBinCountChar[1024] = "128";
-		if (!bPixelBins)
+		if (!bHistogramPixelBins)
 		{
 			ImGui::SetCursorPosX(290.0f);
-			if (window != nullptr)
-				ImGui::SetCursorPosY(window->SizeFull.y - 30.0f);
+			if (HistogramWindow != nullptr)
+				ImGui::SetCursorPosY(Histogram.GetPosition().y + Histogram.GetSize().y + 20.0f);
 			ImGui::SetNextItemWidth(62);
 			if (ImGui::InputText("##BinCount", CurrentBinCountChar, IM_ARRAYSIZE(CurrentBinCountChar), ImGuiInputTextFlags_EnterReturnsTrue) ||
 				ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##CurrentBinCountChar"))
@@ -1098,17 +1153,16 @@ void UIManager::RenderHistogram()
 				if (TempInt <= 0)
 					TempInt = 1;
 
-				if (window != nullptr)
+				if (HistogramWindow != nullptr)
 				{
-					if (TempInt > window->SizeFull.x - 20)
-						TempInt = window->SizeFull.x - 20;
+					if (TempInt > HistogramWindow->SizeFull.x - 20)
+						TempInt = HistogramWindow->SizeFull.x - 20;
 				}
 
-				if (CurrentBinCount != TempInt)
+				if (Histogram.GetCurrentBinCount() != TempInt)
 				{
-					CurrentBinCount = TempInt;
-					if (MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
-						FillGraphDataPoints(CurrentBinCount);
+					if (MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)	
+						UpdateHistogramData(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], TempInt);
 				}
 			}
 		}
@@ -1236,14 +1290,18 @@ void UIManager::AfterLayerChange()
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return;
 
-	UI.Graph.Clear();
+	UI.bHistogramSelectRegionMode = false;
+	UI.Histogram.Clear();
 	UI.HeatMapColorRange.Clear();
 
 	if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
 	{
+		LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMin(0.0f);
+		LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMax(0.0f);
+
 		if (MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Min != MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Max)
 		{
-			UI.FillGraphDataPoints(UI.CurrentBinCount);
+			UI.UpdateHistogramData(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], UI.Histogram.GetCurrentBinCount());
 
 			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
@@ -1252,7 +1310,7 @@ void UIManager::AfterLayerChange()
 			const float PositionStep = 1.0f / CaptionsCount;
 			for (size_t i = 0; i <= CaptionsCount; i++)
 			{
-				UI.Graph.Legend.SetCaption(i == 0 ? NormalizedPosition + 0.0075f : NormalizedPosition,
+				UI.Histogram.SetLegendCaption(i == 0 ? NormalizedPosition + 0.0075f : NormalizedPosition,
 					TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * NormalizedPosition)));
 
 				NormalizedPosition += PositionStep;
@@ -1865,3 +1923,23 @@ void UIManager::UpdateRenderingMode(SDF* SDF, int NewRenderingMode)
 			break;
 	}
 }
+
+//void UIManager::OnGraphMouseClick(float NormalizedPosition)
+//{
+//	MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
+//	if (CurrentLayer == nullptr)
+//		return;
+//
+//	static bool bIsFirstClick = true;
+//
+//	if (bIsFirstClick)
+//	{
+//		bIsFirstClick = false;
+//		CurrentLayer->SetSelectedRangeMin(NormalizedPosition);
+//	}
+//	else
+//	{
+//		bIsFirstClick = true;
+//		CurrentLayer->SetSelectedRangeMax(NormalizedPosition);
+//	}
+//}

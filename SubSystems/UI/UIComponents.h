@@ -24,7 +24,7 @@ class FEArrowScroller
 
 	float AvailableRange;
 	float RangePosition = 0.0f;
-	float RangeBottomLimit = 1.0f;
+	//float RangeBottomLimit = 1.0f;
 public:
 	FEArrowScroller(bool Horizontal = true);
 
@@ -160,6 +160,9 @@ class FEGraphRender
 	bool ShouldOutline(int XPosition, int YPosition);
 
 	void RenderBottomLegend();
+
+	void InputUpdate();
+	std::vector<std::function<void(float)>> MouseClickCallbacks;
 public:
 	Legend Legend;
 
@@ -181,4 +184,6 @@ public:
 
 	void Render();
 	void Clear();
+
+	void AddMouseClickCallback(std::function<void(float)> Func);
 };

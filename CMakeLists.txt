@@ -84,6 +84,8 @@ file(GLOB Layers_SRC
 file(GLOB SubSystems_UI_SRC
 	"SubSystems/UI/UIComponents.cpp"
 	"SubSystems/UI/UIComponents.h"
+	"SubSystems/UI/UIWeightedHistogram.cpp"
+	"SubSystems/UI/UIWeightedHistogram.h"
 	"SubSystems/UI/NewLayerWindow.cpp"
 	"SubSystems/UI/NewLayerWindow.h"
 	"SubSystems/UI/UIManager.cpp"

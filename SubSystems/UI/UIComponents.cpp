@@ -38,7 +38,7 @@ void FEArrowScroller::Clear()
 
 	AvailableRange = FLT_MAX;
 	RangePosition = 0.0f;
-	RangeBottomLimit = 1.0f;
+	//RangeBottomLimit = 1.0f;
 }
 
 ImVec2 FEArrowScroller::GetPixelPosition() const
@@ -123,7 +123,7 @@ void FEArrowScroller::Render()
 	if (IsSelected())
 	{
 		LastFrameDelta = bHorizontal ? MouseXWindows - LastFrameMouseX : MouseYWindows - LastFrameMouseY;
-		float BottomLimitInPixels = AvailableRange * (1.0f - RangeBottomLimit);
+		float BottomLimitInPixels = AvailableRange * 0.0f/** (1.0f - RangeBottomLimit)*/;
 
 		if (bHorizontal)
 		{
@@ -259,7 +259,8 @@ void FEArrowScroller::SetRangePosition(float NewValue)
 
 float FEArrowScroller::GetRangeBottomLimit()
 {
-	return RangeBottomLimit;
+	return 0.0f;
+	//return RangeBottomLimit;
 }
 
 void FEArrowScroller::SetRangeBottomLimit(float NewValue)
@@ -270,7 +271,7 @@ void FEArrowScroller::SetRangeBottomLimit(float NewValue)
 	if (NewValue > 1.0f)
 		NewValue = 1.0f;
 
-	RangeBottomLimit = NewValue;
+	//RangeBottomLimit = NewValue;
 }
 
 ImVec2 Legend::GetPosition()
@@ -358,7 +359,7 @@ ImVec2 Legend::NormalizedPositionToVec2(float NormalizedPosition, std::string Te
 		return NormalizedPositionToVec2Impl(Position, Size, NormalizedPosition, Text);
 
 	ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
-	return ImVec2(Position.x + Size.x * NormalizedPosition - TextSize.x / 2.0f, Size.y);
+	return ImVec2(Position.x + Size.x * NormalizedPosition - TextSize.x / 2.0f, Position.y + Size.y);
 }
 
 void Legend::Render()
@@ -488,15 +489,15 @@ void FEColorRangeAdjuster::Render()
 	Legend.Render();
 
 	int UpperUnusedStart = int(RangeSize.y * Ceiling.GetRangePosition());
-	int BottomUnusedStart = int(RangeSize.y * (1.0f - Ceiling.GetRangeBottomLimit()));
+	//int BottomUnusedStart = int(RangeSize.y * (1.0f - Ceiling.GetRangeBottomLimit()));
 
 	ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY) + RangePosition,
 		ImVec2(WindowX + RangeSize.x, WindowY + UpperUnusedStart + 1) + RangePosition,
 		CurrentColor);
 
-	for (size_t i = BottomUnusedStart; i < RangeSize.y - UpperUnusedStart; i++)
+	for (size_t i = 0/*BottomUnusedStart*/; i < RangeSize.y - UpperUnusedStart; i++)
 	{
-		float factor = (i - BottomUnusedStart) / float(RangeSize.y - UpperUnusedStart - BottomUnusedStart);
+		float factor = (i /*- BottomUnusedStart*/) / float(RangeSize.y - UpperUnusedStart /*- BottomUnusedStart*/);
 
 		if (ColorRangeFunction != nullptr)
 			CurrentColor = ColorRangeFunction(factor);
@@ -506,7 +507,7 @@ void FEColorRangeAdjuster::Render()
 			CurrentColor);
 	}
 
-	for (size_t i = 0; i < BottomUnusedStart; i++)
+	/*for (size_t i = 0; i < BottomUnusedStart; i++)
 	{
 		CurrentColor = ImColor(155, 155, 155, 255);
 		if (ColorRangeFunction != nullptr)
@@ -518,7 +519,7 @@ void FEColorRangeAdjuster::Render()
 		ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY + RangeSize.y - i + 1) + RangePosition,
 			ImVec2(WindowX + RangeSize.x, WindowY + RangeSize.y - i) + RangePosition,
 			CurrentColor);
-	}
+	}*/
 
 	RangePosition.y = Position.y + 10;
 	Ceiling.Render();
@@ -647,14 +648,13 @@ float FEGraphRender::GraphHeightAtPixel(int PixelX)
 	if (PixelX < 0 || PixelX > Size.x)
 		return -1.0f;
 
-	int GraphBottom = Size.y /*- Position.y*/;
+	int GraphBottom = Size.y + Position.y;
 
 	float NormalizedPosition = PixelX / Size.x;
 	if (NormalizedPosition > 1.0f)
 		NormalizedPosition = 1.0f;
 
 	float ValueAtThisPixel = GetValueAtPosition(NormalizedPosition);
-	//float ColumnHeight = GraphBottom - float(GraphBottom - Position.y) * ValueAtThisPixel;
 	float ColumnHeight = GraphBottom - float(Size.y) * ValueAtThisPixel;
 
 	return ColumnHeight;
@@ -676,7 +676,12 @@ bool FEGraphRender::ShouldOutline(int XPosition, int YPosition)
 
 void FEGraphRender::RenderOneColumn(int XPosition)
 {
-	int GraphBottom = Size.y /*- Position.y*/;
+	ImVec2 WinowPosition = ImVec2(0.0f, 0.0f);
+	ImGuiWindow* CurrentWindow = ImGui::GetCurrentWindow();
+	if (CurrentWindow != nullptr)
+		WinowPosition = CurrentWindow->Pos;
+
+	int GraphBottom = Size.y + Position.y;
 	int ColumnTop = GraphHeightAtPixel(XPosition);
 
 	if (abs(GraphBottom - ColumnTop) == 0)
@@ -687,9 +692,6 @@ void FEGraphRender::RenderOneColumn(int XPosition)
 	{
 		ColumnTop = Position.y + OutlineThickness + 1;
 	}
-
-	float WindowX = ImGui::GetCurrentWindow()->Pos.x;
-	float WindowY = ImGui::GetCurrentWindow()->Pos.y;
 
 	for (int i = GraphBottom; i > ColumnTop; i--)
 	{
@@ -711,16 +713,18 @@ void FEGraphRender::RenderOneColumn(int XPosition)
 		if (ShouldOutline(XPosition, i))
 			CurrentColor = OutlineColor;
 
-		ImVec2 MinPosition = ImVec2(WindowX + Position.x + XPosition, WindowY + i - 1);
-		ImVec2 MaxPosition = ImVec2(WindowX + Position.x + XPosition + 1, WindowY + i);
-		ImGui::GetWindowDrawList()->AddRectFilled(MinPosition,
-			MaxPosition,
-			CurrentColor);
+		ImVec2 MinPosition = ImVec2(Position.x + XPosition, i - 1);
+		ImVec2 MaxPosition = ImVec2(Position.x + XPosition + 1, i);
+		ImGui::GetWindowDrawList()->AddRectFilled(WinowPosition + MinPosition,
+												  WinowPosition + MaxPosition,
+												  CurrentColor);
 	}
 }
 
 void FEGraphRender::Render()
 {
+	InputUpdate();
+
 	for (int i = 0; i < Size.x; i++)
 	{
 		RenderOneColumn(i);
@@ -728,10 +732,38 @@ void FEGraphRender::Render()
 
 	RenderBottomLegend();
 
-	// Debug functionality
-	/*ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY) + Position + GraphCanvasPosition,
-											  ImVec2(WindowX, WindowY) + Position + GraphCanvasSize,
-											  ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f, 45.0f / 255.0f));*/
+	//ImGuiWindow* CurrentWindow = ImGui::GetCurrentWindow();
+	//if (CurrentWindow != nullptr)
+	//{
+	//	// Debug functionality
+	//	ImGui::GetWindowDrawList()->AddRectFilled(CurrentWindow->Pos + Position + GraphCanvasPosition,
+	//											  CurrentWindow->Pos + Position + Size,
+	//											  ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f, 45.0f / 255.0f));
+	//}
+}
+
+void FEGraphRender::InputUpdate()
+{
+	if (ImGui::IsMouseClicked(0))
+	{
+		ImVec2 MousePosition = ImGui::GetMousePos();
+		ImVec2 LocalMousePosition = MousePosition - ImGui::GetCurrentWindow()->Pos - Position;
+
+		float NormalizedPosition = LocalMousePosition.x / Size.x;
+		if (NormalizedPosition >= 0.0f && NormalizedPosition <= 1.0f)
+		{
+			for (size_t i = 0; i < MouseClickCallbacks.size(); i++)
+			{
+				if (MouseClickCallbacks[i] != nullptr)
+					MouseClickCallbacks[i](NormalizedPosition);
+			}
+		}
+	}
+}
+
+void FEGraphRender::AddMouseClickCallback(std::function<void(float)> Func)
+{
+	MouseClickCallbacks.push_back(Func);
 }
 
 bool FEGraphRender::IsUsingInterpolation()

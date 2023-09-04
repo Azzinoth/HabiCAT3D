@@ -55,6 +55,7 @@ namespace FocalEngine
 		VECTOR_DISPERSION = 7,
 		FRACTAL_DIMENSION = 8
 	};
+
 	class MeshLayer
 	{
 		FEMesh* ParentMesh = nullptr;
@@ -68,6 +69,9 @@ namespace FocalEngine
 
 		void FillRawData();
 		void CalculateInitData();
+
+		float SelectedRangeMin = 0.0f;
+		float SelectedRangeMax = 0.0f;
 	public:
 		MeshLayer();
 		MeshLayer(FEMesh* Parent, std::vector<float> TrianglesToData);
@@ -102,6 +106,12 @@ namespace FocalEngine
 
 		LAYER_TYPE GetType();
 		void SetType(LAYER_TYPE NewValue);
+
+		float GetSelectedRangeMin();
+		void SetSelectedRangeMin(float NewValue);
+
+		float GetSelectedRangeMax();
+		void SetSelectedRangeMax(float NewValue);
 	};
 
 	class MeshManager;

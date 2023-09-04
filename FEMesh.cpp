@@ -636,6 +636,38 @@ void MeshLayer::SetType(LAYER_TYPE NewValue)
 	Type = NewValue;
 }
 
+float MeshLayer::GetSelectedRangeMin()
+{
+	return SelectedRangeMin;
+}
+
+void MeshLayer::SetSelectedRangeMin(float NewValue)
+{
+	if (NewValue < 0.0f)
+		NewValue = 0.0f;
+
+	if (NewValue > 1.0f)
+		NewValue = 1.0f;
+
+	SelectedRangeMin = NewValue;
+}
+
+float MeshLayer::GetSelectedRangeMax()
+{
+	return SelectedRangeMax;
+}
+
+void MeshLayer::SetSelectedRangeMax(float NewValue)
+{
+	if (NewValue < 0.0f)
+		NewValue = 0.0f;
+
+	if (NewValue > 1.0f)
+		NewValue = 1.0f;
+
+	SelectedRangeMax = NewValue;
+}
+
 std::string DebugEntry::ToString()
 {
 	std::string Result;

@@ -1,44 +1,185 @@
-
-//#include <ntddk.h>
-
-//#include <pdh.h>
-//#include <pdhmsg.h>
-//#pragma comment(lib, "pdh.lib")
-
-//#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
-//#include <CGAL/Polygon_2.h>
-//#include <CGAL/Boolean_set_operations_2.h>
-//#include <CGAL/Polygon_set_2.h>
-
-//typedef CGAL::Exact_predicates_exact_constructions_kernel  Kernel2;
-//typedef Kernel2::Point_2                                   Point_2;
-//typedef CGAL::Polygon_2<Kernel2>                           Polygon_2;
-//typedef std::vector<Polygon_2>                             Polygon_vector;
-//typedef CGAL::Polygon_set_2<Kernel2>                       Polygon_set_2;
-//
-//double calculate_area(const Polygon_set_2& polygon_set) {
-//	typedef CGAL::Polygon_with_holes_2<Kernel2>             Polygon_with_holes_2;
-//	typedef std::vector<Polygon_with_holes_2>               Pwh_vector;
-//
-//	double area = 0;
-//	Pwh_vector result_polygons;
-//	polygon_set.polygons_with_holes(std::back_inserter(result_polygons));
-//
-//	for (const Polygon_with_holes_2& polygon : result_polygons) {
-//		area += CGAL::to_double(polygon.outer_boundary().area());
-//		for (auto it = polygon.holes_begin(); it != polygon.holes_end(); ++it) {
-//			area -= CGAL::to_double(it->area());
-//		}
-//	}
-//
-//	return area;
-//}
-
 #include "SubSystems/UI/UIManager.h"
 using namespace FocalEngine;
 
 #include <windows.h>
 #include <psapi.h>
+
+glm::vec4 ClearColor = glm::vec4(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 1.0f);
+
+unsigned char* GetTextureRawData(GLuint TextureID, size_t Width, size_t Height, size_t* RawDataSize)
+{
+	unsigned char* Result = nullptr;
+	if (RawDataSize != nullptr)
+		*RawDataSize = 0;
+
+	if (TextureID == 0)
+		return Result;
+
+	if (Width == 0 || Height == 0)
+		return Result;
+
+	if (Width > 8196 || Height > 8196)
+		return Result;
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, TextureID);
+
+	if (RawDataSize != nullptr)
+		*RawDataSize = Width * Height * 4;
+
+	Result = new unsigned char[Width * Height * 4];
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, Result);
+
+	return Result;
+}
+
+void FlipImageVertically(unsigned char* Data, size_t Width, size_t Height)
+{
+	const size_t BytesPerPixel = 4;
+	const size_t RowBytes = Width * BytesPerPixel;
+	unsigned char* RowBuffer = new unsigned char[RowBytes];
+
+	for (size_t y = 0; y < Height / 2; y++)
+	{
+		// Copy the top row to a buffer
+		std::memcpy(RowBuffer, Data + y * RowBytes, RowBytes);
+
+		// Copy the bottom row to the top
+		std::memcpy(Data + y * RowBytes, Data + (Height - 1 - y) * RowBytes, RowBytes);
+
+		// Copy the buffer contents (original top row) to the bottom
+		std::memcpy(Data + (Height - 1 - y) * RowBytes, RowBuffer, RowBytes);
+	}
+
+	delete[] RowBuffer;
+}
+
+bool ExportRawDataToPNG(const char* FileName, const unsigned char* TextureData, const int Width, const int Height, const GLint Internalformat)
+{
+	if (Internalformat != GL_RGBA &&
+		Internalformat != GL_RED &&
+		Internalformat != GL_R16 &&
+		Internalformat != GL_COMPRESSED_RGBA_S3TC_DXT5_EXT &&
+		Internalformat != GL_COMPRESSED_RGBA_S3TC_DXT1_EXT)
+	{
+		LOG.Add("FEResourceManager::exportRawDataToPNG internalFormat is not supported", "FE_LOG_SAVING", FE_LOG_ERROR);
+		return false;
+	}
+
+	const std::string FilePath = FileName;
+	int Error = 0;
+	if (Internalformat == GL_R16)
+	{
+		Error = lodepng::encode(FilePath, TextureData, Width, Height, LCT_GREY, 16);
+	}
+	else
+	{
+		Error = lodepng::encode(FilePath, TextureData, Width, Height);
+	}
+
+	return Error == 0;
+}
+
+int FindHigestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List)
+{
+	int Result = 0;
+	std::transform(Prefix.begin(), Prefix.end(), Prefix.begin(), [](const unsigned char C) { return std::tolower(C); });
+	std::transform(Delimiter.begin(), Delimiter.end(), Delimiter.begin(), [](const unsigned char C) { return std::tolower(C); });
+
+	for (size_t i = 0; i < List.size(); i++)
+	{
+		std::transform(List[i].begin(), List[i].end(), List[i].begin(), [](const unsigned char C) { return std::tolower(C); });
+
+		int PrefixPos = List[i].find(Prefix);
+		if (PrefixPos != std::string::npos)
+		{
+			int DelimiterPos = List[i].find(Delimiter);
+			if (DelimiterPos != std::string::npos && List[i].size() > Prefix.size() + Delimiter.size())
+			{
+				std::string PostfixPart = List[i].substr(DelimiterPos + 1, List[i].size() - (DelimiterPos + 1));
+				Result = std::max(Result, atoi(PostfixPart.c_str()));
+			}
+		}
+	}
+
+	return Result;
+}
+
+bool IsFolder(const char* Path)
+{
+	const DWORD DwAttrib = GetFileAttributesA(Path);
+	return (DwAttrib != INVALID_FILE_ATTRIBUTES &&
+		(DwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+
+std::vector<std::string> GetFileList(const char* Path)
+{
+	std::vector<std::string> result;
+	std::string pattern(Path);
+	pattern.append("\\*");
+	WIN32_FIND_DATAA data;
+	HANDLE HFind;
+	if ((HFind = FindFirstFileA(pattern.c_str(), &data)) != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			if (!IsFolder((Path + std::string("/") + std::string(data.cFileName)).c_str()) && std::string(data.cFileName) != std::string(".") && std::string(data.cFileName) != std::string(".."))
+				result.push_back(data.cFileName);
+		} while (FindNextFileA(HFind, &data) != 0);
+		FindClose(HFind);
+	}
+
+	return result;
+}
+
+std::string GetCurrentWorkingDirectory()
+{
+	DWORD dwSize = GetCurrentDirectory(0, NULL);
+	if (dwSize == 0) {
+		// Handle error
+		return "";
+	}
+
+	char* buffer = new char[dwSize];
+	if (GetCurrentDirectory(dwSize, buffer) == 0) {
+		delete[] buffer;
+		// Handle error
+		return "";
+	}
+
+	std::string currentDir(buffer);
+	delete[] buffer;
+
+	return currentDir;
+}
+
+std::string SuitableNewFileName(std::string Base, std::string Extension)
+{
+	std::string Result = Base;
+
+	std::vector<std::string> FileNameList = GetFileList(GetCurrentWorkingDirectory().c_str());
+	int IndexToAdd = FindHigestIntPostfix(Base, "_", FileNameList);
+
+	if (IndexToAdd == 0)
+	{
+		for (size_t i = 0; i < FileNameList.size(); i++)
+		{
+			if (FileNameList[i] == Base + ".png")
+			{
+				IndexToAdd = 1;
+				break;
+			}
+		}
+	}
+
+	if (IndexToAdd != 0)
+		IndexToAdd++;
+
+	if (IndexToAdd > 1)
+		Result += "_" + std::to_string(IndexToAdd);
+
+	return Result + Extension;
+}
 
 FEBasicCamera* currentCamera = nullptr;
 
@@ -360,11 +501,28 @@ void RenderFEMesh(FEMesh* Mesh)
 	MESH_MANAGER.MeshShader->getParameter("HaveColor")->updateData(Mesh->getColorCount() != 0);
 	MESH_MANAGER.MeshShader->getParameter("HeatMapType")->updateData(Mesh->HeatMapType);
 	MESH_MANAGER.MeshShader->getParameter("LayerIndex")->updateData(LAYER_MANAGER.GetActiveLayerIndex());
+
+	float CurrentTime = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+	MESH_MANAGER.MeshShader->getParameter("Time")->updateData(CurrentTime);
+
+	if (LAYER_MANAGER.GetActiveLayer() != nullptr)
+	{
+		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMin")->updateData(LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMin());
+		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMax")->updateData(LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMax());
+	}
+	else
+	{
+		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMin")->updateData(0.0f);
+		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMax")->updateData(0.0f);
+	}
 	
 	if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
 	{
 		MESH_MANAGER.MeshShader->getParameter("LayerMin")->updateData(float(Mesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MinVisible));
 		MESH_MANAGER.MeshShader->getParameter("LayerMax")->updateData(float(Mesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MaxVisible));
+
+		MESH_MANAGER.MeshShader->getParameter("LayerAbsoluteMin")->updateData(float(Mesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Min));
+		MESH_MANAGER.MeshShader->getParameter("LayerAbsoluteMax")->updateData(float(Mesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Max));
 	}
 	
 	if (Mesh->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
@@ -785,7 +943,6 @@ void TestTriangleAndAABBboxIntersections()
 GLuint ColorBufferTexture = -1;
 GLuint DepthBufferTexture = -1;
 GLuint FrameBuffer = -1;
-int TextureWidth = 800, TextureHeight = 600;
 
 void CreateFB()
 {
@@ -805,6 +962,77 @@ void CreateFB()
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DepthBufferTexture);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void ScreenShootRender()
+{
+	if (MESH_MANAGER.ActiveMesh == nullptr)
+	{
+		APPLICATION.EndFrame();
+		return;
+	}
+
+	static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
+	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
+	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
+
+	glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
+	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+	renderTargetCenterForCamera();
+	currentCamera->Move(10);
+
+	if (MESH_MANAGER.ActiveMesh != nullptr)
+	{
+		MESH_MANAGER.MeshShader->start();
+
+		auto iterator = MESH_MANAGER.MeshShader->parameters.begin();
+		while (iterator != MESH_MANAGER.MeshShader->parameters.end())
+		{
+			if (iterator->second.nameHash == FEWorldMatrix_hash)
+				iterator->second.updateData(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
+
+			if (iterator->second.nameHash == FEViewMatrix_hash)
+				iterator->second.updateData(currentCamera->GetViewMatrix());
+
+			if (iterator->second.nameHash == FEProjectionMatrix_hash)
+				iterator->second.updateData(currentCamera->GetProjectionMatrix());
+
+			iterator++;
+		}
+
+		MESH_MANAGER.MeshShader->loadDataToGPU();
+
+		if (UI.GetWireFrameMode())
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+
+		RenderFEMesh(MESH_MANAGER.ActiveMesh);
+
+		MESH_MANAGER.MeshShader->stop();
+	}
+
+	size_t RawDataSize = 0;
+	unsigned char* RawData = GetTextureRawData(ColorBufferTexture, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight(), &RawDataSize);
+	FlipImageVertically(RawData, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
+
+	if (RawDataSize != 0)
+	{
+		std::string BaseFileName = MESH_MANAGER.ActiveMesh->FileName;
+		std::string FileName = SuitableNewFileName(BaseFileName , ".png");
+
+		ExportRawDataToPNG(FileName.c_str(), RawData, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight(), GL_RGBA);
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	APPLICATION.EndFrame();
+
+	delete[] RawData;
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -882,7 +1110,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//double combined_area = calculate_area(union_of_triangles);
 	//std::cout << "Combined area: " << combined_area << std::endl;
 
-
 	LOG.SetFileOutput(true);
 
 	APPLICATION.InitWindow(1280, 720, "Rugosity Calculator");
@@ -898,7 +1125,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	THREAD_POOL.SetConcurrentThreadCount(HowManyToUse);
 
-	glClearColor(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 1.0f);
+	glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
 	FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
 
 	static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
@@ -915,13 +1142,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	MESH_MANAGER.AddLoadCallback(AfterMeshLoads);
 
 	CreateFB();
-	//glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
 
 	static bool FirstFrame = true;
 	while (APPLICATION.IsWindowOpened())
 	{
-		FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 		APPLICATION.BeginFrame();
+		FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+		static bool TransparentBackground = false;
+		if (ImGui::Checkbox("Transparent background", &TransparentBackground))
+		{
+			ClearColor.w = TransparentBackground ? 0.0f : 1.0f;
+			glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
+		}
+
+		if (ImGui::Button("Take screenshoot"))
+		{
+			ScreenShootRender();
+			continue;
+		}
 
 		renderTargetCenterForCamera();
 		currentCamera->Move(10);
@@ -973,6 +1212,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			
 			MESH_MANAGER.MeshShader->stop();
 		}
+
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		LINE_RENDERER.Render(currentCamera);
 			

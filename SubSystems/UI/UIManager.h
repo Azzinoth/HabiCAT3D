@@ -76,15 +76,13 @@ namespace FocalEngine
 		void RenderLegend();
 		void RenderLayerChooseWindow();
 
-		FEGraphRender Graph;
-		const int StandardGraphBinCount = 128;
-		bool bPixelBins = false;
-		int CurrentBinCount = StandardGraphBinCount;
-		void FillGraphDataPoints(int BinsCount);
-		void RenderHistogram();
-		float FillGraphDataPointsTotalTime = 0.0f;
-		float SetDataPoints = 0.0f;
-		float AreaWithRugositiesTotalTime = 0.0f;
+		FEWeightedHistogram Histogram;
+		FEArrowScroller HistogramSelectRegionMin;
+		FEArrowScroller HistogramSelectRegionMax;
+		bool bHistogramSelectRegionMode = false;
+		bool bHistogramPixelBins = false;
+		void UpdateHistogramData(MeshLayer* FromLayer, int NewBinCount);
+		void RenderHistogramWindow();
 		
 		static void OnJitterCalculationsStart();
 		static void OnRugosityCalculationsStart();
