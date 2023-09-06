@@ -553,6 +553,8 @@ void RenderFEMesh(FEMesh* Mesh)
 	glBindVertexArray(0);
 }
 
+void UpdateFB();
+
 void windowResizeCallback(int width, int height)
 {
 	int W, H;
@@ -560,6 +562,7 @@ void windowResizeCallback(int width, int height)
 	currentCamera->SetAspectRatio(float(W) / float(H));
 
 	UI.ApplyStandardWindowsSizeAndPosition();
+	UpdateFB();
 }
 
 float RAMUsed()
@@ -962,6 +965,15 @@ void CreateFB()
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DepthBufferTexture);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void UpdateFB()
+{
+	glDeleteFramebuffers(1, &FrameBuffer);
+	glDeleteTextures(1, &ColorBufferTexture);
+	glDeleteRenderbuffers(1, &DepthBufferTexture);
+
+	CreateFB();
 }
 
 void ScreenShootRender()

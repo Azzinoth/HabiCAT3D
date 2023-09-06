@@ -560,6 +560,8 @@ void FEGraphRender::SetSize(ImVec2 NewValue)
 	{
 		ColumnWidth = Size.x / DataPonts.size();
 	}
+
+	bCacheIsDirty = true;
 }
 
 std::vector<double> FEGraphRender::NormalizeArray(std::vector<float> Array)
@@ -605,6 +607,7 @@ void FEGraphRender::SetDataPoints(std::vector<float> NewValue)
 	Ceiling = -FLT_MAX;
 	DataPonts = NewValue;
 	NormalizedDataPonts = NormalizeArray(DataPonts);
+	bCacheIsDirty = true;
 }
 
 float FEGraphRender::GetValueAtPosition(float NormalizedPosition)
@@ -674,63 +677,101 @@ bool FEGraphRender::ShouldOutline(int XPosition, int YPosition)
 	return false;
 }
 
-void FEGraphRender::RenderOneColumn(int XPosition)
+void FEGraphRender::RenderOneColumn(int XPosition, ImVec2 WindowPosition)
 {
-	ImVec2 WinowPosition = ImVec2(0.0f, 0.0f);
-	ImGuiWindow* CurrentWindow = ImGui::GetCurrentWindow();
-	if (CurrentWindow != nullptr)
-		WinowPosition = CurrentWindow->Pos;
-
 	int GraphBottom = Size.y + Position.y;
-	int ColumnTop = GraphHeightAtPixel(XPosition);
 
-	if (abs(GraphBottom - ColumnTop) == 0)
+	if (bCacheIsDirty)
 	{
-		ColumnTop -= 1;
+		int ColumnTop = GraphHeightAtPixel(XPosition);
+
+		if (abs(GraphBottom - ColumnTop) == 0)
+		{
+			ColumnTop -= 1;
+		}
+		else if (ColumnTop < Position.y)
+		{
+			ColumnTop = Position.y + OutlineThickness + 1;
+		}
+
+		int CurrentIndex = 0;
+		for (int i = GraphBottom; i > ColumnTop; i--)
+		{
+			float CombineFactor = (float(GraphBottom) - float(i)) / (float(GraphBottom) - float(Position.y));
+
+			ImColor FirstPart = ImColor(EndGradientColor.Value.x * CombineFactor,
+				EndGradientColor.Value.y * CombineFactor,
+				EndGradientColor.Value.z * CombineFactor);
+
+			ImColor SecondPart = ImColor(StartGradientColor.Value.x * (1.0f - CombineFactor),
+				StartGradientColor.Value.y * (1.0f - CombineFactor),
+				StartGradientColor.Value.z * (1.0f - CombineFactor));
+
+			ImColor CurrentColor = ImColor(FirstPart.Value.x + SecondPart.Value.x,
+				FirstPart.Value.y + SecondPart.Value.y,
+				FirstPart.Value.z + SecondPart.Value.z);
+
+			// Outline of graph
+			if (ShouldOutline(XPosition, i))
+				CurrentColor = OutlineColor;
+
+			CacheGraph[XPosition][CurrentIndex++] = CurrentColor;
+		}
 	}
-	else if (ColumnTop < Position.y)
+	else
 	{
-		ColumnTop = Position.y + OutlineThickness + 1;
-	}
+		int CurrentIndex = 0;
+		for (int i = GraphBottom; i > Position.y; i--)
+		{
+			ImColor CurrentColor = CacheGraph[XPosition][CurrentIndex++];
 
-	for (int i = GraphBottom; i > ColumnTop; i--)
-	{
-		float CombineFactor = (float(GraphBottom) - float(i)) / (float(GraphBottom) - float(Position.y));
+			if (CurrentColor == ImColor(0.0f, 0.0f, 0.0f, 0.0f))
+				break;
 
-		ImColor FirstPart = ImColor(EndGradientColor.Value.x * CombineFactor,
-			EndGradientColor.Value.y * CombineFactor,
-			EndGradientColor.Value.z * CombineFactor);
-
-		ImColor SecondPart = ImColor(StartGradientColor.Value.x * (1.0f - CombineFactor),
-			StartGradientColor.Value.y * (1.0f - CombineFactor),
-			StartGradientColor.Value.z * (1.0f - CombineFactor));
-
-		ImColor CurrentColor = ImColor(FirstPart.Value.x + SecondPart.Value.x,
-			FirstPart.Value.y + SecondPart.Value.y,
-			FirstPart.Value.z + SecondPart.Value.z);
-
-		// Outline of graph
-		if (ShouldOutline(XPosition, i))
-			CurrentColor = OutlineColor;
-
-		ImVec2 MinPosition = ImVec2(Position.x + XPosition, i - 1);
-		ImVec2 MaxPosition = ImVec2(Position.x + XPosition + 1, i);
-		ImGui::GetWindowDrawList()->AddRectFilled(WinowPosition + MinPosition,
-												  WinowPosition + MaxPosition,
-												  CurrentColor);
+			ImVec2 MinPosition = ImVec2(Position.x + XPosition, i - 1);
+			ImVec2 MaxPosition = ImVec2(Position.x + XPosition + 1, i);
+			ImGui::GetWindowDrawList()->AddRectFilled(WindowPosition + MinPosition,
+													  WindowPosition + MaxPosition,
+													  CurrentColor);
+		}
 	}
 }
 
 void FEGraphRender::Render()
 {
+	ImVec2 WindowPosition = ImVec2(0.0f, 0.0f);
+	ImGuiWindow* CurrentWindow = ImGui::GetCurrentWindow();
+	if (CurrentWindow != nullptr)
+		WindowPosition = CurrentWindow->Pos;
+
+	if (bCacheIsDirty)
+	{
+		int SizeX = static_cast<int>(Size.x);
+		int SizeY = static_cast<int>(Size.y);
+
+		CacheGraph.clear();
+		CacheGraph.resize(SizeX);
+		
+		for (size_t i = 0; i < SizeX; i++)
+		{
+			CacheGraph[i].resize(SizeY);
+			for (size_t j = 0; j < SizeY; j++)
+			{
+				CacheGraph[i][j] = ImColor(0.0f, 0.0f, 0.0f, 0.0f);
+			}
+		}
+	}
+
 	InputUpdate();
 
 	for (int i = 0; i < Size.x; i++)
 	{
-		RenderOneColumn(i);
+		RenderOneColumn(i, WindowPosition);
 	}
 
 	RenderBottomLegend();
+
+	bCacheIsDirty = false;
 
 	//ImGuiWindow* CurrentWindow = ImGui::GetCurrentWindow();
 	//if (CurrentWindow != nullptr)
@@ -774,6 +815,7 @@ bool FEGraphRender::IsUsingInterpolation()
 void FEGraphRender::SetIsUsingInterpolation(bool NewValue)
 {
 	bInterpolation = NewValue;
+	bCacheIsDirty = true;
 }
 
 void FEGraphRender::RenderBottomLegend()
@@ -793,6 +835,7 @@ void FEGraphRender::Clear()
 	bInterpolation = true;
 
 	Legend.Clear();
+	bCacheIsDirty = true;
 }
 
 int FEGraphRender::GetDataPointsCount()

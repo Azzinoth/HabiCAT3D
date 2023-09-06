@@ -155,7 +155,7 @@ class FEGraphRender
 	ImColor OutlineColor = ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f);
 
 	float GraphHeightAtPixel(int PixelX);
-	void RenderOneColumn(int XPosition);
+	void RenderOneColumn(int XPosition, ImVec2 WindowPosition);
 	int OutlineThickness = 2;
 	bool ShouldOutline(int XPosition, int YPosition);
 
@@ -163,6 +163,9 @@ class FEGraphRender
 
 	void InputUpdate();
 	std::vector<std::function<void(float)>> MouseClickCallbacks;
+
+	std::vector<std::vector<ImColor>> CacheGraph;
+	bool bCacheIsDirty = true;
 public:
 	Legend Legend;
 

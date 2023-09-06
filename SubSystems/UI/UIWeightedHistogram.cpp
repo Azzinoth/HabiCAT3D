@@ -127,5 +127,5 @@ void FEWeightedHistogram::SetIsUsingInterpolation(bool NewValue)
 
 int FEWeightedHistogram::GetCurrentBinCount() const
 {
-	return CurrentBinCount;
+	return Graph.GetDataPoints().size();
 }

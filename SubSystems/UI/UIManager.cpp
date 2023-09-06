@@ -1078,15 +1078,15 @@ void UIManager::RenderHistogramWindow()
 			HistogramSelectRegionMin.Render();
 			HistogramSelectRegionMax.Render();
 
-			if (HistogramSelectRegionMin.GetRangePosition() + 0.01f >= HistogramSelectRegionMax.GetRangePosition())
+			if (HistogramSelectRegionMin.GetRangePosition() + 0.001f >= HistogramSelectRegionMax.GetRangePosition())
 			{
-				HistogramSelectRegionMin.SetRangePosition(HistogramSelectRegionMax.GetRangePosition() - 0.01f);
+				HistogramSelectRegionMin.SetRangePosition(HistogramSelectRegionMax.GetRangePosition() - 0.001f);
 				HistogramSelectRegionMin.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMin.GetRangePosition(), 0.0f));
 			}
 
-			if (HistogramSelectRegionMax.GetRangePosition() - 0.01f < HistogramSelectRegionMin.GetRangePosition())
+			if (HistogramSelectRegionMax.GetRangePosition() - 0.001f < HistogramSelectRegionMin.GetRangePosition())
 			{
-				HistogramSelectRegionMax.SetRangePosition(HistogramSelectRegionMax.GetRangePosition() + 0.01f);
+				HistogramSelectRegionMax.SetRangePosition(HistogramSelectRegionMax.GetRangePosition() + 0.001f);
 				HistogramSelectRegionMax.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMax.GetRangePosition(), 0.0f));
 			}
 
