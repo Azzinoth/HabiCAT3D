@@ -470,7 +470,7 @@ ImVec2 FEColorRangeAdjuster::LegendCaptionsPosition(ImVec2 Position, ImVec2 Size
 	return Result;
 }
 
-void FEColorRangeAdjuster::Render()
+void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 {
 	float WindowX = ImGui::GetCurrentWindow()->Pos.x;
 	float WindowY = ImGui::GetCurrentWindow()->Pos.y;
@@ -488,16 +488,17 @@ void FEColorRangeAdjuster::Render()
 	Legend.SetSize(RangeSize);
 	Legend.Render();
 
-	int UpperUnusedStart = int(RangeSize.y * Ceiling.GetRangePosition());
-	//int BottomUnusedStart = int(RangeSize.y * (1.0f - Ceiling.GetRangeBottomLimit()));
+	int UpperUnusedStart = static_cast<int>(RangeSize.y * Ceiling.GetRangePosition());
+	if (bScreenshotMode)
+		UpperUnusedStart = 0;
 
 	ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY) + RangePosition,
 		ImVec2(WindowX + RangeSize.x, WindowY + UpperUnusedStart + 1) + RangePosition,
 		CurrentColor);
 
-	for (size_t i = 0/*BottomUnusedStart*/; i < RangeSize.y - UpperUnusedStart; i++)
+	for (size_t i = 0; i < RangeSize.y - UpperUnusedStart; i++)
 	{
-		float factor = (i /*- BottomUnusedStart*/) / float(RangeSize.y - UpperUnusedStart /*- BottomUnusedStart*/);
+		float factor = i / float(RangeSize.y - UpperUnusedStart);
 
 		if (ColorRangeFunction != nullptr)
 			CurrentColor = ColorRangeFunction(factor);
@@ -507,22 +508,9 @@ void FEColorRangeAdjuster::Render()
 			CurrentColor);
 	}
 
-	/*for (size_t i = 0; i < BottomUnusedStart; i++)
-	{
-		CurrentColor = ImColor(155, 155, 155, 255);
-		if (ColorRangeFunction != nullptr)
-		{
-			CurrentColor = ColorRangeFunction(0.0f);
-			CurrentColor = ImColor(CurrentColor.Value.x * 0.5f + 0.15f, CurrentColor.Value.y * 0.5f + 0.15f, CurrentColor.Value.z * 0.5f + 0.15f);
-		}
-
-		ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY + RangeSize.y - i + 1) + RangePosition,
-			ImVec2(WindowX + RangeSize.x, WindowY + RangeSize.y - i) + RangePosition,
-			CurrentColor);
-	}*/
-
 	RangePosition.y = Position.y + 10;
-	Ceiling.Render();
+	if (!bScreenshotMode)
+		Ceiling.Render();
 }
 
 ImVec2 FEGraphRender::GetPosition() const
@@ -744,9 +732,10 @@ void FEGraphRender::Render()
 	if (CurrentWindow != nullptr)
 		WindowPosition = CurrentWindow->Pos;
 
+	int SizeX = static_cast<int>(Size.x);
+
 	if (bCacheIsDirty)
 	{
-		int SizeX = static_cast<int>(Size.x);
 		int SizeY = static_cast<int>(Size.y);
 
 		CacheGraph.clear();
@@ -764,7 +753,7 @@ void FEGraphRender::Render()
 
 	InputUpdate();
 
-	for (int i = 0; i < Size.x; i++)
+	for (int i = 0; i < SizeX; i++)
 	{
 		RenderOneColumn(i, WindowPosition);
 	}

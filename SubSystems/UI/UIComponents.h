@@ -126,7 +126,7 @@ public:
 	float GetRangeBottomLimit();
 	void SetRangeBottomLimit(float NewValue);
 
-	void Render();
+	void Render(bool bScreenshotMode);
 	void Clear();
 };
 

@@ -255,8 +255,14 @@ void UIManager::SetDeveloperMode(const bool NewValue)
 	}
 }
 
-void UIManager::Render()
+void UIManager::Render(bool bScreenshotMode)
 {
+	if (bScreenshotMode)
+	{
+		RenderLegend(bScreenshotMode);
+		return;
+	}
+
 	if (ImGui::BeginMainMenuBar())
 	{
 		if (ImGui::BeginMenu("File"))
@@ -680,7 +686,7 @@ static auto RainbowScaledColor = [](float Value) {
 	return ImColor(int(result.x * 255), int(result.y * 255), int(result.z * 255), 255);
 };
 
-void UIManager::RenderLegend()
+void UIManager::RenderLegend(bool bScreenshotMode)
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -690,12 +696,31 @@ void UIManager::RenderLegend()
 									ImGuiWindowFlags_NoMove |
 									ImGuiWindowFlags_NoResize |
 									ImGuiWindowFlags_NoCollapse |
-									ImGuiWindowFlags_NoScrollbar);
+									ImGuiWindowFlags_NoScrollbar |
+									(bScreenshotMode ? ImGuiWindowFlags_NoBackground : ImGuiWindowFlags_None) |
+									(bScreenshotMode ? ImGuiWindowFlags_NoTitleBar : ImGuiWindowFlags_None));
 
 	if (HeatMapColorRange.GetColorRangeFunction() == nullptr)
 		HeatMapColorRange.SetColorRangeFunction(TurboColorMapValue);
 
-	HeatMapColorRange.Render();
+	if (bScreenshotMode && MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
+	{
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+
+		HeatMapColorRange.Legend.Clear();
+		HeatMapColorRange.Legend.SetCaption(1.0f, "max: " + TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())));
+		const float MiddleOfUsedRange = (HeatMapColorRange.GetCeilingValue() + CurrentLayer->MinVisible / CurrentLayer->Max) / 2.0f;
+		HeatMapColorRange.Legend.SetCaption(0.0f, "min: " + TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
+	}
+
+	HeatMapColorRange.Render(bScreenshotMode);
+
+	if (bScreenshotMode)
+	{
+		ImGui::End();
+		ImGui::PopStyleVar(2);
+		return;
+	}
 
 	static char CurrentRugosityMax[1024];
 	static float LastValue = HeatMapColorRange.GetCeilingValue();

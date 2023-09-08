@@ -15,7 +15,7 @@ namespace FocalEngine
 
 		void SetCamera(FEBasicCamera* NewCamera);
 
-		void Render();
+		void Render(bool bScreenshotMode = false);
 
 		bool GetWireFrameMode();
 		void SetWireFrameMode(bool NewValue);
@@ -73,7 +73,7 @@ namespace FocalEngine
 
 		FEColorRangeAdjuster HeatMapColorRange;
 
-		void RenderLegend();
+		void RenderLegend(bool bScreenshotMode = false);
 		void RenderLayerChooseWindow();
 
 		FEWeightedHistogram Histogram;

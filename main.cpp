@@ -1,203 +1,28 @@
 #include "SubSystems/UI/UIManager.h"
+#include "SubSystems/ScreenshotManager.h"
 using namespace FocalEngine;
 
 #include <windows.h>
 #include <psapi.h>
 
 glm::vec4 ClearColor = glm::vec4(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 1.0f);
-
-unsigned char* GetTextureRawData(GLuint TextureID, size_t Width, size_t Height, size_t* RawDataSize)
-{
-	unsigned char* Result = nullptr;
-	if (RawDataSize != nullptr)
-		*RawDataSize = 0;
-
-	if (TextureID == 0)
-		return Result;
-
-	if (Width == 0 || Height == 0)
-		return Result;
-
-	if (Width > 8196 || Height > 8196)
-		return Result;
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, TextureID);
-
-	if (RawDataSize != nullptr)
-		*RawDataSize = Width * Height * 4;
-
-	Result = new unsigned char[Width * Height * 4];
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, Result);
-
-	return Result;
-}
-
-void FlipImageVertically(unsigned char* Data, size_t Width, size_t Height)
-{
-	const size_t BytesPerPixel = 4;
-	const size_t RowBytes = Width * BytesPerPixel;
-	unsigned char* RowBuffer = new unsigned char[RowBytes];
-
-	for (size_t y = 0; y < Height / 2; y++)
-	{
-		// Copy the top row to a buffer
-		std::memcpy(RowBuffer, Data + y * RowBytes, RowBytes);
-
-		// Copy the bottom row to the top
-		std::memcpy(Data + y * RowBytes, Data + (Height - 1 - y) * RowBytes, RowBytes);
-
-		// Copy the buffer contents (original top row) to the bottom
-		std::memcpy(Data + (Height - 1 - y) * RowBytes, RowBuffer, RowBytes);
-	}
-
-	delete[] RowBuffer;
-}
-
-bool ExportRawDataToPNG(const char* FileName, const unsigned char* TextureData, const int Width, const int Height, const GLint Internalformat)
-{
-	if (Internalformat != GL_RGBA &&
-		Internalformat != GL_RED &&
-		Internalformat != GL_R16 &&
-		Internalformat != GL_COMPRESSED_RGBA_S3TC_DXT5_EXT &&
-		Internalformat != GL_COMPRESSED_RGBA_S3TC_DXT1_EXT)
-	{
-		LOG.Add("FEResourceManager::exportRawDataToPNG internalFormat is not supported", "FE_LOG_SAVING", FE_LOG_ERROR);
-		return false;
-	}
-
-	const std::string FilePath = FileName;
-	int Error = 0;
-	if (Internalformat == GL_R16)
-	{
-		Error = lodepng::encode(FilePath, TextureData, Width, Height, LCT_GREY, 16);
-	}
-	else
-	{
-		Error = lodepng::encode(FilePath, TextureData, Width, Height);
-	}
-
-	return Error == 0;
-}
-
-int FindHigestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List)
-{
-	int Result = 0;
-	std::transform(Prefix.begin(), Prefix.end(), Prefix.begin(), [](const unsigned char C) { return std::tolower(C); });
-	std::transform(Delimiter.begin(), Delimiter.end(), Delimiter.begin(), [](const unsigned char C) { return std::tolower(C); });
-
-	for (size_t i = 0; i < List.size(); i++)
-	{
-		std::transform(List[i].begin(), List[i].end(), List[i].begin(), [](const unsigned char C) { return std::tolower(C); });
-
-		int PrefixPos = List[i].find(Prefix);
-		if (PrefixPos != std::string::npos)
-		{
-			int DelimiterPos = List[i].find(Delimiter);
-			if (DelimiterPos != std::string::npos && List[i].size() > Prefix.size() + Delimiter.size())
-			{
-				std::string PostfixPart = List[i].substr(DelimiterPos + 1, List[i].size() - (DelimiterPos + 1));
-				Result = std::max(Result, atoi(PostfixPart.c_str()));
-			}
-		}
-	}
-
-	return Result;
-}
-
-bool IsFolder(const char* Path)
-{
-	const DWORD DwAttrib = GetFileAttributesA(Path);
-	return (DwAttrib != INVALID_FILE_ATTRIBUTES &&
-		(DwAttrib & FILE_ATTRIBUTE_DIRECTORY));
-}
-
-std::vector<std::string> GetFileList(const char* Path)
-{
-	std::vector<std::string> result;
-	std::string pattern(Path);
-	pattern.append("\\*");
-	WIN32_FIND_DATAA data;
-	HANDLE HFind;
-	if ((HFind = FindFirstFileA(pattern.c_str(), &data)) != INVALID_HANDLE_VALUE)
-	{
-		do
-		{
-			if (!IsFolder((Path + std::string("/") + std::string(data.cFileName)).c_str()) && std::string(data.cFileName) != std::string(".") && std::string(data.cFileName) != std::string(".."))
-				result.push_back(data.cFileName);
-		} while (FindNextFileA(HFind, &data) != 0);
-		FindClose(HFind);
-	}
-
-	return result;
-}
-
-std::string GetCurrentWorkingDirectory()
-{
-	DWORD dwSize = GetCurrentDirectory(0, NULL);
-	if (dwSize == 0) {
-		// Handle error
-		return "";
-	}
-
-	char* buffer = new char[dwSize];
-	if (GetCurrentDirectory(dwSize, buffer) == 0) {
-		delete[] buffer;
-		// Handle error
-		return "";
-	}
-
-	std::string currentDir(buffer);
-	delete[] buffer;
-
-	return currentDir;
-}
-
-std::string SuitableNewFileName(std::string Base, std::string Extension)
-{
-	std::string Result = Base;
-
-	std::vector<std::string> FileNameList = GetFileList(GetCurrentWorkingDirectory().c_str());
-	int IndexToAdd = FindHigestIntPostfix(Base, "_", FileNameList);
-
-	if (IndexToAdd == 0)
-	{
-		for (size_t i = 0; i < FileNameList.size(); i++)
-		{
-			if (FileNameList[i] == Base + ".png")
-			{
-				IndexToAdd = 1;
-				break;
-			}
-		}
-	}
-
-	if (IndexToAdd != 0)
-		IndexToAdd++;
-
-	if (IndexToAdd > 1)
-		Result += "_" + std::to_string(IndexToAdd);
-
-	return Result + Extension;
-}
-
-FEBasicCamera* currentCamera = nullptr;
+FEBasicCamera* CurrentCamera = nullptr;
 
 void SwapCamera(bool bModelCamera)
 {
-	delete currentCamera;
+	delete CurrentCamera;
 
 	if (bModelCamera)
 	{
-		currentCamera = new FEModelViewCamera("mainCamera");
+		CurrentCamera = new FEModelViewCamera("mainCamera");
 	}
 	else
 	{
-		currentCamera = new FEFreeCamera("mainCamera");
+		CurrentCamera = new FEFreeCamera("mainCamera");
 	}
-	currentCamera->SetIsInputActive(false);
+	CurrentCamera->SetIsInputActive(false);
 
-	UI.SetCamera(currentCamera);
+	UI.SetCamera(CurrentCamera);
 }
 
 double mouseX;
@@ -213,10 +38,10 @@ glm::dvec3 mouseRay(double mouseX, double mouseY)
 	normalizedMouseCoords.y = 1.0f - (2.0f * (mouseY)) / H;
 
 	const glm::dvec4 clipCoords = glm::dvec4(normalizedMouseCoords.x, normalizedMouseCoords.y, -1.0, 1.0);
-	glm::dvec4 eyeCoords = glm::inverse(currentCamera->GetProjectionMatrix()) * clipCoords;
+	glm::dvec4 eyeCoords = glm::inverse(CurrentCamera->GetProjectionMatrix()) * clipCoords;
 	eyeCoords.z = -1.0f;
 	eyeCoords.w = 0.0f;
-	glm::dvec3 worldRay = glm::inverse(currentCamera->GetViewMatrix()) * eyeCoords;
+	glm::dvec3 worldRay = glm::inverse(CurrentCamera->GetViewMatrix()) * eyeCoords;
 	worldRay = glm::normalize(worldRay);
 
 	return worldRay;
@@ -240,7 +65,7 @@ void renderTargetCenterForCamera()
 
 	if (!UI.GetIsModelCamera())
 	{
-		FEFreeCamera* FreeCamera = reinterpret_cast<FEFreeCamera*>(currentCamera);
+		FEFreeCamera* FreeCamera = reinterpret_cast<FEFreeCamera*>(CurrentCamera);
 
 		FreeCamera->SetRenderTargetCenterX(centerX);
 		FreeCamera->SetRenderTargetCenterY(centerY);
@@ -267,7 +92,7 @@ void ScrollCall(double Xoffset, double Yoffset)
 		return;
 
 	if (UI.GetIsModelCamera() && !ImGui::GetIO().WantCaptureMouse)
-		reinterpret_cast<FEModelViewCamera*>(currentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(currentCamera)->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->AABB.getSize() * 0.05f);
+		reinterpret_cast<FEModelViewCamera*>(CurrentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(CurrentCamera)->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->AABB.getSize() * 0.05f);
 }
 
 static std::string FileNameForSelectionOutput = "Selections";
@@ -299,8 +124,8 @@ void LoadMesh(std::string FileName)
 
 void mouseMoveCallback(double xpos, double ypos)
 {
-	if (currentCamera != nullptr)
-		currentCamera->MouseMoveInput(xpos, ypos);
+	if (CurrentCamera != nullptr)
+		CurrentCamera->MouseMoveInput(xpos, ypos);
 
 	mouseX = xpos;
 	mouseY = ypos;
@@ -308,7 +133,7 @@ void mouseMoveCallback(double xpos, double ypos)
 
 void keyButtonCallback(int key, int scancode, int action, int mods)
 {
-	currentCamera->KeyboardInput(key, scancode, action, mods);
+	CurrentCamera->KeyboardInput(key, scancode, action, mods);
 }
 
 void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
@@ -412,17 +237,17 @@ void mouseButtonCallback(int button, int action, int mods)
 {
 	if (ImGui::GetIO().WantCaptureMouse)
 	{
-		currentCamera->SetIsInputActive(false);
+		CurrentCamera->SetIsInputActive(false);
 		return;
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS)
 	{
-		currentCamera->SetIsInputActive(true);
+		CurrentCamera->SetIsInputActive(true);
 	}
 	else if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_RELEASE)
 	{
-		currentCamera->SetIsInputActive(false);
+		CurrentCamera->SetIsInputActive(false);
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
@@ -431,11 +256,11 @@ void mouseButtonCallback(int button, int action, int mods)
 		{
 			if (UI.GetLayerSelectionMode() == 1)
 			{
-				MESH_MANAGER.ActiveMesh->SelectTriangle(mouseRay(mouseX, mouseY), currentCamera);
+				MESH_MANAGER.ActiveMesh->SelectTriangle(mouseRay(mouseX, mouseY), CurrentCamera);
 			}
 			else if (UI.GetLayerSelectionMode() == 2)
 			{
-				if (MESH_MANAGER.ActiveMesh->SelectTrianglesInRadius(mouseRay(mouseX, mouseY), currentCamera, UI.GetRadiusOfAreaToMeasure()) &&
+				if (MESH_MANAGER.ActiveMesh->SelectTrianglesInRadius(mouseRay(mouseX, mouseY), CurrentCamera, UI.GetRadiusOfAreaToMeasure()) &&
 					UI.GetOutputSelectionToFile())
 				{
 					OutputSeletedAreaInfoToFile();
@@ -495,74 +320,14 @@ void mouseButtonCallback(int button, int action, int mods)
 	}
 }
 
-void RenderFEMesh(FEMesh* Mesh)
-{
-	MESH_MANAGER.MeshShader->getParameter("AmbientFactor")->updateData(UI.GetAmbientLightFactor());
-	MESH_MANAGER.MeshShader->getParameter("HaveColor")->updateData(Mesh->getColorCount() != 0);
-	MESH_MANAGER.MeshShader->getParameter("HeatMapType")->updateData(Mesh->HeatMapType);
-	MESH_MANAGER.MeshShader->getParameter("LayerIndex")->updateData(LAYER_MANAGER.GetActiveLayerIndex());
-
-	float CurrentTime = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-	MESH_MANAGER.MeshShader->getParameter("Time")->updateData(CurrentTime);
-
-	if (LAYER_MANAGER.GetActiveLayer() != nullptr)
-	{
-		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMin")->updateData(LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMin());
-		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMax")->updateData(LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMax());
-	}
-	else
-	{
-		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMin")->updateData(0.0f);
-		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMax")->updateData(0.0f);
-	}
-	
-	if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
-	{
-		MESH_MANAGER.MeshShader->getParameter("LayerMin")->updateData(float(Mesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MinVisible));
-		MESH_MANAGER.MeshShader->getParameter("LayerMax")->updateData(float(Mesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MaxVisible));
-
-		MESH_MANAGER.MeshShader->getParameter("LayerAbsoluteMin")->updateData(float(Mesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Min));
-		MESH_MANAGER.MeshShader->getParameter("LayerAbsoluteMax")->updateData(float(Mesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Max));
-	}
-	
-	if (Mesh->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
-	{
-		MESH_MANAGER.MeshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(Mesh->LastMeasuredRugosityAreaRadius);
-		MESH_MANAGER.MeshShader->getParameter("MeasuredRugosityAreaCenter")->updateData(Mesh->LastMeasuredRugosityAreaCenter);
-	}
-	else
-	{
-		MESH_MANAGER.MeshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(-1.0f);
-	}
-
-	FE_GL_ERROR(glBindVertexArray(Mesh->GetVaoID()));
-	if ((Mesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));
-	if ((Mesh->vertexAttributes & FE_COLOR) == FE_COLOR) FE_GL_ERROR(glEnableVertexAttribArray(1));
-	if ((Mesh->vertexAttributes & FE_NORMAL) == FE_NORMAL) FE_GL_ERROR(glEnableVertexAttribArray(2));
-	if ((Mesh->vertexAttributes & FE_TANGENTS) == FE_TANGENTS) FE_GL_ERROR(glEnableVertexAttribArray(3));
-	if ((Mesh->vertexAttributes & FE_UV) == FE_UV) FE_GL_ERROR(glEnableVertexAttribArray(4));
-
-	if ((Mesh->vertexAttributes & FE_RUGOSITY_FIRST) == FE_RUGOSITY_FIRST) FE_GL_ERROR(glEnableVertexAttribArray(7));
-	if ((Mesh->vertexAttributes & FE_RUGOSITY_SECOND) == FE_RUGOSITY_SECOND) FE_GL_ERROR(glEnableVertexAttribArray(8));
-
-	if ((Mesh->vertexAttributes & FE_INDEX) == FE_INDEX)
-		FE_GL_ERROR(glDrawElements(GL_TRIANGLES, Mesh->getVertexCount(), GL_UNSIGNED_INT, 0));
-	if ((Mesh->vertexAttributes & FE_INDEX) != FE_INDEX)
-		FE_GL_ERROR(glDrawArrays(GL_TRIANGLES, 0, Mesh->getVertexCount()));
-
-	glBindVertexArray(0);
-}
-
-void UpdateFB();
-
 void windowResizeCallback(int width, int height)
 {
 	int W, H;
 	APPLICATION.GetWindowSize(&W, &H);
-	currentCamera->SetAspectRatio(float(W) / float(H));
+	CurrentCamera->SetAspectRatio(float(W) / float(H));
 
 	UI.ApplyStandardWindowsSizeAndPosition();
-	UpdateFB();
+	SCREENSHOT_MANAGER.RenderTargetWasResized();
 }
 
 float RAMUsed()
@@ -943,110 +708,6 @@ void TestTriangleAndAABBboxIntersections()
 
 // ************ PART OF DEBUG CODE END ************
 
-GLuint ColorBufferTexture = -1;
-GLuint DepthBufferTexture = -1;
-GLuint FrameBuffer = -1;
-
-void CreateFB()
-{
-	glGenFramebuffers(1, &FrameBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
-
-	glGenTextures(1, &ColorBufferTexture);
-	glBindTexture(GL_TEXTURE_2D, ColorBufferTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ColorBufferTexture, 0);
-
-	glGenRenderbuffers(1, &DepthBufferTexture);
-	glBindRenderbuffer(GL_RENDERBUFFER, DepthBufferTexture);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DepthBufferTexture);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void UpdateFB()
-{
-	glDeleteFramebuffers(1, &FrameBuffer);
-	glDeleteTextures(1, &ColorBufferTexture);
-	glDeleteRenderbuffers(1, &DepthBufferTexture);
-
-	CreateFB();
-}
-
-void ScreenShootRender()
-{
-	if (MESH_MANAGER.ActiveMesh == nullptr)
-	{
-		APPLICATION.EndFrame();
-		return;
-	}
-
-	static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
-	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
-	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
-
-	glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
-	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-
-	renderTargetCenterForCamera();
-	currentCamera->Move(10);
-
-	if (MESH_MANAGER.ActiveMesh != nullptr)
-	{
-		MESH_MANAGER.MeshShader->start();
-
-		auto iterator = MESH_MANAGER.MeshShader->parameters.begin();
-		while (iterator != MESH_MANAGER.MeshShader->parameters.end())
-		{
-			if (iterator->second.nameHash == FEWorldMatrix_hash)
-				iterator->second.updateData(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
-
-			if (iterator->second.nameHash == FEViewMatrix_hash)
-				iterator->second.updateData(currentCamera->GetViewMatrix());
-
-			if (iterator->second.nameHash == FEProjectionMatrix_hash)
-				iterator->second.updateData(currentCamera->GetProjectionMatrix());
-
-			iterator++;
-		}
-
-		MESH_MANAGER.MeshShader->loadDataToGPU();
-
-		if (UI.GetWireFrameMode())
-		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		}
-		else
-		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		}
-
-		RenderFEMesh(MESH_MANAGER.ActiveMesh);
-
-		MESH_MANAGER.MeshShader->stop();
-	}
-
-	size_t RawDataSize = 0;
-	unsigned char* RawData = GetTextureRawData(ColorBufferTexture, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight(), &RawDataSize);
-	FlipImageVertically(RawData, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
-
-	if (RawDataSize != 0)
-	{
-		std::string BaseFileName = MESH_MANAGER.ActiveMesh->FileName;
-		std::string FileName = SuitableNewFileName(BaseFileName , ".png");
-
-		ExportRawDataToPNG(FileName.c_str(), RawData, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight(), GL_RGBA);
-	}
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	APPLICATION.EndFrame();
-
-	delete[] RawData;
-}
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	//// Create a vector of triangles (as Polygon_2 objects)
@@ -1144,22 +805,33 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
 	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
 
-	currentCamera = new FEModelViewCamera("mainCamera");
-	currentCamera->SetIsInputActive(false);
-	currentCamera->SetAspectRatio(1280.0f / 720.0f);
+	CurrentCamera = new FEModelViewCamera("mainCamera");
+	CurrentCamera->SetIsInputActive(false);
+	CurrentCamera->SetAspectRatio(1280.0f / 720.0f);
 
-	UI.SetCamera(currentCamera);
+	UI.SetCamera(CurrentCamera);
 	UI.SwapCameraImpl = SwapCamera;
 
 	MESH_MANAGER.AddLoadCallback(AfterMeshLoads);
 
-	CreateFB();
+	SCREENSHOT_MANAGER.Init();
 
 	static bool FirstFrame = true;
+	static bool bNextFrameForScreenshot = false;
 	while (APPLICATION.IsWindowOpened())
 	{
 		APPLICATION.BeginFrame();
 		FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+		if (bNextFrameForScreenshot)
+		{
+			bNextFrameForScreenshot = false;
+			SCREENSHOT_MANAGER.TakeScreenshot(CurrentCamera);
+			continue;
+		}
+
+		ImGui::DragFloat("saturationFactor", &MESH_MANAGER.saturationFactor, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat("brightnessValue", &MESH_MANAGER.brightnessValue, 0.01f, 0.0f, 1.0f);
 
 		static bool TransparentBackground = false;
 		if (ImGui::Checkbox("Transparent background", &TransparentBackground))
@@ -1170,12 +842,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		if (ImGui::Button("Take screenshoot"))
 		{
-			ScreenShootRender();
+			bNextFrameForScreenshot = true;
+			APPLICATION.EndFrame();
 			continue;
 		}
 
 		renderTargetCenterForCamera();
-		currentCamera->Move(10);
+		CurrentCamera->Move(10);
 
 		//ImGui::ShowDemoWindow();
 		//TestTriangleAndAABBboxIntersections();
@@ -1191,10 +864,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					iterator->second.updateData(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
 
 				if (iterator->second.nameHash == FEViewMatrix_hash)
-					iterator->second.updateData(currentCamera->GetViewMatrix());
+					iterator->second.updateData(CurrentCamera->GetViewMatrix());
 
 				if (iterator->second.nameHash == FEProjectionMatrix_hash)
-					iterator->second.updateData(currentCamera->GetProjectionMatrix());
+					iterator->second.updateData(CurrentCamera->GetProjectionMatrix());
 
 				iterator++;
 			}
@@ -1210,7 +883,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}
 
-			RenderFEMesh(MESH_MANAGER.ActiveMesh);
+			MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
 
 			//if (UI.TestMesh)
 			//	renderFEMesh(UI.TestMesh);
@@ -1227,7 +900,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		LINE_RENDERER.Render(currentCamera);
+		LINE_RENDERER.Render(CurrentCamera);
 			
 		//UI.RenderMainWindow(CurrentMesh);
 		UI.Render();

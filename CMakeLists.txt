@@ -62,6 +62,10 @@ file(GLOB SubSystems_SRC
 	"SubSystems/JitterManager.h"
 	"SubSystems/RugosityManager.cpp"
 	"SubSystems/RugosityManager.h"
+	"SubSystems/MeshRenderer.cpp"
+	"SubSystems/MeshRenderer.h"
+	"SubSystems/ScreenshotManager.cpp"
+	"SubSystems/ScreenshotManager.h"
 )
 
 file(GLOB Layers_SRC
