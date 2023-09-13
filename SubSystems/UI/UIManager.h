@@ -54,6 +54,12 @@ namespace FocalEngine
 
 		SDF* GetDebugSDF();
 		void UpdateRenderingMode(SDF* SDF, int NewRenderingMode);
+
+		bool ShouldTakeScreenshot();
+		void SetShouldTakeScreenshot(bool NewValue);
+
+		bool ShouldUseTransparentBackground();
+		void SetUseTransparentBackground(bool NewValue);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 
@@ -110,11 +116,17 @@ namespace FocalEngine
 		int TotalWidthNeededForLayerList(int ButtonUsed);
 
 		void RenderSettingsWindow();
+		void RenderLayerSettingsTab();
+		void RenderGeneralSettingsTab();
+		void RenderExportTab();
 
-		float AmbientLightFactor = 2.8f;
+		float AmbientLightFactor = 2.2f;
 		int CurrentJitterStepIndexVisualize = 0;
 		SDF* DebugSDF = nullptr;
 		void InitDebugSDF(size_t JitterIndex);
+
+		bool bNextFrameForScreenshot = false;
+		bool bUseTransparentBackground = false;
 	};
 
 	#define UI UIManager::getInstance()

@@ -486,7 +486,20 @@ void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 
 	Legend.SetPosition(RangePosition + ImVec2(15, -10));
 	Legend.SetSize(RangeSize);
+
+	if (bScreenshotMode)
+	{
+		ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
+	}
+	
 	Legend.Render();
+
+	if (bScreenshotMode)
+	{
+		ImGui::PopStyleColor();
+		ImGui::PopFont();
+	}
 
 	int UpperUnusedStart = static_cast<int>(RangeSize.y * Ceiling.GetRangePosition());
 	if (bScreenshotMode)

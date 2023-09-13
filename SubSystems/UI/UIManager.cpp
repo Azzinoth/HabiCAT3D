@@ -708,9 +708,9 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		HeatMapColorRange.Legend.Clear();
-		HeatMapColorRange.Legend.SetCaption(1.0f, "max: " + TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())));
+		HeatMapColorRange.Legend.SetCaption(1.0f, TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())));
 		const float MiddleOfUsedRange = (HeatMapColorRange.GetCeilingValue() + CurrentLayer->MinVisible / CurrentLayer->Max) / 2.0f;
-		HeatMapColorRange.Legend.SetCaption(0.0f, "min: " + TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
+		HeatMapColorRange.Legend.SetCaption(0.0f, TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
 	}
 
 	HeatMapColorRange.Render(bScreenshotMode);
@@ -736,7 +736,7 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 		HeatMapColorRange.Legend.Clear();
 		HeatMapColorRange.Legend.SetCaption(1.0f, "max: " + TruncateAfterDot(std::to_string(CurrentLayer->Max)));
 
-		HeatMapColorRange.Legend.SetCaption(HeatMapColorRange.GetCeilingValue(), "current: " + TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())));
+		HeatMapColorRange.Legend.SetCaption(HeatMapColorRange.GetCeilingValue(), /*"current: " +*/ TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())));
 
 		const float MiddleOfUsedRange = (HeatMapColorRange.GetCeilingValue() + CurrentLayer->MinVisible / CurrentLayer->Max) / 2.0f;
 		HeatMapColorRange.Legend.SetCaption(0.0f, "min: " + TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
@@ -1117,7 +1117,7 @@ void UIManager::RenderHistogramWindow()
 
 			// Render text that corresponds to the min value
 			ImGui::SetCursorPos(Histogram.GetPosition() + HistogramSelectRegionMin.GetPixelPosition() - ImVec2(HistogramSelectRegionMin.GetSize() * 0.90f, HistogramSelectRegionMin.GetSize() * 1.65f));
-			std::string MinValue = TruncateAfterDot(std::to_string(LAYER_MANAGER.GetActiveLayer()->Min + LAYER_MANAGER.GetActiveLayer()->Max * HistogramSelectRegionMin.GetRangePosition()), 3);
+			std::string MinValue = TruncateAfterDot(std::to_string(LAYER_MANAGER.GetActiveLayer()->Min + (LAYER_MANAGER.GetActiveLayer()->Max - LAYER_MANAGER.GetActiveLayer()->Min) * HistogramSelectRegionMin.GetRangePosition()), 2);
 			ImGui::Text(MinValue.c_str());
 
 			// Line that corresponds to the min value
@@ -1128,7 +1128,7 @@ void UIManager::RenderHistogramWindow()
 
 			// Render text that corresponds to the min value
 			ImGui::SetCursorPos(Histogram.GetPosition() + HistogramSelectRegionMax.GetPixelPosition() - ImVec2(HistogramSelectRegionMax.GetSize() * 0.90f, HistogramSelectRegionMax.GetSize() * 1.65f));
-			std::string MaxValue = TruncateAfterDot(std::to_string(LAYER_MANAGER.GetActiveLayer()->Min + LAYER_MANAGER.GetActiveLayer()->Max * HistogramSelectRegionMax.GetRangePosition()), 3);
+			std::string MaxValue = TruncateAfterDot(std::to_string(LAYER_MANAGER.GetActiveLayer()->Min + (LAYER_MANAGER.GetActiveLayer()->Max - LAYER_MANAGER.GetActiveLayer()->Min) * HistogramSelectRegionMax.GetRangePosition()), 2);
 			ImGui::Text(MaxValue.c_str());
 
 			// Line that corresponds to the max value
@@ -1483,6 +1483,394 @@ void UIManager::InitDebugSDF(size_t JitterIndex)
 	DebugSDF->bFullyLoaded = true;
 }
 
+void UIManager::RenderLayerSettingsTab()
+{
+	std::string NoInfoText;
+	if (MESH_MANAGER.ActiveMesh == nullptr)
+		NoInfoText = "No model loaded.";
+
+	if (MESH_MANAGER.ActiveMesh != nullptr && MESH_MANAGER.ActiveMesh->Layers.empty())
+		NoInfoText = "Model have no layers.";
+
+	if (MESH_MANAGER.ActiveMesh != nullptr && !MESH_MANAGER.ActiveMesh->Layers.empty() && LAYER_MANAGER.GetActiveLayerIndex() == -1)
+		NoInfoText = "Layer is not selected.";
+
+	if (!NoInfoText.empty())
+	{
+		ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2.0f - ImGui::CalcTextSize(NoInfoText.c_str()).x / 2.0f);
+		ImGui::SetCursorPosY(ImGui::GetWindowHeight() / 2.0f - ImGui::CalcTextSize(NoInfoText.c_str()).y / 2.0f);
+
+		ImGui::Text(NoInfoText.c_str());
+	}
+
+	if (NoInfoText.empty())
+	{
+		MeshLayer* Layer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+
+		static char CurrentLayerCaption[1024];
+		strcpy(CurrentLayerCaption, Layer->GetCaption().c_str());
+		ImGui::Text("Caption: ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(160);
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 10.0f);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
+		if (ImGui::InputText("##LayerCaptionEdit", CurrentLayerCaption, IM_ARRAYSIZE(CurrentLayerCaption), ImGuiInputTextFlags_EnterReturnsTrue) ||
+			ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##LayerCaptionEdit"))
+		{
+			Layer->SetCaption(CurrentLayerCaption);
+		}
+
+		ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.6f, 0.1f, 0.2f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.65f, 0.2f, 0.2f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.75f, 0.6f, 0.1f));
+		ImGui::SameLine();
+		if (ImGui::Button("Delete Layer"))
+		{
+			int IndexToDelete = LAYER_MANAGER.GetActiveLayerIndex();
+			LAYER_MANAGER.SetActiveLayerIndex(-1);
+
+			MESH_MANAGER.ActiveMesh->Layers.erase(MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete,
+				MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete + 1);
+
+			ImGui::PopStyleColor(3);
+			ImGui::EndTabItem();
+			ImGui::EndTabBar();
+			ImGui::End();
+
+			return;
+		}
+		ImGui::PopStyleColor(3);
+
+		ImGui::Text("Mean:");
+		ImGui::SameLine();
+		std::string MeanText = "No data.";
+		if (Layer->GetMean() != -FLT_MAX)
+			MeanText = std::to_string(Layer->GetMean());
+		ImGui::Text(MeanText.c_str());
+
+		ImGui::Text("Median:");
+		ImGui::SameLine();
+		std::string MedianText = "No data.";
+		if (Layer->GetMedian() != -FLT_MAX)
+			MedianText = std::to_string(Layer->GetMedian());
+		ImGui::Text(MedianText.c_str());
+
+		ImGui::Text("Notes:");
+		static char CurrentLayerUserNotes[10000];
+		strcpy(CurrentLayerUserNotes, Layer->GetNote().c_str());
+		ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 15);
+		if (ImGui::InputTextMultiline("##Notes", CurrentLayerUserNotes, IM_ARRAYSIZE(CurrentLayerUserNotes)))
+		{
+			Layer->SetNote(CurrentLayerUserNotes);
+		}
+
+		ImGui::Text("Debug Info:");
+		static char CurrentLayerDebugInfo[10000];
+		std::string DebugInfo;
+		if (Layer->DebugInfo != nullptr)
+			DebugInfo = Layer->DebugInfo->ToString();
+		strcpy(CurrentLayerDebugInfo, DebugInfo.c_str());
+		ImGui::BeginDisabled();
+		ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 15);
+		ImGui::InputTextMultiline("##DebugInfo", CurrentLayerDebugInfo, IM_ARRAYSIZE(CurrentLayerDebugInfo));
+		ImGui::EndDisabled();
+
+		ImGui::Separator();
+		ImGui::Text("Distribution : ");
+		static char CurrentDistributionEdit[1024];
+		static glm::vec2 CurrentDistribution = glm::vec2();
+		static float LastDistributionValue = 0.0f;
+
+		ImGui::SetNextItemWidth(62);
+		if (ImGui::InputText("##DistributionEdit", CurrentDistributionEdit, IM_ARRAYSIZE(CurrentDistributionEdit), ImGuiInputTextFlags_EnterReturnsTrue) ||
+			ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##DistributionEdit"))
+		{
+
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Calculate Distribution", ImVec2(167, 19)))
+		{
+			float NewValue = float(atof(CurrentDistributionEdit));
+			LastDistributionValue = NewValue;
+			CurrentDistribution = LayerValuesAreaDistribution(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewValue);
+		}
+
+		if (CurrentDistribution != glm::vec2())
+		{
+			ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.x / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
+			ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.y / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
+		}
+	}
+}
+
+void UIManager::RenderGeneralSettingsTab()
+{
+	ImGui::Checkbox("Wireframe", &bWireframeMode);
+
+	ImGui::Text("Ambiant light intensity:");
+	ImGui::SetNextItemWidth(150);
+	ImGui::DragFloat("##AmbiantLightScale", &AmbientLightFactor, 0.025f);
+	ImGui::SameLine();
+	if (ImGui::Button("Reset"))
+	{
+		AmbientLightFactor = 2.2f;
+	}
+
+	bool TempBool = bModelCamera;
+	if (ImGui::Checkbox("Model camera", &TempBool))
+	{
+		SetIsModelCamera(TempBool);
+	}
+
+	ShowCameraTransform();
+
+	ImGui::Separator();
+	TempBool = IsInDeveloperMode();
+	if (ImGui::Checkbox("Developer mode", &TempBool))
+		SetDeveloperMode(TempBool);
+
+	if (IsInDeveloperMode())
+	{
+		int TempValue = JITTER_MANAGER.GetDebugJitterToDoCount();
+		ImGui::Text("Jitter count for next calculation(set -1 to run all jitters): ");
+		ImGui::SetNextItemWidth(120);
+		ImGui::DragInt("##Jitter count", &TempValue);
+		JITTER_MANAGER.SetDebugJitterToDoCount(TempValue);
+	}
+
+	if (IsInDeveloperMode() && LAYER_MANAGER.GetActiveLayerIndex() != -1)
+	{
+		if (DebugSDF == nullptr)
+			UI.InitDebugSDF(JITTER_MANAGER.GetJitterToDoCount() - 1);
+
+		std::vector<SDFInitData_Jitter> UsedSettings;
+		UsedSettings = ReadJitterSettingsFromDebugInfo(LAYER_MANAGER.GetActiveLayer()->DebugInfo);
+
+		if (UsedSettings.size() > 0)
+		{
+			if (CurrentJitterStepIndexVisualize < 0 || CurrentJitterStepIndexVisualize >= UsedSettings.size())
+				CurrentJitterStepIndexVisualize = UsedSettings.size() - 1;
+
+			ImGui::Text("Individual jitter steps: ");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(190);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
+			if (ImGui::BeginCombo("##ChooseJitterStep", std::to_string(CurrentJitterStepIndexVisualize).c_str(), ImGuiWindowFlags_None))
+			{
+				for (size_t i = 0; i < UsedSettings.size(); i++)
+				{
+					bool is_selected = (CurrentJitterStepIndexVisualize == i);
+					if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
+					{
+						CurrentJitterStepIndexVisualize = i;
+						int LastSDFRendetingMode = DebugSDF->RenderingMode;
+
+						InitDebugSDF(CurrentJitterStepIndexVisualize);
+
+						DebugSDF->RenderingMode = LastSDFRendetingMode;
+						if (DebugSDF->RenderingMode == 1)
+						{
+							UpdateRenderingMode(DebugSDF, 1);
+						}
+					}
+
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+
+			std::string JitterInfo = "ShiftX: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftX);
+			JitterInfo += " ShiftY: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftY);
+			JitterInfo += " ShiftZ: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftZ);
+			JitterInfo += " GridScale: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].GridScale);
+			ImGui::Text(JitterInfo.c_str());
+		}
+
+		ImGui::Text("Visualization of SDF:");
+
+		if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
+		{
+			UpdateRenderingMode(DebugSDF, 0);
+		}
+
+		if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
+		{
+#ifdef NEW_LINES
+			InitDebugSDF(CurrentJitterStepIndexVisualize);
+#endif
+			UpdateRenderingMode(DebugSDF, 1);
+		}
+
+		if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
+		{
+			UpdateRenderingMode(DebugSDF, 2);
+		}
+
+#ifdef NEW_LINES
+		if (DebugSDF->RenderingMode == 1)
+		{
+			DebugSDF->AddLinesOfSDF();
+		}
+#endif
+
+		if (DebugSDF->RenderingMode == 1)
+		{
+			MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
+			if (CurrentLayer == nullptr)
+				return;
+
+			switch (CurrentLayer->GetType())
+			{
+			case LAYER_TYPE::RUGOSITY:
+			{
+				//RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(DebugSDF);
+				break;
+			}
+
+			case LAYER_TYPE::VECTOR_DISPERSION:
+			{
+				//VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugSDF);
+				break;
+			}
+
+			case LAYER_TYPE::FRACTAL_DIMENSION:
+			{
+				FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoWindow(DebugSDF);
+				break;
+			}
+
+			default:
+				break;
+			}
+		}
+
+		ImGui::Separator();
+	}
+}
+
+void UIManager::RenderExportTab()
+{
+	ImGui::Text("Selection mode:");
+	if (ImGui::RadioButton("None", &LayerSelectionMode, 0))
+	{
+		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
+		LINE_RENDERER.clearAll();
+		LINE_RENDERER.SyncWithGPU();
+	}
+
+	if (ImGui::RadioButton("Triangles", &LayerSelectionMode, 1))
+	{
+		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
+		LINE_RENDERER.clearAll();
+		LINE_RENDERER.SyncWithGPU();
+	}
+
+	if (ImGui::RadioButton("Area", &LayerSelectionMode, 2))
+	{
+		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
+		LINE_RENDERER.clearAll();
+		LINE_RENDERER.SyncWithGPU();
+	}
+
+	if (LayerSelectionMode == 2)
+	{
+		ImGui::Text("Radius of area to measure: ");
+		ImGui::SetNextItemWidth(128);
+		ImGui::DragFloat("##RadiusOfAreaToMeasure", &RadiusOfAreaToMeasure, 0.01f);
+		if (RadiusOfAreaToMeasure < 0.1f)
+			RadiusOfAreaToMeasure = 0.1f;
+
+		ImGui::Checkbox("Output selection data to file", &bOutputSelectionToFile);
+	}
+
+	if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() == 1)
+	{
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+
+		ImGui::Separator();
+		ImGui::Text("Selected triangle information :");
+
+		std::string Text = "Triangle value : ";
+		Text += std::to_string(CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[0]]);
+		ImGui::Text(Text.c_str());
+
+		int HeightLayerIndex = -1;
+		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
+		{
+			if (MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() == "Height")
+				HeightLayerIndex = i;
+		}
+
+		Text = "Triangle height : ";
+		double AverageHeight = 0.0;
+		if (HeightLayerIndex != -1)
+		{
+			AverageHeight = MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[0]];
+			AverageHeight -= MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].Min;
+	}
+
+		Text += std::to_string(AverageHeight);
+
+		ImGui::Text(Text.c_str());
+}
+	else if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() > 1)
+	{
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+
+		std::string Text = "Area average value : ";
+		float TotalRugosity = 0.0f;
+		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
+		{
+			TotalRugosity += CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
+		}
+
+		TotalRugosity /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
+		Text += std::to_string(TotalRugosity);
+
+		ImGui::Text(Text.c_str());
+
+		Text = "Area average height : ";
+		double AverageHeight = 0.0;
+
+		int HeightLayerIndex = -1;
+		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
+		{
+			if (MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() == "Height")
+				HeightLayerIndex = i;
+		}
+
+		if (HeightLayerIndex != -1)
+		{
+			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex];
+
+			for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
+			{
+				double CurrentHeight = CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
+				AverageHeight += CurrentHeight;
+			}
+
+			AverageHeight /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
+			AverageHeight -= CurrentLayer->Min;
+		}
+
+		Text += std::to_string(AverageHeight);
+
+		ImGui::Text(Text.c_str());
+	}
+
+	ImGui::Separator();
+
+	ImGui::Text("Screenshoot:");
+	ImGui::Checkbox("Transparent background", &bUseTransparentBackground);
+
+	if (ImGui::Button("Take screenshoot"))
+	{
+		bNextFrameForScreenshot = true;
+	}
+}
+
 void UIManager::RenderSettingsWindow()
 {
 	if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove))
@@ -1503,386 +1891,27 @@ void UIManager::RenderSettingsWindow()
 		{
 			if (ImGui::BeginTabItem("Layer"))
 			{
-				std::string NoInfoText;
-				if (MESH_MANAGER.ActiveMesh == nullptr)
-					NoInfoText = "No model loaded.";
-
-				if (MESH_MANAGER.ActiveMesh != nullptr && MESH_MANAGER.ActiveMesh->Layers.empty())
-					NoInfoText = "Model have no layers.";
-
-				if (MESH_MANAGER.ActiveMesh != nullptr && !MESH_MANAGER.ActiveMesh->Layers.empty() && LAYER_MANAGER.GetActiveLayerIndex() == -1)
-					NoInfoText = "Layer is not selected.";
-
-				if (!NoInfoText.empty())
-				{
-					ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2.0f - ImGui::CalcTextSize(NoInfoText.c_str()).x / 2.0f);
-					ImGui::SetCursorPosY(ImGui::GetWindowHeight() / 2.0f - ImGui::CalcTextSize(NoInfoText.c_str()).y / 2.0f);
-
-					ImGui::Text(NoInfoText.c_str());
-				}
-
-				if (NoInfoText.empty())
-				{
-					MeshLayer* Layer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-
-					static char CurrentLayerCaption[1024];
-					strcpy(CurrentLayerCaption, Layer->GetCaption().c_str());
-					ImGui::Text("Caption: ");
-					ImGui::SameLine();
-					ImGui::SetNextItemWidth(160);
-					ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 10.0f);
-					ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
-					if (ImGui::InputText("##LayerCaptionEdit", CurrentLayerCaption, IM_ARRAYSIZE(CurrentLayerCaption), ImGuiInputTextFlags_EnterReturnsTrue) ||
-						ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##LayerCaptionEdit"))
-					{
-						Layer->SetCaption(CurrentLayerCaption);
-					}
-
-					ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.6f, 0.1f, 0.2f));
-					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.65f, 0.2f, 0.2f));
-					ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.75f, 0.6f, 0.1f));
-					ImGui::SameLine();
-					if (ImGui::Button("Delete Layer"))
-					{
-						int IndexToDelete = LAYER_MANAGER.GetActiveLayerIndex();
-						LAYER_MANAGER.SetActiveLayerIndex(-1);
-
-						MESH_MANAGER.ActiveMesh->Layers.erase(MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete,
-															  MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete + 1);
-					
-						ImGui::PopStyleColor(3);
-						ImGui::EndTabItem();
-						ImGui::EndTabBar();
-						ImGui::End();
-
-						return;
-					}
-					ImGui::PopStyleColor(3);
-
-					ImGui::Text("Mean:");
-					ImGui::SameLine();
-					std::string MeanText = "No data.";
-					if (Layer->GetMean() != -FLT_MAX)
-						MeanText = std::to_string(Layer->GetMean());
-					ImGui::Text(MeanText.c_str());
-
-					ImGui::Text("Median:");
-					ImGui::SameLine();
-					std::string MedianText = "No data.";
-					if (Layer->GetMedian() != -FLT_MAX)
-						MedianText = std::to_string(Layer->GetMedian());
-					ImGui::Text(MedianText.c_str());
-
-					ImGui::Text("Notes:");
-					static char CurrentLayerUserNotes[10000];
-					strcpy(CurrentLayerUserNotes, Layer->GetNote().c_str());
-					ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 15);
-					if (ImGui::InputTextMultiline("##Notes", CurrentLayerUserNotes, IM_ARRAYSIZE(CurrentLayerUserNotes)))
-					{
-						Layer->SetNote(CurrentLayerUserNotes);
-					}
-
-					ImGui::Text("Debug Info:");
-					static char CurrentLayerDebugInfo[10000];
-					std::string DebugInfo;
-					if (Layer->DebugInfo != nullptr)
-						DebugInfo = Layer->DebugInfo->ToString();
-					strcpy(CurrentLayerDebugInfo, DebugInfo.c_str());
-					ImGui::BeginDisabled();
-					ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 15);
-					ImGui::InputTextMultiline("##DebugInfo", CurrentLayerDebugInfo, IM_ARRAYSIZE(CurrentLayerDebugInfo));
-					ImGui::EndDisabled();
-
-					ImGui::Separator();
-					ImGui::Text("Selection mode:");
-					if (ImGui::RadioButton("None", &LayerSelectionMode, 0))
-					{
-						MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
-						LINE_RENDERER.clearAll();
-						LINE_RENDERER.SyncWithGPU();
-					}
-
-					if (ImGui::RadioButton("Triangles", &LayerSelectionMode, 1))
-					{
-						MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
-						LINE_RENDERER.clearAll();
-						LINE_RENDERER.SyncWithGPU();
-					}
-
-					if (ImGui::RadioButton("Area", &LayerSelectionMode, 2))
-					{
-						MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
-						LINE_RENDERER.clearAll();
-						LINE_RENDERER.SyncWithGPU();
-					}
-
-					if (LayerSelectionMode == 2)
-					{
-						ImGui::Text("Radius of area to measure: ");
-						ImGui::SetNextItemWidth(128);
-						ImGui::DragFloat("##RadiusOfAreaToMeasure", &RadiusOfAreaToMeasure, 0.01f);
-						if (RadiusOfAreaToMeasure < 0.1f)
-							RadiusOfAreaToMeasure = 0.1f;
-
-						ImGui::Checkbox("Output selection data to file", &bOutputSelectionToFile);
-					}
-
-					if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() == 1)
-					{
-						MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-
-						ImGui::Separator();
-						ImGui::Text("Selected triangle information :");
-
-						std::string Text = "Triangle value : ";
-						Text += std::to_string(CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[0]]);
-						ImGui::Text(Text.c_str());
-
-						int HeightLayerIndex = -1;
-						for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
-						{
-							if (MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() == "Height")
-								HeightLayerIndex = i;
-						}
-
-						Text = "Triangle height : ";
-						double AverageHeight = 0.0;
-						if (HeightLayerIndex != -1)
-						{
-							AverageHeight = MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[0]];
-							AverageHeight -= MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].Min;
-						}
-
-						Text += std::to_string(AverageHeight);
-
-						ImGui::Text(Text.c_str());
-					}
-					else if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() > 1)
-					{
-						MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-
-						std::string Text = "Area average value : ";
-						float TotalRugosity = 0.0f;
-						for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
-						{
-							TotalRugosity += CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
-						}
-
-						TotalRugosity /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
-						Text += std::to_string(TotalRugosity);
-
-						ImGui::Text(Text.c_str());
-
-						Text = "Area average height : ";
-						double AverageHeight = 0.0;
-
-						int HeightLayerIndex = -1;
-						for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
-						{
-							if (MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() == "Height")
-								HeightLayerIndex = i;
-						}
-
-						if (HeightLayerIndex != -1)
-						{
-							MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex];
-
-							for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
-							{
-								double CurrentHeight = CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
-								AverageHeight += CurrentHeight;
-							}
-
-							AverageHeight /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
-							AverageHeight -= CurrentLayer->Min;
-						}
-
-						Text += std::to_string(AverageHeight);
-
-						ImGui::Text(Text.c_str());
-					}
-
-					ImGui::Separator();
-					ImGui::Text("Distribution : ");
-					static char CurrentDistributionEdit[1024];
-					static glm::vec2 CurrentDistribution = glm::vec2();
-					static float LastDistributionValue = 0.0f;
-
-					ImGui::SetNextItemWidth(62);
-					if (ImGui::InputText("##DistributionEdit", CurrentDistributionEdit, IM_ARRAYSIZE(CurrentDistributionEdit), ImGuiInputTextFlags_EnterReturnsTrue) ||
-						ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##DistributionEdit"))
-					{
-
-					}
-
-					ImGui::SameLine();
-					if (ImGui::Button("Calculate Distribution", ImVec2(167, 19)))
-					{
-						float NewValue = float(atof(CurrentDistributionEdit));
-						LastDistributionValue = NewValue;
-						CurrentDistribution = LayerValuesAreaDistribution(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewValue);
-					}
-
-					if (CurrentDistribution != glm::vec2())
-					{
-						ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.x / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
-						ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.y / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
-					}
-				}
-
+				RenderLayerSettingsTab();
 				ImGui::EndTabItem();
 			}
 
-			if (MESH_MANAGER.ActiveMesh != nullptr)
+			if (MESH_MANAGER.ActiveMesh == nullptr)
+				ImGui::BeginDisabled();
+
+			if (ImGui::BeginTabItem("General"))
 			{
-				if (ImGui::BeginTabItem("General"))
-				{
-					ImGui::Checkbox("Wireframe", &bWireframeMode);
-
-					ImGui::Text("Ambiant light intensity:");
-					ImGui::SetNextItemWidth(150);
-					ImGui::DragFloat("##AmbiantLightScale", &AmbientLightFactor, 0.025f);
-					ImGui::SameLine();
-					if (ImGui::Button("Reset"))
-					{
-						AmbientLightFactor = 2.8f;
-					}
-
-					bool TempBool = bModelCamera;
-					if (ImGui::Checkbox("Model camera", &TempBool))
-					{
-						SetIsModelCamera(TempBool);
-					}
-
-					ShowCameraTransform();
-
-					ImGui::Separator();
-					TempBool = IsInDeveloperMode();
-					if (ImGui::Checkbox("Developer mode", &TempBool))
-						SetDeveloperMode(TempBool);
-					
-					if (IsInDeveloperMode())
-					{
-						int TempValue = JITTER_MANAGER.GetDebugJitterToDoCount();
-						ImGui::Text("Jitter count for next calculation(set -1 to run all jitters): ");
-						ImGui::SetNextItemWidth(120);
-						ImGui::DragInt("##Jitter count", &TempValue);
-						JITTER_MANAGER.SetDebugJitterToDoCount(TempValue);
-					}
-
-					if (IsInDeveloperMode() && LAYER_MANAGER.GetActiveLayerIndex() != -1)
-					{
-						if (DebugSDF == nullptr)
-							UI.InitDebugSDF(JITTER_MANAGER.GetJitterToDoCount() - 1);
-
-						std::vector<SDFInitData_Jitter> UsedSettings;
-						UsedSettings = ReadJitterSettingsFromDebugInfo(LAYER_MANAGER.GetActiveLayer()->DebugInfo);
-
-						if (UsedSettings.size() > 0)
-						{
-							if (CurrentJitterStepIndexVisualize < 0 || CurrentJitterStepIndexVisualize >= UsedSettings.size())
-								CurrentJitterStepIndexVisualize = UsedSettings.size() - 1;
-
-							ImGui::Text("Individual jitter steps: ");
-							ImGui::SameLine();
-							ImGui::SetNextItemWidth(190);
-							ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
-							if (ImGui::BeginCombo("##ChooseJitterStep", std::to_string(CurrentJitterStepIndexVisualize).c_str(), ImGuiWindowFlags_None))
-							{
-								for (size_t i = 0; i < UsedSettings.size(); i++)
-								{
-									bool is_selected = (CurrentJitterStepIndexVisualize == i);
-									if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
-									{
-										CurrentJitterStepIndexVisualize = i;
-										int LastSDFRendetingMode = DebugSDF->RenderingMode;
-
-										InitDebugSDF(CurrentJitterStepIndexVisualize);
-
-										DebugSDF->RenderingMode = LastSDFRendetingMode;
-										if (DebugSDF->RenderingMode == 1)
-										{
-											UpdateRenderingMode(DebugSDF, 1);
-										}
-									}
-
-									if (is_selected)
-										ImGui::SetItemDefaultFocus();
-								}
-								ImGui::EndCombo();
-							}
-
-							std::string JitterInfo = "ShiftX: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftX);
-							JitterInfo += " ShiftY: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftY);
-							JitterInfo += " ShiftZ: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftZ);
-							JitterInfo += " GridScale: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].GridScale);
-							ImGui::Text(JitterInfo.c_str());
-						}
-						
-						ImGui::Text("Visualization of SDF:");
-
-						if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
-						{
-							UpdateRenderingMode(DebugSDF, 0);
-						}
-
-						if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
-						{
-#ifdef NEW_LINES
-							InitDebugSDF(CurrentJitterStepIndexVisualize);
-#endif
-							UpdateRenderingMode(DebugSDF, 1);
-						}
-
-						if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
-						{
-							UpdateRenderingMode(DebugSDF, 2);
-						}
-
-#ifdef NEW_LINES
-						if (DebugSDF->RenderingMode == 1)
-						{
-							DebugSDF->AddLinesOfSDF();
-						}
-#endif
-
-						if (DebugSDF->RenderingMode == 1)
-						{
-							MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
-							if (CurrentLayer == nullptr)
-								return;
-
-							switch (CurrentLayer->GetType())
-							{
-								case LAYER_TYPE::RUGOSITY:
-								{
-									//RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(DebugSDF);
-									break;
-								}
-
-								case LAYER_TYPE::VECTOR_DISPERSION:
-								{
-									//VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugSDF);
-									break;
-								}
-
-								case LAYER_TYPE::FRACTAL_DIMENSION:
-								{
-									FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoWindow(DebugSDF);
-									break;
-								}
-
-								default:
-									break;
-							}
-						}					
-
-						ImGui::Separator();
-					}
-
-					ImGui::EndTabItem();
-				}
+				RenderGeneralSettingsTab();
+				ImGui::EndTabItem();
 			}
+
+			if (ImGui::BeginTabItem("Export"))
+			{
+				RenderExportTab();
+				ImGui::EndTabItem();
+			}
+
+			if (MESH_MANAGER.ActiveMesh == nullptr)
+				ImGui::EndDisabled();
 
 			ImGui::EndTabBar();
 		}
@@ -1949,22 +1978,22 @@ void UIManager::UpdateRenderingMode(SDF* SDF, int NewRenderingMode)
 	}
 }
 
-//void UIManager::OnGraphMouseClick(float NormalizedPosition)
-//{
-//	MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
-//	if (CurrentLayer == nullptr)
-//		return;
-//
-//	static bool bIsFirstClick = true;
-//
-//	if (bIsFirstClick)
-//	{
-//		bIsFirstClick = false;
-//		CurrentLayer->SetSelectedRangeMin(NormalizedPosition);
-//	}
-//	else
-//	{
-//		bIsFirstClick = true;
-//		CurrentLayer->SetSelectedRangeMax(NormalizedPosition);
-//	}
-//}
+void UIManager::SetShouldTakeScreenshot(bool NewValue)
+{
+	bNextFrameForScreenshot = NewValue;
+}
+
+bool UIManager::ShouldTakeScreenshot()
+{
+	return bNextFrameForScreenshot;
+}
+
+void UIManager::SetUseTransparentBackground(bool NewValue)
+{
+	bUseTransparentBackground = NewValue;
+}
+
+bool UIManager::ShouldUseTransparentBackground()
+{
+	return bUseTransparentBackground;
+}

@@ -708,6 +708,24 @@ void TestTriangleAndAABBboxIntersections()
 
 // ************ PART OF DEBUG CODE END ************
 
+void AddFontOnSecondFrame()
+{
+	static bool bFirstTime = true;
+	if (bFirstTime)
+	{
+		bFirstTime = false;
+	}
+	else
+	{
+		if (ImGui::GetIO().Fonts->Fonts.Size == 1)
+		{
+			ImGui::GetIO().Fonts->AddFontFromFileTTF("Resources/Cousine-Regular.ttf", 32);
+			ImGui::GetIO().Fonts->Build();
+			ImGui_ImplOpenGL3_CreateFontsTexture();
+		}
+	}
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	//// Create a vector of triangles (as Polygon_2 objects)
@@ -817,33 +835,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	SCREENSHOT_MANAGER.Init();
 
 	static bool FirstFrame = true;
-	static bool bNextFrameForScreenshot = false;
 	while (APPLICATION.IsWindowOpened())
 	{
+		AddFontOnSecondFrame();
+
 		APPLICATION.BeginFrame();
 		FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-		if (bNextFrameForScreenshot)
+		if (UI.ShouldTakeScreenshot())
 		{
-			bNextFrameForScreenshot = false;
-			SCREENSHOT_MANAGER.TakeScreenshot(CurrentCamera);
-			continue;
-		}
-
-		ImGui::DragFloat("saturationFactor", &MESH_MANAGER.saturationFactor, 0.01f, 0.0f, 1.0f);
-		ImGui::DragFloat("brightnessValue", &MESH_MANAGER.brightnessValue, 0.01f, 0.0f, 1.0f);
-
-		static bool TransparentBackground = false;
-		if (ImGui::Checkbox("Transparent background", &TransparentBackground))
-		{
-			ClearColor.w = TransparentBackground ? 0.0f : 1.0f;
+			ClearColor.w = UI.ShouldUseTransparentBackground() ? 0.0f : 1.0f;
 			glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
-		}
 
-		if (ImGui::Button("Take screenshoot"))
-		{
-			bNextFrameForScreenshot = true;
-			APPLICATION.EndFrame();
+			UI.SetShouldTakeScreenshot(false);
+			SCREENSHOT_MANAGER.TakeScreenshot(CurrentCamera);
 			continue;
 		}
 
@@ -884,25 +889,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 
 			MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
-
-			//if (UI.TestMesh)
-			//	renderFEMesh(UI.TestMesh);
-
-			/*FETransformComponent* newPosition = new FETransformComponent();
-			newPosition->setPosition(glm::vec3(0.0, 0.0, 5.0));
-			testShader->getParameter("FEWorldMatrix")->updateData(newPosition->getTransformMatrix());
-			testShader->loadDataToGPU();
-
-			renderFEMesh(compareToMesh);*/
 			
 			MESH_MANAGER.MeshShader->stop();
 		}
 
-		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 		LINE_RENDERER.Render(CurrentCamera);
 			
-		//UI.RenderMainWindow(CurrentMesh);
 		UI.Render();
 
 		if (FirstFrame)

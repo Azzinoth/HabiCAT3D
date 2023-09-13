@@ -11,8 +11,6 @@ public:
 	void RenderFEMesh(FEMesh* Mesh);
 private:
 	SINGLETON_PRIVATE_PART(MeshRenderer)
-
-	
 };
 
 #define MESH_RENDERER MeshRenderer::getInstance()
