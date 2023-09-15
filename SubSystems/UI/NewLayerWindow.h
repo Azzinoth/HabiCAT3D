@@ -6,6 +6,7 @@
 #include "../Layers/CompareLayerProducer.h"
 #include "../Layers/VectorDispersionLayerProducer.h"
 #include "../Layers/FractalDimensionLayerProducer.h"
+#include "../Layers/TriangleCountLayerProducer.h"
 
 class NewLayerWindow
 {
@@ -19,22 +20,24 @@ class NewLayerWindow
 	int FeaturesSizeSelectionMode = 0;
 	std::vector<std::string> LayerTypesNames;
 
+	int FirstChoosenLayerIndex = -1;
+	int SecondChoosenLayerIndex = -1;
+
 	void InternalClose();
 	void AddLayer();
 
 	void RenderHeightLayerSettings();
-	void RenderRugosityLayerSettings();
-	void RenderCompareLayerSettings();
-	int FirstChoosenLayerIndex = -1;
-	int SecondChoosenLayerIndex = -1;
-
 	void RenderAreaLayerSettings();
 	void RenderTrianglesEdgesLayerSettings();
 	std::vector<std::string> TrianglesEdgesModeNames;
 	int TrianglesEdgesMode = 0;
+	void RenderTriangleDensityLayerSettings();
 
+	void RenderRugosityLayerSettings();
 	void RenderVectorDispersionSettings();
 	void RenderFractalDimentionSettings();
+
+	void RenderCompareLayerSettings();
 
 	void RenderSettings();
 	void OnModeChanged(int OldMode);

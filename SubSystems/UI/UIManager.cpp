@@ -544,10 +544,12 @@ void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 {
 	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
-	
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
 
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	//WriteJitterSettingsToDebugInfo(MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
+	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+
+	/*uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 	std::vector<float> TrianglesToStandardDeviation;
 	auto PerJitterResult = JITTER_MANAGER.GetPerJitterResult();
 	for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
@@ -569,12 +571,12 @@ void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 	DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
 	DebugInfo->AddEntry("Start time", StarTime);
 	DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-	DebugInfo->AddEntry("Source layer caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());
+	DebugInfo->AddEntry("Source layer caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());*/
 
 	// Add per jitter debug info to the standard deviation layer.
-	WriteJitterSettingsToDebugInfo(DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
+	//WriteJitterSettingsToDebugInfo(DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
 
-	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 2);
+	//LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 2);
 }
 
 void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
@@ -1115,9 +1117,21 @@ void UIManager::RenderHistogramWindow()
 				HistogramSelectRegionMax.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMax.GetRangePosition(), 0.0f));
 			}
 
+			// Render a text about what percentage of the area is selected
+			float MinValueSelected = LAYER_MANAGER.GetActiveLayer()->Min + (LAYER_MANAGER.GetActiveLayer()->Max - LAYER_MANAGER.GetActiveLayer()->Min) * HistogramSelectRegionMin.GetRangePosition();
+			float MaxValueSelected = LAYER_MANAGER.GetActiveLayer()->Min + (LAYER_MANAGER.GetActiveLayer()->Max - LAYER_MANAGER.GetActiveLayer()->Min) * HistogramSelectRegionMax.GetRangePosition();
+
+			glm::vec2 MinValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
+			glm::vec2 MaxValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
+			float PercentageOfAreaSelected = (MaxValueDistribution.x / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) - (MinValueDistribution.x / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f);
+
+			ImGui::SetCursorPos(ImVec2(200.0f, 33.0f));
+			std::string CurrentText = "Selected area: " + TruncateAfterDot(std::to_string(PercentageOfAreaSelected), 3) + " %%";
+			ImGui::Text(CurrentText.c_str());
+
 			// Render text that corresponds to the min value
 			ImGui::SetCursorPos(Histogram.GetPosition() + HistogramSelectRegionMin.GetPixelPosition() - ImVec2(HistogramSelectRegionMin.GetSize() * 0.90f, HistogramSelectRegionMin.GetSize() * 1.65f));
-			std::string MinValue = TruncateAfterDot(std::to_string(LAYER_MANAGER.GetActiveLayer()->Min + (LAYER_MANAGER.GetActiveLayer()->Max - LAYER_MANAGER.GetActiveLayer()->Min) * HistogramSelectRegionMin.GetRangePosition()), 2);
+			std::string MinValue = TruncateAfterDot(std::to_string(MinValueSelected), 2);
 			ImGui::Text(MinValue.c_str());
 
 			// Line that corresponds to the min value
@@ -1128,7 +1142,7 @@ void UIManager::RenderHistogramWindow()
 
 			// Render text that corresponds to the min value
 			ImGui::SetCursorPos(Histogram.GetPosition() + HistogramSelectRegionMax.GetPixelPosition() - ImVec2(HistogramSelectRegionMax.GetSize() * 0.90f, HistogramSelectRegionMax.GetSize() * 1.65f));
-			std::string MaxValue = TruncateAfterDot(std::to_string(LAYER_MANAGER.GetActiveLayer()->Min + (LAYER_MANAGER.GetActiveLayer()->Max - LAYER_MANAGER.GetActiveLayer()->Min) * HistogramSelectRegionMax.GetRangePosition()), 2);
+			std::string MaxValue = TruncateAfterDot(std::to_string(MaxValueSelected), 2);
 			ImGui::Text(MaxValue.c_str());
 
 			// Line that corresponds to the max value
@@ -1137,7 +1151,6 @@ void UIManager::RenderHistogramWindow()
 													  ArrowPosition + ImVec2(1.0f, Histogram.GetSize().y - 1.0f),
 													  ImColor(156.0f / 255.0f, 105.0f / 255.0f, 137.0f / 255.0f, 165.0f / 255.0f));
 			
-
 			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 			if (CurrentLayer != nullptr)
 			{

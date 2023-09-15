@@ -81,6 +81,8 @@ file(GLOB Layers_SRC
 	"SubSystems/Layers/VectorDispersionLayerProducer.h"
 	"SubSystems/Layers/FractalDimensionLayerProducer.cpp"
 	"SubSystems/Layers/FractalDimensionLayerProducer.h"
+	"SubSystems/Layers/TriangleCountLayerProducer.cpp"
+	"SubSystems/Layers/TriangleCountLayerProducer.h"
 	"SubSystems/Layers/LayerManager.cpp"
 	"SubSystems/Layers/LayerManager.h"
 )

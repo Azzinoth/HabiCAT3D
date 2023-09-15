@@ -5,12 +5,15 @@ NewLayerWindow* NewLayerWindow::Instance = nullptr;
 NewLayerWindow::NewLayerWindow()
 {
 	LayerTypesNames.push_back("Height");
-	LayerTypesNames.push_back("Rugosity");
-	LayerTypesNames.push_back("Compare layers");
 	LayerTypesNames.push_back("Triangles area");
 	LayerTypesNames.push_back("Triangles edges");
+	LayerTypesNames.push_back("Triangles density");
+
+	LayerTypesNames.push_back("Rugosity");
 	LayerTypesNames.push_back("Vector dispersion");
 	LayerTypesNames.push_back("Fractal dimension");
+
+	LayerTypesNames.push_back("Compare layers");
 
 	TrianglesEdgesModeNames.push_back("Max triangle edge length");
 	TrianglesEdgesModeNames.push_back("Min triangle edge length");
@@ -66,7 +69,11 @@ void NewLayerWindow::Render()
 
 				if (is_selected)
 					ImGui::SetItemDefaultFocus();
+
+				if (i == 3 || i == 6)
+					ImGui::Separator();
 			}
+
 			ImGui::EndCombo();
 		}
 
@@ -120,15 +127,15 @@ void NewLayerWindow::AddLayer()
 		}
 		case 1:
 		{
-			RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
-			MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+			MESH_MANAGER.ActiveMesh->AddLayer(AREA_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
+			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
 
 			InternalClose();
 			break;
 		}
 		case 2:
 		{
-			MESH_MANAGER.ActiveMesh->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
+			MESH_MANAGER.ActiveMesh->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh, TrianglesEdgesMode));
 			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
 
 			InternalClose();
@@ -136,16 +143,16 @@ void NewLayerWindow::AddLayer()
 		}
 		case 3:
 		{
-			MESH_MANAGER.ActiveMesh->AddLayer(AREA_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
-			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+			TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult);
+			MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 
 			InternalClose();
 			break;
 		}
 		case 4:
 		{
-			MESH_MANAGER.ActiveMesh->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh, TrianglesEdgesMode));
-			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+			RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
+			MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 
 			InternalClose();
 			break;
@@ -166,6 +173,14 @@ void NewLayerWindow::AddLayer()
 			InternalClose();
 			break;
 		}
+		case 7:
+		{
+			MESH_MANAGER.ActiveMesh->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
+			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+
+			InternalClose();
+			break;
+		}
 	}
 }
 
@@ -176,6 +191,70 @@ void NewLayerWindow::RenderHeightLayerSettings()
 	ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2.0f - ImGui::CalcTextSize(Text.c_str()).x / 2.0f);
 	ImGui::SetCursorPosY(ImGui::GetWindowHeight() / 2.0f - ImGui::CalcTextSize(Text.c_str()).y / 2.0f);
 	ImGui::Text(Text.c_str());
+}
+
+void NewLayerWindow::RenderAreaLayerSettings()
+{
+	const std::string Text = "No settings available.";
+
+	ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2.0f - ImGui::CalcTextSize(Text.c_str()).x / 2.0f);
+	ImGui::SetCursorPosY(ImGui::GetWindowHeight() / 2.0f - ImGui::CalcTextSize(Text.c_str()).y / 2.0f);
+	ImGui::Text(Text.c_str());
+}
+
+void NewLayerWindow::RenderTrianglesEdgesLayerSettings()
+{
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+	ImGui::Text("Choose in what information you are interested: ");
+	ImGui::SetNextItemWidth(240);
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+	if (ImGui::BeginCombo("##ChooseOptionLayer", TrianglesEdgesModeNames[TrianglesEdgesMode].c_str(), ImGuiWindowFlags_None))
+	{
+		for (size_t i = 0; i < TrianglesEdgesModeNames.size(); i++)
+		{
+			bool is_selected = (i == TrianglesEdgesMode);
+			if (ImGui::Selectable(TrianglesEdgesModeNames[i].c_str(), is_selected))
+			{
+				TrianglesEdgesMode = i;
+			}
+
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+}
+
+void NewLayerWindow::RenderTriangleDensityLayerSettings()
+{
+	//ImGui::Checkbox("Smoother results", &bSmootherResult);
+
+	ImGui::Text("Grid size:");
+	static int SmallScaleFeatures = 0;
+	ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 0);
+	ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 1);
+	ImGui::RadioButton("Custom", &SmallScaleFeatures, 3);
+
+	if (SmallScaleFeatures == 0)
+	{
+		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
+	}
+	else if (SmallScaleFeatures == 1)
+	{
+		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
+	}
+	else
+	{
+		ImGui::Text(("For current mesh \n Min value : "
+			+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
+			+ " m \n Max value : "
+			+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
+
+		ImGui::SetNextItemWidth(128);
+		float TempResoluton = JITTER_MANAGER.GetResolutonInM();
+		ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
+		JITTER_MANAGER.SetResolutonInM(TempResoluton);
+	}
 }
 
 void NewLayerWindow::RenderRugosityLayerSettings()
@@ -219,6 +298,68 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
 	}
 	else if (SmallScaleFeatures == 1)
+	{
+		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
+	}
+	else
+	{
+		ImGui::Text(("For current mesh \n Min value : "
+			+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
+			+ " m \n Max value : "
+			+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
+
+		ImGui::SetNextItemWidth(128);
+		float TempResoluton = JITTER_MANAGER.GetResolutonInM();
+		ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
+		JITTER_MANAGER.SetResolutonInM(TempResoluton);
+	}
+}
+
+void NewLayerWindow::RenderVectorDispersionSettings()
+{
+	//ImGui::Checkbox("Smoother results", &bSmootherResult);
+
+	ImGui::Text("Grid size:");
+	static int SmallScaleFeatures = 0;
+	ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 0);
+	ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 1);
+	ImGui::RadioButton("Custom", &SmallScaleFeatures, 3);
+
+	if (SmallScaleFeatures == 0)
+	{
+		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
+	}
+	else if (SmallScaleFeatures == 1)
+	{
+		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
+	}
+	else
+	{
+		ImGui::Text(("For current mesh \n Min value : "
+			+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
+			+ " m \n Max value : "
+			+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
+
+		ImGui::SetNextItemWidth(128);
+		float TempResoluton = JITTER_MANAGER.GetResolutonInM();
+		ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
+		JITTER_MANAGER.SetResolutonInM(TempResoluton);
+	}
+}
+
+void NewLayerWindow::RenderFractalDimentionSettings()
+{
+	ImGui::Text("Grid size:");
+	//static int SmallScaleFeatures = 0;
+	ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &FeaturesSizeSelectionMode, 0);
+	ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &FeaturesSizeSelectionMode, 1);
+	ImGui::RadioButton("Custom", &FeaturesSizeSelectionMode, 3);
+
+	if (FeaturesSizeSelectionMode == 0)
+	{
+		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
+	}
+	else if (FeaturesSizeSelectionMode == 1)
 	{
 		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
 	}
@@ -304,100 +445,6 @@ void NewLayerWindow::RenderCompareLayerSettings()
 	COMPARE_LAYER_PRODUCER.SetShouldNormalize(TempBool);
 }
 
-void NewLayerWindow::RenderAreaLayerSettings()
-{
-	const std::string Text = "No settings available.";
-
-	ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2.0f - ImGui::CalcTextSize(Text.c_str()).x / 2.0f);
-	ImGui::SetCursorPosY(ImGui::GetWindowHeight() / 2.0f - ImGui::CalcTextSize(Text.c_str()).y / 2.0f);
-	ImGui::Text(Text.c_str());
-}
-
-void NewLayerWindow::RenderTrianglesEdgesLayerSettings()
-{
-	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
-	ImGui::Text("Choose in what information you are interested: ");
-	ImGui::SetNextItemWidth(240);
-	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
-	if (ImGui::BeginCombo("##ChooseOptionLayer", TrianglesEdgesModeNames[TrianglesEdgesMode].c_str(), ImGuiWindowFlags_None))
-	{
-		for (size_t i = 0; i < TrianglesEdgesModeNames.size(); i++)
-		{
-			bool is_selected = (i == TrianglesEdgesMode);
-			if (ImGui::Selectable(TrianglesEdgesModeNames[i].c_str(), is_selected))
-			{
-				TrianglesEdgesMode = i;
-			}
-
-			if (is_selected)
-				ImGui::SetItemDefaultFocus();
-		}
-		ImGui::EndCombo();
-	}
-}
-
-void NewLayerWindow::RenderVectorDispersionSettings()
-{
-	//ImGui::Checkbox("Smoother results", &bSmootherResult);
-
-	ImGui::Text("Grid size:");
-	static int SmallScaleFeatures = 0;
-	ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 0);
-	ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 1);
-	ImGui::RadioButton("Custom", &SmallScaleFeatures, 3);
-
-	if (SmallScaleFeatures == 0)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
-	}
-	else if (SmallScaleFeatures == 1)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
-	}
-	else
-	{
-		ImGui::Text(("For current mesh \n Min value : "
-			+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
-			+ " m \n Max value : "
-			+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
-
-		ImGui::SetNextItemWidth(128);
-		float TempResoluton = JITTER_MANAGER.GetResolutonInM();
-		ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
-		JITTER_MANAGER.SetResolutonInM(TempResoluton);
-	}
-}
-
-void NewLayerWindow::RenderFractalDimentionSettings()
-{
-	ImGui::Text("Grid size:");
-	//static int SmallScaleFeatures = 0;
-	ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &FeaturesSizeSelectionMode, 0);
-	ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &FeaturesSizeSelectionMode, 1);
-	ImGui::RadioButton("Custom", &FeaturesSizeSelectionMode, 3);
-
-	if (FeaturesSizeSelectionMode == 0)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
-	}
-	else if (FeaturesSizeSelectionMode == 1)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
-	}
-	else
-	{
-		ImGui::Text(("For current mesh \n Min value : "
-			+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
-			+ " m \n Max value : "
-			+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
-
-		ImGui::SetNextItemWidth(128);
-		float TempResoluton = JITTER_MANAGER.GetResolutonInM();
-		ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
-		JITTER_MANAGER.SetResolutonInM(TempResoluton);
-	}
-}
-
 void NewLayerWindow::RenderSettings()
 {
 	switch (Mode)
@@ -409,24 +456,25 @@ void NewLayerWindow::RenderSettings()
 		}
 		case 1:
 		{
-			RenderRugosityLayerSettings();
+			RenderAreaLayerSettings();
 			break;
 		}
 		case 2:
 		{
-			RenderCompareLayerSettings();
+			RenderTrianglesEdgesLayerSettings();
 			break;
 		}
 		case 3:
 		{
-			RenderAreaLayerSettings();
+			RenderTriangleDensityLayerSettings();
 			break;
 		}
 		case 4:
 		{
-			RenderTrianglesEdgesLayerSettings();
+			RenderRugosityLayerSettings();
 			break;
 		}
+		
 		case 5:
 		{
 			RenderVectorDispersionSettings();
@@ -435,6 +483,11 @@ void NewLayerWindow::RenderSettings()
 		case 6:
 		{
 			RenderFractalDimentionSettings();
+			break;
+		}
+		case 7:
+		{
+			RenderCompareLayerSettings();
 			break;
 		}
 	}
@@ -451,24 +504,25 @@ void NewLayerWindow::OnModeChanged(int OldMode)
 		}
 		case 1:
 		{
-			//RenderRugosityLayerSettings();
+			//RenderAreaLayerSettings();
 			break;
 		}
 		case 2:
 		{
-			//RenderCompareLayerSettings();
+			//RenderTrianglesEdgesLayerSettings();
 			break;
 		}
 		case 3:
 		{
-			//RenderAreaLayerSettings();
+			//RenderTriangleDensityLayerSettings();
 			break;
 		}
 		case 4:
 		{
-			//RenderTrianglesEdgesLayerSettings();
+			//RenderRugosityLayerSettings();
 			break;
 		}
+
 		case 5:
 		{
 			//RenderVectorDispersionSettings();
@@ -476,13 +530,16 @@ void NewLayerWindow::OnModeChanged(int OldMode)
 		}
 		case 6:
 		{
-			//RenderFractalDimentionSettings();
 			FeaturesSizeSelectionMode = 3;
 			double StartingResolution = (JITTER_MANAGER.GetHigestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution()) / 2.0;
 			JITTER_MANAGER.SetResolutonInM(StartingResolution);
 
 			break;
 		}
+		case 7:
+		{
+			//RenderCompareLayerSettings();
+			break;
+		}
 	}
-
 }
