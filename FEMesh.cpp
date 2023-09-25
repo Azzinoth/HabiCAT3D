@@ -33,6 +33,11 @@ GLuint FEMesh::getIndicesCount() const
 	return indicesCount;
 }
 
+GLuint FEMesh::getTriangleCount() const
+{
+	return vertexCount / 3;
+}
+
 GLuint FEMesh::getPositionsBufferID() const
 {
 	return positionsBufferID;
@@ -624,7 +629,6 @@ float MeshLayer::GetMedian()
 {
 	return Median;
 }
-
 
 LAYER_TYPE MeshLayer::GetType()
 {

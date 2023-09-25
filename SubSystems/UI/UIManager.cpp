@@ -1520,6 +1520,10 @@ void UIManager::RenderLayerSettingsTab()
 	{
 		MeshLayer* Layer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
+		ImGui::Text("Triangle count: ");
+		ImGui::SameLine();
+		ImGui::Text(std::to_string(MESH_MANAGER.ActiveMesh->getTriangleCount()).c_str());
+
 		static char CurrentLayerCaption[1024];
 		strcpy(CurrentLayerCaption, Layer->GetCaption().c_str());
 		ImGui::Text("Caption: ");
@@ -1546,10 +1550,6 @@ void UIManager::RenderLayerSettingsTab()
 				MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete + 1);
 
 			ImGui::PopStyleColor(3);
-			ImGui::EndTabItem();
-			ImGui::EndTabBar();
-			ImGui::End();
-
 			return;
 		}
 		ImGui::PopStyleColor(3);

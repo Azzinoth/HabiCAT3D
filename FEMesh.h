@@ -128,6 +128,7 @@ namespace FocalEngine
 		GLuint getVertexCount() const;
 		GLuint getIndicesBufferID() const;
 		GLuint getIndicesCount() const;
+		GLuint getTriangleCount() const;
 		GLuint getPositionsBufferID() const;
 		GLuint getPositionsCount() const;
 		GLuint getNormalsBufferID() const;
