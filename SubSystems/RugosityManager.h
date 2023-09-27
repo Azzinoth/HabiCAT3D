@@ -115,7 +115,8 @@ namespace FocalEngine
 		bool bDeleteOutliers = true;
 		bool bOverlapAware = false;
 
-		void CalculateRugorsityWithJitterAsync(int RugosityLayerIndex = 0);
+		void CalculateRugorsityWithJitterAsync();
+		void CalculateOnWholeModel();
 
 		std::vector<std::string> dimentionsList;
 		std::vector<std::string> colorSchemesList;

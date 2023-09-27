@@ -447,7 +447,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 	LOG.Add("========================================================", "CalculateOneNodeRugosity");*/
 }
 
-void RugosityManager::CalculateRugorsityWithJitterAsync(int RugosityLayerIndex)
+void RugosityManager::CalculateRugorsityWithJitterAsync()
 {
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return;
@@ -456,6 +456,17 @@ void RugosityManager::CalculateRugorsityWithJitterAsync(int RugosityLayerIndex)
 
 	RUGOSITY_MANAGER.bWaitForJitterResult = true;
 	JITTER_MANAGER.CalculateWithSDFJitterAsync(CalculateOneNodeRugosity);
+}
+
+void RugosityManager::CalculateOnWholeModel()
+{
+	if (MESH_MANAGER.ActiveMesh == nullptr)
+		return;
+
+	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+
+	RUGOSITY_MANAGER.bWaitForJitterResult = true;
+	JITTER_MANAGER.CalculateOnWholeModel(CalculateOneNodeRugosity);
 }
 
 std::string RugosityManager::colorSchemeIndexToString(int index)

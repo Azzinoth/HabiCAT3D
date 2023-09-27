@@ -26,14 +26,6 @@ void TriangleCountLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool bSm
 	};
 
 	JITTER_MANAGER.CalculateWithSDFJitterAsync(WorkOnNode, bSmootherResult);
-	
-	/*Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangles count"));
-	Result.DebugInfo = new MeshLayerDebugInfo();
-
-	Result.DebugInfo->AddEntry("Start time", StarTime);
-	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-
-	return Result;*/
 }
 
 void TriangleCountLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
@@ -49,4 +41,22 @@ void TriangleCountLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangles density"));
 	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+}
+
+void TriangleCountLayerProducer::CalculateOnWholeModel(FEMesh* Mesh)
+{
+	if (Mesh == nullptr)
+		return;
+
+	bWaitForJitterResult = true;
+	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+
+	auto WorkOnNode = [&](SDFNode* CurrentNode) {
+		if (CurrentNode->TrianglesInCell.empty())
+			return;
+
+		CurrentNode->UserData = CurrentNode->TrianglesInCell.size();
+	};
+
+	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
 }

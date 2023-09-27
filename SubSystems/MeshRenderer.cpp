@@ -16,9 +16,6 @@ void MeshRenderer::RenderFEMesh(FEMesh* Mesh)
 	MESH_MANAGER.MeshShader->getParameter("saturationFactor")->updateData(MESH_MANAGER.saturationFactor);
 	MESH_MANAGER.MeshShader->getParameter("brightnessValue")->updateData(MESH_MANAGER.brightnessValue);
 
-	float CurrentTime = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-	//MESH_MANAGER.MeshShader->getParameter("Time")->updateData(CurrentTime);
-
 	if (LAYER_MANAGER.GetActiveLayer() != nullptr)
 	{
 		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMin")->updateData(LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMin());

@@ -265,11 +265,15 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 
 	const glm::vec3 center = AABB.getCenter();
 
-	const int MinDimensions = AABB.getSize() / ResolutionInM;
-	Dimensions = DimensionsToPOWDimentions(MinDimensions);
+	Dimensions = 1;
+	if (ResolutionInM > 0)
+	{
+		const int MinDimensions = AABB.getSize() / ResolutionInM;
+		Dimensions = DimensionsToPOWDimentions(MinDimensions);
 
-	if (Dimensions < 1 || Dimensions > 4096)
-		return;
+		if (Dimensions < 1 || Dimensions > 4096)
+			return;
+	}
 
 	// If dimensions is not power of 2, we can't continue.
 	if (log2(Dimensions) != static_cast<int>(log2(Dimensions)))
@@ -286,7 +290,7 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 	}
 
 	FEAABB SDFAABB;
-	if (ResolutionInM != 0.0f)
+	if (ResolutionInM > 0.0f)
 	{
 		SDFAABB = FEAABB(center - glm::vec3(ResolutionInM * Dimensions / 2.0f), center + glm::vec3(ResolutionInM * Dimensions / 2.0f));
 	}
@@ -433,12 +437,12 @@ void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 T
 		Data[static_cast<int>(SelectedCell.x)][static_cast<int>(SelectedCell.y)][static_cast<int>(SelectedCell.z)].bSelected = true;
 }
 
-void SDF::FillMeshWithRugosityData()
+void SDF::FillMeshWithUserData()
 {
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return;
 
-	TIME.BeginTimeStamp("FillMeshWithRugosityData");
+	TIME.BeginTimeStamp("FillMeshWithUserData");
 
 	std::vector<int> TrianglesRugosityCount;
 	TrianglesUserData.resize(MESH_MANAGER.ActiveMesh->Triangles.size());
@@ -465,7 +469,7 @@ void SDF::FillMeshWithRugosityData()
 		TrianglesUserData[i] /= TrianglesRugosityCount[i];
 	}
 
-	TimeTookFillMeshWithRugosityData = TIME.EndTimeStamp("FillMeshWithRugosityData");
+	TimeTookFillMeshWithUserData = TIME.EndTimeStamp("FillMeshWithUserData");
 }
 
 void SDF::AddLinesOfSDF()

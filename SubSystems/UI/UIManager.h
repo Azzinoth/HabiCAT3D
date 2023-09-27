@@ -127,6 +127,8 @@ namespace FocalEngine
 
 		bool bNextFrameForScreenshot = false;
 		bool bUseTransparentBackground = false;
+
+		bool MeshAndCurrentLayerIsValid();
 	};
 
 	#define UI UIManager::getInstance()

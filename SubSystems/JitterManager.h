@@ -154,6 +154,7 @@ namespace FocalEngine
 		static void OnMeshUpdate();
 
 		void CalculateWithSDFJitterAsync(std::function<void(SDFNode* currentNode)> Func, bool bSmootherResult = false);
+		void CalculateOnWholeModel(std::function<void(SDFNode* currentNode)> Func);
 		void SetOnCalculationsStartCallback(std::function<void()> Func);
 		void SetOnCalculationsEndCallback(std::function<void(MeshLayer CurrentMeshLayer)> Func);
 
@@ -230,6 +231,7 @@ namespace FocalEngine
 		static void RunCalculationOnSDFAsync(void* InputData, void* OutputData);
 		static void AfterCalculationFinishSDFCallback(void* OutputData);
 		void MoveResultDataFromSDF(SDF* SDF);
+		void RunCalculationOnWholeModel(SDF* ResultSDF);
 
 		static void OnCalculationsStart();
 		static void OnCalculationsEnd();

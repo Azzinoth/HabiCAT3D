@@ -276,7 +276,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoWindow(SDF* Grid)
 		{
 			std::vector<std::string> boxSizeStrs = { "0", "1", "2", "3" };
 
-			if (ImGui::BeginCombo("Combo box", boxSizeStrs[DebugBoxSizeIndex].c_str()))
+			if (ImGui::BeginCombo("Box sizes depth", boxSizeStrs[DebugBoxSizeIndex].c_str()))
 			{
 				for (int n = 0; n < 4; n++)
 				{
@@ -319,4 +319,21 @@ void FractalDimensionLayerProducer::RenderDebugInfoWindow(SDF* Grid)
 			ImGui::End();
 		}
 	}
+}
+
+void FractalDimensionLayerProducer::CalculateOnWholeModel(FEMesh* Mesh)
+{
+	if (Mesh == nullptr)
+		return;
+
+	bWaitForJitterResult = true;
+	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+
+	// Before each run, we set the IgnoreValueFunction relevant to the fractal dimension calculation.
+	JITTER_MANAGER.SetIgnoreValueFunction([](float Value) -> bool {
+		return Value < 2.0f;
+	});
+	JITTER_MANAGER.SetFallbackValue(2.0f);
+
+	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
 }

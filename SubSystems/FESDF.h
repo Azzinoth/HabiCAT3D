@@ -93,12 +93,12 @@ namespace FocalEngine
 
 		static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
 
-		void FillMeshWithRugosityData();
+		void FillMeshWithUserData();
 
 		float TimeTookToGenerateInMS = 0.0f;
 		float TimeTookFillCellsWithTriangleInfo = 0.0f;
-		float TimeTookCalculateRugosity = 0.0f;
-		float TimeTookFillMeshWithRugosityData = 0.0f;
+		float TimeTookCalculate = 0.0f;
+		float TimeTookFillMeshWithUserData = 0.0f;
 
 		int DebugTotalTrianglesInCells = 0;
 		bool bWeightedNormals = false;

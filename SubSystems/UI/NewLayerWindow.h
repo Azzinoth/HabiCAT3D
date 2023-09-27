@@ -15,6 +15,7 @@ class NewLayerWindow
 	bool bShouldOpen = false;
 	bool bShouldClose = false;
 	bool bSmootherResult = false;
+	bool bRunOnWholeModel = false;
 
 	int Mode = 0;
 	int FeaturesSizeSelectionMode = 0;
@@ -25,6 +26,8 @@ class NewLayerWindow
 
 	void InternalClose();
 	void AddLayer();
+
+	void RenderCellSizeSettings();
 
 	void RenderHeightLayerSettings();
 	void RenderAreaLayerSettings();

@@ -705,14 +705,20 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 	if (HeatMapColorRange.GetColorRangeFunction() == nullptr)
 		HeatMapColorRange.SetColorRangeFunction(TurboColorMapValue);
 
-	if (bScreenshotMode && MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
+	if (bScreenshotMode && MeshAndCurrentLayerIsValid())
 	{
 		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-
-		HeatMapColorRange.Legend.Clear();
-		HeatMapColorRange.Legend.SetCaption(1.0f, TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())));
-		const float MiddleOfUsedRange = (HeatMapColorRange.GetCeilingValue() + CurrentLayer->MinVisible / CurrentLayer->Max) / 2.0f;
-		HeatMapColorRange.Legend.SetCaption(0.0f, TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
+		if (CurrentLayer->Min == CurrentLayer->Max)
+		{
+			HeatMapColorRange.Legend.SetDummyValues();
+		}
+		else
+		{
+			HeatMapColorRange.Legend.Clear();
+			HeatMapColorRange.Legend.SetCaption(1.0f, TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())));
+			const float MiddleOfUsedRange = (HeatMapColorRange.GetCeilingValue() + CurrentLayer->MinVisible / CurrentLayer->Max) / 2.0f;
+			HeatMapColorRange.Legend.SetCaption(0.0f, TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
+		}
 	}
 
 	HeatMapColorRange.Render(bScreenshotMode);
@@ -726,25 +732,35 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 
 	static char CurrentRugosityMax[1024];
 	static float LastValue = HeatMapColorRange.GetCeilingValue();
-	if (MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
+	if (MeshAndCurrentLayerIsValid())
 	{
 		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-		if (abs(CurrentLayer->Max) < 100000 && LastValue != HeatMapColorRange.GetCeilingValue())
+		if (CurrentLayer->Min == CurrentLayer->Max)
 		{
-			LastValue = HeatMapColorRange.GetCeilingValue();
-			strcpy(CurrentRugosityMax, TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())).c_str());
+			HeatMapColorRange.Legend.SetDummyValues();
 		}
+		else
+		{
+			if (abs(CurrentLayer->Max) < 100000 && LastValue != HeatMapColorRange.GetCeilingValue())
+			{
+				LastValue = HeatMapColorRange.GetCeilingValue();
+				strcpy(CurrentRugosityMax, TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())).c_str());
+			}
 
-		HeatMapColorRange.Legend.Clear();
-		HeatMapColorRange.Legend.SetCaption(1.0f, "max: " + TruncateAfterDot(std::to_string(CurrentLayer->Max)));
+			HeatMapColorRange.Legend.Clear();
+			HeatMapColorRange.Legend.SetCaption(1.0f, "max: " + TruncateAfterDot(std::to_string(CurrentLayer->Max)));
 
-		HeatMapColorRange.Legend.SetCaption(HeatMapColorRange.GetCeilingValue(), /*"current: " +*/ TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())));
+			HeatMapColorRange.Legend.SetCaption(HeatMapColorRange.GetCeilingValue(), /*"current: " +*/ TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue())));
 
-		const float MiddleOfUsedRange = (HeatMapColorRange.GetCeilingValue() + CurrentLayer->MinVisible / CurrentLayer->Max) / 2.0f;
-		HeatMapColorRange.Legend.SetCaption(0.0f, "min: " + TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
+			const float MiddleOfUsedRange = (HeatMapColorRange.GetCeilingValue() + CurrentLayer->MinVisible / CurrentLayer->Max) / 2.0f;
+			HeatMapColorRange.Legend.SetCaption(0.0f, "min: " + TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
 
-		CurrentLayer->MaxVisible = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue();
+			CurrentLayer->MaxVisible = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetCeilingValue();
+		}
 	}
+
+	if (!MeshAndCurrentLayerIsValid())
+		ImGui::BeginDisabled();
 
 	ImGui::SetCursorPosX(10);
 	ImGui::SetCursorPosY(642);
@@ -758,17 +774,17 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 	ImGui::SameLine();
 	if (ImGui::Button("Set", ImVec2(62, 19)))
 	{
-		if (MESH_MANAGER.ActiveMesh != nullptr)
-		{
-			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
-			float NewValue = float(atof(CurrentRugosityMax));
-			if (NewValue < CurrentLayer->Min)
-				NewValue = CurrentLayer->Min;
+		float NewValue = float(atof(CurrentRugosityMax));
+		if (NewValue < CurrentLayer->Min)
+			NewValue = CurrentLayer->Min;
 
-			HeatMapColorRange.SetCeilingValue((NewValue - CurrentLayer->Min) / float(CurrentLayer->Max - CurrentLayer->Min));
-		}
+		HeatMapColorRange.SetCeilingValue((NewValue - CurrentLayer->Min) / float(CurrentLayer->Max - CurrentLayer->Min));
 	}
+
+	if (!MeshAndCurrentLayerIsValid())
+		ImGui::EndDisabled();
 
 	ImGui::PopStyleVar();
 	ImGui::PopStyleVar();
@@ -1026,6 +1042,13 @@ void UIManager::UpdateHistogramData(MeshLayer* FromLayer, int NewBinCount)
 
 void UIManager::RenderHistogramWindow()
 {
+	bool bLayerWithOneValue = false;
+	if (MeshAndCurrentLayerIsValid())
+	{
+		if (LAYER_MANAGER.GetActiveLayer()->Min == LAYER_MANAGER.GetActiveLayer()->Max)
+			bLayerWithOneValue = true;
+	}
+
 	static float LastWindowW = 0.0f;
 	static float LastWindowH = 0.0f;
 	static float Epsilon = 0.001f;
@@ -1060,7 +1083,7 @@ void UIManager::RenderHistogramWindow()
 
 	if (ImGui::Begin("Histogram", nullptr))
 	{
-		if (MESH_MANAGER.ActiveMesh == nullptr || LAYER_MANAGER.GetActiveLayerIndex() == -1)
+		if (!MeshAndCurrentLayerIsValid() || bLayerWithOneValue)
 			ImGui::BeginDisabled();
 		
 		ImGui::SetCursorPos(ImVec2(12.0f, 30.0f));
@@ -1095,10 +1118,8 @@ void UIManager::RenderHistogramWindow()
 			}
 		}
 
-		if (MESH_MANAGER.ActiveMesh == nullptr || LAYER_MANAGER.GetActiveLayerIndex() == -1)
-			ImGui::EndDisabled();
-
-		Histogram.Render();
+		if (MeshAndCurrentLayerIsValid() && !bLayerWithOneValue)
+			Histogram.Render();
 
 		if (bHistogramSelectRegionMode && MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
 		{
@@ -1204,6 +1225,9 @@ void UIManager::RenderHistogramWindow()
 				}
 			}
 		}
+
+		if (!MeshAndCurrentLayerIsValid() || bLayerWithOneValue)
+			ImGui::EndDisabled();
 	}
 
 	ImGui::End();
@@ -1366,6 +1390,10 @@ void UIManager::AfterLayerChange()
 
 			UI.HeatMapColorRange.SetRangeBottomLimit(CurrentLayer->Min / CurrentLayer->Max);
 		}
+		else
+		{
+			MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+		}
 
 		if (UI.GetDebugSDF() != nullptr)
 		{
@@ -1474,7 +1502,7 @@ void UIManager::InitDebugSDF(size_t JitterIndex)
 		}
 	}
 
-	if (CurrentLayerResolutionInM <= 0.0f)
+	if (CurrentLayerResolutionInM <= 0.0f && CurrentLayerResolutionInM != -1.0f)
 		return;
 
 	delete DebugSDF;
@@ -1657,109 +1685,112 @@ void UIManager::RenderGeneralSettingsTab()
 		if (DebugSDF == nullptr)
 			UI.InitDebugSDF(JITTER_MANAGER.GetJitterToDoCount() - 1);
 
-		std::vector<SDFInitData_Jitter> UsedSettings;
-		UsedSettings = ReadJitterSettingsFromDebugInfo(LAYER_MANAGER.GetActiveLayer()->DebugInfo);
-
-		if (UsedSettings.size() > 0)
+		if (DebugSDF != nullptr)
 		{
-			if (CurrentJitterStepIndexVisualize < 0 || CurrentJitterStepIndexVisualize >= UsedSettings.size())
-				CurrentJitterStepIndexVisualize = UsedSettings.size() - 1;
+			std::vector<SDFInitData_Jitter> UsedSettings;
+			UsedSettings = ReadJitterSettingsFromDebugInfo(LAYER_MANAGER.GetActiveLayer()->DebugInfo);
 
-			ImGui::Text("Individual jitter steps: ");
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(190);
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
-			if (ImGui::BeginCombo("##ChooseJitterStep", std::to_string(CurrentJitterStepIndexVisualize).c_str(), ImGuiWindowFlags_None))
+			if (UsedSettings.size() > 0)
 			{
-				for (size_t i = 0; i < UsedSettings.size(); i++)
+				if (CurrentJitterStepIndexVisualize < 0 || CurrentJitterStepIndexVisualize >= UsedSettings.size())
+					CurrentJitterStepIndexVisualize = UsedSettings.size() - 1;
+
+				ImGui::Text("Individual jitter steps: ");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(190);
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5);
+				if (ImGui::BeginCombo("##ChooseJitterStep", std::to_string(CurrentJitterStepIndexVisualize).c_str(), ImGuiWindowFlags_None))
 				{
-					bool is_selected = (CurrentJitterStepIndexVisualize == i);
-					if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
+					for (size_t i = 0; i < UsedSettings.size(); i++)
 					{
-						CurrentJitterStepIndexVisualize = i;
-						int LastSDFRendetingMode = DebugSDF->RenderingMode;
-
-						InitDebugSDF(CurrentJitterStepIndexVisualize);
-
-						DebugSDF->RenderingMode = LastSDFRendetingMode;
-						if (DebugSDF->RenderingMode == 1)
+						bool is_selected = (CurrentJitterStepIndexVisualize == i);
+						if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
 						{
-							UpdateRenderingMode(DebugSDF, 1);
+							CurrentJitterStepIndexVisualize = i;
+							int LastSDFRendetingMode = DebugSDF->RenderingMode;
+
+							InitDebugSDF(CurrentJitterStepIndexVisualize);
+
+							DebugSDF->RenderingMode = LastSDFRendetingMode;
+							if (DebugSDF->RenderingMode == 1)
+							{
+								UpdateRenderingMode(DebugSDF, 1);
+							}
 						}
+
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
 					}
-
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
+					ImGui::EndCombo();
 				}
-				ImGui::EndCombo();
+
+				std::string JitterInfo = "ShiftX: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftX);
+				JitterInfo += " ShiftY: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftY);
+				JitterInfo += " ShiftZ: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftZ);
+				JitterInfo += " GridScale: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].GridScale);
+				ImGui::Text(JitterInfo.c_str());
 			}
 
-			std::string JitterInfo = "ShiftX: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftX);
-			JitterInfo += " ShiftY: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftY);
-			JitterInfo += " ShiftZ: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].ShiftZ);
-			JitterInfo += " GridScale: " + std::to_string(UsedSettings[CurrentJitterStepIndexVisualize].GridScale);
-			ImGui::Text(JitterInfo.c_str());
-		}
+			ImGui::Text("Visualization of SDF:");
 
-		ImGui::Text("Visualization of SDF:");
+			if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
+			{
+				UpdateRenderingMode(DebugSDF, 0);
+			}
 
-		if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
-		{
-			UpdateRenderingMode(DebugSDF, 0);
-		}
-
-		if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
-		{
+			if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
+			{
 #ifdef NEW_LINES
-			InitDebugSDF(CurrentJitterStepIndexVisualize);
+				InitDebugSDF(CurrentJitterStepIndexVisualize);
 #endif
-			UpdateRenderingMode(DebugSDF, 1);
-		}
+				UpdateRenderingMode(DebugSDF, 1);
+			}
 
-		if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
-		{
-			UpdateRenderingMode(DebugSDF, 2);
-		}
+			if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
+			{
+				UpdateRenderingMode(DebugSDF, 2);
+			}
 
 #ifdef NEW_LINES
-		if (DebugSDF->RenderingMode == 1)
-		{
-			DebugSDF->AddLinesOfSDF();
-		}
+			if (DebugSDF->RenderingMode == 1)
+			{
+				DebugSDF->AddLinesOfSDF();
+			}
 #endif
 
-		if (DebugSDF->RenderingMode == 1)
-		{
-			MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
-			if (CurrentLayer == nullptr)
-				return;
+			if (DebugSDF->RenderingMode == 1)
+			{
+				MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
+				if (CurrentLayer == nullptr)
+					return;
 
-			switch (CurrentLayer->GetType())
-			{
-			case LAYER_TYPE::RUGOSITY:
-			{
-				//RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(DebugSDF);
-				break;
+				switch (CurrentLayer->GetType())
+				{
+				case LAYER_TYPE::RUGOSITY:
+				{
+					//RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(DebugSDF);
+					break;
+				}
+
+				case LAYER_TYPE::VECTOR_DISPERSION:
+				{
+					//VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugSDF);
+					break;
+				}
+
+				case LAYER_TYPE::FRACTAL_DIMENSION:
+				{
+					FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoWindow(DebugSDF);
+					break;
+				}
+
+				default:
+					break;
+				}
 			}
 
-			case LAYER_TYPE::VECTOR_DISPERSION:
-			{
-				//VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugSDF);
-				break;
-			}
-
-			case LAYER_TYPE::FRACTAL_DIMENSION:
-			{
-				FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoWindow(DebugSDF);
-				break;
-			}
-
-			default:
-				break;
-			}
+			ImGui::Separator();
 		}
-
-		ImGui::Separator();
 	}
 }
 
@@ -2009,4 +2040,9 @@ void UIManager::SetUseTransparentBackground(bool NewValue)
 bool UIManager::ShouldUseTransparentBackground()
 {
 	return bUseTransparentBackground;
+}
+
+bool UIManager::MeshAndCurrentLayerIsValid()
+{
+	return MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1 && MESH_MANAGER.ActiveMesh->Layers.size() > LAYER_MANAGER.GetActiveLayerIndex();
 }

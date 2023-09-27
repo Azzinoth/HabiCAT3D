@@ -143,32 +143,64 @@ void NewLayerWindow::AddLayer()
 		}
 		case 3:
 		{
-			TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult);
-			MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+			if (bRunOnWholeModel)
+			{
+				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateOnWholeModel(MESH_MANAGER.ActiveMesh);
+				MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+			}
+			else
+			{
+				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult);
+				MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+			}
 
 			InternalClose();
 			break;
 		}
 		case 4:
 		{
-			RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
-			MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+			if (bRunOnWholeModel)
+			{
+				RUGOSITY_MANAGER.CalculateOnWholeModel();
+				MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+			}
+			else
+			{
+				RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
+				MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+			}
 
 			InternalClose();
 			break;
 		}
 		case 5:
 		{
-			VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult);
-			MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+			if (bRunOnWholeModel)
+			{
+				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateOnWholeModel(MESH_MANAGER.ActiveMesh);
+				MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+			}
+			else
+			{
+				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult);
+				MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+			}
 
 			InternalClose();
 			break;
 		}
 		case 6:
 		{
-			FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult);
-			MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+			if (bRunOnWholeModel)
+			{
+				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel(MESH_MANAGER.ActiveMesh);
+				MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+			}
+			else
+			{
+				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult);
+				MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+			}
 
 			InternalClose();
 			break;
@@ -180,6 +212,41 @@ void NewLayerWindow::AddLayer()
 
 			InternalClose();
 			break;
+		}
+	}
+}
+
+void NewLayerWindow::RenderCellSizeSettings()
+{
+	//ImGui::Checkbox("Smoother results", &bSmootherResult);
+
+	ImGui::Checkbox("Whole model as one voxel", &bRunOnWholeModel);
+	if (!bRunOnWholeModel)
+	{
+		ImGui::Text("Grid size:");
+		ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &FeaturesSizeSelectionMode, 0);
+		ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &FeaturesSizeSelectionMode, 1);
+		ImGui::RadioButton("Custom", &FeaturesSizeSelectionMode, 3);
+
+		if (FeaturesSizeSelectionMode == 0)
+		{
+			JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
+		}
+		else if (FeaturesSizeSelectionMode == 1)
+		{
+			JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
+		}
+		else
+		{
+			ImGui::Text(("For current mesh \n Min value : "
+				+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
+				+ " m \n Max value : "
+				+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
+
+			ImGui::SetNextItemWidth(128);
+			float TempResoluton = JITTER_MANAGER.GetResolutonInM();
+			ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
+			JITTER_MANAGER.SetResolutonInM(TempResoluton);
 		}
 	}
 }
@@ -227,34 +294,7 @@ void NewLayerWindow::RenderTrianglesEdgesLayerSettings()
 
 void NewLayerWindow::RenderTriangleDensityLayerSettings()
 {
-	//ImGui::Checkbox("Smoother results", &bSmootherResult);
-
-	ImGui::Text("Grid size:");
-	static int SmallScaleFeatures = 0;
-	ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 0);
-	ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 1);
-	ImGui::RadioButton("Custom", &SmallScaleFeatures, 3);
-
-	if (SmallScaleFeatures == 0)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
-	}
-	else if (SmallScaleFeatures == 1)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
-	}
-	else
-	{
-		ImGui::Text(("For current mesh \n Min value : "
-			+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
-			+ " m \n Max value : "
-			+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
-
-		ImGui::SetNextItemWidth(128);
-		float TempResoluton = JITTER_MANAGER.GetResolutonInM();
-		ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
-		JITTER_MANAGER.SetResolutonInM(TempResoluton);
-	}
+	RenderCellSizeSettings();
 }
 
 void NewLayerWindow::RenderRugosityLayerSettings()
@@ -285,96 +325,18 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 
 	ImGui::Checkbox("Delete outliers", &RUGOSITY_MANAGER.bDeleteOutliers);
 	ImGui::Checkbox("Unique projected area (very slow).", &RUGOSITY_MANAGER.bOverlapAware);
-	//ImGui::Checkbox("Smoother results", &bSmootherResult);
 
-	ImGui::Text("Grid size:");
-	static int SmallScaleFeatures = 0;
-	ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 0);
-	ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 1);
-	ImGui::RadioButton("Custom", &SmallScaleFeatures, 3);
-
-	if (SmallScaleFeatures == 0)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
-	}
-	else if (SmallScaleFeatures == 1)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
-	}
-	else
-	{
-		ImGui::Text(("For current mesh \n Min value : "
-			+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
-			+ " m \n Max value : "
-			+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
-
-		ImGui::SetNextItemWidth(128);
-		float TempResoluton = JITTER_MANAGER.GetResolutonInM();
-		ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
-		JITTER_MANAGER.SetResolutonInM(TempResoluton);
-	}
+	RenderCellSizeSettings();
 }
 
 void NewLayerWindow::RenderVectorDispersionSettings()
 {
-	//ImGui::Checkbox("Smoother results", &bSmootherResult);
-
-	ImGui::Text("Grid size:");
-	static int SmallScaleFeatures = 0;
-	ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 0);
-	ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &SmallScaleFeatures, 1);
-	ImGui::RadioButton("Custom", &SmallScaleFeatures, 3);
-
-	if (SmallScaleFeatures == 0)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
-	}
-	else if (SmallScaleFeatures == 1)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
-	}
-	else
-	{
-		ImGui::Text(("For current mesh \n Min value : "
-			+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
-			+ " m \n Max value : "
-			+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
-
-		ImGui::SetNextItemWidth(128);
-		float TempResoluton = JITTER_MANAGER.GetResolutonInM();
-		ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
-		JITTER_MANAGER.SetResolutonInM(TempResoluton);
-	}
+	RenderCellSizeSettings();
 }
 
 void NewLayerWindow::RenderFractalDimentionSettings()
 {
-	ImGui::Text("Grid size:");
-	//static int SmallScaleFeatures = 0;
-	ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &FeaturesSizeSelectionMode, 0);
-	ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &FeaturesSizeSelectionMode, 1);
-	ImGui::RadioButton("Custom", &FeaturesSizeSelectionMode, 3);
-
-	if (FeaturesSizeSelectionMode == 0)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
-	}
-	else if (FeaturesSizeSelectionMode == 1)
-	{
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
-	}
-	else
-	{
-		ImGui::Text(("For current mesh \n Min value : "
-			+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
-			+ " m \n Max value : "
-			+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
-
-		ImGui::SetNextItemWidth(128);
-		float TempResoluton = JITTER_MANAGER.GetResolutonInM();
-		ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
-		JITTER_MANAGER.SetResolutonInM(TempResoluton);
-	}
+	RenderCellSizeSettings();
 }
 
 void NewLayerWindow::RenderCompareLayerSettings()
@@ -531,7 +493,7 @@ void NewLayerWindow::OnModeChanged(int OldMode)
 		case 6:
 		{
 			FeaturesSizeSelectionMode = 3;
-			double StartingResolution = (JITTER_MANAGER.GetHigestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution()) / 2.0;
+			double StartingResolution = JITTER_MANAGER.GetLowestPossibleResolution() + (JITTER_MANAGER.GetHigestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution()) / 2.0f;
 			JITTER_MANAGER.SetResolutonInM(StartingResolution);
 
 			break;

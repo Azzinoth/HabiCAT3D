@@ -161,10 +161,10 @@ void JitterManager::RunCalculationOnSDFAsync(void* InputData, void* OutputData)
 	Output->FillCellsWithTriangleInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");
 	Output->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
-	Output->TimeTookCalculateRugosity = TIME.EndTimeStamp("Calculate CurrentFunc");
+	Output->TimeTookCalculate = TIME.EndTimeStamp("Calculate CurrentFunc");
 
 	//JITTER_MANAGER.ExtractDataFromSDF(Output);
-	Output->FillMeshWithRugosityData();
+	Output->FillMeshWithUserData();
 	Output->bFullyLoaded = true;
 }
 
@@ -336,4 +336,63 @@ void JitterManager::SetIgnoreValueFunction(std::function<bool(float Value)> Func
 void JitterManager::SetFallbackValue(float NewValue)
 {
 	FallbackValue = NewValue;
+}
+
+void JitterManager::CalculateOnWholeModel(std::function<void(SDFNode* currentNode)> Func)
+{
+	if (Func == nullptr)
+		return;
+
+	OnCalculationsStart();
+	CurrentFunc = Func;
+
+	JitterToDoCount = 1;
+	ResolutonInM = -1.0f;
+
+	LastUsedJitterSettings.clear();
+	LastUsedJitterSettings.resize(1);
+
+	ShiftX = 0.0f;
+	ShiftY = 0.0f;
+	ShiftZ = 0.0f;
+	GridScale = 1.0f;
+
+	LastUsedJitterSettings[0].ShiftX = ShiftX;
+	LastUsedJitterSettings[0].ShiftY = ShiftY;
+	LastUsedJitterSettings[0].ShiftZ = ShiftZ;
+	LastUsedJitterSettings[0].GridScale = GridScale;
+
+	SDFInitData_Jitter* InputData = new SDFInitData_Jitter();
+
+	InputData->ShiftX = ShiftX;
+	InputData->ShiftY = ShiftY;
+	InputData->ShiftZ = ShiftZ;
+	InputData->GridScale = GridScale;
+
+	SDF* OutputData = new SDF();
+	LastUsedSDF = OutputData;
+
+	RunCalculationOnWholeModel(OutputData);
+	AfterCalculationFinishSDFCallback(OutputData);
+
+	ResolutonInM = JITTER_MANAGER.GetLowestPossibleResolution();
+}
+
+void JitterManager::RunCalculationOnWholeModel(SDF* ResultSDF)
+{
+	FEAABB MeshAABB = MESH_MANAGER.ActiveMesh->AABB;
+
+	const glm::vec3 Center = MESH_MANAGER.ActiveMesh->AABB.getCenter() ;
+	const FEAABB SDFAABB = FEAABB(Center - glm::vec3(MeshAABB.getSize() / 2.0f), Center + glm::vec3(MeshAABB.getSize() / 2.0f));
+	MeshAABB = SDFAABB;
+
+	ResultSDF->Init(0, MeshAABB, -1);
+
+	ResultSDF->FillCellsWithTriangleInfo();
+	TIME.BeginTimeStamp("Calculate CurrentFunc");
+	ResultSDF->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
+	ResultSDF->TimeTookCalculate = TIME.EndTimeStamp("Calculate CurrentFunc");
+
+	ResultSDF->FillMeshWithUserData();
+	ResultSDF->bFullyLoaded = true;
 }

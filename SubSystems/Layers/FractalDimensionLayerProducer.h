@@ -10,6 +10,7 @@ public:
 	SINGLETON_PUBLIC_PART(FractalDimensionLayerProducer)
 
 	void CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult);
+	void CalculateOnWholeModel(FEMesh* Mesh);
 	void RenderDebugInfoForSelectedNode(SDF* Grid);
 	void RenderDebugInfoWindow(SDF* Grid);
 private:

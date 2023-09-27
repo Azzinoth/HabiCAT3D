@@ -84,7 +84,6 @@ uniform float MeasuredRugosityAreaRadius;
 
 uniform float AmbientFactor;
 
-uniform float Time;
 uniform float LayerAbsoluteMin;
 uniform float LayerAbsoluteMax;
 uniform float SelectedRangeMin;
@@ -287,12 +286,7 @@ void main(void)
 		if (NormalizedAbsoluteValue >= SelectedRangeMin &&
 			NormalizedAbsoluteValue <= SelectedRangeMax)
 		{
-			//float TimeFactor = 0.4 * sin(Time * 5.0) + 1.2;
-			//finalBaseColor = finalBaseColor * TimeFactor;
 
-			//float Luminosity = 0.299 * finalBaseColor.r + 0.587 * finalBaseColor.g + 0.114 * finalBaseColor.b;
-			//vec3 DeSaturatedColor = mix(vec3(Luminosity), finalBaseColor.rgb, 0.5);
-			//finalBaseColor.rgb = DeSaturatedColor;
 		}
 		else
 		{
@@ -309,13 +303,6 @@ void main(void)
 
 			// Convert back to RGB
 			finalBaseColor.rgb = hsv2rgb(hsv);
-
-			//float Luminosity = 0.299 * finalBaseColor.r + 0.587 * finalBaseColor.g + 0.114 * finalBaseColor.b;
-			//vec3 DeSaturatedColor = mix(vec3(Luminosity), finalBaseColor.rgb, 0.2);
-			//finalBaseColor.rgb = DeSaturatedColor;
-
-
-			//finalBaseColor = finalBaseColor * 0.5;	
 		}
 	}
 
