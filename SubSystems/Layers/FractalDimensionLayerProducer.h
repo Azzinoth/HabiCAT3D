@@ -9,7 +9,7 @@ class FractalDimensionLayerProducer
 public:
 	SINGLETON_PUBLIC_PART(FractalDimensionLayerProducer)
 
-	void CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult);
+	void CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult, bool bUseFilter = true);
 	void CalculateOnWholeModel(FEMesh* Mesh);
 	void RenderDebugInfoForSelectedNode(SDF* Grid);
 	void RenderDebugInfoWindow(SDF* Grid);
@@ -24,6 +24,8 @@ private:
 	std::vector<double> DebugLogInverseSizes;
 	std::vector<double> DebugLogCounts;
 	std::vector<int> DebugCounts;
+
+	bool bLastUsedUseFilter = true;
 
 	static void WorkOnNode(SDFNode* CurrentNode);
 };

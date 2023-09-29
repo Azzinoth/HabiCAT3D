@@ -198,7 +198,7 @@ void NewLayerWindow::AddLayer()
 			}
 			else
 			{
-				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult);
+				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult, bFilterFractalDimention);
 				MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 			}
 
@@ -336,6 +336,7 @@ void NewLayerWindow::RenderVectorDispersionSettings()
 
 void NewLayerWindow::RenderFractalDimentionSettings()
 {
+	ImGui::Checkbox("Filter FD outliers", &bFilterFractalDimention);
 	RenderCellSizeSettings();
 }
 

@@ -39,6 +39,7 @@ class NewLayerWindow
 	void RenderRugosityLayerSettings();
 	void RenderVectorDispersionSettings();
 	void RenderFractalDimentionSettings();
+	bool bFilterFractalDimention = true;
 
 	void RenderCompareLayerSettings();
 

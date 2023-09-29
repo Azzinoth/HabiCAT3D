@@ -130,7 +130,7 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 	CurrentNode->UserData = FractalDimension;
 }
 
-void FractalDimensionLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult)
+void FractalDimensionLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult, bool bUseFilter)
 {
 	if (Mesh == nullptr)
 		return;
@@ -138,10 +138,21 @@ void FractalDimensionLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool 
 	bWaitForJitterResult = true;
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
+	bLastUsedUseFilter = bUseFilter;
 	// Before each run, we set the IgnoreValueFunction relevant to the fractal dimension calculation.
-	JITTER_MANAGER.SetIgnoreValueFunction([](float Value) -> bool {
-		return Value < 2.0f;
-	});
+	if (bUseFilter)
+	{
+		JITTER_MANAGER.SetIgnoreValueFunction([](float Value) -> bool {
+			return Value < 2.0f;
+		});
+	}
+	else
+	{
+		JITTER_MANAGER.SetIgnoreValueFunction([](float Value) -> bool {
+			return false;
+		});
+	}
+		
 	JITTER_MANAGER.SetFallbackValue(2.0f);
 
 	JITTER_MANAGER.CalculateWithSDFJitterAsync(WorkOnNode, bSmootherResult);
@@ -156,6 +167,8 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		return;
 
 	FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult = false;
+
+	NewLayer.DebugInfo->AddEntry("FD outliers: ", std::string(FRACTAL_DIMENSION_LAYER_PRODUCER.bLastUsedUseFilter ? "Yes" : "No"));
 	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::FRACTAL_DIMENSION);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal dimension"));
