@@ -108,12 +108,16 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 		TotalArea += static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[l]]);
 	}
 
+	float CGALCorrectTotalArea = TotalArea;
+
 	auto CalculateCellRugosity = [&](const glm::vec3 PointOnPlane, const glm::vec3 PlaneNormal) {
 		double Result = 0.0;
 		const FEPlane* ProjectionPlane = new FEPlane(PointOnPlane, PlaneNormal);
 
 		if (RUGOSITY_MANAGER.bOverlapAware)
 		{
+			CGALCorrectTotalArea = TotalArea;
+
 			//TIME.BeginTimeStamp("CalculateCellRugosity time");
 			glm::vec3 u, v;
 			create_local_coordinate_system(PlaneNormal, u, v);
@@ -135,7 +139,14 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 				if (!CGAL::is_ccw_strongly_convex_2(TempTriangle.vertices_begin(), TempTriangle.vertices_end()))
 					TempTriangle.reverse_orientation();
 
-				Triangles.push_back(TempTriangle);
+				if (TempTriangle.area() == 0.0)
+				{
+					CGALCorrectTotalArea -= static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[CurrentNode->TrianglesInCell[i]]]);
+				}
+				else
+				{
+					Triangles.push_back(TempTriangle);
+				}
 			}
 
 			/*double TimeTookCalculateRugosity = TIME.EndTimeStamp("CalculateCellRugosity time");
@@ -169,81 +180,8 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 
 				for (size_t i = 0; i < CGALFailedIndexes.size(); i++)
 				{
-					TotalArea -= static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[CGALFailedIndexes[i]]]);
+					CGALCorrectTotalArea -= static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[CGALFailedIndexes[i]]]);
 				}
-
-				//for (size_t i = 0; i < Triangles.size(); i++)
-				//{
-				//	if (i == 0)
-				//	{
-				//		TriangleGroups.push_back(Polygon_set_2(Triangles[0]));
-				//		continue;
-				//	}
-				//	
-				//	bool NeedNewGroup = true;
-				//	for (size_t j = 0; j < TriangleGroups.size(); j++)
-				//	{
-				//		try
-				//		{
-				//			TriangleGroups[j].join(Triangles[i]);
-				//			NeedNewGroup = false;
-				//			break;
-				//		}
-				//		catch (...)
-				//		{
-				//			int y = 0;
-				//			y++;
-				//			break;
-				//		}
-
-				//		/*if (TriangleGroups[j].do_intersect(Triangles[i]))
-				//		{
-				//			TriangleGroups[j].join(Triangles[i]);
-				//			NeedNewGroup = false;
-				//			break;
-				//		}*/
-				//	}
-
-				//	if (NeedNewGroup)
-				//		TriangleGroups.push_back(Polygon_set_2(Triangles[i]));
-				//	
-				//}
-
-
-
-
-
-
-
-				/*Ranges.push_back(0);
-				for (size_t i = 0; i < Triangles.size(); i++)
-				{
-					try
-					{
-						TriangleGroup.join(Triangles[i]);
-					}
-					catch (...)
-					{
-						Ranges.push_back(i - 1);
-						int y = 0;
-						y++;
-						break;
-					}
-				}
-
-				for (size_t i = Ranges.back(); i < Triangles.size(); i++)
-				{
-					try
-					{
-						TriangleGroup.join(Triangles[i]);
-					}
-					catch (...)
-					{
-						Ranges.push_back(i - 1);
-						int y = 0;
-						y++;
-					}
-				}*/
 			}
 
 			/*double TimeTookCalculateRugosity2 = TIME.EndTimeStamp("TriangleGroups time");
@@ -260,8 +198,21 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 			}
 			else
 			{
-				Result = TotalArea / TotalProjectedArea;
+				Result = CGALCorrectTotalArea / TotalProjectedArea;
 			}
+
+			if (Result < 0.0)
+			{
+				int y = 0;
+				y++;
+			}
+			
+			if (Result < 1.0)
+			{
+				int y = 0;
+				y++;
+			}
+
 			
 			if (isnan(Result))
 				Result = 1.0f;

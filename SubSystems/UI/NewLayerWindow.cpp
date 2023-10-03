@@ -220,7 +220,7 @@ void NewLayerWindow::RenderCellSizeSettings()
 {
 	//ImGui::Checkbox("Smoother results", &bSmootherResult);
 
-	ImGui::Checkbox("Whole model as one voxel", &bRunOnWholeModel);
+	ImGui::Checkbox("Single value", &bRunOnWholeModel);
 	if (!bRunOnWholeModel)
 	{
 		ImGui::Text("Grid size:");
@@ -323,7 +323,8 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 		ImGui::EndCombo();
 	}
 
-	ImGui::Checkbox("Delete outliers", &RUGOSITY_MANAGER.bDeleteOutliers);
+	if (!bRunOnWholeModel)
+		ImGui::Checkbox("Delete outliers", &RUGOSITY_MANAGER.bDeleteOutliers);
 	ImGui::Checkbox("Unique projected area (very slow).", &RUGOSITY_MANAGER.bOverlapAware);
 
 	RenderCellSizeSettings();
