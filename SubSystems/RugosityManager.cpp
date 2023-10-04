@@ -66,26 +66,26 @@ double calculate_area(const Polygon_set_2& polygon_set)
 	return area;
 }
 
-void create_local_coordinate_system(const glm::vec3& normal, glm::vec3& u, glm::vec3& v)
+void create_local_coordinate_system(const glm::dvec3& normal, glm::dvec3& u, glm::dvec3& v)
 {
-	glm::vec3 temp(1, 0, 0);
+	glm::dvec3 temp(1, 0, 0);
 	if (glm::length(glm::cross(normal, temp)) < 0.01) {
-		temp = glm::vec3(0, 1, 0);
+		temp = glm::dvec3(0, 1, 0);
 	}
 	u = glm::normalize(glm::cross(normal, temp));
 	v = glm::cross(normal, u);
 }
 
-Point_2 project_to_local_coordinates(const glm::vec3& point, const glm::vec3& u, const glm::vec3& v)
+Point_2 project_to_local_coordinates(const glm::dvec3& point, const glm::dvec3& u, const glm::dvec3& v)
 {
 	double x = glm::dot(point, u);
 	double y = glm::dot(point, v);
 	return Point_2(x, y);
 }
 
-Polygon_2 create_2d_triangle(const glm::vec3& AProjection, const glm::vec3& BProjection, const glm::vec3& CProjection, const glm::vec3& normal)
+Polygon_2 create_2d_triangle(const glm::dvec3& AProjection, const glm::dvec3& BProjection, const glm::dvec3& CProjection, const glm::dvec3& normal)
 {
-	glm::vec3 u, v;
+	glm::dvec3 u, v;
 	create_local_coordinate_system(normal, u, v);
 
 	Polygon_2 triangle;
@@ -119,17 +119,20 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 			CGALCorrectTotalArea = TotalArea;
 
 			//TIME.BeginTimeStamp("CalculateCellRugosity time");
-			glm::vec3 u, v;
+			glm::dvec3 u, v;
 			create_local_coordinate_system(PlaneNormal, u, v);
 
 			Polygon_vector Triangles;
 			for (int i = 0; i < CurrentNode->TrianglesInCell.size(); i++)
 			{
+				if (MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
+					continue;
+
 				std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentNode->TrianglesInCell[i]];
 
-				glm::vec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
-				glm::vec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
-				glm::vec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
+				glm::dvec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
+				glm::dvec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
+				glm::dvec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
 
 				Polygon_2 TempTriangle;
 				TempTriangle.push_back(project_to_local_coordinates(AProjection, u, v));
@@ -141,7 +144,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 
 				if (TempTriangle.area() == 0.0)
 				{
-					CGALCorrectTotalArea -= static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[CurrentNode->TrianglesInCell[i]]]);
+					CGALCorrectTotalArea -= static_cast<float>(MESH_MANAGER.ActiveMesh->TrianglesArea[CurrentNode->TrianglesInCell[i]]);
 				}
 				else
 				{

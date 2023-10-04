@@ -33,11 +33,11 @@ namespace FocalEngine
 
 	struct FEPlane
 	{
-		glm::vec3 PointOnPlane;
-		glm::vec3 Normal;
+		glm::dvec3 PointOnPlane;
+		glm::dvec3 Normal;
 		float Distance = 0.0f;
 
-		FEPlane(const glm::vec3 PointOnPlane, const glm::vec3 Normal)
+		FEPlane(const glm::dvec3 PointOnPlane, const glm::dvec3 Normal)
 		{
 			this->PointOnPlane = PointOnPlane;
 			this->Normal = Normal;
@@ -46,7 +46,7 @@ namespace FocalEngine
 			float PlaneD = glm::length(glm::dot(PointOnPlane, Normal));
 		}
 
-		glm::vec3 ProjectPoint(const glm::vec3& Point) const
+		glm::vec3 ProjectPoint(const glm::dvec3& Point) const
 		{
 			// 3D Math Primer, page 719
 			// Plane equation :
