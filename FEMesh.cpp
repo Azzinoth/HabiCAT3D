@@ -672,6 +672,11 @@ void MeshLayer::SetSelectedRangeMax(float NewValue)
 	SelectedRangeMax = NewValue;
 }
 
+std::string MeshLayer::GetID()
+{
+	return ID;
+}
+
 std::string DebugEntry::ToString()
 {
 	std::string Result;

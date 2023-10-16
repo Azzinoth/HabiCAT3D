@@ -326,18 +326,21 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 	if (!bRunOnWholeModel)
 		ImGui::Checkbox("Delete outliers", &RUGOSITY_MANAGER.bDeleteOutliers);
 	ImGui::Checkbox("Unique projected area (very slow).", &RUGOSITY_MANAGER.bOverlapAware);
+	ImGui::Checkbox("Add standard deviation layer.", &RUGOSITY_MANAGER.bCalculateStandardDeviation);
 
 	RenderCellSizeSettings();
 }
 
 void NewLayerWindow::RenderVectorDispersionSettings()
 {
+	ImGui::Checkbox("Add standard deviation layer.", &VECTOR_DISPERSION_LAYER_PRODUCER.bCalculateStandardDeviation);
 	RenderCellSizeSettings();
 }
 
 void NewLayerWindow::RenderFractalDimentionSettings()
 {
 	ImGui::Checkbox("Filter FD outliers", &bFilterFractalDimention);
+	ImGui::Checkbox("Add standard deviation layer.", &FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation);
 	RenderCellSizeSettings();
 }
 

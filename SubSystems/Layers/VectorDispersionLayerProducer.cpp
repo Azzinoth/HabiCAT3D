@@ -2,6 +2,7 @@
 using namespace FocalEngine;
 
 VectorDispersionLayerProducer* VectorDispersionLayerProducer::Instance = nullptr;
+void(*VectorDispersionLayerProducer::OnCalculationsEndCallbackImpl)(MeshLayer) = nullptr;
 
 VectorDispersionLayerProducer::VectorDispersionLayerProducer()
 {
@@ -81,6 +82,9 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector dispersion"));
 	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+
+	if (OnCalculationsEndCallbackImpl != nullptr)
+		OnCalculationsEndCallbackImpl(NewLayer);
 }
 
 void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
@@ -118,4 +122,9 @@ void VectorDispersionLayerProducer::CalculateOnWholeModel(FEMesh* Mesh)
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
+}
+
+void VectorDispersionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(MeshLayer))
+{
+	OnCalculationsEndCallbackImpl = Func;
 }

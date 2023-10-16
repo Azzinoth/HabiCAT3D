@@ -94,8 +94,8 @@ namespace FocalEngine
 		static void OnRugosityCalculationsStart();
 		static void OnJitterCalculationsEnd(MeshLayer NewLayer);
 		static void OnRugosityCalculationsEnd(MeshLayer NewLayer);
-
 		static void OnVectorDispersionCalculationsEnd(MeshLayer NewLayer);
+		static void OnFractalDimensionCalculationsEnd(MeshLayer NewLayer);
 
 		bool bOutputSelectionToFile = false;
 

@@ -114,6 +114,7 @@ namespace FocalEngine
 		bool bNormalizedNormals = true;
 		bool bDeleteOutliers = true;
 		bool bOverlapAware = false;
+		bool bCalculateStandardDeviation = false;
 
 		void CalculateRugorsityWithJitterAsync();
 		void CalculateOnWholeModel();

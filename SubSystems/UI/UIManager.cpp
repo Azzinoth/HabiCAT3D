@@ -22,6 +22,9 @@ UIManager::UIManager()
 	RUGOSITY_MANAGER.SetOnRugosityCalculationsEndCallback(OnRugosityCalculationsEnd);
 	RUGOSITY_MANAGER.SetOnRugosityCalculationsStartCallback(OnRugosityCalculationsStart);
 
+	VECTOR_DISPERSION_LAYER_PRODUCER.SetOnCalculationsEndCallback(OnVectorDispersionCalculationsEnd);
+	FRACTAL_DIMENSION_LAYER_PRODUCER.SetOnCalculationsEndCallback(OnFractalDimensionCalculationsEnd);
+
 	MESH_MANAGER.AddLoadCallback(UIManager::OnMeshUpdate);
 	LAYER_MANAGER.AddActiveLayerChangedCallback(UIManager::AfterLayerChange);
 
@@ -549,29 +552,31 @@ void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 	//WriteJitterSettingsToDebugInfo(MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
 	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
 
-	/*uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	std::vector<float> TrianglesToStandardDeviation;
-	auto PerJitterResult = JITTER_MANAGER.GetPerJitterResult();
-	for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
+	if (RUGOSITY_MANAGER.bCalculateStandardDeviation)
 	{
-		std::vector<float> CurrentTriangleResults;
-		for (int j = 0; j < JITTER_MANAGER.GetJitterToDoCount(); j++)
+		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+		std::vector<float> TrianglesToStandardDeviation;
+		for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
 		{
-			CurrentTriangleResults.push_back(PerJitterResult[j][i]);
+			std::vector<float> CurrentTriangleResults;
+			for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
+			{
+				CurrentTriangleResults.push_back(JITTER_MANAGER.PerJitterResult[j][i]);
+			}
+
+			TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
 		}
+		MESH_MANAGER.ActiveMesh->AddLayer(TrianglesToStandardDeviation);
+		MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
+		MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo = new MeshLayerDebugInfo();
+		MeshLayerDebugInfo* DebugInfo = MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo;
+		DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
+		DebugInfo->AddEntry("Start time", StarTime);
+		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+		DebugInfo->AddEntry("Source layer ID", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetID());
+		DebugInfo->AddEntry("Source layer Caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());
 	}
-	MESH_MANAGER.ActiveMesh->AddLayer(TrianglesToStandardDeviation);
-	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::STANDARD_DEVIATION);
-	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
-
-	MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-	MeshLayerDebugInfo* DebugInfo = MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo;
-	DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
-	DebugInfo->AddEntry("Start time", StarTime);
-	DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-	DebugInfo->AddEntry("Source layer caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());*/
 
 	// Add per jitter debug info to the standard deviation layer.
 	//WriteJitterSettingsToDebugInfo(DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
@@ -600,33 +605,68 @@ void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 
 void UIManager::OnVectorDispersionCalculationsEnd(MeshLayer NewLayer)
 {
-	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
-	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector Dispersion"));
-	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+	//MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
+	//MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector Dispersion"));
+	//LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
 
-	/*uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	std::vector<float> TrianglesToStandardDeviation;
-	for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
+	if (VECTOR_DISPERSION_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{
-		std::vector<float> CurrentTriangleResults;
-		for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
+		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+		std::vector<float> TrianglesToStandardDeviation;
+		for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
 		{
-			CurrentTriangleResults.push_back(JITTER_MANAGER.PerJitterResult[j][i]);
+			std::vector<float> CurrentTriangleResults;
+			for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
+			{
+				CurrentTriangleResults.push_back(JITTER_MANAGER.PerJitterResult[j][i]);
+			}
+
+			TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
 		}
+		MESH_MANAGER.ActiveMesh->AddLayer(TrianglesToStandardDeviation);
+		MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
+		MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo = new MeshLayerDebugInfo();
+		MeshLayerDebugInfo* DebugInfo = MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo;
+		DebugInfo->Type = "VectorDispersionDeviationLayerDebugInfo";
+		DebugInfo->AddEntry("Start time", StarTime);
+		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+		DebugInfo->AddEntry("Source layer ID", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetID());
+		DebugInfo->AddEntry("Source layer Caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());
 	}
-	MESH_MANAGER.ActiveMesh->AddLayer(TrianglesToStandardDeviation);
-	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));*/
-
-	//MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-	//MeshLayerDebugInfo* DebugInfo = MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo;
-	//DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
-	//DebugInfo->AddEntry("Start time", StarTime);
-	//DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-	//DebugInfo->AddEntry("Source layer caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());
 
 	//LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 2);
+
+	UI.bShouldCloseProgressPopup = true;
+}
+
+void UIManager::OnFractalDimensionCalculationsEnd(MeshLayer NewLayer)
+{
+	if (FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation)
+	{
+		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+		std::vector<float> TrianglesToStandardDeviation;
+		for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
+		{
+			std::vector<float> CurrentTriangleResults;
+			for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
+			{
+				CurrentTriangleResults.push_back(JITTER_MANAGER.PerJitterResult[j][i]);
+			}
+
+			TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
+		}
+		MESH_MANAGER.ActiveMesh->AddLayer(TrianglesToStandardDeviation);
+		MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+
+		MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo = new MeshLayerDebugInfo();
+		MeshLayerDebugInfo* DebugInfo = MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo;
+		DebugInfo->Type = "FractalDimensionDeviationLayerDebugInfo";
+		DebugInfo->AddEntry("Start time", StarTime);
+		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+		DebugInfo->AddEntry("Source layer ID", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetID());
+		DebugInfo->AddEntry("Source layer Caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());
+	}
 
 	UI.bShouldCloseProgressPopup = true;
 }
@@ -1412,16 +1452,16 @@ float UIManager::FindStandardDeviation(std::vector<float> DataPoints)
 	}
 	Mean /= DataPoints.size();
 
-	float NewMean = 0.0f;
+	float Variance = 0.0f;
 	for (int i = 0; i < DataPoints.size(); i++)
 	{
 		DataPoints[i] -= Mean;
 		DataPoints[i] = std::pow(DataPoints[i], 2.0);
-		NewMean += DataPoints[i];
+		Variance += DataPoints[i];
 	}
-	NewMean /= DataPoints.size();
+	Variance /= DataPoints.size();
 
-	return std::sqrt(NewMean);
+	return std::sqrt(Variance);
 }
 
 std::vector<SDFInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugInfo* DebugInfo)

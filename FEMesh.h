@@ -77,6 +77,7 @@ namespace FocalEngine
 		MeshLayer(FEMesh* Parent, std::vector<float> TrianglesToData);
 		~MeshLayer();
 
+		std::string GetID();
 		void ForceID(std::string ID);
 
 		MeshLayerDebugInfo* DebugInfo = nullptr;

@@ -2,6 +2,7 @@
 using namespace FocalEngine;
 
 FractalDimensionLayerProducer* FractalDimensionLayerProducer::Instance = nullptr;
+void(*FractalDimensionLayerProducer::OnCalculationsEndCallbackImpl)(MeshLayer) = nullptr;
 
 FractalDimensionLayerProducer::FractalDimensionLayerProducer()
 {
@@ -173,6 +174,9 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::FRACTAL_DIMENSION);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal dimension"));
 	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+
+	if (OnCalculationsEndCallbackImpl != nullptr)
+		OnCalculationsEndCallbackImpl(NewLayer);
 }
 
 void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
@@ -349,4 +353,9 @@ void FractalDimensionLayerProducer::CalculateOnWholeModel(FEMesh* Mesh)
 	JITTER_MANAGER.SetFallbackValue(2.0f);
 
 	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
+}
+
+void FractalDimensionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(MeshLayer))
+{
+	OnCalculationsEndCallbackImpl = Func;
 }

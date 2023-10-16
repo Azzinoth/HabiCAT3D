@@ -95,6 +95,17 @@ Polygon_2 create_2d_triangle(const glm::dvec3& AProjection, const glm::dvec3& BP
 	return triangle;
 }
 
+#define CGAL_FOR_PROJECTION
+
+#ifdef CGAL_FOR_PROJECTION
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Plane_3.h>
+
+typedef Kernel::Point_3 Point_3;
+typedef Kernel::Vector_3 Vector_3;
+typedef Kernel::Plane_3 Plane_3;
+#endif
+
 void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 {
 	if (CurrentNode->TrianglesInCell.empty())
@@ -113,6 +124,14 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 	auto CalculateCellRugosity = [&](const glm::vec3 PointOnPlane, const glm::vec3 PlaneNormal) {
 		double Result = 0.0;
 		const FEPlane* ProjectionPlane = new FEPlane(PointOnPlane, PlaneNormal);
+#ifdef CGAL_FOR_PROJECTION
+		Point_3 point_on_plane(0.0, 0.0, 0.0);
+		Vector_3 plane_normal(PlaneNormal.x, PlaneNormal.y, PlaneNormal.z);
+		Plane_3 plane(point_on_plane, plane_normal);
+
+		glm::dvec3 base1 = glm::dvec3(plane.base1().x(), plane.base1().y(), plane.base1().z());
+		glm::dvec3 base2 = glm::dvec3(plane.base2().x(), plane.base2().y(), plane.base2().z());
+#endif
 
 		if (RUGOSITY_MANAGER.bOverlapAware)
 		{
@@ -129,15 +148,29 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 					continue;
 
 				std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentNode->TrianglesInCell[i]];
+				Polygon_2 TempTriangle;
 
+#ifndef CGAL_FOR_PROJECTION
 				glm::dvec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
 				glm::dvec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
 				glm::dvec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
 
-				Polygon_2 TempTriangle;
 				TempTriangle.push_back(project_to_local_coordinates(AProjection, u, v));
 				TempTriangle.push_back(project_to_local_coordinates(BProjection, u, v));
 				TempTriangle.push_back(project_to_local_coordinates(CProjection, u, v));
+
+#else CGAL_FOR_PROJECTION
+				for (size_t j = 0; j < CurrentTriangle.size(); j++)
+				{
+					Point_3 Projection_CGAL_3D = plane.projection(Point_3(CurrentTriangle[j].x, CurrentTriangle[j].y, CurrentTriangle[j].z));
+
+					double X = glm::dot(glm::dvec3(Projection_CGAL_3D.x(), Projection_CGAL_3D.y(), Projection_CGAL_3D.z()), base1);
+					double Y = glm::dot(glm::dvec3(Projection_CGAL_3D.x(), Projection_CGAL_3D.y(), Projection_CGAL_3D.z()), base2);
+
+					Point_2 AProjection_CGAL_2D(X, Y);
+					TempTriangle.push_back(AProjection_CGAL_2D);
+				}
+#endif
 
 				if (!CGAL::is_ccw_strongly_convex_2(TempTriangle.vertices_begin(), TempTriangle.vertices_end()))
 					TempTriangle.reverse_orientation();
@@ -203,19 +236,6 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 			{
 				Result = CGALCorrectTotalArea / TotalProjectedArea;
 			}
-
-			if (Result < 0.0)
-			{
-				int y = 0;
-				y++;
-			}
-			
-			if (Result < 1.0)
-			{
-				int y = 0;
-				y++;
-			}
-
 			
 			if (isnan(Result))
 				Result = 1.0f;
