@@ -28,6 +28,21 @@ RugosityManager::RugosityManager()
 	RugosityAlgorithmList.push_back("Min Rugosity");
 	RugosityAlgorithmList.push_back("Least square fitting");
 
+	OrientationSetNamesForMinRugosityList.push_back("9");
+	OrientationSetNamesForMinRugosityList.push_back("19");
+	OrientationSetNamesForMinRugosityList.push_back("33");
+	OrientationSetNamesForMinRugosityList.push_back("51");
+	OrientationSetNamesForMinRugosityList.push_back("73");
+	OrientationSetNamesForMinRugosityList.push_back("91");
+	OrientationSetNamesForMinRugosityList.push_back("99");
+	OrientationSetNamesForMinRugosityList.push_back("129");
+	OrientationSetNamesForMinRugosityList.push_back("163");
+	OrientationSetNamesForMinRugosityList.push_back("201");
+	OrientationSetNamesForMinRugosityList.push_back("289");
+	OrientationSetNamesForMinRugosityList.push_back("339");
+	OrientationSetNamesForMinRugosityList.push_back("393");
+	OrientationSetNamesForMinRugosityList.push_back("441");
+
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
 }
 
@@ -389,9 +404,13 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 		std::unordered_map<int, float> TriangleNormalsToRugosity;
 		TriangleNormalsToRugosity[-1] = static_cast<float>(CalculateCellRugosity(CurrentNode->CellTrianglesCentroid, CurrentNode->AverageCellNormal));
 
-		for (int i = 0; i < SphereVectors.size(); i++)
+		if (OrientationSetOptions.find(RUGOSITY_MANAGER.OrientationSetForMinRugosity) == OrientationSetOptions.end())
+			RUGOSITY_MANAGER.OrientationSetForMinRugosity = "91";
+
+		std::vector<glm::vec3> OrientationSet = OrientationSetOptions[RUGOSITY_MANAGER.OrientationSetForMinRugosity];
+		for (int i = 0; i < OrientationSet.size(); i++)
 		{
-			TriangleNormalsToRugosity[i] = static_cast<float>(CalculateCellRugosity(glm::vec3(0.0f), SphereVectors[i]));
+			TriangleNormalsToRugosity[i] = static_cast<float>(CalculateCellRugosity(glm::vec3(0.0f), OrientationSet[i]));
 		}
 
 		double Min = FLT_MAX;
@@ -568,6 +587,9 @@ void RugosityManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 
 	NewLayer.DebugInfo->AddEntry("Algorithm used", AlgorithmUsed);
 
+	if (AlgorithmUsed == "Min Rugosity")
+		NewLayer.DebugInfo->AddEntry("Orientation set name", RUGOSITY_MANAGER.GetOrientationSetForMinRugosityName());
+	
 	std::string DeleteOutliers = "No";
 	// Remove outliers.
 	if (RUGOSITY_MANAGER.bDeleteOutliers)
@@ -626,4 +648,15 @@ void RugosityManager::RenderDebugInfoForSelectedNode(SDF* Grid)
 	}
 
 	LINE_RENDERER.SyncWithGPU();
+}
+
+std::string RugosityManager::GetOrientationSetForMinRugosityName()
+{
+	return OrientationSetForMinRugosity;
+}
+
+void RugosityManager::SetOrientationSetForMinRugosityName(std::string name)
+{
+	if (OrientationSetOptions.find(RUGOSITY_MANAGER.OrientationSetForMinRugosity) != OrientationSetOptions.end())
+		OrientationSetForMinRugosity = name;
 }

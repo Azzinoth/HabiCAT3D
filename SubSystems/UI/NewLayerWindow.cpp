@@ -323,6 +323,29 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 		ImGui::EndCombo();
 	}
 
+	if (RUGOSITY_MANAGER.GetUsedRugosityAlgorithmName() == "Min Rugosity")
+	{
+		ImGui::Text("Orientation set(advanced option): ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(190);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+		if (ImGui::BeginCombo("##OrientationSet", (RUGOSITY_MANAGER.GetOrientationSetForMinRugosityName()).c_str(), ImGuiWindowFlags_None))
+		{
+			for (size_t i = 0; i < RUGOSITY_MANAGER.OrientationSetNamesForMinRugosityList.size(); i++)
+			{
+				bool is_selected = (RUGOSITY_MANAGER.GetOrientationSetForMinRugosityName() == RUGOSITY_MANAGER.OrientationSetNamesForMinRugosityList[i]);
+				if (ImGui::Selectable(RUGOSITY_MANAGER.OrientationSetNamesForMinRugosityList[i].c_str(), is_selected))
+				{
+					RUGOSITY_MANAGER.SetOrientationSetForMinRugosityName(RUGOSITY_MANAGER.OrientationSetNamesForMinRugosityList[i]);
+				}
+
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+	}
+
 	if (!bRunOnWholeModel)
 		ImGui::Checkbox("Delete outliers", &RUGOSITY_MANAGER.bDeleteOutliers);
 	ImGui::Checkbox("Unique projected area (very slow).", &RUGOSITY_MANAGER.bOverlapAware);

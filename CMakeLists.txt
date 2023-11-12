@@ -60,6 +60,7 @@ file(GLOB SubSystems_SRC
 	"SubSystems/FESDF.h"
 	"SubSystems/JitterManager.cpp"
 	"SubSystems/JitterManager.h"
+	"SubSystems/SphereVectors.h"
 	"SubSystems/RugosityManager.cpp"
 	"SubSystems/RugosityManager.h"
 	"SubSystems/MeshRenderer.cpp"
