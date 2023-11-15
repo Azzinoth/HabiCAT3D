@@ -5,9 +5,9 @@ NewLayerWindow* NewLayerWindow::Instance = nullptr;
 NewLayerWindow::NewLayerWindow()
 {
 	LayerTypesNames.push_back("Height");
-	LayerTypesNames.push_back("Triangles area");
-	LayerTypesNames.push_back("Triangles edges");
-	LayerTypesNames.push_back("Triangles density");
+	LayerTypesNames.push_back("Triangle area");
+	LayerTypesNames.push_back("Triangle edges");
+	LayerTypesNames.push_back("Triangle density");
 
 	LayerTypesNames.push_back("Rugosity");
 	LayerTypesNames.push_back("Vector dispersion");

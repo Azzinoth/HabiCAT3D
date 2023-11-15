@@ -907,7 +907,7 @@ void UIManager::RenderLayerChooseWindow()
 	{
 		if (MESH_MANAGER.ActiveMesh == nullptr)
 		{
-			TotalWidthNeeded = ImGui::CalcTextSize("No Data.").x + 18;
+			TotalWidthNeeded = ImGui::CalcTextSize("No Data.(Load model)").x + 18;
 		}
 		else
 		{
@@ -935,7 +935,7 @@ void UIManager::RenderLayerChooseWindow()
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f);
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 	{
-		std::string NoDataText = "No Data.";
+		std::string NoDataText = "No Data.(Load model)";
 		ImVec2 TextSize = ImGui::CalcTextSize(NoDataText.c_str());
 
 		ImGui::SetCursorPos(ImVec2(CurrentWindowW / 2.0f - TextSize.x / 2.0f, CurrentWindowH / 2.0f - TextSize.y / 2.0f));
@@ -1869,7 +1869,7 @@ void UIManager::RenderExportTab()
 		ImGui::Checkbox("Output selection data to file", &bOutputSelectionToFile);
 	}
 
-	if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() == 1)
+	if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() == 1 && LAYER_MANAGER.GetActiveLayer() != nullptr)
 	{
 		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
@@ -1893,13 +1893,12 @@ void UIManager::RenderExportTab()
 		{
 			AverageHeight = MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[0]];
 			AverageHeight -= MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].Min;
-	}
+		}
 
 		Text += std::to_string(AverageHeight);
-
 		ImGui::Text(Text.c_str());
-}
-	else if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() > 1)
+	}
+	else if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() > 1 && LAYER_MANAGER.GetActiveLayer() != nullptr)
 	{
 		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 

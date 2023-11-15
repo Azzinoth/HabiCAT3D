@@ -19,7 +19,7 @@ MeshLayer AreaLayerProducer::Calculate(FEMesh* Mesh)
 		Result.TrianglesToData.push_back(Mesh->TrianglesArea[i]);
 	}
 	
-	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangles area"));
+	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle area"));
 	Result.DebugInfo = new MeshLayerDebugInfo();
 
 	Result.DebugInfo->AddEntry("Start time", StarTime);

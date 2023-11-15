@@ -38,7 +38,7 @@ MeshLayer TriangleEdgeLayerProducer::Calculate(FEMesh* Mesh, int Mode)
 		}
 	}
 	
-	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangles edge"));
+	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle edge"));
 	Result.DebugInfo = new MeshLayerDebugInfo();
 
 	Result.DebugInfo->AddEntry("Start time", StarTime);
