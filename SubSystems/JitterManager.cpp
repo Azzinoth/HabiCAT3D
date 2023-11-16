@@ -4,6 +4,14 @@ JitterManager* JitterManager::Instance = nullptr;
 JitterManager::JitterManager()
 {
 	MESH_MANAGER.AddLoadCallback(JitterManager::OnMeshUpdate);
+
+	JitterVectorSetNames.push_back("7");
+	JitterVectorSetNames.push_back("13");
+	JitterVectorSetNames.push_back("19");
+	JitterVectorSetNames.push_back("25");
+	JitterVectorSetNames.push_back("37");
+	JitterVectorSetNames.push_back("55");
+	JitterVectorSetNames.push_back("73");
 }
 
 JitterManager::~JitterManager() {}
@@ -68,7 +76,11 @@ void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* curr
 	OnCalculationsStart();
 	CurrentFunc = Func;
 
-	auto ShiftsToUse = &SphereJitter;
+
+	if (TetrahedronJitterOrientationsOptions.find(CurrentJitterVectorSetName) == TetrahedronJitterOrientationsOptions.end())
+		CurrentJitterVectorSetName = "55";
+
+	auto ShiftsToUse = &TetrahedronJitterOrientationsOptions[CurrentJitterVectorSetName]/*Tetrahedron73Jitter*//*SphereJitter*/;
 	if (bSmootherResult)
 		ShiftsToUse = &PseudoRandom64;
 
@@ -395,4 +407,19 @@ void JitterManager::RunCalculationOnWholeModel(SDF* ResultSDF)
 
 	ResultSDF->FillMeshWithUserData();
 	ResultSDF->bFullyLoaded = true;
+}
+
+std::string JitterManager::GetCurrentJitterVectorSetName()
+{
+	return CurrentJitterVectorSetName;
+}
+
+void JitterManager::SetCurrentJitterVectorSetName(std::string name)
+{
+	CurrentJitterVectorSetName = name;
+}
+
+std::vector<std::string> JitterManager::GetJitterVectorSetNames()
+{
+	return JitterVectorSetNames;
 }

@@ -907,7 +907,7 @@ void UIManager::RenderLayerChooseWindow()
 	{
 		if (MESH_MANAGER.ActiveMesh == nullptr)
 		{
-			TotalWidthNeeded = ImGui::CalcTextSize("No Data.(Load model)").x + 18;
+			TotalWidthNeeded = ImGui::CalcTextSize("No Data.(Drag & Drop model)").x + 18;
 		}
 		else
 		{
@@ -935,7 +935,7 @@ void UIManager::RenderLayerChooseWindow()
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f);
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 	{
-		std::string NoDataText = "No Data.(Load model)";
+		std::string NoDataText = "No Data.(Drag & Drop model)";
 		ImVec2 TextSize = ImGui::CalcTextSize(NoDataText.c_str());
 
 		ImGui::SetCursorPos(ImVec2(CurrentWindowW / 2.0f - TextSize.x / 2.0f, CurrentWindowH / 2.0f - TextSize.y / 2.0f));
@@ -1711,14 +1711,14 @@ void UIManager::RenderGeneralSettingsTab()
 	if (ImGui::Checkbox("Developer mode", &TempBool))
 		SetDeveloperMode(TempBool);
 
-	if (IsInDeveloperMode())
+	/*if (IsInDeveloperMode())
 	{
 		int TempValue = JITTER_MANAGER.GetDebugJitterToDoCount();
 		ImGui::Text("Jitter count for next calculation(set -1 to run all jitters): ");
 		ImGui::SetNextItemWidth(120);
 		ImGui::DragInt("##Jitter count", &TempValue);
 		JITTER_MANAGER.SetDebugJitterToDoCount(TempValue);
-	}
+	}*/
 
 	if (IsInDeveloperMode() && LAYER_MANAGER.GetActiveLayerIndex() != -1)
 	{

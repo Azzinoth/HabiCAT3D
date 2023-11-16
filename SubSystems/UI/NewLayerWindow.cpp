@@ -37,7 +37,7 @@ void NewLayerWindow::Close()
 
 void NewLayerWindow::Render()
 {
-	const ImVec2 CurrentWinowSize = ImVec2(512, 355);
+	const ImVec2 CurrentWinowSize = ImVec2(512, 390);
 	const ImVec2 CurrentWinowPosition = ImVec2(APPLICATION.GetWindowWidth() / 2.0f - CurrentWinowSize.x / 2.0f, APPLICATION.GetWindowHeight() / 2.0f - CurrentWinowSize.y / 2.0f);
 
 	ImGui::SetNextWindowPos(CurrentWinowPosition);
@@ -247,6 +247,27 @@ void NewLayerWindow::RenderCellSizeSettings()
 			float TempResoluton = JITTER_MANAGER.GetResolutonInM();
 			ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
 			JITTER_MANAGER.SetResolutonInM(TempResoluton);
+		}
+
+		ImGui::Text("Jitter quality(higher quality, slower calculations): ");
+		//ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+		auto JitterList = JITTER_MANAGER.GetJitterVectorSetNames();
+		if (ImGui::BeginCombo("##Jitter quality", (JITTER_MANAGER.GetCurrentJitterVectorSetName()).c_str(), ImGuiWindowFlags_None))
+		{
+			for (size_t i = 0; i < JitterList.size(); i++)
+			{
+				bool is_selected = (JITTER_MANAGER.GetCurrentJitterVectorSetName() == JitterList[i]);
+				if (ImGui::Selectable(JitterList[i].c_str(), is_selected))
+				{
+					JITTER_MANAGER.SetCurrentJitterVectorSetName(JitterList[i]);
+				}
+
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
 		}
 	}
 }
