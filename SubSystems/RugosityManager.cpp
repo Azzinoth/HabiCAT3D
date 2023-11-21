@@ -28,6 +28,7 @@ RugosityManager::RugosityManager()
 	RugosityAlgorithmList.push_back("Min Rugosity");
 	RugosityAlgorithmList.push_back("Least square fitting");
 
+	OrientationSetNamesForMinRugosityList.push_back("1");
 	OrientationSetNamesForMinRugosityList.push_back("9");
 	OrientationSetNamesForMinRugosityList.push_back("19");
 	OrientationSetNamesForMinRugosityList.push_back("33");
@@ -399,7 +400,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 	CurrentNode->CellTrianglesCentroid /= CurrentNode->TrianglesInCell.size() * 3;
 	// ******* Getting average normal END *******
 
-	if (RUGOSITY_MANAGER.bUseFindSmallestRugosity)
+	if (RUGOSITY_MANAGER.bUseFindSmallestRugosity && RUGOSITY_MANAGER.OrientationSetForMinRugosity != "1")
 	{
 		std::unordered_map<int, float> TriangleNormalsToRugosity;
 		TriangleNormalsToRugosity[-1] = static_cast<float>(CalculateCellRugosity(CurrentNode->CellTrianglesCentroid, CurrentNode->AverageCellNormal));
@@ -657,6 +658,6 @@ std::string RugosityManager::GetOrientationSetForMinRugosityName()
 
 void RugosityManager::SetOrientationSetForMinRugosityName(std::string name)
 {
-	if (OrientationSetOptions.find(RUGOSITY_MANAGER.OrientationSetForMinRugosity) != OrientationSetOptions.end())
+	if (OrientationSetOptions.find(name) != OrientationSetOptions.end())
 		OrientationSetForMinRugosity = name;
 }

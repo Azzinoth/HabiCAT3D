@@ -76,7 +76,6 @@ void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* curr
 	OnCalculationsStart();
 	CurrentFunc = Func;
 
-
 	if (TetrahedronJitterOrientationsOptions.find(CurrentJitterVectorSetName) == TetrahedronJitterOrientationsOptions.end())
 		CurrentJitterVectorSetName = "55";
 
