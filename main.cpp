@@ -5,7 +5,8 @@ using namespace FocalEngine;
 #include <windows.h>
 #include <psapi.h>
 
-glm::vec4 ClearColor = glm::vec4(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 1.0f);
+//glm::vec4 ClearColor = glm::vec4(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 1.0f);
+glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
 FEBasicCamera* CurrentCamera = nullptr;
 
 void SwapCamera(bool bModelCamera)

@@ -593,7 +593,7 @@ void RugosityManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	
 	std::string DeleteOutliers = "No";
 	// Remove outliers.
-	if (RUGOSITY_MANAGER.bDeleteOutliers)
+	if (RUGOSITY_MANAGER.bDeleteOutliers || (RUGOSITY_MANAGER.bUseFindSmallestRugosity && RUGOSITY_MANAGER.OrientationSetForMinRugosity == "1"))
 	{
 		DeleteOutliers = "Yes";
 		float OutlierBeginValue = FLT_MAX;

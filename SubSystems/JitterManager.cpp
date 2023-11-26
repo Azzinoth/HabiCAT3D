@@ -5,6 +5,7 @@ JitterManager::JitterManager()
 {
 	MESH_MANAGER.AddLoadCallback(JitterManager::OnMeshUpdate);
 
+	JitterVectorSetNames.push_back("1");
 	JitterVectorSetNames.push_back("7");
 	JitterVectorSetNames.push_back("13");
 	JitterVectorSetNames.push_back("19");
@@ -79,24 +80,35 @@ void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* curr
 	if (TetrahedronJitterOrientationsOptions.find(CurrentJitterVectorSetName) == TetrahedronJitterOrientationsOptions.end())
 		CurrentJitterVectorSetName = "55";
 
-	auto ShiftsToUse = &TetrahedronJitterOrientationsOptions[CurrentJitterVectorSetName]/*Tetrahedron73Jitter*//*SphereJitter*/;
+	std::vector<float> TempShifts = TetrahedronJitterOrientationsOptions[CurrentJitterVectorSetName];
 	if (bSmootherResult)
-		ShiftsToUse = &PseudoRandom64;
+		TempShifts = PseudoRandom64;
 
-	JitterToDoCount = ShiftsToUse->size() / 4;
-	//JitterToDoCount = 1;
+	//auto ShiftsToUse = &TetrahedronJitterOrientationsOptions[CurrentJitterVectorSetName]/*Tetrahedron73Jitter*//*SphereJitter*/;
+	//if (bSmootherResult)
+	//	ShiftsToUse = &PseudoRandom64;
+
+	JitterToDoCount = TempShifts.size() / 4;
 	if (DebugJitterToDoCount != -1)
 		JitterToDoCount = DebugJitterToDoCount;
+
+	for (size_t i = 0; i < JitterToDoCount; i++)
+	{
+		TempShifts[i * 4] *= 1.5f;
+		TempShifts[i * 4 + 1] *= 1.5f;
+		TempShifts[i * 4 + 2] *= 1.5f;
+		//ShiftsToUse[i][3] /= 2.0f;
+	}
 
 	LastUsedJitterSettings.clear();
 	LastUsedJitterSettings.resize(JitterToDoCount);
 
 	for (size_t i = 0; i < JitterToDoCount; i++)
 	{
-		ShiftX = ShiftsToUse->operator[](i * 4);
-		ShiftY = ShiftsToUse->operator[](i * 4 + 1);
-		ShiftZ = ShiftsToUse->operator[](i * 4 + 2);
-		GridScale = ShiftsToUse->operator[](i * 4 + 3);
+		ShiftX = TempShifts[i * 4];
+		ShiftY = TempShifts[i * 4 + 1];
+		ShiftZ = TempShifts[i * 4 + 2];
+		GridScale = TempShifts[i * 4 + 3];
 
 		// For debug purposes.
 		LastUsedJitterSettings[i].ShiftX = ShiftX;

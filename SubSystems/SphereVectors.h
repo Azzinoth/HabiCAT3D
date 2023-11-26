@@ -92,6 +92,11 @@ static std::vector<glm::vec3> SphereVectors = {
 	glm::vec3(1.0000, 0.0000, -0.0000)
 };
 
+// It is not used directly.
+static std::vector<glm::vec3> SphereVectors_1 = {
+	glm::vec3(0.00000, 1.00000, 0.00000),
+};
+
 static std::vector<glm::vec3> SphereVectors_9 = {
 	glm::vec3(0.00000, 1.00000, -0.00000),
 	glm::vec3(0.00000, 0.00000, -1.00000),
@@ -2173,6 +2178,7 @@ static std::vector<glm::vec3> SphereVectors_441 = {
 };
 
 static std::unordered_map<std::string, std::vector<glm::vec3>> OrientationSetOptions = {
+	{"1",		SphereVectors_1},
 	{"9",		SphereVectors_9},
 	{"19",		SphereVectors_19},
 	{"33",		SphereVectors_33},
