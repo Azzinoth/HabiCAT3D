@@ -37,7 +37,7 @@ void NewLayerWindow::Close()
 
 void NewLayerWindow::Render()
 {
-	const ImVec2 CurrentWinowSize = ImVec2(512, 390);
+	const ImVec2 CurrentWinowSize = ImVec2(512, 420);
 	const ImVec2 CurrentWinowPosition = ImVec2(APPLICATION.GetWindowWidth() / 2.0f - CurrentWinowSize.x / 2.0f, APPLICATION.GetWindowHeight() / 2.0f - CurrentWinowSize.y / 2.0f);
 
 	ImGui::SetNextWindowPos(CurrentWinowPosition);

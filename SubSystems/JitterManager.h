@@ -333,7 +333,7 @@ namespace FocalEngine
 		{"1",		Tetrahedron1Jitter},
 		{"7",		Tetrahedron7Jitter},
 		{"13",		Tetrahedron13Jitter},
-		{"19",		Tetrahedron19Jitter},
+		//{"19",		Tetrahedron19Jitter},
 		{"25",		Tetrahedron25Jitter},
 		{"37",		Tetrahedron37Jitter},
 		{"55",		Tetrahedron55Jitter},

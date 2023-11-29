@@ -10,7 +10,7 @@ void MeshRenderer::RenderFEMesh(FEMesh* Mesh)
 {
 	MESH_MANAGER.MeshShader->getParameter("AmbientFactor")->updateData(UI.GetAmbientLightFactor());
 	MESH_MANAGER.MeshShader->getParameter("HaveColor")->updateData(Mesh->getColorCount() != 0);
-	MESH_MANAGER.MeshShader->getParameter("HeatMapType")->updateData(Mesh->HeatMapType);
+	//MESH_MANAGER.MeshShader->getParameter("HeatMapType")->updateData(Mesh->HeatMapType);
 	MESH_MANAGER.MeshShader->getParameter("LayerIndex")->updateData(LAYER_MANAGER.GetActiveLayerIndex());
 
 	MESH_MANAGER.MeshShader->getParameter("saturationFactor")->updateData(MESH_MANAGER.saturationFactor);

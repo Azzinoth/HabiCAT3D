@@ -43,6 +43,40 @@ std::vector<float> CompareLayerProducer::Normalize(std::vector<float> Original)
 	return Result;
 }
 
+void AdjustOutliers(std::vector<float>& Data, float LowerPercentile, float UpperPercentile)
+{
+	if (Data.empty()) return;
+
+	// Copy and sort the data
+	std::vector<float> SortedData = Data;
+	std::sort(SortedData.begin(), SortedData.end());
+
+	// Calculate positions for lower and upper outliers
+	int lowerOutlierPosition = SortedData.size() * LowerPercentile;
+	int upperOutlierPosition = SortedData.size() * UpperPercentile;
+
+	// Get the values for outlier thresholds
+	float lowerOutlierValue = SortedData[lowerOutlierPosition];
+	float upperOutlierValue = SortedData[upperOutlierPosition];
+
+	// Get the new min and max values (just inside the outlier thresholds)
+	float NewMin = SortedData[lowerOutlierPosition + 1];
+	float NewMax = SortedData[upperOutlierPosition - 1];
+
+	// Adjust the data
+	for (int i = 0; i < Data.size(); i++)
+	{
+		if (Data[i] <= lowerOutlierValue && LowerPercentile > 0.0f)
+		{
+			Data[i] = NewMin;
+		}
+		else if (Data[i] >= upperOutlierValue)
+		{
+			Data[i] = NewMax;
+		}
+	}
+}
+
 MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int SecondLayer)
 {
 	MeshLayer Result;
@@ -74,7 +108,56 @@ MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 	{
 		for (size_t i = 0; i < First->TrianglesToData.size(); i++)
 		{
-			NewData[i] = abs(First->TrianglesToData[i] - Second->TrianglesToData[i]);
+			NewData[i] = /*abs(*/First->TrianglesToData[i] - Second->TrianglesToData[i]/*)*/;
+		}
+
+		bool bDeleteOutliers = true;
+
+		if (bDeleteOutliers)
+		{
+			AdjustOutliers(NewData, 0.01f, 0.99f);
+			//// Copy and sort the data
+			//std::vector<float> SortedData = NewData;
+			//std::sort(SortedData.begin(), SortedData.end());
+
+			//// Calculate positions for lower and upper outliers
+			//int lowerOutlierPosition = SortedData.size() * 0.01;
+			//int upperOutlierPosition = SortedData.size() * 0.99;
+
+			//// Get the values for outlier thresholds
+			//float lowerOutlierValue = SortedData[lowerOutlierPosition];
+			//float upperOutlierValue = SortedData[upperOutlierPosition];
+
+			//// Get the new min and max values (just inside the outlier thresholds)
+			//float NewMin = SortedData[lowerOutlierPosition + 1];
+			//float NewMax = SortedData[upperOutlierPosition - 1];
+
+			//// Adjust the data
+			//for (float& value : NewData) {
+			//	if (value <= lowerOutlierValue) {
+			//		value = NewMin;
+			//	}
+			//	else if (value >= upperOutlierValue) {
+			//		value = NewMax;
+			//	}
+			//}
+
+			/*float OutlierBeginValue = FLT_MAX;
+
+			std::vector<float> SortedData = NewData;
+			std::sort(SortedData.begin(), SortedData.end());
+
+			int OutlierBeginPosition = SortedData.size() * 0.99;
+
+
+			OutlierBeginValue = SortedData[OutlierBeginPosition];
+			float NewMax = SortedData[OutlierBeginPosition - 1];
+
+			for (int i = 0; i < NewData.size(); i++)
+			{
+				if (NewData[i] >= OutlierBeginValue)
+					NewData[i] = NewMax;
+			}*/
 		}
 	}
 

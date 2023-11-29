@@ -8,7 +8,7 @@ JitterManager::JitterManager()
 	JitterVectorSetNames.push_back("1");
 	JitterVectorSetNames.push_back("7");
 	JitterVectorSetNames.push_back("13");
-	JitterVectorSetNames.push_back("19");
+	//JitterVectorSetNames.push_back("19");
 	JitterVectorSetNames.push_back("25");
 	JitterVectorSetNames.push_back("37");
 	JitterVectorSetNames.push_back("55");
@@ -94,9 +94,9 @@ void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* curr
 
 	for (size_t i = 0; i < JitterToDoCount; i++)
 	{
-		TempShifts[i * 4] *= 1.5f;
-		TempShifts[i * 4 + 1] *= 1.5f;
-		TempShifts[i * 4 + 2] *= 1.5f;
+		TempShifts[i * 4] *= 1.3f;
+		TempShifts[i * 4 + 1] *= 1.3f;
+		TempShifts[i * 4 + 2] *= 1.3f;
 		//ShiftsToUse[i][3] /= 2.0f;
 	}
 

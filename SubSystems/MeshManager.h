@@ -110,6 +110,25 @@ vec3 getTurboColormapValue(float factor)
 	return vec3(turbo_srgb_floats[index][0], turbo_srgb_floats[index][1], turbo_srgb_floats[index][2]);
 }
 
+vec3 getCompareColormapValue(float factor)
+{
+    // Define the colors
+    vec3 colorNegative = vec3(0.0, 0.0, 1.0); // Blue for negative
+    vec3 colorNeutral = vec3(1.0, 1.0, 1.0);  // White for zero
+    vec3 colorPositive = vec3(1.0, 0.0, 0.0); // Red for positive
+
+    // Interpolate between the colors based on the factor
+    if (factor < 0)
+	{
+        // Interpolate between blue and white for negative values
+        return mix(colorNeutral, colorNegative, -factor);
+    } else
+	{
+        // Interpolate between white and red for positive values
+        return mix(colorNeutral, colorPositive, factor);
+    }
+}
+
 vec3 getRainbowScaledColor(float factor)
 {
 	factor = 1.0 - factor;
@@ -227,22 +246,44 @@ vec3 getCorrectColor()
 
 	if (LayerIndex == -1)
 		return result;
+
+	bool CompareMap = true;
 	
 	float NormalizedValue = (FS_IN.FirstLayer - LayerMin) / (LayerMax - LayerMin);
 	NormalizedValue = clamp(NormalizedValue, 0, 1);
 
-	switch (HeatMapType)
-    {
-        case 3:
-				result = getScaledColor(NormalizedValue);
-                break;
-        case 4:
-				result = getRainbowScaledColor(NormalizedValue);
-                break;
-		case 5:
-				result = getTurboColormapValue(NormalizedValue);
-                break;
-    }
+	if (CompareMap)
+	{
+		//float CompareFactor = (FS_IN.FirstLayer - LayerMin) / (LayerMax - LayerMin);
+
+		float CompareFactor = 0.0;
+
+		// Mapping
+		if (FS_IN.FirstLayer <= 0) {
+			// Map negatives to [-1, 0)
+			CompareFactor = (LayerMin < 0) ? (FS_IN.FirstLayer / -LayerMin) : -1.0;
+		} else {
+			// Map positives to (0, 1]
+			CompareFactor = (LayerMax > 0) ? (FS_IN.FirstLayer / LayerMax) : 1.0;
+		}
+
+		result = getCompareColormapValue(CompareFactor);
+	}
+	else
+	{
+		switch (HeatMapType)
+		{
+			case 3:
+					result = getScaledColor(NormalizedValue);
+					break;
+			case 4:
+					result = getRainbowScaledColor(NormalizedValue);
+					break;
+			case 5:
+					result = getTurboColormapValue(NormalizedValue);
+					break;
+		}
+	}
 
 	return result;
 }
