@@ -379,12 +379,12 @@ FEColorRangeAdjuster::FEColorRangeAdjuster()
 	RangeSize = ImVec2(20, 600);
 	RangePosition = ImVec2(17, 15);
 
-	Ceiling.SetOrientation(false);
+	Slider.SetOrientation(false);
 
-	Ceiling.SetSize(13.0f);
-	Ceiling.SetAvailableRange(RangeSize.y - 1);
-	Ceiling.SetStartPosition(ImVec2(15.0f, 32.0f));
-	Ceiling.SetColor(ImColor(255, 155, 155, 255));
+	Slider.SetSize(13.0f);
+	Slider.SetAvailableRange(RangeSize.y - 1);
+	Slider.SetStartPosition(ImVec2(15.0f, 32.0f));
+	Slider.SetColor(ImColor(255, 155, 155, 255));
 
 	Legend.SetDummyValues();
 	Legend.SetNormalizedPositionToVec2Impl(FEColorRangeAdjuster::LegendCaptionsPosition);
@@ -410,12 +410,12 @@ void FEColorRangeAdjuster::SetColorRangeFunction(std::function<ImColor(float)> U
 	ColorRangeFunction = UserFunc;
 }
 
-float FEColorRangeAdjuster::GetCeilingValue()
+float FEColorRangeAdjuster::GetSliderValue()
 {
-	return 1.0f - Ceiling.GetRangePosition();
+	return 1.0f - Slider.GetRangePosition();
 }
 
-void FEColorRangeAdjuster::SetCeilingValue(float NewValue)
+void FEColorRangeAdjuster::SetSliderValue(float NewValue)
 {
 	if (NewValue < 0.0f)
 		NewValue = 0.0f;
@@ -423,13 +423,13 @@ void FEColorRangeAdjuster::SetCeilingValue(float NewValue)
 	if (NewValue > 1.0f)
 		NewValue = 1.0f;
 
-	Ceiling.SetRangePosition(1.0f - NewValue);
-	Ceiling.SetPixelPosition(ImVec2(Ceiling.GetPixelPosition().x, Ceiling.GetRangePosition() * Ceiling.GetAvailableRange()));
+	Slider.SetRangePosition(1.0f - NewValue);
+	Slider.SetPixelPosition(ImVec2(Slider.GetPixelPosition().x, Slider.GetRangePosition() * Slider.GetAvailableRange()));
 }
 
 float FEColorRangeAdjuster::GetRangeBottomLimit()
 {
-	return 1.0f - Ceiling.GetRangeBottomLimit();
+	return 1.0f - Slider.GetRangeBottomLimit();
 }
 
 void FEColorRangeAdjuster::SetRangeBottomLimit(float NewValue)
@@ -440,21 +440,21 @@ void FEColorRangeAdjuster::SetRangeBottomLimit(float NewValue)
 	if (NewValue > 1.0f)
 		NewValue = 1.0f;
 
-	Ceiling.SetRangeBottomLimit(1.0f - NewValue);
+	Slider.SetRangeBottomLimit(1.0f - NewValue);
 }
 
 void FEColorRangeAdjuster::Clear()
 {
-	Ceiling.Clear();
+	Slider.Clear();
 	RangeSize = ImVec2(20, 600);
 	RangePosition = ImVec2(17, 15);
 
-	Ceiling.SetOrientation(false);
+	Slider.SetOrientation(false);
 
-	Ceiling.SetSize(13.0f);
-	Ceiling.SetAvailableRange(RangeSize.y - 1);
-	Ceiling.SetStartPosition(ImVec2(15.0f, 32.0f));
-	Ceiling.SetColor(ImColor(255, 155, 155, 255));
+	Slider.SetSize(13.0f);
+	Slider.SetAvailableRange(RangeSize.y - 1);
+	Slider.SetStartPosition(ImVec2(15.0f, 32.0f));
+	Slider.SetColor(ImColor(255, 155, 155, 255));
 
 	Legend.SetDummyValues();
 	Legend.SetNormalizedPositionToVec2Impl(FEColorRangeAdjuster::LegendCaptionsPosition);
@@ -501,7 +501,7 @@ void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 		ImGui::PopFont();
 	}
 
-	int UpperUnusedStart = static_cast<int>(RangeSize.y * Ceiling.GetRangePosition());
+	int UpperUnusedStart = static_cast<int>(RangeSize.y * Slider.GetRangePosition());
 	if (bScreenshotMode)
 		UpperUnusedStart = 0;
 
@@ -515,15 +515,15 @@ void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 
 		if (ColorRangeFunction != nullptr)
 			CurrentColor = ColorRangeFunction(factor);
-
+			
 		ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY + RangeSize.y - i + 1) + RangePosition,
 			ImVec2(WindowX + RangeSize.x, WindowY + RangeSize.y - i) + RangePosition,
 			CurrentColor);
 	}
 
 	RangePosition.y = Position.y + 10;
-	if (!bScreenshotMode)
-		Ceiling.Render();
+	if (!bScreenshotMode && bRenderSlider)
+		Slider.Render();
 }
 
 ImVec2 FEGraphRender::GetPosition() const

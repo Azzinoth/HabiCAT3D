@@ -410,6 +410,8 @@ namespace FocalEngine
 		float GridScale = 2.5f;
 	};
 
+
+
 	class JitterManager
 	{
 		friend class UIManager;
@@ -466,6 +468,8 @@ namespace FocalEngine
 		std::string GetCurrentJitterVectorSetName();
 		void SetCurrentJitterVectorSetName(std::string name);
 		std::vector<std::string> GetJitterVectorSetNames();
+
+		void AdjustOutliers(std::vector<float>& Data, float LowerPercentile, float UpperPercentile);
 	private:
 		SINGLETON_PRIVATE_PART(JitterManager)
 

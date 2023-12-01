@@ -103,7 +103,7 @@ namespace FocalEngine
 		void OpenAboutWindow();
 		void RenderAboutWindow();
 
-		static void AfterLayerChange();
+		static void OnLayerChange();
 
 		float FindStandardDeviation(std::vector<float> DataPoints);
 

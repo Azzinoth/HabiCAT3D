@@ -247,43 +247,38 @@ vec3 getCorrectColor()
 	if (LayerIndex == -1)
 		return result;
 
-	bool CompareMap = true;
-	
 	float NormalizedValue = (FS_IN.FirstLayer - LayerMin) / (LayerMax - LayerMin);
 	NormalizedValue = clamp(NormalizedValue, 0, 1);
 
-	if (CompareMap)
+	switch (HeatMapType)
 	{
-		//float CompareFactor = (FS_IN.FirstLayer - LayerMin) / (LayerMax - LayerMin);
+		case 3:
+				result = getScaledColor(NormalizedValue);
+				break;
+		case 4:
+				result = getRainbowScaledColor(NormalizedValue);
+				break;
+		case 5:
+				result = getTurboColormapValue(NormalizedValue);
+				break;
+		case 6:
+				float CompareMapFactor = 0.0;
 
-		float CompareFactor = 0.0;
+				// Mapping
+				if (FS_IN.FirstLayer <= 0)
+				{
+					// Map negatives to [-1, 0)
+					CompareMapFactor = (LayerMin < 0) ? (FS_IN.FirstLayer / -LayerMin) : -1.0;
+				} else
+				{
+					// Map positives to (0, 1]
+					CompareMapFactor = (LayerMax > 0) ? (FS_IN.FirstLayer / LayerMax) : 1.0;
+				}
 
-		// Mapping
-		if (FS_IN.FirstLayer <= 0) {
-			// Map negatives to [-1, 0)
-			CompareFactor = (LayerMin < 0) ? (FS_IN.FirstLayer / -LayerMin) : -1.0;
-		} else {
-			// Map positives to (0, 1]
-			CompareFactor = (LayerMax > 0) ? (FS_IN.FirstLayer / LayerMax) : 1.0;
-		}
-
-		result = getCompareColormapValue(CompareFactor);
+				result = getCompareColormapValue(CompareMapFactor);
+				break;
 	}
-	else
-	{
-		switch (HeatMapType)
-		{
-			case 3:
-					result = getScaledColor(NormalizedValue);
-					break;
-			case 4:
-					result = getRainbowScaledColor(NormalizedValue);
-					break;
-			case 5:
-					result = getTurboColormapValue(NormalizedValue);
-					break;
-		}
-	}
+	
 
 	return result;
 }

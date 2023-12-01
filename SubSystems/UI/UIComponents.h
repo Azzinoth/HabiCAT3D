@@ -102,7 +102,7 @@ public:
 class FEColorRangeAdjuster
 {
 	ImVec2 Position;
-	FEArrowScroller Ceiling;
+	FEArrowScroller Slider;
 
 	ImVec2 RangeSize;
 	ImVec2 RangePosition;
@@ -111,6 +111,7 @@ class FEColorRangeAdjuster
 	static ImVec2 LegendCaptionsPosition(ImVec2 Position, ImVec2 Size, float NormalizedPosition, std::string Caption);
 public:
 	Legend Legend;
+	bool bRenderSlider = true;
 
 	FEColorRangeAdjuster();
 
@@ -120,8 +121,8 @@ public:
 	std::function<ImColor(float)> GetColorRangeFunction();
 	void SetColorRangeFunction(std::function<ImColor(float)> UserFunc);
 
-	float GetCeilingValue();
-	void SetCeilingValue(float NewValue);
+	float GetSliderValue();
+	void SetSliderValue(float NewValue);
 
 	float GetRangeBottomLimit();
 	void SetRangeBottomLimit(float NewValue);

@@ -97,7 +97,7 @@ void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* curr
 		TempShifts[i * 4] *= 1.3f;
 		TempShifts[i * 4 + 1] *= 1.3f;
 		TempShifts[i * 4 + 2] *= 1.3f;
-		//ShiftsToUse[i][3] /= 2.0f;
+		TempShifts[i * 4 + 3] *= 1.2f;
 	}
 
 	LastUsedJitterSettings.clear();
@@ -134,35 +134,6 @@ void JitterManager::RunCreationOfSDFAsync()
 
 	THREAD_POOL.Execute(RunCalculationOnSDFAsync, InputData, OutputData, AfterCalculationFinishSDFCallback);
 }
-
-//void JitterManager::ExtractDataFromSDF(SDF* SDF)
-//{
-//	if (MESH_MANAGER.ActiveMesh == nullptr)
-//		return;
-//
-//	int CurrentIndex = PerSDFTrianglesResult.size();
-//	PerSDFTrianglesResult.resize(PerSDFTrianglesResult.size() + 1);
-//	PerSDFTrianglesResult[CurrentIndex].resize(MESH_MANAGER.ActiveMesh->Triangles.size());
-//	std::vector<int> TrianglesRugosityCount;
-//	TrianglesRugosityCount.resize(MESH_MANAGER.ActiveMesh->Triangles.size());
-//
-//	auto WorkOnNode = [&](SDFNode* CurrentNode) {
-//		for (size_t i = 0; i < CurrentNode->TrianglesInCell.size(); i++)
-//		{
-//			const int TriangleIndex = CurrentNode->TrianglesInCell[i];
-//			TrianglesRugosityCount[TriangleIndex]++;
-//			PerSDFTrianglesResult[CurrentIndex][TriangleIndex] += static_cast<float>(CurrentNode->UserData);
-//		}
-//	};
-//	SDF->RunOnAllNodes(WorkOnNode);
-//
-//	for (size_t i = 0; i < PerSDFTrianglesResult[CurrentIndex].size(); i++)
-//	{
-//		PerSDFTrianglesResult[CurrentIndex][i] /= TrianglesRugosityCount[i];
-//	}
-//
-//	//TimeTookFillMeshWithRugosityData = TIME.EndTimeStamp("FillMeshWithRugosityData");
-//}
 
 void JitterManager::RunCalculationOnSDFAsync(void* InputData, void* OutputData)
 {
@@ -433,4 +404,38 @@ void JitterManager::SetCurrentJitterVectorSetName(std::string name)
 std::vector<std::string> JitterManager::GetJitterVectorSetNames()
 {
 	return JitterVectorSetNames;
+}
+
+void JitterManager::AdjustOutliers(std::vector<float>& Data, float LowerPercentile, float UpperPercentile)
+{
+	if (Data.empty()) return;
+
+	// Copy and sort the data
+	std::vector<float> SortedData = Data;
+	std::sort(SortedData.begin(), SortedData.end());
+
+	// Calculate positions for lower and upper outliers
+	int lowerOutlierPosition = SortedData.size() * LowerPercentile;
+	int upperOutlierPosition = SortedData.size() * UpperPercentile;
+
+	// Get the values for outlier thresholds
+	float lowerOutlierValue = SortedData[lowerOutlierPosition];
+	float upperOutlierValue = SortedData[upperOutlierPosition];
+
+	// Get the new min and max values (just inside the outlier thresholds)
+	float NewMin = SortedData[lowerOutlierPosition + 1];
+	float NewMax = SortedData[upperOutlierPosition - 1];
+
+	// Adjust the data
+	for (int i = 0; i < Data.size(); i++)
+	{
+		if (Data[i] <= lowerOutlierValue && LowerPercentile > 0.0f)
+		{
+			Data[i] = NewMin;
+		}
+		else if (Data[i] >= upperOutlierValue)
+		{
+			Data[i] = NewMax;
+		}
+	}
 }

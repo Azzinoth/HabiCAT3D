@@ -209,6 +209,7 @@ void NewLayerWindow::AddLayer()
 		{
 			MESH_MANAGER.ActiveMesh->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
 			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+			MESH_MANAGER.ActiveMesh->HeatMapType = 6;
 
 			InternalClose();
 			break;

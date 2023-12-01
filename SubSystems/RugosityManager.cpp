@@ -596,7 +596,8 @@ void RugosityManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	if (RUGOSITY_MANAGER.bDeleteOutliers || (RUGOSITY_MANAGER.bUseFindSmallestRugosity && RUGOSITY_MANAGER.OrientationSetForMinRugosity == "1"))
 	{
 		DeleteOutliers = "Yes";
-		float OutlierBeginValue = FLT_MAX;
+		JITTER_MANAGER.AdjustOutliers(NewLayer.TrianglesToData, 0.00f, 0.99f);
+		/*float OutlierBeginValue = FLT_MAX;
 
 		std::vector<float> SortedData = NewLayer.TrianglesToData;
 		std::sort(SortedData.begin(), SortedData.end());
@@ -609,7 +610,7 @@ void RugosityManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		{
 			if (NewLayer.TrianglesToData[i] >= OutlierBeginValue)
 				NewLayer.TrianglesToData[i] = NewMax;
-		}
+		}*/
 	}
 	NewLayer.DebugInfo->AddEntry("Delete outliers", DeleteOutliers);
 
@@ -633,7 +634,7 @@ void RugosityManager::RenderDebugInfoForSelectedNode(SDF* Grid)
 	Grid->UpdateRenderedLines();
 
 	SDFNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
-	for (size_t i = 0; i < 3/*CurrentlySelectedCell->TrianglesInCell.size()*/; i++)
+	for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
 	{
 		const auto CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
 
