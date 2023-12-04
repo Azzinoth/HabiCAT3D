@@ -122,7 +122,8 @@ vec3 getCompareColormapValue(float factor)
 	{
         // Interpolate between blue and white for negative values
         return mix(colorNeutral, colorNegative, -factor);
-    } else
+    }
+	else
 	{
         // Interpolate between white and red for positive values
         return mix(colorNeutral, colorPositive, factor);
@@ -265,11 +266,16 @@ vec3 getCorrectColor()
 				float CompareMapFactor = 0.0;
 
 				// Mapping
-				if (FS_IN.FirstLayer <= 0)
+				if (FS_IN.FirstLayer == 0)
+				{
+					CompareMapFactor = 0.0;
+				}
+				else if (FS_IN.FirstLayer <= 0)
 				{
 					// Map negatives to [-1, 0)
 					CompareMapFactor = (LayerMin < 0) ? (FS_IN.FirstLayer / -LayerMin) : -1.0;
-				} else
+				}
+				else
 				{
 					// Map positives to (0, 1]
 					CompareMapFactor = (LayerMax > 0) ? (FS_IN.FirstLayer / LayerMax) : 1.0;

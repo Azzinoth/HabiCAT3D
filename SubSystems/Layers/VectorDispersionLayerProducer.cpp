@@ -77,6 +77,8 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	if (!VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult)
 		return;
 
+	NewLayer.SetType(VECTOR_DISPERSION);
+
 	VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult = false;
 	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);

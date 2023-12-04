@@ -9,6 +9,7 @@ HeightLayerProducer::~HeightLayerProducer() {}
 MeshLayer HeightLayerProducer::Calculate(FEMesh* Mesh)
 {
 	MeshLayer Result;
+	Result.SetType(HEIGHT);
 
 	if (Mesh == nullptr)
 		return Result;

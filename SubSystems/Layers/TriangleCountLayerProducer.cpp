@@ -36,6 +36,8 @@ void TriangleCountLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	if (!TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult)
 		return;
 
+	NewLayer.SetType(TRIANGLE_DENSITY);
+
 	TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult = false;
 	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
 	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);

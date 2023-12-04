@@ -22,22 +22,66 @@ void CompareLayerProducer::SetShouldNormalize(bool NewValue)
 	bNormalize = NewValue;
 }
 
+//std::vector<float> CompareLayerProducer::Normalize(std::vector<float> Original)
+//{
+//	std::vector<float> Result;
+//
+//	float Min = FLT_MAX;
+//	float Max = -FLT_MAX;
+//	for (size_t i = 0; i < Original.size(); i++)
+//	{
+//		Min = std::min(Min, Original[i]);
+//		Max = std::max(Max, Original[i]);
+//	}
+//
+//	Result.resize(Original.size());
+//	for (size_t i = 0; i < Original.size(); i++)
+//	{
+//		Result[i] = ((Original[i] - Min) / (Max - Min)) * 2.0f - 1.0f;
+//	}
+//
+//	return Result;
+//}
+
 std::vector<float> CompareLayerProducer::Normalize(std::vector<float> Original)
 {
 	std::vector<float> Result;
+	Result.resize(Original.size());
 
-	float Min = FLT_MAX;
-	float Max = -FLT_MAX;
+	float MaxPositive = 0.0f;
+	float MaxNegative = 0.0f;
+
+	// Find the maximum absolute values for positive and negative numbers
 	for (size_t i = 0; i < Original.size(); i++)
 	{
-		Min = std::min(Min, Original[i]);
-		Max = std::max(Max, Original[i]);
+		if (Original[i] > 0)
+		{
+			MaxPositive = std::max(MaxPositive, Original[i]);
+		}
+		else if (Original[i] < 0)
+		{
+			MaxNegative = std::min(MaxNegative, Original[i]);
+		}
 	}
 
-	Result.resize(Original.size());
+	// Normalize the vector
 	for (size_t i = 0; i < Original.size(); i++)
 	{
-		Result[i] = ((Original[i] - Min) / (Max - Min)) * 2.0f - 1.0f;
+		if (Original[i] > 0)
+		{
+			// Normalize positive values to 0 to 1
+			Result[i] = Original[i] / MaxPositive;
+		}
+		else if (Original[i] < 0)
+		{
+			// Normalize negative values to -1 to 0
+			Result[i] = Original[i] / std::abs(MaxNegative);
+		}
+		else
+		{
+			// Handle the case where the value is zero
+			Result[i] = 0.0f;
+		}
 	}
 
 	return Result;
@@ -46,6 +90,7 @@ std::vector<float> CompareLayerProducer::Normalize(std::vector<float> Original)
 MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int SecondLayer)
 {
 	MeshLayer Result;
+	Result.SetType(COMPARE);
 
 	if (MESH_MANAGER.ActiveMesh == nullptr || FirstLayer == -1 || SecondLayer == -1)
 		return Result;
@@ -85,7 +130,6 @@ MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 		}
 	}
 
-	Result.SetType(COMPARE);
 	Result.TrianglesToData = NewData;
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Compare"));
 

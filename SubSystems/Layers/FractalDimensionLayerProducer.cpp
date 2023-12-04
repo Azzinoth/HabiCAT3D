@@ -167,6 +167,8 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	if (!FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult)
 		return;
 
+	NewLayer.SetType(FRACTAL_DIMENSION);
+
 	FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult = false;
 
 	NewLayer.DebugInfo->AddEntry("FD outliers: ", std::string(FRACTAL_DIMENSION_LAYER_PRODUCER.bLastUsedUseFilter ? "Yes" : "No"));

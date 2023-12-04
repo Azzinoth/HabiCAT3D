@@ -9,6 +9,7 @@ TriangleEdgeLayerProducer::~TriangleEdgeLayerProducer() {}
 MeshLayer TriangleEdgeLayerProducer::Calculate(FEMesh* Mesh, int Mode)
 {
 	MeshLayer Result;
+	Result.SetType(TRIANGLE_EDGE);
 
 	if (Mesh == nullptr)
 		return Result;

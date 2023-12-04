@@ -182,9 +182,9 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 	// version of FEMesh file type
 	File.read(Buffer, 4);
 	const float Version = *(float*)Buffer;
-	if (Version > APP_VERSION)
+	if (Version > APP_VERSION && abs(Version - APP_VERSION) > 0.0001)
 	{
-		LOG.Add(std::string("Can't load file: ") + FileName + " in function LoadRUGMesh. File was created in different version of engine!");
+		LOG.Add(std::string("Can't load file: ") + FileName + " in function LoadRUGMesh. File was created in different version of application!");
 		return nullptr;
 	}
 
@@ -235,6 +235,13 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	for (size_t i = 0; i < Layers.size(); i++)
 	{
+		if (Version >= 0.55)
+		{
+			File.read(Buffer, 4);
+			const int LayerType = *(int*)Buffer;
+			Layers[i].SetType(LAYER_TYPE(LayerType));
+		}
+
 		Layers[i].SetCaption(FILE_SYSTEM.ReadFEString(File));
 		Layers[i].SetNote(FILE_SYSTEM.ReadFEString(File));
 
@@ -411,6 +418,9 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 
 	for (size_t i = 0; i < Mesh->Layers.size(); i++)
 	{
+		int LayerType = Mesh->Layers[i].GetType();
+		file.write((char*)&LayerType, sizeof(int));
+
 		Count = static_cast<int>(Mesh->Layers[i].GetCaption().size());
 		file.write((char*)&Count, sizeof(int));
 		file.write((char*)Mesh->Layers[i].GetCaption().c_str(), sizeof(char) * Count);

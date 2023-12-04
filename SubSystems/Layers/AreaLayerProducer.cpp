@@ -9,6 +9,7 @@ AreaLayerProducer::~AreaLayerProducer() {}
 MeshLayer AreaLayerProducer::Calculate(FEMesh* Mesh)
 {
 	MeshLayer Result;
+	Result.SetType(TRIANGLE_AREA);
 
 	if (Mesh == nullptr)
 		return Result;

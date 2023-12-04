@@ -3,7 +3,7 @@
 #include "FETexture.h"
 #include "SubSystems/FEGeometricTools.h"
 
-#define APP_VERSION 0.47
+#define APP_VERSION 0.55
 
 namespace FocalEngine
 {
@@ -48,12 +48,13 @@ namespace FocalEngine
 		UNKNOWN = 0,
 		HEIGHT = 1,
 		TRIANGLE_EDGE = 2,
-		AREA = 3,
+		TRIANGLE_AREA = 3,
 		COMPARE = 4,
 		STANDARD_DEVIATION = 5,
 		RUGOSITY = 6,
 		VECTOR_DISPERSION = 7,
-		FRACTAL_DIMENSION = 8
+		FRACTAL_DIMENSION = 8,
+		TRIANGLE_DENSITY = 9
 	};
 
 	class MeshLayer

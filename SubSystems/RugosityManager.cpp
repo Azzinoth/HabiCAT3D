@@ -576,6 +576,7 @@ void RugosityManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	if (!RUGOSITY_MANAGER.bWaitForJitterResult)
 		return;
 
+	NewLayer.SetType(RUGOSITY);
 	RUGOSITY_MANAGER.bWaitForJitterResult = false;
 	NewLayer.DebugInfo->Type = "RugosityMeshLayerDebugInfo";
 
