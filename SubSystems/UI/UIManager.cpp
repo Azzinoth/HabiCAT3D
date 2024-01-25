@@ -545,18 +545,18 @@ void WriteJitterSettingsToDebugInfo(MeshLayerDebugInfo* DebugInfo, std::vector<S
 
 void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 {
-	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
-	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
-	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
+	MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(NewLayer);
+	MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
+	MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
 
 	//WriteJitterSettingsToDebugInfo(MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
-	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 1);
 
 	if (RUGOSITY_MANAGER.bCalculateStandardDeviation)
 	{
 		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation;
-		for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
+		for (int i = 0; i < MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles.size(); i++)
 		{
 			std::vector<float> CurrentTriangleResults;
 			for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
@@ -566,16 +566,16 @@ void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 
 			TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
 		}
-		MESH_MANAGER.ActiveMesh->AddLayer(TrianglesToStandardDeviation);
-		MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(TrianglesToStandardDeviation);
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-		MeshLayerDebugInfo* DebugInfo = MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo;
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().DebugInfo = new MeshLayerDebugInfo();
+		MeshLayerDebugInfo* DebugInfo = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().DebugInfo;
 		DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StarTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer Caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());
+		DebugInfo->AddEntry("Source layer ID", MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 2].GetID());
+		DebugInfo->AddEntry("Source layer Caption", MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 2].GetCaption());
 	}
 
 	// Add per jitter debug info to the standard deviation layer.
@@ -613,7 +613,7 @@ void UIManager::OnVectorDispersionCalculationsEnd(MeshLayer NewLayer)
 	{
 		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation;
-		for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
+		for (int i = 0; i < MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles.size(); i++)
 		{
 			std::vector<float> CurrentTriangleResults;
 			for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
@@ -623,16 +623,16 @@ void UIManager::OnVectorDispersionCalculationsEnd(MeshLayer NewLayer)
 
 			TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
 		}
-		MESH_MANAGER.ActiveMesh->AddLayer(TrianglesToStandardDeviation);
-		MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(TrianglesToStandardDeviation);
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-		MeshLayerDebugInfo* DebugInfo = MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo;
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().DebugInfo = new MeshLayerDebugInfo();
+		MeshLayerDebugInfo* DebugInfo = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().DebugInfo;
 		DebugInfo->Type = "VectorDispersionDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StarTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer Caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());
+		DebugInfo->AddEntry("Source layer ID", MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 2].GetID());
+		DebugInfo->AddEntry("Source layer Caption", MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 2].GetCaption());
 	}
 
 	//LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 2);
@@ -646,7 +646,7 @@ void UIManager::OnFractalDimensionCalculationsEnd(MeshLayer NewLayer)
 	{
 		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation;
-		for (int i = 0; i < MESH_MANAGER.ActiveMesh->Triangles.size(); i++)
+		for (int i = 0; i < MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles.size(); i++)
 		{
 			std::vector<float> CurrentTriangleResults;
 			for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
@@ -656,16 +656,16 @@ void UIManager::OnFractalDimensionCalculationsEnd(MeshLayer NewLayer)
 
 			TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
 		}
-		MESH_MANAGER.ActiveMesh->AddLayer(TrianglesToStandardDeviation);
-		MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(TrianglesToStandardDeviation);
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-		MeshLayerDebugInfo* DebugInfo = MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo;
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().DebugInfo = new MeshLayerDebugInfo();
+		MeshLayerDebugInfo* DebugInfo = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().DebugInfo;
 		DebugInfo->Type = "FractalDimensionDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StarTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer Caption", MESH_MANAGER.ActiveMesh->Layers[MESH_MANAGER.ActiveMesh->Layers.size() - 2].GetCaption());
+		DebugInfo->AddEntry("Source layer ID", MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 2].GetID());
+		DebugInfo->AddEntry("Source layer Caption", MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 2].GetCaption());
 	}
 
 	UI.bShouldCloseProgressPopup = true;
@@ -778,7 +778,7 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 
 	if (bScreenshotMode && MeshAndCurrentLayerIsValid())
 	{
-		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 		if (CurrentLayer->Min == CurrentLayer->Max)
 		{
 			HeatMapColorRange.Legend.SetDummyValues();
@@ -805,7 +805,7 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 	static float LastValue = HeatMapColorRange.GetSliderValue();
 	if (MeshAndCurrentLayerIsValid())
 	{
-		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 		if (CurrentLayer->Min == CurrentLayer->Max)
 		{
 			HeatMapColorRange.Legend.SetDummyValues();
@@ -845,7 +845,7 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 	ImGui::SameLine();
 	if (ImGui::Button("Set", ImVec2(62, 19)))
 	{
-		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		float NewValue = float(atof(CurrentRugosityMax));
 		if (NewValue < CurrentLayer->Min)
@@ -897,7 +897,7 @@ int UIManager::TotalWidthNeededForLayerList(int ButtonUsed)
 	const int ButtonSpacing = 6;
 	const int FirstLastButtonPadding = 4;
 
-	ButtonUsed = std::min(size_t(ButtonUsed), MESH_MANAGER.ActiveMesh->Layers.size());
+	ButtonUsed = std::min(size_t(ButtonUsed), MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size());
 
 	if (ButtonUsed == 0)
 		return Result;
@@ -905,7 +905,7 @@ int UIManager::TotalWidthNeededForLayerList(int ButtonUsed)
 	Result += GetLayerListButtonSize("No Layer").x + 16;
 	for (int i = 0; i < ButtonUsed; i++)
 	{
-		Result += GetLayerListButtonSize(MESH_MANAGER.ActiveMesh->Layers[i].GetCaption()).x + ButtonSpacing * 2.0f + 4;
+		Result += GetLayerListButtonSize(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[i].GetCaption()).x + ButtonSpacing * 2.0f + 4;
 	}
 
 	Result += FirstLastButtonPadding * 2.0f;
@@ -933,7 +933,7 @@ void UIManager::RenderLayerChooseWindow()
 	int TotalWidthNeeded = 0;
 
 	if (MESH_MANAGER.ActiveMesh != nullptr)
-		TotalWidthNeeded = TotalWidthNeededForLayerList(MESH_MANAGER.ActiveMesh->Layers.size());
+		TotalWidthNeeded = TotalWidthNeededForLayerList(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size());
 	if (TotalWidthNeeded == 0)
 	{
 		if (MESH_MANAGER.ActiveMesh == nullptr)
@@ -981,7 +981,7 @@ void UIManager::RenderLayerChooseWindow()
 	int CurrentRow = 0;
 	int PreviousButtonWidth = 0;
 	int YPosition = ImGui::GetCursorPosY() + 7;
-	for (int i = -1; i < int(MESH_MANAGER.ActiveMesh->Layers.size()); i++)
+	for (int i = -1; i < int(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size()); i++)
 	{
 		ImGui::SameLine();
 		ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.1f, 0.6f, 0.8f));
@@ -1007,14 +1007,14 @@ void UIManager::RenderLayerChooseWindow()
 		}
 		else
 		{
-			if (ImGui::GetCursorPosX() + GetLayerListButtonSize(MESH_MANAGER.ActiveMesh->Layers[i].GetCaption()).x + ButtonSpacing * 2.0f + 4 > (UsableSpaceWidth - 10))
+			if (ImGui::GetCursorPosX() + GetLayerListButtonSize(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[i].GetCaption()).x + ButtonSpacing * 2.0f + 4 > (UsableSpaceWidth - 10))
 			{
 				ImGui::SetCursorPosX(FirstLastButtonPadding * 2.0f);
 				CurrentRow++;
 			}
 
 			ImGui::SetCursorPosY(YPosition + CurrentRow * RowHeight);
-			if (ImGui::Button((MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() + "##" + std::to_string(i)).c_str()))
+			if (ImGui::Button((MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[i].GetCaption() + "##" + std::to_string(i)).c_str()))
 			{
 				LAYER_MANAGER.SetActiveLayerIndex(i);
 			}
@@ -1141,7 +1141,7 @@ void UIManager::RenderHistogramWindow()
 				bHistogramPixelBins &&
 				LAYER_MANAGER.GetActiveLayerIndex() != -1)
 			{
-				UpdateHistogramData(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], Histogram.GetCurrentBinCount());
+				UpdateHistogramData(&MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()], Histogram.GetCurrentBinCount());
 			}
 
 			LastWindowW = HistogramWindow->SizeFull.x;
@@ -1215,7 +1215,7 @@ void UIManager::RenderHistogramWindow()
 
 			glm::vec2 MinValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
 			glm::vec2 MaxValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
-			float PercentageOfAreaSelected = (MaxValueDistribution.x / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) - (MinValueDistribution.x / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f);
+			float PercentageOfAreaSelected = (MaxValueDistribution.x / MESH_MANAGER.ActiveMesh->ComplexityMetricData->TotalArea * 100.0f) - (MinValueDistribution.x / MESH_MANAGER.ActiveMesh->ComplexityMetricData->TotalArea * 100.0f);
 
 			ImGui::SetCursorPos(ImVec2(200.0f, 33.0f));
 			std::string CurrentText = "Selected area: " + TruncateAfterDot(std::to_string(PercentageOfAreaSelected), 3) + " %%";
@@ -1243,7 +1243,7 @@ void UIManager::RenderHistogramWindow()
 													  ArrowPosition + ImVec2(1.0f, Histogram.GetSize().y - 1.0f),
 													  ImColor(156.0f / 255.0f, 105.0f / 255.0f, 137.0f / 255.0f, 165.0f / 255.0f));
 			
-			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 			if (CurrentLayer != nullptr)
 			{
 				CurrentLayer->SetSelectedRangeMin(HistogramSelectRegionMin.GetRangePosition());
@@ -1266,7 +1266,7 @@ void UIManager::RenderHistogramWindow()
 			if (bHistogramPixelBins)
 				NewBinCount = HistogramWindow->SizeFull.x - 20;
 
-			UpdateHistogramData(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewBinCount);
+			UpdateHistogramData(&MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewBinCount);
 		}
 
 		static char CurrentBinCountChar[1024] = "128";
@@ -1292,7 +1292,7 @@ void UIManager::RenderHistogramWindow()
 				if (Histogram.GetCurrentBinCount() != TempInt)
 				{
 					if (MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)	
-						UpdateHistogramData(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], TempInt);
+						UpdateHistogramData(&MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()], TempInt);
 				}
 			}
 		}
@@ -1395,23 +1395,23 @@ void UIManager::RenderAboutWindow()
 
 glm::dvec2 UIManager::LayerValuesAreaDistribution(MeshLayer* Layer, float Value)
 {
-	if (Layer == nullptr || Layer->GetParentMesh() == nullptr || Layer->TrianglesToData.empty() || Layer->GetParentMesh()->TrianglesArea.empty())
+	if (Layer == nullptr || Layer->GetParent() == nullptr || Layer->TrianglesToData.empty() || Layer->GetParent()->TrianglesArea.empty())
 		return glm::dvec2(0.0);
 
 	float FirstBin = 0.0;
 	float SecondBin = 0.0;
 
-	FEMesh* Mesh = Layer->GetParentMesh();
+	FEMesh* Mesh = MESH_MANAGER.ActiveMesh;
 
-	for (int i = 0; i < Mesh->Triangles.size(); i++)
+	for (int i = 0; i < Mesh->ComplexityMetricData->Triangles.size(); i++)
 	{
 		if (Layer->TrianglesToData[i] <= Value)
 		{
-			FirstBin += float(Mesh->TrianglesArea[i]);
+			FirstBin += float(Mesh->ComplexityMetricData->TrianglesArea[i]);
 		}
 		else
 		{
-			SecondBin += float(Mesh->TrianglesArea[i]);
+			SecondBin += float(Mesh->ComplexityMetricData->TrianglesArea[i]);
 		}
 	}
 
@@ -1433,11 +1433,11 @@ void UIManager::OnLayerChange()
 	LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMin(0.0f);
 	LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMax(0.0f);
 
-	if (MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Min != MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Max)
+	if (MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Min != MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Max)
 	{
-		UI.UpdateHistogramData(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], UI.Histogram.GetCurrentBinCount());
+		UI.UpdateHistogramData(&MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()], UI.Histogram.GetCurrentBinCount());
 
-		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 		UI.HeatMapColorRange.SetColorRangeFunction(TurboColorMapValue);
@@ -1613,10 +1613,10 @@ void UIManager::RenderLayerSettingsTab()
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		NoInfoText = "No model loaded.";
 
-	if (MESH_MANAGER.ActiveMesh != nullptr && MESH_MANAGER.ActiveMesh->Layers.empty())
+	if (MESH_MANAGER.ActiveMesh != nullptr && MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.empty())
 		NoInfoText = "Model have no layers.";
 
-	if (MESH_MANAGER.ActiveMesh != nullptr && !MESH_MANAGER.ActiveMesh->Layers.empty() && LAYER_MANAGER.GetActiveLayerIndex() == -1)
+	if (MESH_MANAGER.ActiveMesh != nullptr && !MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.empty() && LAYER_MANAGER.GetActiveLayerIndex() == -1)
 		NoInfoText = "Layer is not selected.";
 
 	if (!NoInfoText.empty())
@@ -1629,7 +1629,7 @@ void UIManager::RenderLayerSettingsTab()
 
 	if (NoInfoText.empty())
 	{
-		MeshLayer* Layer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		MeshLayer* Layer = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		ImGui::Text("Triangle count: ");
 		ImGui::SameLine();
@@ -1657,8 +1657,8 @@ void UIManager::RenderLayerSettingsTab()
 			int IndexToDelete = LAYER_MANAGER.GetActiveLayerIndex();
 			LAYER_MANAGER.SetActiveLayerIndex(-1);
 
-			MESH_MANAGER.ActiveMesh->Layers.erase(MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete,
-				MESH_MANAGER.ActiveMesh->Layers.begin() + IndexToDelete + 1);
+			MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.erase(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.begin() + IndexToDelete,
+				MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.begin() + IndexToDelete + 1);
 
 			ImGui::PopStyleColor(3);
 			return;
@@ -1717,13 +1717,13 @@ void UIManager::RenderLayerSettingsTab()
 		{
 			float NewValue = float(atof(CurrentDistributionEdit));
 			LastDistributionValue = NewValue;
-			CurrentDistribution = LayerValuesAreaDistribution(&MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewValue);
+			CurrentDistribution = LayerValuesAreaDistribution(&MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewValue);
 		}
 
 		if (CurrentDistribution != glm::vec2())
 		{
-			ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.x / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
-			ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.y / MESH_MANAGER.ActiveMesh->TotalArea * 100.0f) + " %%").c_str());
+			ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.x / MESH_MANAGER.ActiveMesh->ComplexityMetricData->TotalArea * 100.0f) + " %%").c_str());
+			ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.y / MESH_MANAGER.ActiveMesh->ComplexityMetricData->TotalArea * 100.0f) + " %%").c_str());
 		}
 	}
 }
@@ -1889,21 +1889,21 @@ void UIManager::RenderExportTab()
 	ImGui::Text("Selection mode:");
 	if (ImGui::RadioButton("None", &LayerSelectionMode, 0))
 	{
-		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.clear();
 		LINE_RENDERER.clearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
 
 	if (ImGui::RadioButton("Triangles", &LayerSelectionMode, 1))
 	{
-		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.clear();
 		LINE_RENDERER.clearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
 
 	if (ImGui::RadioButton("Area", &LayerSelectionMode, 2))
 	{
-		MESH_MANAGER.ActiveMesh->TriangleSelected.clear();
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.clear();
 		LINE_RENDERER.clearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
@@ -1919,21 +1919,21 @@ void UIManager::RenderExportTab()
 		ImGui::Checkbox("Output selection data to file", &bOutputSelectionToFile);
 	}
 
-	if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() == 1 && LAYER_MANAGER.GetActiveLayer() != nullptr)
+	if (MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.size() == 1 && LAYER_MANAGER.GetActiveLayer() != nullptr)
 	{
-		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		ImGui::Separator();
 		ImGui::Text("Selected triangle information :");
 
 		std::string Text = "Triangle value : ";
-		Text += std::to_string(CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[0]]);
+		Text += std::to_string(CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected[0]]);
 		ImGui::Text(Text.c_str());
 
 		int HeightLayerIndex = -1;
-		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
+		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size(); i++)
 		{
-			if (MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() == "Height")
+			if (MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[i].GetCaption() == "Height")
 				HeightLayerIndex = i;
 		}
 
@@ -1941,25 +1941,25 @@ void UIManager::RenderExportTab()
 		double AverageHeight = 0.0;
 		if (HeightLayerIndex != -1)
 		{
-			AverageHeight = MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[0]];
-			AverageHeight -= MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex].Min;
+			AverageHeight = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[HeightLayerIndex].TrianglesToData[MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected[0]];
+			AverageHeight -= MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[HeightLayerIndex].Min;
 		}
 
 		Text += std::to_string(AverageHeight);
 		ImGui::Text(Text.c_str());
 	}
-	else if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() > 1 && LAYER_MANAGER.GetActiveLayer() != nullptr)
+	else if (MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.size() > 1 && LAYER_MANAGER.GetActiveLayer() != nullptr)
 	{
-		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		std::string Text = "Area average value : ";
 		float TotalRugosity = 0.0f;
-		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
+		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.size(); i++)
 		{
-			TotalRugosity += CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
+			TotalRugosity += CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected[i]];
 		}
 
-		TotalRugosity /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
+		TotalRugosity /= MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.size();
 		Text += std::to_string(TotalRugosity);
 
 		ImGui::Text(Text.c_str());
@@ -1968,23 +1968,23 @@ void UIManager::RenderExportTab()
 		double AverageHeight = 0.0;
 
 		int HeightLayerIndex = -1;
-		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
+		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size(); i++)
 		{
-			if (MESH_MANAGER.ActiveMesh->Layers[i].GetCaption() == "Height")
+			if (MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[i].GetCaption() == "Height")
 				HeightLayerIndex = i;
 		}
 
 		if (HeightLayerIndex != -1)
 		{
-			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[HeightLayerIndex];
+			MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[HeightLayerIndex];
 
-			for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); i++)
+			for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.size(); i++)
 			{
-				double CurrentHeight = CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
+				double CurrentHeight = CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected[i]];
 				AverageHeight += CurrentHeight;
 			}
 
-			AverageHeight /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
+			AverageHeight /= MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.size();
 			AverageHeight -= CurrentLayer->Min;
 		}
 
@@ -2133,5 +2133,5 @@ bool UIManager::ShouldUseTransparentBackground()
 
 bool UIManager::MeshAndCurrentLayerIsValid()
 {
-	return MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1 && MESH_MANAGER.ActiveMesh->Layers.size() > LAYER_MANAGER.GetActiveLayerIndex();
+	return MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1 && MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() > LAYER_MANAGER.GetActiveLayerIndex();
 }

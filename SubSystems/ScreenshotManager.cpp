@@ -252,7 +252,7 @@ void ScreenshotManager::TakeScreenshot(FEBasicCamera* CurrentCamera)
 
 	if (RawDataSize != 0)
 	{
-		std::string BaseFileName = MESH_MANAGER.ActiveMesh->FileName;
+		std::string BaseFileName = MESH_MANAGER.ActiveMesh->ComplexityMetricData->FileName;
 		std::string FileName = SuitableNewFileName(BaseFileName, ".png");
 
 		ExportRawDataToPNG(FileName.c_str(), RawData, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight(), GL_RGBA);

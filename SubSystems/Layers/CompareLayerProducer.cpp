@@ -97,8 +97,8 @@ MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	MeshLayer* First = &MESH_MANAGER.ActiveMesh->Layers[FirstLayer];
-	MeshLayer* Second = &MESH_MANAGER.ActiveMesh->Layers[SecondLayer];
+	MeshLayer* First = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[FirstLayer];
+	MeshLayer* Second = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[SecondLayer];
 
 	std::vector<float> NewData;
 	NewData.resize(First->TrianglesToData.size());
@@ -140,8 +140,8 @@ MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 
 	std::string TempString = bNormalize ? "Yes" : "No";
 	Result.DebugInfo->AddEntry("Normalized", TempString);
-	Result.DebugInfo->AddEntry("First layer caption", MESH_MANAGER.ActiveMesh->Layers[FirstLayer].GetCaption());
-	Result.DebugInfo->AddEntry("Second layer caption", MESH_MANAGER.ActiveMesh->Layers[SecondLayer].GetCaption());
+	Result.DebugInfo->AddEntry("First layer caption", MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[FirstLayer].GetCaption());
+	Result.DebugInfo->AddEntry("Second layer caption", MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[SecondLayer].GetCaption());
 
 	return Result;
 }

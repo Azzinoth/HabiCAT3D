@@ -57,9 +57,11 @@ namespace FocalEngine
 		TRIANGLE_DENSITY = 9
 	};
 
+	class ComplexityMetricInfo;
 	class MeshLayer
 	{
-		FEMesh* ParentMesh = nullptr;
+		ComplexityMetricInfo* ParentComplexityMetricData = nullptr;
+
 		std::string ID;
 		std::string Caption = "Layer caption";
 		std::string UserNote;
@@ -68,15 +70,16 @@ namespace FocalEngine
 		float Mean = -FLT_MAX;
 		float Median = -FLT_MAX;
 
-		void FillRawData();
 		void CalculateInitData();
 
 		float SelectedRangeMin = 0.0f;
 		float SelectedRangeMax = 0.0f;
 	public:
 		MeshLayer();
-		MeshLayer(FEMesh* Parent, std::vector<float> TrianglesToData);
+		MeshLayer(ComplexityMetricInfo* Parent, std::vector<float> TrianglesToData);
 		~MeshLayer();
+
+		void FillRawData();
 
 		std::string GetID();
 		void ForceID(std::string ID);
@@ -89,8 +92,8 @@ namespace FocalEngine
 		std::string GetNote();
 		void SetNote(std::string NewValue);
 
-		FEMesh* GetParentMesh();
-		void SetParentMesh(FEMesh* NewValue);
+		ComplexityMetricInfo* GetParent();
+		void SetParent(ComplexityMetricInfo* NewValue);
 
 		float GetMean();
 		float GetMedian();
@@ -103,7 +106,7 @@ namespace FocalEngine
 		std::vector<float> RawData;
 		std::vector<float> TrianglesToData;
 
-		void FillDataToGPU(int LayerIndex = 0);
+		//void FillDataToGPU(int LayerIndex = 0);
 		std::vector<std::tuple<double, double, int>> ValueTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
 
 		LAYER_TYPE GetType();
@@ -118,6 +121,52 @@ namespace FocalEngine
 
 	class MeshManager;
 	class LayerManager;
+
+	class ComplexityMetricInfo
+	{
+		friend MeshManager;
+		friend LayerManager;
+
+		int CurrentLayerIndex = -1;
+	public:
+		ComplexityMetricInfo(FEMesh* Mesh);
+
+		FEMesh* Mesh = nullptr;
+		std::vector<int> TriangleSelected;
+		
+		std::vector<double> MeshVertices;
+		std::vector<int> MeshIndices;
+		std::vector<float> MeshNormals;
+
+		std::vector<std::vector<glm::vec3>> Triangles;
+		std::vector<double> TrianglesArea;
+		float TotalArea = 0.0f;
+		std::vector<std::vector<glm::vec3>> TrianglesNormals;
+		std::vector<glm::vec3> TrianglesCentroids;
+
+		std::vector<int> originalTrianglesToSegments;
+		std::vector<glm::vec3> segmentsNormals;
+
+		//std::vector<float> TrianglesRugosity;
+		std::vector<float> rugosityDataAdditional;
+		std::vector<float> TrianglesRugosityAdditional;
+
+		void fillTrianglesData(std::vector<double>& FEVertices, std::vector<int>& FEIndices, std::vector<float>& FENormals);
+		
+		glm::vec3 AverageNormal = glm::vec3();
+		glm::vec3 GetAverageNormal();
+		void UpdateAverageNormal();
+
+		static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
+
+		std::vector<MeshLayer> Layers;
+
+		void AddLayer(std::vector<float> TrianglesToData);
+		void AddLayer(MeshLayer NewLayer);
+
+		std::string FileName;
+	};
+	
 	class FEMesh
 	{
 		friend MeshManager;
@@ -172,43 +221,17 @@ namespace FocalEngine
 		FETransformComponent* Position = new FETransformComponent();
 
 		int HeatMapType = 5;
-
-		std::vector<int> TriangleSelected;
 		float LastMeasuredRugosityAreaRadius = -1.0f;
 		glm::vec3 LastMeasuredRugosityAreaCenter = glm::vec3(0.0f);
-		std::vector<std::vector<glm::vec3>> Triangles;
-		std::vector<double> TrianglesArea;
-		float TotalArea = 0.0f;
-		std::vector<std::vector<glm::vec3>> TrianglesNormals;
-		std::vector<glm::vec3> TrianglesCentroids;
 
-		std::vector<int> originalTrianglesToSegments;
-		std::vector<glm::vec3> segmentsNormals;
-
-		//std::vector<float> TrianglesRugosity;
-		std::vector<float> rugosityDataAdditional;
-		std::vector<float> TrianglesRugosityAdditional;
-
-		void fillTrianglesData();
 		bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance, glm::vec3* HitPoint = nullptr);
 		bool SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera);
-		glm::vec3 IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera);
 		bool SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius);
 		bool SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius);
+		glm::vec3 IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera);
 
-		glm::vec3 AverageNormal = glm::vec3();
-		glm::vec3 GetAverageNormal();
-		void UpdateAverageNormal();
+		ComplexityMetricInfo* ComplexityMetricData = new ComplexityMetricInfo(this);
 
-		static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
-
-		std::vector<MeshLayer> Layers;
-
-		void AddLayer(std::vector<float> TrianglesToData);
-		void AddLayer(MeshLayer NewLayer);
-
-		std::string FileName;
-	private:
-		int CurrentLayerIndex = -1;
+		void ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex = 0);
 	};
 }

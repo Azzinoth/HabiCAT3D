@@ -159,7 +159,7 @@ FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 			objLoader.loadedObjects[0]->matIDs.data(), int(objLoader.loadedObjects[0]->matIDs.size()), int(objLoader.loadedObjects[0]->materialRecords.size()), "");
 	}
 
-	result->fillTrianglesData();
+	result->ComplexityMetricData->fillTrianglesData(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
 
 	return result;
 }
@@ -292,6 +292,29 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 		(int*)IndexBuffer, IndexCout,
 		nullptr, 0, 0, "");
 
+	std::vector<double> FEVertices;
+	FEVertices.resize(VertexCount);
+	for (size_t i = 0; i < VertexCount; i++)
+	{
+		FEVertices[i] = ((float*)VertexBuffer)[i];
+	}
+
+	std::vector<int> FEIndices;
+	FEIndices.resize(IndexCout);
+	for (size_t i = 0; i < IndexCout; i++)
+	{
+		FEIndices[i] = ((int*)IndexBuffer)[i];
+	}
+
+	std::vector<float> FENormals;
+	FENormals.resize(NormCout);
+	for (size_t i = 0; i < NormCout; i++)
+	{
+		FENormals[i] = ((float*)NormBuffer)[i];
+	}
+
+	NewMesh->ComplexityMetricData->fillTrianglesData(FEVertices, FEIndices, FENormals);
+
 	delete[] Buffer;
 	delete[] VertexBuffer;
 	delete[] TexBuffer;
@@ -301,11 +324,9 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	NewMesh->AABB = MeshAABB;
 
-	NewMesh->fillTrianglesData();
-
 	for (size_t i = 0; i < Layers.size(); i++)
 	{
-		NewMesh->AddLayer(Layers[i]);
+		NewMesh->ComplexityMetricData->AddLayer(Layers[i]);
 	}
 
 	return NewMesh;
@@ -337,7 +358,7 @@ FEMesh* MeshManager::LoadMesh(std::string FileName)
 		return Result;
 	}
 
-	Result->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
+	Result->ComplexityMetricData->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
 	ActiveMesh = Result;
 
 	for (size_t i = 0; i < ClientLoadCallbacks.size(); i++)
@@ -413,30 +434,30 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 	file.write((char*)&Count, sizeof(int));
 	file.write((char*)Indices, sizeof(int) * Count);
 
-	Count = Mesh->Layers.size();
+	Count = Mesh->ComplexityMetricData->Layers.size();
 	file.write((char*)&Count, sizeof(int));
 
-	for (size_t i = 0; i < Mesh->Layers.size(); i++)
+	for (size_t i = 0; i < Mesh->ComplexityMetricData->Layers.size(); i++)
 	{
-		int LayerType = Mesh->Layers[i].GetType();
+		int LayerType = Mesh->ComplexityMetricData->Layers[i].GetType();
 		file.write((char*)&LayerType, sizeof(int));
 
-		Count = static_cast<int>(Mesh->Layers[i].GetCaption().size());
+		Count = static_cast<int>(Mesh->ComplexityMetricData->Layers[i].GetCaption().size());
 		file.write((char*)&Count, sizeof(int));
-		file.write((char*)Mesh->Layers[i].GetCaption().c_str(), sizeof(char) * Count);
+		file.write((char*)Mesh->ComplexityMetricData->Layers[i].GetCaption().c_str(), sizeof(char) * Count);
 
-		Count = static_cast<int>(Mesh->Layers[i].GetNote().size());
+		Count = static_cast<int>(Mesh->ComplexityMetricData->Layers[i].GetNote().size());
 		file.write((char*)&Count, sizeof(int));
-		file.write((char*)Mesh->Layers[i].GetNote().c_str(), sizeof(char) * Count);
+		file.write((char*)Mesh->ComplexityMetricData->Layers[i].GetNote().c_str(), sizeof(char) * Count);
 
-		Count = Mesh->Layers[i].TrianglesToData.size();
+		Count = Mesh->ComplexityMetricData->Layers[i].TrianglesToData.size();
 		file.write((char*)&Count, sizeof(int));
-		file.write((char*)Mesh->Layers[i].TrianglesToData.data(), sizeof(float) * Count);
+		file.write((char*)Mesh->ComplexityMetricData->Layers[i].TrianglesToData.data(), sizeof(float) * Count);
 
-		Count = Mesh->Layers[i].DebugInfo != nullptr;
+		Count = Mesh->ComplexityMetricData->Layers[i].DebugInfo != nullptr;
 		file.write((char*)&Count, sizeof(int));
 		if (Count)
-			Mesh->Layers[i].DebugInfo->ToFile(file);
+			Mesh->ComplexityMetricData->Layers[i].DebugInfo->ToFile(file);
 	}
 
 	FEAABB TempAABB(Positions, Mesh->getPositionsCount());

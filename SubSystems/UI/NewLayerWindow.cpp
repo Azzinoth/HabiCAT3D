@@ -119,24 +119,24 @@ void NewLayerWindow::AddLayer()
 	{
 		case 0:
 		{
-			MESH_MANAGER.ActiveMesh->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
-			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+			MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
+			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 1);
 
 			InternalClose();
 			break;
 		}
 		case 1:
 		{
-			MESH_MANAGER.ActiveMesh->AddLayer(AREA_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
-			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+			MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(AREA_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
+			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 1);
 
 			InternalClose();
 			break;
 		}
 		case 2:
 		{
-			MESH_MANAGER.ActiveMesh->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh, TrianglesEdgesMode));
-			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+			MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh, TrianglesEdgesMode));
+			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 1);
 
 			InternalClose();
 			break;
@@ -207,8 +207,8 @@ void NewLayerWindow::AddLayer()
 		}
 		case 7:
 		{
-			MESH_MANAGER.ActiveMesh->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
-			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+			MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
+			LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 1);
 			MESH_MANAGER.ActiveMesh->HeatMapType = 6;
 
 			InternalClose();
@@ -391,7 +391,7 @@ void NewLayerWindow::RenderFractalDimentionSettings()
 
 void NewLayerWindow::RenderCompareLayerSettings()
 {
-	if (MESH_MANAGER.ActiveMesh->Layers.size() < 2)
+	if (MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() < 2)
 	{
 		const std::string Text = "To compare layers, you should have at least two layers.";
 
@@ -404,7 +404,7 @@ void NewLayerWindow::RenderCompareLayerSettings()
 
 	std::string FirstString = "Choose layer";
 	if (FirstChoosenLayerIndex != -1)
-		FirstString = MESH_MANAGER.ActiveMesh->Layers[FirstChoosenLayerIndex].GetCaption();
+		FirstString = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[FirstChoosenLayerIndex].GetCaption();
 
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
 	ImGui::Text("First layer: ");
@@ -413,10 +413,10 @@ void NewLayerWindow::RenderCompareLayerSettings()
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
 	if (ImGui::BeginCombo("##ChooseFirstLayer", FirstString.c_str(), ImGuiWindowFlags_None))
 	{
-		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
+		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size(); i++)
 		{
 			bool is_selected = (i == FirstChoosenLayerIndex);
-			if (ImGui::Selectable(MESH_MANAGER.ActiveMesh->Layers[i].GetCaption().c_str(), is_selected))
+			if (ImGui::Selectable(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[i].GetCaption().c_str(), is_selected))
 			{
 				FirstChoosenLayerIndex = i;
 			}
@@ -429,7 +429,7 @@ void NewLayerWindow::RenderCompareLayerSettings()
 
 	std::string SecondString = "Choose layer";
 	if (SecondChoosenLayerIndex != -1)
-		SecondString = MESH_MANAGER.ActiveMesh->Layers[SecondChoosenLayerIndex].GetCaption();
+		SecondString = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[SecondChoosenLayerIndex].GetCaption();
 
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
 	ImGui::Text("Second layer: ");
@@ -438,10 +438,10 @@ void NewLayerWindow::RenderCompareLayerSettings()
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
 	if (ImGui::BeginCombo("##ChooseSecondLayer", SecondString.c_str(), ImGuiWindowFlags_None))
 	{
-		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
+		for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size(); i++)
 		{
 			bool is_selected = (i == SecondChoosenLayerIndex);
-			if (ImGui::Selectable(MESH_MANAGER.ActiveMesh->Layers[i].GetCaption().c_str(), is_selected))
+			if (ImGui::Selectable(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[i].GetCaption().c_str(), is_selected))
 			{
 				SecondChoosenLayerIndex = i;
 			}

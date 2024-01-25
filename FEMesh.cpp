@@ -187,28 +187,22 @@ bool FEMesh::intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, 
 	return false;
 }
 
-void FEMesh::fillTrianglesData()
+ComplexityMetricInfo::ComplexityMetricInfo(FEMesh* Mesh)
 {
+	this->Mesh = Mesh;
+}
+
+void ComplexityMetricInfo::fillTrianglesData(std::vector<double>& FEVertices, std::vector<int>& FEIndices, std::vector<float>& FENormals)
+{
+	MeshVertices = FEVertices;
+	MeshIndices = FEIndices;
+	MeshNormals = FENormals;
+
 	Triangles.clear();
 	TrianglesNormals.clear();
 	TrianglesArea.clear();
 	TrianglesCentroids.clear();
 	TotalArea = 0;
-
-	std::vector<float> FEVertices;
-	FEVertices.resize(getPositionsCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
-
-	std::vector<int> FEIndices;
-	FEIndices.resize(getIndicesCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
-
-	std::vector<float> FENormals;
-	if (getNormalsCount() > 0)
-	{
-		FENormals.resize(getNormalsCount());
-		FE_GL_ERROR(glGetNamedBufferSubData(getNormalsBufferID(), 0, sizeof(int) * FENormals.size(), FENormals.data()));
-	}
 
 	std::vector<glm::vec3> triangle;
 	triangle.resize(3);
@@ -252,11 +246,11 @@ bool FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 	float lastDistance = 9999.0f;
 
 	int TriangeIndex = -1;
-	TriangleSelected.clear();
+	ComplexityMetricData->TriangleSelected.clear();
 
-	for (int i = 0; i < Triangles.size(); i++)
+	for (int i = 0; i < ComplexityMetricData->Triangles.size(); i++)
 	{
-		std::vector<glm::vec3> TranformedTrianglePoints = Triangles[i];
+		std::vector<glm::vec3> TranformedTrianglePoints = ComplexityMetricData->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
 			TranformedTrianglePoints[j] = Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
@@ -273,7 +267,7 @@ bool FEMesh::SelectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentCamera)
 
 	if (TriangeIndex != -1)
 	{
-		TriangleSelected.push_back(TriangeIndex);
+		ComplexityMetricData->TriangleSelected.push_back(TriangeIndex);
 		return true;
 	}
 
@@ -286,9 +280,9 @@ glm::vec3 FEMesh::IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentC
 	float lastDistance = 9999.0f;
 	glm::vec3 HitPosition;
 
-	for (size_t i = 0; i < Triangles.size(); i++)
+	for (size_t i = 0; i < ComplexityMetricData->Triangles.size(); i++)
 	{
-		std::vector<glm::vec3> TranformedTrianglePoints = Triangles[i];
+		std::vector<glm::vec3> TranformedTrianglePoints = ComplexityMetricData->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
 			TranformedTrianglePoints[j] = Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
@@ -313,22 +307,22 @@ bool FEMesh::SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* current
 	bool Result = false;
 	SelectTriangle(MouseRay, currentCamera);
 
-	if (TriangleSelected.size() == 0)
+	if (ComplexityMetricData->TriangleSelected.size() == 0)
 		return Result;
 
 	LastMeasuredRugosityAreaRadius = Radius;
-	LastMeasuredRugosityAreaCenter = Position->getTransformMatrix() * glm::vec4(TrianglesCentroids[TriangleSelected[0]], 1.0f);
+	LastMeasuredRugosityAreaCenter = Position->getTransformMatrix() * glm::vec4(ComplexityMetricData->TrianglesCentroids[ComplexityMetricData->TriangleSelected[0]], 1.0f);
 
-	const glm::vec3 FirstSelectedTriangleCentroid = TrianglesCentroids[TriangleSelected[0]];
+	const glm::vec3 FirstSelectedTriangleCentroid = ComplexityMetricData->TrianglesCentroids[ComplexityMetricData->TriangleSelected[0]];
 
-	for (size_t i = 0; i < Triangles.size(); i++)
+	for (size_t i = 0; i < ComplexityMetricData->Triangles.size(); i++)
 	{
-		if (i == TriangleSelected[0])
+		if (i == ComplexityMetricData->TriangleSelected[0])
 			continue;
 
-		if (glm::distance(FirstSelectedTriangleCentroid, TrianglesCentroids[i]) <= Radius)
+		if (glm::distance(FirstSelectedTriangleCentroid, ComplexityMetricData->TrianglesCentroids[i]) <= Radius)
 		{
-			TriangleSelected.push_back(static_cast<int>(i));
+			ComplexityMetricData->TriangleSelected.push_back(static_cast<int>(i));
 			Result = true;
 		}
 	}
@@ -340,18 +334,18 @@ bool FEMesh::SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius)
 {
 	bool Result = false;
 
-	TriangleSelected.clear();
+	ComplexityMetricData->TriangleSelected.clear();
 
 	LastMeasuredRugosityAreaRadius = Radius;
 	LastMeasuredRugosityAreaCenter = Position->getTransformMatrix() * glm::vec4(CenterPoint, 1.0f);
 
 	const glm::vec3 FirstSelectedTriangleCentroid = CenterPoint;
 
-	for (size_t i = 0; i < Triangles.size(); i++)
+	for (size_t i = 0; i < ComplexityMetricData->Triangles.size(); i++)
 	{
-		if (glm::distance(FirstSelectedTriangleCentroid, TrianglesCentroids[i]) <= Radius)
+		if (glm::distance(FirstSelectedTriangleCentroid, ComplexityMetricData->TrianglesCentroids[i]) <= Radius)
 		{
-			TriangleSelected.push_back(static_cast<int>(i));
+			ComplexityMetricData->TriangleSelected.push_back(static_cast<int>(i));
 			Result = true;
 		}
 	}
@@ -359,7 +353,7 @@ bool FEMesh::SelectTrianglesInRadius(glm::vec3 CenterPoint, float Radius)
 	return Result;
 }
 
-void FEMesh::UpdateAverageNormal()
+void ComplexityMetricInfo::UpdateAverageNormal()
 {
 	AverageNormal = glm::vec3();
 
@@ -385,12 +379,12 @@ void FEMesh::UpdateAverageNormal()
 	AverageNormal = glm::normalize(AverageNormal);
 }
 
-glm::vec3 FEMesh::GetAverageNormal()
+glm::vec3 ComplexityMetricInfo::GetAverageNormal()
 {
 	return AverageNormal;
 }
 
-double FEMesh::TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC)
+double ComplexityMetricInfo::TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC)
 {
 	const double x1 = PointA.x;
 	const double x2 = PointB.x;
@@ -409,17 +403,17 @@ double FEMesh::TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 Poi
 					  pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
 }
 
-void FEMesh::AddLayer(std::vector<float> TrianglesToData)
+void ComplexityMetricInfo::AddLayer(std::vector<float> TrianglesToData)
 {
 	if (TrianglesToData.size() == Triangles.size())
 		Layers.push_back(MeshLayer(this, TrianglesToData));
 }
 
-void FEMesh::AddLayer(MeshLayer NewLayer)
+void ComplexityMetricInfo::AddLayer(MeshLayer NewLayer)
 {
 	if (NewLayer.TrianglesToData.size() == Triangles.size())
 	{
-		NewLayer.SetParentMesh(this);
+		NewLayer.SetParent(this);
 		Layers.push_back(NewLayer);
 	}
 }
@@ -429,7 +423,7 @@ MeshLayer::MeshLayer()
 	ID = APPLICATION.GetUniqueHexID();
 };
 
-MeshLayer::MeshLayer(FEMesh* Parent, const std::vector<float> TrianglesToData)
+MeshLayer::MeshLayer(ComplexityMetricInfo* Parent, const std::vector<float> TrianglesToData)
 {
 	if (Parent == nullptr)
 		return;
@@ -437,7 +431,7 @@ MeshLayer::MeshLayer(FEMesh* Parent, const std::vector<float> TrianglesToData)
 	if (TrianglesToData.size() != Parent->Triangles.size())
 		return;
 
-	this->ParentMesh = Parent;
+	this->ParentComplexityMetricData = Parent;
 	this->TrianglesToData = TrianglesToData;
 
 	CalculateInitData();
@@ -445,12 +439,12 @@ MeshLayer::MeshLayer(FEMesh* Parent, const std::vector<float> TrianglesToData)
 
 MeshLayer::~MeshLayer() {};
 
-FEMesh* MeshLayer::GetParentMesh()
+ComplexityMetricInfo* MeshLayer::GetParent()
 {
-	return ParentMesh;
+	return ParentComplexityMetricData;
 }
 
-void MeshLayer::SetParentMesh(FEMesh* NewValue)
+void MeshLayer::SetParent(ComplexityMetricInfo* NewValue)
 {
 	if (NewValue == nullptr)
 		return;
@@ -458,7 +452,7 @@ void MeshLayer::SetParentMesh(FEMesh* NewValue)
 	if (TrianglesToData.size() != NewValue->Triangles.size())
 		return;
 
-	this->ParentMesh = NewValue;
+	this->ParentComplexityMetricData = NewValue;
 	this->TrianglesToData = TrianglesToData;
 
 	CalculateInitData();
@@ -474,7 +468,7 @@ void MeshLayer::CalculateInitData()
 	Mean = -FLT_MAX;
 	Median = -FLT_MAX;
 
-	if (ParentMesh == nullptr)
+	if (ParentComplexityMetricData == nullptr)
 		return;
 
 	double TotalSum = 0.0;
@@ -500,9 +494,9 @@ void MeshLayer::CalculateInitData()
 	}
 
 	ValueTriangleAreaAndIndex.clear();
-	for (int i = 0; i < ParentMesh->Triangles.size(); i++)
+	for (int i = 0; i < ParentComplexityMetricData->Triangles.size(); i++)
 	{
-		ValueTriangleAreaAndIndex.push_back(std::make_tuple(TrianglesToData[i], ParentMesh->TrianglesArea[i], i));
+		ValueTriangleAreaAndIndex.push_back(std::make_tuple(TrianglesToData[i], ParentComplexityMetricData->TrianglesArea[i], i));
 	}
 
 	// sort() function will sort by 1st element of tuple.
@@ -511,33 +505,33 @@ void MeshLayer::CalculateInitData()
 
 void MeshLayer::FillRawData()
 {
-	if (ParentMesh == nullptr || TrianglesToData.empty())
+	if (ParentComplexityMetricData == nullptr || TrianglesToData.empty())
 		return;
 
-	const int PosSize = ParentMesh->getPositionsCount();
+	/*const int PosSize = ParentMesh->getPositionsCount();
 	float* positions = new float[PosSize];
 	FE_GL_ERROR(glGetNamedBufferSubData(ParentMesh->getPositionsBufferID(), 0, sizeof(float) * PosSize, positions));
 
 	const int IndexSize = ParentMesh->getIndicesCount();
 	int* indices = new int[IndexSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(ParentMesh->getIndicesBufferID(), 0, sizeof(int) * IndexSize, indices));
+	FE_GL_ERROR(glGetNamedBufferSubData(ParentMesh->getIndicesBufferID(), 0, sizeof(int) * IndexSize, indices));*/
 
 	std::vector<float> PositionsVector;
-	for (size_t i = 0; i < PosSize; i++)
+	for (size_t i = 0; i < ParentComplexityMetricData->MeshVertices.size(); i++)
 	{
-		PositionsVector.push_back(positions[i]);
+		PositionsVector.push_back(ParentComplexityMetricData->MeshVertices[i]);
 	}
 
 	std::vector<int> IndexVector;
-	for (size_t i = 0; i < IndexSize; i++)
+	for (size_t i = 0; i < ParentComplexityMetricData->MeshIndices.size(); i++)
 	{
-		IndexVector.push_back(indices[i]);
+		IndexVector.push_back(ParentComplexityMetricData->MeshIndices[i]);
 	}
 
-	delete positions;
-	delete indices;
+	//delete positions;
+	//delete indices;
 
-	RawData.resize(PosSize);
+	RawData.resize(ParentComplexityMetricData->MeshVertices.size());
 	auto GetVertexOfFace = [&](const int FaceIndex) {
 		std::vector<int> result;
 		result.push_back(IndexVector[FaceIndex * 3]);
@@ -562,38 +556,41 @@ void MeshLayer::FillRawData()
 		}
 	};
 
-	for (size_t i = 0; i < ParentMesh->Triangles.size(); i++)
+	for (size_t i = 0; i < ParentComplexityMetricData->Triangles.size(); i++)
 	{
 		SetRugosityOfFace(static_cast<int>(i), TrianglesToData[i]);
 	}
 }
 
-void MeshLayer::FillDataToGPU(const int LayerIndex)
+void FEMesh::ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex)
 {
-	if (ParentMesh == nullptr)
+	if (ComplexityMetricData == nullptr)
 		return;
 
-	if (RawData.empty())
-		FillRawData();
+	if (LayerIndex < 0 || LayerIndex >= ComplexityMetricData->Layers.size())
+		return;
 
-	FE_GL_ERROR(glBindVertexArray(ParentMesh->vaoID));
+	if (ComplexityMetricData->Layers[LayerIndex].RawData.empty())
+		ComplexityMetricData->Layers[LayerIndex].FillRawData();
 
-	if (LayerIndex == 0)
+	FE_GL_ERROR(glBindVertexArray(vaoID));
+
+	if (GPULayerIndex == 0)
 	{
-		ParentMesh->FirstLayerBufferID = 0;
-		ParentMesh->vertexAttributes |= FE_RUGOSITY_FIRST;
-		FE_GL_ERROR(glGenBuffers(1, &ParentMesh->FirstLayerBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ParentMesh->FirstLayerBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * RawData.size(), RawData.data(), GL_STATIC_DRAW));
+		FirstLayerBufferID = 0;
+		vertexAttributes |= FE_RUGOSITY_FIRST;
+		FE_GL_ERROR(glGenBuffers(1, &FirstLayerBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, FirstLayerBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ComplexityMetricData->Layers[LayerIndex].RawData.size(), ComplexityMetricData->Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
 		FE_GL_ERROR(glVertexAttribPointer(7, 3, GL_FLOAT, false, 0, nullptr));
 	}
 	else
 	{
-		ParentMesh->SecondLayerBufferID = 0;
-		ParentMesh->vertexAttributes |= FE_RUGOSITY_SECOND;
-		FE_GL_ERROR(glGenBuffers(1, &ParentMesh->SecondLayerBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ParentMesh->SecondLayerBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * RawData.size(), RawData.data(), GL_STATIC_DRAW));
+		SecondLayerBufferID = 0;
+		vertexAttributes |= FE_RUGOSITY_SECOND;
+		FE_GL_ERROR(glGenBuffers(1, &SecondLayerBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, SecondLayerBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ComplexityMetricData->Layers[LayerIndex].RawData.size(), ComplexityMetricData->Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
 		FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, nullptr));
 	}
 

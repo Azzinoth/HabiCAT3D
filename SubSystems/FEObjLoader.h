@@ -121,6 +121,4 @@ namespace FocalEngine
 		};
 #endif // FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
 	};
-
-	#define LOG FELOG::getInstance()
 }

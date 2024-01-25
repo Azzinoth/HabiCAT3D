@@ -328,9 +328,9 @@ void SDF::FillCellsWithTriangleInfo()
 
 	DebugTotalTrianglesInCells = 0;
 
-	for (int l = 0; l < MESH_MANAGER.ActiveMesh->Triangles.size(); l++)
+	for (int l = 0; l < MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles.size(); l++)
 	{
-		FEAABB TriangleAABB = FEAABB(MESH_MANAGER.ActiveMesh->Triangles[l]);
+		FEAABB TriangleAABB = FEAABB(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[l]);
 
 		int XEnd = Data.size();
 
@@ -445,8 +445,8 @@ void SDF::FillMeshWithUserData()
 	TIME.BeginTimeStamp("FillMeshWithUserData");
 
 	std::vector<int> TrianglesRugosityCount;
-	TrianglesUserData.resize(MESH_MANAGER.ActiveMesh->Triangles.size());
-	TrianglesRugosityCount.resize(MESH_MANAGER.ActiveMesh->Triangles.size());
+	TrianglesUserData.resize(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles.size());
+	TrianglesRugosityCount.resize(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles.size());
 
 	for (size_t i = 0; i < Data.size(); i++)
 	{

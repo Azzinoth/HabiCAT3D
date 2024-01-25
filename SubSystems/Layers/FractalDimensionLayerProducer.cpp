@@ -72,7 +72,7 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 		// Iterate through all the triangles
 		for (size_t j = 0; j < CurrentNode->TrianglesInCell.size(); j++)
 		{
-			std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentNode->TrianglesInCell[j]];
+			std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[CurrentNode->TrianglesInCell[j]];
 
 			// Calculate the grid cells that the triangle intersects or is contained in
 			FEAABB TriangleBBox = FEAABB(CurrentTriangle);
@@ -172,10 +172,10 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult = false;
 
 	NewLayer.DebugInfo->AddEntry("FD outliers: ", std::string(FRACTAL_DIMENSION_LAYER_PRODUCER.bLastUsedUseFilter ? "Yes" : "No"));
-	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
-	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::FRACTAL_DIMENSION);
-	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal dimension"));
-	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+	MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(NewLayer);
+	MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().SetType(LAYER_TYPE::FRACTAL_DIMENSION);
+	MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal dimension"));
+	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 1);
 
 	if (OnCalculationsEndCallbackImpl != nullptr)
 		OnCalculationsEndCallbackImpl(NewLayer);
@@ -220,7 +220,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 		// Iterate through all the triangles
 		for (size_t j = 0; j < CurrentNode->TrianglesInCell.size(); j++)
 		{
-			std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentNode->TrianglesInCell[j]];
+			std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[CurrentNode->TrianglesInCell[j]];
 
 			// Calculate the grid cells that the triangle intersects or is contained in
 			FEAABB TriangleBBox = FEAABB(CurrentTriangle);

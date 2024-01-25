@@ -17,12 +17,12 @@ MeshLayer HeightLayerProducer::Calculate(FEMesh* Mesh)
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	double Min = DBL_MAX;
-	for (size_t i = 0; i < Mesh->Triangles.size(); i++)
+	for (size_t i = 0; i < Mesh->ComplexityMetricData->Triangles.size(); i++)
 	{
 		float AverageTriangleHeight = 0.0f;
 		for (size_t j = 0; j < 3; j++)
 		{
-			double CurrentHeight = glm::dot(glm::vec3(Mesh->Position->getTransformMatrix() * glm::vec4(Mesh->Triangles[i][j], 1.0)), Mesh->AverageNormal);
+			double CurrentHeight = glm::dot(glm::vec3(Mesh->Position->getTransformMatrix() * glm::vec4(Mesh->ComplexityMetricData->Triangles[i][j], 1.0)), Mesh->ComplexityMetricData->AverageNormal);
 			AverageTriangleHeight += CurrentHeight;
 		}
 

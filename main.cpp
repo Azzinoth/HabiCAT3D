@@ -101,16 +101,16 @@ static std::string FileNameForSelectionOutput = "Selections";
 void AfterMeshLoads()
 {
 	MESH_MANAGER.ActiveMesh->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
-	MESH_MANAGER.ActiveMesh->UpdateAverageNormal();
+	MESH_MANAGER.ActiveMesh->ComplexityMetricData->UpdateAverageNormal();
 
 	UI.SetIsModelCamera(true);
 
-	MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(MESH_MANAGER.ActiveMesh->GetAverageNormal()));
+	MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(MESH_MANAGER.ActiveMesh->ComplexityMetricData->GetAverageNormal()));
 
-	if (MESH_MANAGER.ActiveMesh->Layers.empty())
-		MESH_MANAGER.ActiveMesh->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
+	if (MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.empty())
+		MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
 
-	FileNameForSelectionOutput = MESH_MANAGER.ActiveMesh->FileName;
+	FileNameForSelectionOutput = MESH_MANAGER.ActiveMesh->ComplexityMetricData->FileName;
 }
 
 void LoadMesh(std::string FileName)
@@ -141,9 +141,9 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 {
 	LINE_RENDERER.clearAll();
 
-	if (Mesh->TriangleSelected.size() == 1)
+	if (Mesh->ComplexityMetricData->TriangleSelected.size() == 1)
 	{
-		std::vector<glm::vec3> TranformedTrianglePoints = Mesh->Triangles[Mesh->TriangleSelected[0]];
+		std::vector<glm::vec3> TranformedTrianglePoints = Mesh->ComplexityMetricData->Triangles[Mesh->ComplexityMetricData->TriangleSelected[0]];
 		for (size_t i = 0; i < TranformedTrianglePoints.size(); i++)
 		{
 			TranformedTrianglePoints[i] = Mesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
@@ -153,18 +153,18 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 
-		if (!Mesh->TrianglesNormals.empty())
+		if (!Mesh->ComplexityMetricData->TrianglesNormals.empty())
 		{
 			glm::vec3 Point = TranformedTrianglePoints[0];
-			glm::vec3 Normal = Mesh->TrianglesNormals[Mesh->TriangleSelected[0]][0];
+			glm::vec3 Normal = Mesh->ComplexityMetricData->TrianglesNormals[Mesh->ComplexityMetricData->TriangleSelected[0]][0];
 			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
 			Point = TranformedTrianglePoints[1];
-			Normal = Mesh->TrianglesNormals[Mesh->TriangleSelected[0]][1];
+			Normal = Mesh->ComplexityMetricData->TrianglesNormals[Mesh->ComplexityMetricData->TriangleSelected[0]][1];
 			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
 			Point = TranformedTrianglePoints[2];
-			Normal = Mesh->TrianglesNormals[Mesh->TriangleSelected[0]][2];
+			Normal = Mesh->ComplexityMetricData->TrianglesNormals[Mesh->ComplexityMetricData->TriangleSelected[0]][2];
 			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 		}
 
@@ -180,11 +180,11 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 
 		LINE_RENDERER.SyncWithGPU();
 	}
-	else if (Mesh->TriangleSelected.size() > 1)
+	else if (Mesh->ComplexityMetricData->TriangleSelected.size() > 1)
 	{
-		for (size_t i = 0; i < Mesh->TriangleSelected.size(); i++)
+		for (size_t i = 0; i < Mesh->ComplexityMetricData->TriangleSelected.size(); i++)
 		{
-			std::vector<glm::vec3> TranformedTrianglePoints = Mesh->Triangles[Mesh->TriangleSelected[i]];
+			std::vector<glm::vec3> TranformedTrianglePoints = Mesh->ComplexityMetricData->Triangles[Mesh->ComplexityMetricData->TriangleSelected[i]];
 			for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 			{
 				TranformedTrianglePoints[j] = Mesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
@@ -201,14 +201,14 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 
 void OutputSeletedAreaInfoToFile()
 {
-	if (MESH_MANAGER.ActiveMesh->TriangleSelected.size() < 2)
+	if (MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.size() < 2)
 		return;
 
 	std::string Text = "Area radius : " + std::to_string(UI.GetRadiusOfAreaToMeasure());
 	LOG.Add(Text, FileNameForSelectionOutput);
 
 	Text = "Area approximate center : X - ";
-	const glm::vec3 Center = MESH_MANAGER.ActiveMesh->TrianglesCentroids[MESH_MANAGER.ActiveMesh->TriangleSelected[0]];
+	const glm::vec3 Center = MESH_MANAGER.ActiveMesh->ComplexityMetricData->TrianglesCentroids[MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected[0]];
 	Text += std::to_string(Center.x);
 	Text += " Y - ";
 	Text += std::to_string(Center.y);
@@ -216,19 +216,19 @@ void OutputSeletedAreaInfoToFile()
 	Text += std::to_string(Center.z);
 	LOG.Add(Text, FileNameForSelectionOutput);
 
-	for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->Layers.size(); i++)
+	for (size_t i = 0; i < MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size(); i++)
 	{
-		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->Layers[i];
+		MeshLayer* CurrentLayer = &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[i];
 
 		Text = "Layer \"" + CurrentLayer->GetCaption() + "\" : \n";
 		Text += "Area average value : ";
 		float Total = 0.0f;
-		for (size_t j = 0; j < MESH_MANAGER.ActiveMesh->TriangleSelected.size(); j++)
+		for (size_t j = 0; j < MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.size(); j++)
 		{
-			Total += CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->TriangleSelected[i]];
+			Total += CurrentLayer->TrianglesToData[MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected[i]];
 		}
 
-		Total /= MESH_MANAGER.ActiveMesh->TriangleSelected.size();
+		Total /= MESH_MANAGER.ActiveMesh->ComplexityMetricData->TriangleSelected.size();
 		Text += std::to_string(Total);
 		LOG.Add(Text, FileNameForSelectionOutput);
 	}
@@ -729,6 +729,37 @@ void AddFontOnSecondFrame()
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+
+	//// Allocate a console
+	//AllocConsole();
+
+	//// Redirect standard I/O to the console
+	//FILE* pCout;
+	//freopen_s(&pCout, "CONOUT$", "w", stdout);
+	//FILE* pCin;
+	//freopen_s(&pCin, "CONIN$", "r", stdin);
+
+	//// Now you can use standard I/O
+	//std::cout << "Hello, Console!" << std::endl;
+	//std::string input;
+	//std::cin >> input;
+	//std::cout << "You entered: " << input << std::endl;
+
+
+	//const FEMesh* TempMesh = MESH_MANAGER.LoadMesh(input);
+
+	//std::cin >> input;
+
+	//// Your GUI code can still run here
+
+	//// Cleanup
+	//fclose(pCout);
+	//fclose(pCin);
+	//FreeConsole();
+
+	//return 0;
+
+
 	//// Create a vector of triangles (as Polygon_2 objects)
 	//Polygon_vector triangles;
 

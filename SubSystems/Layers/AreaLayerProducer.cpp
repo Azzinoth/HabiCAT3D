@@ -15,9 +15,9 @@ MeshLayer AreaLayerProducer::Calculate(FEMesh* Mesh)
 		return Result;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	for (size_t i = 0; i < Mesh->Triangles.size(); i++)
+	for (size_t i = 0; i < Mesh->ComplexityMetricData->Triangles.size(); i++)
 	{
-		Result.TrianglesToData.push_back(Mesh->TrianglesArea[i]);
+		Result.TrianglesToData.push_back(Mesh->ComplexityMetricData->TrianglesArea[i]);
 	}
 	
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle area"));

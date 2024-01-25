@@ -22,7 +22,7 @@ void VectorDispersionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 
 	for (size_t p = 0; p < CurrentNode->TrianglesInCell.size(); p++)
 	{
-		std::vector<glm::vec3> CurrentTriangleNormals = MESH_MANAGER.ActiveMesh->TrianglesNormals[CurrentNode->TrianglesInCell[p]];
+		std::vector<glm::vec3> CurrentTriangleNormals = MESH_MANAGER.ActiveMesh->ComplexityMetricData->TrianglesNormals[CurrentNode->TrianglesInCell[p]];
 
 		for (size_t l = 0; l < CurrentTriangleNormals.size(); l++)
 		{
@@ -80,10 +80,10 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	NewLayer.SetType(VECTOR_DISPERSION);
 
 	VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult = false;
-	MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
-	MESH_MANAGER.ActiveMesh->Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);
-	MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector dispersion"));
-	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
+	MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(NewLayer);
+	MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);
+	MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector dispersion"));
+	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 1);
 
 	if (OnCalculationsEndCallbackImpl != nullptr)
 		OnCalculationsEndCallbackImpl(NewLayer);
@@ -99,7 +99,7 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 	SDFNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
 	for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
 	{
-		const auto CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
+		const auto CurrentTriangle = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
 
 		std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
