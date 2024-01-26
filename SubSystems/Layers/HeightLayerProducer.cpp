@@ -6,15 +6,17 @@ HeightLayerProducer* HeightLayerProducer::Instance = nullptr;
 HeightLayerProducer::HeightLayerProducer() {}
 HeightLayerProducer::~HeightLayerProducer() {}
 
-MeshLayer HeightLayerProducer::Calculate(FEMesh* Mesh)
+MeshLayer HeightLayerProducer::Calculate()
 {
 	MeshLayer Result;
 	Result.SetType(HEIGHT);
 
-	if (Mesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return Result;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+
+	auto& ComplexityMetric = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo;
 
 	double Min = DBL_MAX;
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
@@ -22,7 +24,7 @@ MeshLayer HeightLayerProducer::Calculate(FEMesh* Mesh)
 		float AverageTriangleHeight = 0.0f;
 		for (size_t j = 0; j < 3; j++)
 		{
-			double CurrentHeight = glm::dot(glm::vec3(Mesh->Position->getTransformMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][j], 1.0)), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AverageNormal);
+			double CurrentHeight = glm::dot(glm::vec3(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->getTransformMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][j], 1.0)), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AverageNormal);
 			AverageTriangleHeight += CurrentHeight;
 		}
 

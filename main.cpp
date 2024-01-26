@@ -100,15 +100,22 @@ static std::string FileNameForSelectionOutput = "Selections";
 
 void AfterMeshLoads()
 {
-	MESH_MANAGER.ActiveMesh->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
+	if (!COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole)
+		MESH_MANAGER.ActiveMesh->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
+
+	// Get AABB for complexity metric....
+	
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->UpdateAverageNormal();
 
-	UI.SetIsModelCamera(true);
+	if (!COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole)
+	{
+		UI.SetIsModelCamera(true);
 
-	MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
-
+		MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
+	}
+	
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
 
 	FileNameForSelectionOutput = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName;
 }
@@ -748,6 +755,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 
 	COMPLEXITY_METRIC_MANAGER.ImportOBJ(filePath.c_str(), true);
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole = true;
+	AfterMeshLoads();
+
+	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
+
 
 	std::cin >> filePath;
 
@@ -761,78 +773,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	return 0;
 
 
-	//// Create a vector of triangles (as Polygon_2 objects)
-	//Polygon_vector triangles;
 
-	//// Construct the first triangle
-	//Polygon_2 triangle1;
-	//triangle1.push_back(Point_2(0, 0));
-	//triangle1.push_back(Point_2(4, 0));
-	//triangle1.push_back(Point_2(2, 4));
-	//triangles.push_back(triangle1);
 
-	//// Construct the second triangle
-	//Polygon_2 triangle2;
-	//triangle2.push_back(Point_2(2, 2));
-	//triangle2.push_back(Point_2(6, 2));
-	//triangle2.push_back(Point_2(4, 6));
-	//triangles.push_back(triangle2);
 
-	//Polygon_2 triangle3;
-	//triangle3.push_back(Point_2(4, -4));
-	//triangle3.push_back(Point_2(6, -2));
-	//triangle3.push_back(Point_2(2, -2));
-	//
-	//
-	//triangles.push_back(triangle3);
-
-	//// Calculate and print the combined area
-	////double combined_area = calculate_combined_area(triangles);
-	////std::cout << "Combined area: " << combined_area << std::endl;
-
-	////is_valid_polygon
-	//
-
-	//std::vector<Polygon_set_2> TriangleGroups;
-	////Polygon_set_2 union_of_triangles;
-
-	//for (size_t i = 0; i < triangles.size(); i++)
-	//{
-	//	//bool temp = CGAL::do_intersect(triangles[i], triangles[i + 1]);
-	//	//Polygon_2::do_intersect(triangles[i + 1]);
-
-	//	if (i == 0)
-	//	{
-	//		TriangleGroups.push_back(Polygon_set_2(triangles[0]));
-	//		continue;
-	//	}
-	//	
-	//	bool NeedNewGroup = true;
-	//	for (size_t j = 0; j < TriangleGroups.size(); j++)
-	//	{
-	//		if (TriangleGroups[j].do_intersect(triangles[i]))
-	//		{
-	//			TriangleGroups[j].join(triangles[i]);
-	//			NeedNewGroup = false;
-	//			break;
-	//		}
-	//	}
-
-	//	if (NeedNewGroup)
-	//		TriangleGroups.push_back(Polygon_set_2(triangles[i]));
-	//	
-	//}
-
-	//double TotalArea = 0.0;
-
-	//for (size_t i = 0; i < TriangleGroups.size(); i++)
-	//{
-	//	TotalArea += calculate_area(TriangleGroups[i]);
-	//}
-
-	// Calculate and print the combined area
-	//double combined_area = calculate_area(union_of_triangles);
-	//std::cout << "Combined area: " << combined_area << std::endl;
 
 	LOG.SetFileOutput(true);
 

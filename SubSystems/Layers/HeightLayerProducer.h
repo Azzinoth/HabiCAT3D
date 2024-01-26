@@ -8,7 +8,7 @@ class HeightLayerProducer
 public:
 	SINGLETON_PUBLIC_PART(HeightLayerProducer)
 
-	MeshLayer Calculate(FEMesh* Mesh);
+	MeshLayer Calculate();
 private:
 	SINGLETON_PRIVATE_PART(HeightLayerProducer)
 };

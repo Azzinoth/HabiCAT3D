@@ -2,6 +2,7 @@
 
 #include "SubSystems/FEFileSystem.h"
 #include "SubSystems/FEGeometricTools.h"
+#include "SubSystems/FETransformComponent.h"
 
 namespace FocalEngine
 {
@@ -128,6 +129,8 @@ namespace FocalEngine
 	public:
 		ComplexityMetricInfo();
 
+		bool bDummyVariableForConsole = false;
+
 		std::vector<int> TriangleSelected;
 
 		std::vector<double> MeshVertices;
@@ -161,5 +164,6 @@ namespace FocalEngine
 		void AddLayer(MeshLayer NewLayer);
 
 		std::string FileName;
+		FETransformComponent* Position = new FETransformComponent();
 	};
 }

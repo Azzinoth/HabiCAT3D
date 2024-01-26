@@ -39,10 +39,8 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 {
 	std::string Result = Base;
 
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return Result;
-
-	FEMesh* Mesh = MESH_MANAGER.ActiveMesh;
 
 	std::vector<std::string> CaptionList;
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
