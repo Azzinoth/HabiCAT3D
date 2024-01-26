@@ -328,8 +328,8 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 	mesh->addColorToVertices(colors, colorSize);
 	mesh->addSegmentsColorToVertices(segmentsColors, segmentsColorsSize);
 
-	mesh->ComplexityMetricData->originalTrianglesToSegments = originalTrianglesToSegments;
-	mesh->ComplexityMetricData->segmentsNormals = segmentsNormals;
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->originalTrianglesToSegments = originalTrianglesToSegments;
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->segmentsNormals = segmentsNormals;
 }
 
 std::vector<float> FECGALWrapper::calculateNormals(Surface_mesh mesh)

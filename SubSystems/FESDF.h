@@ -82,7 +82,6 @@ namespace FocalEngine
 		glm::vec3 AverageNormal;
 		glm::vec3 SelectedCell = glm::vec3(-1.0);
 
-		std::vector<triangleData> GetTrianglesData();
 		SDF();
 		SDF(int Dimentions, FEAABB AABB);
 
@@ -115,7 +114,6 @@ namespace FocalEngine
 		void UpdateRenderedLines();
 
 		void RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func);
-		//float GetSignedDistanceForNode(SDFNode* Node);
 
 		~SDF()
 		{

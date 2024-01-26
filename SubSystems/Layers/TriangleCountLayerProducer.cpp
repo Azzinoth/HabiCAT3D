@@ -39,10 +39,10 @@ void TriangleCountLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	NewLayer.SetType(TRIANGLE_DENSITY);
 
 	TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult = false;
-	MESH_MANAGER.ActiveMesh->ComplexityMetricData->AddLayer(NewLayer);
-	MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);
-	MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle density"));
-	LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size() - 1);
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle density"));
+	LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
 }
 
 void TriangleCountLayerProducer::CalculateOnWholeModel(FEMesh* Mesh)

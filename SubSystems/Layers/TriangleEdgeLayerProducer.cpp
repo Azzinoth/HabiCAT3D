@@ -15,11 +15,11 @@ MeshLayer TriangleEdgeLayerProducer::Calculate(FEMesh* Mesh, int Mode)
 		return Result;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	for (size_t i = 0; i < Mesh->ComplexityMetricData->Triangles.size(); i++)
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
 	{
-		float Edge0Length = glm::distance(Mesh->ComplexityMetricData->Triangles[i][0], Mesh->ComplexityMetricData->Triangles[i][1]);
-		float Edge1Length = glm::distance(Mesh->ComplexityMetricData->Triangles[i][1], Mesh->ComplexityMetricData->Triangles[i][2]);
-		float Edge2Length = glm::distance(Mesh->ComplexityMetricData->Triangles[i][2], Mesh->ComplexityMetricData->Triangles[i][0]);
+		float Edge0Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][0], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][1]);
+		float Edge1Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][1], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][2]);
+		float Edge2Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][2], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][0]);
 
 		if (Mode == 0)
 		{

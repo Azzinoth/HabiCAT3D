@@ -132,7 +132,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 	float TotalArea = 0.0f;
 	for (size_t l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 	{
-		TotalArea += static_cast<float>(MESH_MANAGER.ActiveMesh->ComplexityMetricData->TrianglesArea[CurrentNode->TrianglesInCell[l]]);
+		TotalArea += static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]]);
 	}
 
 	float CGALCorrectTotalArea = TotalArea;
@@ -160,10 +160,10 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 			Polygon_vector Triangles;
 			for (int i = 0; i < CurrentNode->TrianglesInCell.size(); i++)
 			{
-				if (MESH_MANAGER.ActiveMesh->ComplexityMetricData->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
+				if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
 					continue;
 
-				std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[CurrentNode->TrianglesInCell[i]];
+				std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[i]];
 				Polygon_2 TempTriangle;
 
 #ifndef CGAL_FOR_PROJECTION
@@ -193,7 +193,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 
 				if (TempTriangle.area() == 0.0)
 				{
-					CGALCorrectTotalArea -= static_cast<float>(MESH_MANAGER.ActiveMesh->ComplexityMetricData->TrianglesArea[CurrentNode->TrianglesInCell[i]]);
+					CGALCorrectTotalArea -= static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[i]]);
 				}
 				else
 				{
@@ -232,7 +232,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 
 				for (size_t i = 0; i < CGALFailedIndexes.size(); i++)
 				{
-					CGALCorrectTotalArea -= static_cast<float>(MESH_MANAGER.ActiveMesh->ComplexityMetricData->TrianglesArea[CurrentNode->TrianglesInCell[CGALFailedIndexes[i]]]);
+					CGALCorrectTotalArea -= static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[CGALFailedIndexes[i]]]);
 				}
 			}
 
@@ -261,14 +261,14 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 			std::vector<float> Rugosities;
 			for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 			{
-				std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[CurrentNode->TrianglesInCell[l]];
+				std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[l]];
 
 				glm::vec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
 				glm::vec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
 				glm::vec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
 
 				const double ProjectionArea = SDF::TriangleArea(AProjection, BProjection, CProjection);
-				const double OriginalArea = MESH_MANAGER.ActiveMesh->ComplexityMetricData->TrianglesArea[CurrentNode->TrianglesInCell[l]];
+				const double OriginalArea = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]];
 				Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
 
 				if (OriginalArea == 0.0 || ProjectionArea == 0.0)
@@ -281,7 +281,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 			// Weighted by triangle area rugosity.
 			for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 			{
-				const float CurrentTriangleCoef = static_cast<float>(MESH_MANAGER.ActiveMesh->ComplexityMetricData->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
+				const float CurrentTriangleCoef = static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
 				Result += Rugosities[l] * CurrentTriangleCoef;
 
 				if (isnan(Result))
@@ -302,19 +302,19 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 		{
 			const int TriangleIndex = CurrentNode->TrianglesInCell[l];
 
-			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[TriangleIndex][0][0]);
-			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[TriangleIndex][0][1]);
-			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[TriangleIndex][0][2]);
+			FEVerticesFinal.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[TriangleIndex][0][0]);
+			FEVerticesFinal.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[TriangleIndex][0][1]);
+			FEVerticesFinal.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[TriangleIndex][0][2]);
 			FEIndicesFinal.push_back(l * 3);
 
-			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[TriangleIndex][1][0]);
-			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[TriangleIndex][1][1]);
-			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[TriangleIndex][1][2]);
+			FEVerticesFinal.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[TriangleIndex][1][0]);
+			FEVerticesFinal.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[TriangleIndex][1][1]);
+			FEVerticesFinal.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[TriangleIndex][1][2]);
 			FEIndicesFinal.push_back(l * 3 + 1);
 
-			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[TriangleIndex][2][0]);
-			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[TriangleIndex][2][1]);
-			FEVerticesFinal.push_back(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[TriangleIndex][2][2]);
+			FEVerticesFinal.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[TriangleIndex][2][0]);
+			FEVerticesFinal.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[TriangleIndex][2][1]);
+			FEVerticesFinal.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[TriangleIndex][2][2]);
 			FEIndicesFinal.push_back(l * 3 + 2);
 		}
 
@@ -369,12 +369,12 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 	// ******* Getting average normal *******
 	for (size_t l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 	{
-		std::vector<glm::vec3> CurrentTriangle = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[CurrentNode->TrianglesInCell[l]];
-		std::vector<glm::vec3> CurrentTriangleNormals = MESH_MANAGER.ActiveMesh->ComplexityMetricData->TrianglesNormals[CurrentNode->TrianglesInCell[l]];
+		std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[l]];
+		std::vector<glm::vec3> CurrentTriangleNormals = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[CurrentNode->TrianglesInCell[l]];
 
 		if (RUGOSITY_MANAGER.bWeightedNormals)
 		{
-			const float CurrentTriangleCoef = static_cast<float>(MESH_MANAGER.ActiveMesh->ComplexityMetricData->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
+			const float CurrentTriangleCoef = static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
 
 			CurrentNode->AverageCellNormal += CurrentTriangleNormals[0] * CurrentTriangleCoef;
 			CurrentNode->AverageCellNormal += CurrentTriangleNormals[1] * CurrentTriangleCoef;
@@ -637,7 +637,7 @@ void RugosityManager::RenderDebugInfoForSelectedNode(SDF* Grid)
 	SDFNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
 	for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
 	{
-		const auto CurrentTriangle = MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
+		const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
 
 		std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)

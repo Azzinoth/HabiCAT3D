@@ -45,9 +45,9 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 	FEMesh* Mesh = MESH_MANAGER.ActiveMesh;
 
 	std::vector<std::string> CaptionList;
-	for (size_t i = 0; i < Mesh->ComplexityMetricData->Layers.size(); i++)
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
 	{
-		CaptionList.push_back(Mesh->ComplexityMetricData->Layers[i].GetCaption());
+		CaptionList.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption());
 	}
 
 	int IndexToAdd = FindHigestIntPostfix(Base, "_", CaptionList);
@@ -55,9 +55,9 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 	if (IndexToAdd < 2)
 	{
 		std::transform(Base.begin(), Base.end(), Base.begin(), [](const unsigned char C) { return std::tolower(C); });
-		for (size_t i = 0; i < Mesh->ComplexityMetricData->Layers.size(); i++)
+		for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
 		{
-			std::string CurrentCaption = Mesh->ComplexityMetricData->Layers[i].GetCaption();
+			std::string CurrentCaption = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption();
 			std::transform(CurrentCaption.begin(), CurrentCaption.end(), CurrentCaption.begin(), [](const unsigned char C) { return std::tolower(C); });
 
 			if (CurrentCaption.find(Base) != std::string::npos)
@@ -71,6 +71,7 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 	if (IndexToAdd > 1)
 		Result += "_" + std::to_string(IndexToAdd);
 
+	return Result;
 	return Result;
 }
 
@@ -86,10 +87,10 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 
 void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr || NewLayerIndex < -1 || NewLayerIndex >= int(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers.size()))
+	if (MESH_MANAGER.ActiveMesh == nullptr || NewLayerIndex < -1 || NewLayerIndex >= int(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size()))
 		return;
 
-	MESH_MANAGER.ActiveMesh->ComplexityMetricData->CurrentLayerIndex = NewLayerIndex;
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentLayerIndex = NewLayerIndex;
 
 	if (NewLayerIndex != -1)
 		MESH_MANAGER.ActiveMesh->ComplexityMetricDataToGPU(NewLayerIndex);
@@ -113,7 +114,7 @@ int LayerManager::GetActiveLayerIndex()
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return -1;
 
-	return MESH_MANAGER.ActiveMesh->ComplexityMetricData->CurrentLayerIndex;
+	return COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentLayerIndex;
 }
 
 MeshLayer* LayerManager::GetActiveLayer()
@@ -121,8 +122,8 @@ MeshLayer* LayerManager::GetActiveLayer()
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return nullptr;
 
-	if (MESH_MANAGER.ActiveMesh->ComplexityMetricData->CurrentLayerIndex == -1)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentLayerIndex == -1)
 		return nullptr;
 
-	return &MESH_MANAGER.ActiveMesh->ComplexityMetricData->Layers[MESH_MANAGER.ActiveMesh->ComplexityMetricData->CurrentLayerIndex];
+	return &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentLayerIndex];
 }

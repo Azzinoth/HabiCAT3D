@@ -99,108 +99,10 @@ bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vec
 	return false;
 }
 
-std::vector<triangleData> SDF::GetTrianglesData()
-{
-	std::vector<triangleData> Result;
-
-	if (MESH_MANAGER.ActiveMesh == nullptr)
-		return Result;
-
-	std::vector<float> FEVertices;
-	FEVertices.resize(MESH_MANAGER.ActiveMesh->getPositionsCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(MESH_MANAGER.ActiveMesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
-
-	std::vector<float> FENormals;
-	FENormals.resize(MESH_MANAGER.ActiveMesh->getPositionsCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(MESH_MANAGER.ActiveMesh->getNormalsBufferID(), 0, sizeof(float) * FENormals.size(), FENormals.data()));
-
-	std::vector<int> FEIndices;
-	FEIndices.resize(MESH_MANAGER.ActiveMesh->getIndicesCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(MESH_MANAGER.ActiveMesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
-
-	for (size_t i = 0; i < FEIndices.size(); i += 3)
-	{
-		int VertexPosition = FEIndices[i] * 3;
-		glm::vec3 FirstVertex = glm::vec3(FEVertices[VertexPosition], FEVertices[VertexPosition + 1], FEVertices[VertexPosition + 2]);
-
-		VertexPosition = FEIndices[i + 1] * 3;
-		glm::vec3 SecondVertex = glm::vec3(FEVertices[VertexPosition], FEVertices[VertexPosition + 1], FEVertices[VertexPosition + 2]);
-
-		VertexPosition = FEIndices[i + 2] * 3;
-		glm::vec3 ThirdVertex = glm::vec3(FEVertices[VertexPosition], FEVertices[VertexPosition + 1], FEVertices[VertexPosition + 2]);
-
-		const glm::vec3 CurrentCentroid = (FirstVertex + SecondVertex + ThirdVertex) / 3.0f;
-
-		// We are taking index of last vertex because all verticies of triangle should have same normal.
-		const glm::vec3 TriangleNormal = glm::vec3(FENormals[VertexPosition], FENormals[VertexPosition + 1], FENormals[VertexPosition + 2]);
-
-		// First triangle side length
-		float FirstSideLength = glm::length(FirstVertex - SecondVertex);
-		float SecondSideLength = glm::length(FirstVertex - ThirdVertex);
-		float ThirdSideLength = glm::length(SecondVertex - ThirdVertex);
-
-		triangleData data;
-		data.centroid = CurrentCentroid;
-		data.normal = TriangleNormal;
-		data.maxSideLength = std::max(std::max(FirstSideLength, SecondSideLength), ThirdSideLength);
-		Result.push_back(data);
-	}
-
-	return Result;
-}
-
 SDF::SDF()
 {
 
 }
-
-//float SDF::GetSignedDistanceForNode(SDFNode* Node)
-//{
-//	float minDistanceToCentroid = FLT_MAX;
-//	int centroidIndex = -1;
-//	glm::vec3 cellCenter = Node->AABB.getCenter();
-//	for (size_t p = 0; p < centroids.size(); p++)
-//	{
-//		float currentDistance = glm::distance(centroids[p].centroid, cellCenter);
-//		if (currentDistance < minDistanceToCentroid)
-//		{
-//			minDistanceToCentroid = currentDistance;
-//			centroidIndex = p;
-//		}
-//	}
-//
-//	if (centroidIndex != -1)
-//	{
-//		glm::vec3 vectorToCentroid = centroids[centroidIndex].centroid - cellCenter;
-//
-//		// Test whether cell is inside or outside of mesh
-//		if (glm::dot(vectorToCentroid, centroids[centroidIndex].normal) >= 0)
-//		{
-//			minDistanceToCentroid = -minDistanceToCentroid;
-//		}
-//
-//		// https://mathinsight.org/distance_point_plane
-//		// Normal of plane
-//		glm::vec3 N = centroids[centroidIndex].normal;
-//		// Point on plane
-//		glm::vec3 C = centroids[centroidIndex].centroid;
-//		glm::vec3 P = cellCenter;
-//
-//		float D = -N.x * C.x - N.y * C.y - N.z * C.z;
-//		float distance = abs(N.x * P.x + N.y * P.y + N.z * P.z + D) / glm::length(N);
-//
-//		// Distance to plane could be a lot greater than distance to triangle
-//		Node->distanceToTrianglePlane = distance;
-//		if (abs(minDistanceToCentroid) > centroids[centroidIndex].maxSideLength / 2.0f)
-//		{
-//			Node->distanceToTrianglePlane = FLT_MAX;
-//			if (minDistanceToCentroid < 0.0f)
-//				minDistanceToCentroid = -minDistanceToCentroid;
-//		}
-//	}
-//
-//	return minDistanceToCentroid;
-//}
 
 SDF::SDF(const int Dimentions, FEAABB AABB)
 {
@@ -328,9 +230,9 @@ void SDF::FillCellsWithTriangleInfo()
 
 	DebugTotalTrianglesInCells = 0;
 
-	for (int l = 0; l < MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles.size(); l++)
+	for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); l++)
 	{
-		FEAABB TriangleAABB = FEAABB(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles[l]);
+		FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
 		int XEnd = Data.size();
 
@@ -439,14 +341,14 @@ void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 T
 
 void SDF::FillMeshWithUserData()
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	TIME.BeginTimeStamp("FillMeshWithUserData");
 
 	std::vector<int> TrianglesRugosityCount;
-	TrianglesUserData.resize(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles.size());
-	TrianglesRugosityCount.resize(MESH_MANAGER.ActiveMesh->ComplexityMetricData->Triangles.size());
+	TrianglesUserData.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
+	TrianglesRugosityCount.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
 
 	for (size_t i = 0; i < Data.size(); i++)
 	{

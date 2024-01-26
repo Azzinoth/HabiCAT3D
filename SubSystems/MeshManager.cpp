@@ -159,7 +159,7 @@ FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 			objLoader.loadedObjects[0]->matIDs.data(), int(objLoader.loadedObjects[0]->matIDs.size()), int(objLoader.loadedObjects[0]->materialRecords.size()), "");
 	}
 
-	result->ComplexityMetricData->fillTrianglesData(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
+	COMPLEXITY_METRIC_MANAGER.Init(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
 
 	return result;
 }
@@ -313,7 +313,7 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 		FENormals[i] = ((float*)NormBuffer)[i];
 	}
 
-	NewMesh->ComplexityMetricData->fillTrianglesData(FEVertices, FEIndices, FENormals);
+	COMPLEXITY_METRIC_MANAGER.Init(FEVertices, FEIndices, FENormals);
 
 	delete[] Buffer;
 	delete[] VertexBuffer;
@@ -326,7 +326,7 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	for (size_t i = 0; i < Layers.size(); i++)
 	{
-		NewMesh->ComplexityMetricData->AddLayer(Layers[i]);
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(Layers[i]);
 	}
 
 	return NewMesh;
@@ -358,7 +358,7 @@ FEMesh* MeshManager::LoadMesh(std::string FileName)
 		return Result;
 	}
 
-	Result->ComplexityMetricData->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
 	ActiveMesh = Result;
 
 	for (size_t i = 0; i < ClientLoadCallbacks.size(); i++)
@@ -434,30 +434,30 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 	file.write((char*)&Count, sizeof(int));
 	file.write((char*)Indices, sizeof(int) * Count);
 
-	Count = Mesh->ComplexityMetricData->Layers.size();
+	Count = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size();
 	file.write((char*)&Count, sizeof(int));
 
-	for (size_t i = 0; i < Mesh->ComplexityMetricData->Layers.size(); i++)
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
 	{
-		int LayerType = Mesh->ComplexityMetricData->Layers[i].GetType();
+		int LayerType = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetType();
 		file.write((char*)&LayerType, sizeof(int));
 
-		Count = static_cast<int>(Mesh->ComplexityMetricData->Layers[i].GetCaption().size());
+		Count = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption().size());
 		file.write((char*)&Count, sizeof(int));
-		file.write((char*)Mesh->ComplexityMetricData->Layers[i].GetCaption().c_str(), sizeof(char) * Count);
+		file.write((char*)COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption().c_str(), sizeof(char) * Count);
 
-		Count = static_cast<int>(Mesh->ComplexityMetricData->Layers[i].GetNote().size());
+		Count = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetNote().size());
 		file.write((char*)&Count, sizeof(int));
-		file.write((char*)Mesh->ComplexityMetricData->Layers[i].GetNote().c_str(), sizeof(char) * Count);
+		file.write((char*)COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetNote().c_str(), sizeof(char) * Count);
 
-		Count = Mesh->ComplexityMetricData->Layers[i].TrianglesToData.size();
+		Count = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].TrianglesToData.size();
 		file.write((char*)&Count, sizeof(int));
-		file.write((char*)Mesh->ComplexityMetricData->Layers[i].TrianglesToData.data(), sizeof(float) * Count);
+		file.write((char*)COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].TrianglesToData.data(), sizeof(float) * Count);
 
-		Count = Mesh->ComplexityMetricData->Layers[i].DebugInfo != nullptr;
+		Count = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].DebugInfo != nullptr;
 		file.write((char*)&Count, sizeof(int));
 		if (Count)
-			Mesh->ComplexityMetricData->Layers[i].DebugInfo->ToFile(file);
+			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].DebugInfo->ToFile(file);
 	}
 
 	FEAABB TempAABB(Positions, Mesh->getPositionsCount());
