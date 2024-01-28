@@ -6,12 +6,12 @@ AreaLayerProducer* AreaLayerProducer::Instance = nullptr;
 AreaLayerProducer::AreaLayerProducer() {}
 AreaLayerProducer::~AreaLayerProducer() {}
 
-MeshLayer AreaLayerProducer::Calculate(FEMesh* Mesh)
+MeshLayer AreaLayerProducer::Calculate()
 {
 	MeshLayer Result;
 	Result.SetType(TRIANGLE_AREA);
 
-	if (Mesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return Result;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);

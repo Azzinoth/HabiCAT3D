@@ -410,11 +410,10 @@ namespace FocalEngine
 		float GridScale = 2.5f;
 	};
 
-
-
 	class JitterManager
 	{
 		friend class UIManager;
+		friend class LayerManager;
 	public:
 		SINGLETON_PUBLIC_PART(JitterManager)
 

@@ -9,7 +9,7 @@ public:
 	SINGLETON_PUBLIC_PART(TriangleCountLayerProducer)
 
 	void CalculateWithJitterAsync(bool bSmootherResult);
-	void CalculateOnWholeModel(FEMesh* Mesh);
+	void CalculateOnWholeModel();
 private:
 	SINGLETON_PRIVATE_PART(TriangleCountLayerProducer)
 

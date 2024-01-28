@@ -104,7 +104,7 @@ namespace FocalEngine
 		void RenderAboutWindow();
 
 		static void OnLayerChange();
-
+		// DELETE
 		float FindStandardDeviation(std::vector<float> DataPoints);
 
 		FETexture* AddNewLayerIcon = nullptr;

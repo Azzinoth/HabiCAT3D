@@ -9,8 +9,8 @@ class VectorDispersionLayerProducer
 public:
 	SINGLETON_PUBLIC_PART(VectorDispersionLayerProducer)
 
-	void CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult);
-	void CalculateOnWholeModel(FEMesh* Mesh);
+	void CalculateWithJitterAsync(bool bSmootherResult);
+	void CalculateOnWholeModel();
 	void RenderDebugInfoForSelectedNode(SDF* Grid);
 
 	void SetOnCalculationsEndCallback(void(*Func)(MeshLayer));

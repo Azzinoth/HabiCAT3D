@@ -1,6 +1,6 @@
 #pragma once
 #include "../MeshManager.h"
-#include "../JitterManager.h"
+#include "../RugosityManager.h"
 using namespace FocalEngine;
 
 namespace FocalEngine
@@ -27,6 +27,9 @@ namespace FocalEngine
 
 		//std::vector<std::function<void()>> ClientAfterNewLayerAddedCallbacks;
 		std::vector<std::function<void()>> ClientAfterActiveLayerChangedCallbacks;
+
+		float FindStandardDeviation(std::vector<float> DataPoints);
+		static void OnRugosityCalculationsEnd(MeshLayer NewLayer);
 	};
 
 	#define LAYER_MANAGER LayerManager::getInstance()

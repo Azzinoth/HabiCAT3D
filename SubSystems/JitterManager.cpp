@@ -276,6 +276,14 @@ void JitterManager::OnCalculationsEnd()
 		if (JITTER_MANAGER.OnCalculationsEndCallbacks[i] != nullptr)
 			JITTER_MANAGER.OnCalculationsEndCallbacks[i](NewLayer);
 	}
+
+	for (size_t i = 0; i < JITTER_MANAGER.LastUsedJitterSettings.size(); i++)
+	{
+		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftX", JITTER_MANAGER.LastUsedJitterSettings[i].ShiftX);
+		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftY", JITTER_MANAGER.LastUsedJitterSettings[i].ShiftY);
+		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftZ", JITTER_MANAGER.LastUsedJitterSettings[i].ShiftZ);
+		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " GridScale", JITTER_MANAGER.LastUsedJitterSettings[i].GridScale);
+	}
 }
 
 void JitterManager::SetOnCalculationsStartCallback(std::function<void()> Func)

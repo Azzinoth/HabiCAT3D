@@ -45,9 +45,9 @@ void TriangleCountLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
 }
 
-void TriangleCountLayerProducer::CalculateOnWholeModel(FEMesh* Mesh)
+void TriangleCountLayerProducer::CalculateOnWholeModel()
 {
-	if (Mesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	bWaitForJitterResult = true;

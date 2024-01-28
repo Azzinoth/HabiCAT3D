@@ -58,9 +58,9 @@ void VectorDispersionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 	CurrentNode->UserData = DoubleResult;
 }
 
-void VectorDispersionLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult)
+void VectorDispersionLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
-	if (Mesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	bWaitForJitterResult = true;
@@ -71,7 +71,7 @@ void VectorDispersionLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool 
 
 void VectorDispersionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	if (!VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult)
@@ -115,9 +115,9 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 	LINE_RENDERER.SyncWithGPU();
 }
 
-void VectorDispersionLayerProducer::CalculateOnWholeModel(FEMesh* Mesh)
+void VectorDispersionLayerProducer::CalculateOnWholeModel()
 {
-	if (Mesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	bWaitForJitterResult = true;

@@ -529,59 +529,53 @@ void UIManager::OnJitterCalculationsStart()
 	UI.bShouldOpenProgressPopup = true;
 }
 
-void WriteJitterSettingsToDebugInfo(MeshLayerDebugInfo* DebugInfo, std::vector<SDFInitData_Jitter>& JitterSettings)
-{
-	if (DebugInfo == nullptr)
-		return;
-
-	for (size_t i = 0; i < JitterSettings.size(); i++)
-	{
-		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftX", JitterSettings[i].ShiftX);
-		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftY", JitterSettings[i].ShiftY);
-		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftZ", JitterSettings[i].ShiftZ);
-		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " GridScale", JitterSettings[i].GridScale);
-	}
-}
+//void WriteJitterSettingsToDebugInfo(MeshLayerDebugInfo* DebugInfo, std::vector<SDFInitData_Jitter>& JitterSettings)
+//{
+//	if (DebugInfo == nullptr)
+//		return;
+//
+//	for (size_t i = 0; i < JitterSettings.size(); i++)
+//	{
+//		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftX", JitterSettings[i].ShiftX);
+//		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftY", JitterSettings[i].ShiftY);
+//		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftZ", JitterSettings[i].ShiftZ);
+//		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " GridScale", JitterSettings[i].GridScale);
+//	}
+//}
 
 void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
 {
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
+	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
+	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
+	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
 
-	//WriteJitterSettingsToDebugInfo(MESH_MANAGER.ActiveMesh->Layers.back().DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
-	LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
+	//LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
 
-	if (RUGOSITY_MANAGER.bCalculateStandardDeviation)
-	{
-		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-		std::vector<float> TrianglesToStandardDeviation;
-		for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
-		{
-			std::vector<float> CurrentTriangleResults;
-			for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
-			{
-				CurrentTriangleResults.push_back(JITTER_MANAGER.PerJitterResult[j][i]);
-			}
+	//if (RUGOSITY_MANAGER.bCalculateStandardDeviation)
+	//{
+	//	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	//	std::vector<float> TrianglesToStandardDeviation;
+	//	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	//	{
+	//		std::vector<float> CurrentTriangleResults;
+	//		for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
+	//		{
+	//			CurrentTriangleResults.push_back(JITTER_MANAGER.PerJitterResult[j][i]);
+	//		}
 
-			TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
-		}
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+	//		TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
+	//	}
+	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
+	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-		MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
-		DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
-		DebugInfo->AddEntry("Start time", StarTime);
-		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer Caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
-	}
-
-	// Add per jitter debug info to the standard deviation layer.
-	//WriteJitterSettingsToDebugInfo(DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
-
-	//LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 2);
+	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
+	//	MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
+	//	DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
+	//	DebugInfo->AddEntry("Start time", StarTime);
+	//	DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+	//	DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
+	//	DebugInfo->AddEntry("Source layer Caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
+	//}
 }
 
 void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
@@ -590,25 +584,11 @@ void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	UI.CurrentJitterStepIndexVisualize = JITTER_MANAGER.GetLastUsedJitterSettings().size() - 1;
 
 	// Add per jitter debug info to the layer.
-	WriteJitterSettingsToDebugInfo(NewLayer.DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
-	/*std::vector<SDFInitData_Jitter> UsedSettings;
-	UsedSettings = JITTER_MANAGER.GetLastUsedJitterSettings();
-
-	for (size_t i = 0; i < UsedSettings.size(); i++)
-	{
-		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftX", UsedSettings[i].ShiftX);
-		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftY", UsedSettings[i].ShiftY);
-		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftZ", UsedSettings[i].ShiftZ);
-		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " GridScale", UsedSettings[i].GridScale);
-	}*/
+	//WriteJitterSettingsToDebugInfo(NewLayer.DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
 }
 
 void UIManager::OnVectorDispersionCalculationsEnd(MeshLayer NewLayer)
 {
-	//MESH_MANAGER.ActiveMesh->AddLayer(NewLayer);
-	//MESH_MANAGER.ActiveMesh->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector Dispersion"));
-	//LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 1);
-
 	if (VECTOR_DISPERSION_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{
 		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -634,8 +614,6 @@ void UIManager::OnVectorDispersionCalculationsEnd(MeshLayer NewLayer)
 		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
 		DebugInfo->AddEntry("Source layer Caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
 	}
-
-	//LAYER_MANAGER.SetActiveLayerIndex(MESH_MANAGER.ActiveMesh->Layers.size() - 2);
 
 	UI.bShouldCloseProgressPopup = true;
 }
@@ -1486,6 +1464,7 @@ void UIManager::OnLayerChange()
 	}	
 }
 
+// DELETE
 float UIManager::FindStandardDeviation(std::vector<float> DataPoints)
 {
 	float Mean = 0.0f;

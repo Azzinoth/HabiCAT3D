@@ -131,9 +131,9 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 	CurrentNode->UserData = FractalDimension;
 }
 
-void FractalDimensionLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult, bool bUseFilter)
+void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResult, bool bUseFilter)
 {
-	if (Mesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	bWaitForJitterResult = true;
@@ -155,13 +155,12 @@ void FractalDimensionLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool 
 	}
 		
 	JITTER_MANAGER.SetFallbackValue(2.0f);
-
 	JITTER_MANAGER.CalculateWithSDFJitterAsync(WorkOnNode, bSmootherResult);
 }
 
 void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	if (!FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult)
@@ -252,7 +251,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 
 									if (i == DebugBoxSizeIndex)
 									{
-										box = box.transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
+										box = box.transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->getTransformMatrix());
 										LINE_RENDERER.RenderAABB(box, glm::vec3(1.0, 0.0, 0.0));
 										DebugBoxCount++;
 									}
@@ -340,9 +339,9 @@ void FractalDimensionLayerProducer::RenderDebugInfoWindow(SDF* Grid)
 	}
 }
 
-void FractalDimensionLayerProducer::CalculateOnWholeModel(FEMesh* Mesh)
+void FractalDimensionLayerProducer::CalculateOnWholeModel()
 {
-	if (Mesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	bWaitForJitterResult = true;
@@ -352,8 +351,8 @@ void FractalDimensionLayerProducer::CalculateOnWholeModel(FEMesh* Mesh)
 	JITTER_MANAGER.SetIgnoreValueFunction([](float Value) -> bool {
 		return Value < 2.0f;
 	});
-	JITTER_MANAGER.SetFallbackValue(2.0f);
 
+	JITTER_MANAGER.SetFallbackValue(2.0f);
 	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
 }
 

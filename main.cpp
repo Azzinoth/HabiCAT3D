@@ -736,6 +736,16 @@ void AddFontOnSecondFrame()
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	const auto processor_count = THREAD_POOL.GetLogicalCoreCount();
+	const unsigned int HowManyToUse = processor_count > 4 ? processor_count - 2 : 1;
+
+	THREAD_POOL.SetConcurrentThreadCount(HowManyToUse);
+
+
+
+
+
+
 
 	// Allocate a console
 	AllocConsole();
@@ -757,12 +767,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole = true;
 	AfterMeshLoads();
 
-	TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(true);
+	//TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(true);
+	//VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(true);
+	//FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(true, true);
+
+	RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
 
 	//while (JITTER_MANAGER.GetJitterToDoCount() != 0)
 	while (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() < 2)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		THREAD_POOL.Update();
 	}
 
@@ -793,11 +807,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	APPLICATION.SetMouseButtonCallback(mouseButtonCallback);
 	APPLICATION.SetWindowResizeCallback(windowResizeCallback);
 	APPLICATION.SetScrollCallback(ScrollCall);
-
-	const auto processor_count = THREAD_POOL.GetLogicalCoreCount();
-	const unsigned int HowManyToUse = processor_count > 4 ? processor_count - 2 : 1;
-
-	THREAD_POOL.SetConcurrentThreadCount(HowManyToUse);
 
 	glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
 	FE_GL_ERROR(glEnable(GL_DEPTH_TEST));

@@ -443,7 +443,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 
 void RugosityManager::CalculateRugorsityWithJitterAsync()
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -454,7 +454,7 @@ void RugosityManager::CalculateRugorsityWithJitterAsync()
 
 void RugosityManager::CalculateOnWholeModel()
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -554,7 +554,7 @@ void RugosityManager::SetOnRugosityCalculationsStartCallback(void(*Func)(void))
 
 void RugosityManager::OnRugosityCalculationsStart()
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	RUGOSITY_MANAGER.bWaitForJitterResult = true;
@@ -642,7 +642,7 @@ void RugosityManager::RenderDebugInfoForSelectedNode(SDF* Grid)
 		std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
-			TranformedTrianglePoints[j] = MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+			TranformedTrianglePoints[j] = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
 		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));

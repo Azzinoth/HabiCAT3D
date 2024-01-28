@@ -127,7 +127,7 @@ void NewLayerWindow::AddLayer()
 		}
 		case 1:
 		{
-			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(AREA_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh));
+			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(AREA_LAYER_PRODUCER.Calculate());
 			LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
 
 			InternalClose();
@@ -135,7 +135,7 @@ void NewLayerWindow::AddLayer()
 		}
 		case 2:
 		{
-			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(MESH_MANAGER.ActiveMesh, TrianglesEdgesMode));
+			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(TrianglesEdgesMode));
 			LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
 
 			InternalClose();
@@ -145,7 +145,7 @@ void NewLayerWindow::AddLayer()
 		{
 			if (bRunOnWholeModel)
 			{
-				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateOnWholeModel(MESH_MANAGER.ActiveMesh);
+				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateOnWholeModel();
 				MESH_MANAGER.ActiveMesh->HeatMapType = -1;
 			}
 			else
@@ -177,12 +177,12 @@ void NewLayerWindow::AddLayer()
 		{
 			if (bRunOnWholeModel)
 			{
-				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateOnWholeModel(MESH_MANAGER.ActiveMesh);
+				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateOnWholeModel();
 				MESH_MANAGER.ActiveMesh->HeatMapType = -1;
 			}
 			else
 			{
-				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult);
+				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
 				MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 			}
 
@@ -193,12 +193,12 @@ void NewLayerWindow::AddLayer()
 		{
 			if (bRunOnWholeModel)
 			{
-				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel(MESH_MANAGER.ActiveMesh);
+				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel();
 				MESH_MANAGER.ActiveMesh->HeatMapType = -1;
 			}
 			else
 			{
-				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult, bFilterFractalDimention);
+				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult, bFilterFractalDimention);
 				MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 			}
 

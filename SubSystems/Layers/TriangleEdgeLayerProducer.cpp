@@ -6,12 +6,12 @@ TriangleEdgeLayerProducer* TriangleEdgeLayerProducer::Instance = nullptr;
 TriangleEdgeLayerProducer::TriangleEdgeLayerProducer() {}
 TriangleEdgeLayerProducer::~TriangleEdgeLayerProducer() {}
 
-MeshLayer TriangleEdgeLayerProducer::Calculate(FEMesh* Mesh, int Mode)
+MeshLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 {
 	MeshLayer Result;
 	Result.SetType(TRIANGLE_EDGE);
 
-	if (Mesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return Result;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
