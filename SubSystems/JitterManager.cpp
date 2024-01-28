@@ -8,7 +8,6 @@ JitterManager::JitterManager()
 	JitterVectorSetNames.push_back("1");
 	JitterVectorSetNames.push_back("7");
 	JitterVectorSetNames.push_back("13");
-	//JitterVectorSetNames.push_back("19");
 	JitterVectorSetNames.push_back("25");
 	JitterVectorSetNames.push_back("37");
 	JitterVectorSetNames.push_back("55");
@@ -21,7 +20,7 @@ void JitterManager::OnMeshUpdate()
 {
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
-	FEAABB FinalAABB = MESH_MANAGER.ActiveMesh->AABB.transform(TransformMatrix);
+	FEAABB FinalAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.transform(TransformMatrix);
 
 	const float MaxMeshAABBSize = FinalAABB.getSize();
 
@@ -140,13 +139,13 @@ void JitterManager::RunCalculationOnSDFAsync(void* InputData, void* OutputData)
 	const SDFInitData_Jitter* Input = reinterpret_cast<SDFInitData_Jitter*>(InputData);
 	SDF* Output = reinterpret_cast<SDF*>(OutputData);
 
-	FEAABB finalAABB = MESH_MANAGER.ActiveMesh->AABB;
+	FEAABB finalAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
 
 	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
 	transformMatrix = glm::scale(transformMatrix, glm::vec3(Input->GridScale));
 	finalAABB = finalAABB.transform(transformMatrix);
 
-	const glm::vec3 center = MESH_MANAGER.ActiveMesh->AABB.getCenter() + glm::vec3(Input->ShiftX, Input->ShiftY, Input->ShiftZ) * JITTER_MANAGER.ResolutonInM;
+	const glm::vec3 center = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.getCenter() + glm::vec3(Input->ShiftX, Input->ShiftY, Input->ShiftZ) * JITTER_MANAGER.ResolutonInM;
 	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
 	finalAABB = SDFAABB;
 
@@ -237,7 +236,7 @@ void JitterManager::MoveResultDataFromSDF(SDF* SDF)
 
 void JitterManager::OnCalculationsStart()
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	JITTER_MANAGER.Result.clear();
@@ -374,9 +373,9 @@ void JitterManager::CalculateOnWholeModel(std::function<void(SDFNode* currentNod
 
 void JitterManager::RunCalculationOnWholeModel(SDF* ResultSDF)
 {
-	FEAABB MeshAABB = MESH_MANAGER.ActiveMesh->AABB;
+	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
 
-	const glm::vec3 Center = MESH_MANAGER.ActiveMesh->AABB.getCenter() ;
+	const glm::vec3 Center = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.getCenter() ;
 	const FEAABB SDFAABB = FEAABB(Center - glm::vec3(MeshAABB.getSize() / 2.0f), Center + glm::vec3(MeshAABB.getSize() / 2.0f));
 	MeshAABB = SDFAABB;
 

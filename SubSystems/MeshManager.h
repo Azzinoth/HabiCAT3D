@@ -354,16 +354,6 @@ void main(void)
 
 namespace FocalEngine
 {
-	const COMDLG_FILTERSPEC RUGOSITY_LOAD_FILE_FILTER[] =
-	{
-		{ L"Mesh files (*.obj; *.rug)", L"*.obj;*.rug" }
-	};
-
-	const COMDLG_FILTERSPEC RUGOSITY_SAVE_FILE_FILTER[] =
-	{
-		{ L"Rugosity file (*.rug)", L"*.rug" }
-	};
-
 	class FECGALWrapper;
 	class MeshManager
 	{

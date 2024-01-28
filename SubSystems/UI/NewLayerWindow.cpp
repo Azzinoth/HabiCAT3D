@@ -150,7 +150,7 @@ void NewLayerWindow::AddLayer()
 			}
 			else
 			{
-				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(MESH_MANAGER.ActiveMesh, bSmootherResult);
+				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
 				MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 			}
 

@@ -753,15 +753,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	std::getline(std::cin, filePath);
 	std::cout << "File path entered: " << filePath << std::endl;
 
-
 	COMPLEXITY_METRIC_MANAGER.ImportOBJ(filePath.c_str(), true);
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole = true;
 	AfterMeshLoads();
 
-	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
+	TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(true);
 
+	//while (JITTER_MANAGER.GetJitterToDoCount() != 0)
+	while (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() < 2)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		THREAD_POOL.Update();
+	}
 
-	std::cin >> filePath;
+	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer();
+	COMPLEXITY_METRIC_MANAGER.SaveToRUGFile();
+	//std::cin >> filePath;
 
 	// Your GUI code can still run here
 

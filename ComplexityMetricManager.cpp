@@ -6,13 +6,13 @@ ComplexityMetricManager* ComplexityMetricManager::Instance = nullptr;
 ComplexityMetricManager::ComplexityMetricManager() {}
 ComplexityMetricManager::~ComplexityMetricManager() {}
 
-void ComplexityMetricManager::Init(std::vector<double>& FEVertices, std::vector<int>& FEIndices, std::vector<float>& FENormals)
+void ComplexityMetricManager::Init(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
 {
 	if (ActiveComplexityMetricInfo != nullptr)
 		delete ActiveComplexityMetricInfo;
 	
 	ActiveComplexityMetricInfo = new ComplexityMetricInfo();
-	ActiveComplexityMetricInfo->fillTrianglesData(FEVertices, FEIndices, FENormals);
+	ActiveComplexityMetricInfo->fillTrianglesData(Vertices, Colors, UVs, Tangents, Indices, Normals);
 }
 
 void ComplexityMetricManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
@@ -23,8 +23,88 @@ void ComplexityMetricManager::ImportOBJ(const char* FileName, bool bForceOneMesh
 
 	if (objLoader.loadedObjects.size() > 0)
 	{
-		COMPLEXITY_METRIC_MANAGER.Init(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
+		COMPLEXITY_METRIC_MANAGER.Init(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fColorsC, objLoader.loadedObjects[0]->fTexC, objLoader.loadedObjects[0]->fTanC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
 	}
+}
+
+void ComplexityMetricManager::SaveToRUGFile()
+{
+	std::string FilePath;
+	FILE_SYSTEM.ShowFileSaveDialog(FilePath, RUGOSITY_SAVE_FILE_FILTER, 1);
+
+	if (FilePath.empty())
+		return;
+
+	if (FilePath.find(".rug") == std::string::npos)
+		FilePath += ".rug";
+
+	std::fstream file;
+	file.open(FilePath, std::ios::out | std::ios::binary);
+
+	// Version of file.
+	float version = APP_VERSION;
+	file.write((char*)&version, sizeof(float));
+
+	int Count = ActiveComplexityMetricInfo->MeshData.Vertices.size();
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)ActiveComplexityMetricInfo->MeshData.Vertices.data(), sizeof(float) * Count);
+
+	Count = ActiveComplexityMetricInfo->MeshData.Colors.size();
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)ActiveComplexityMetricInfo->MeshData.Colors.data(), sizeof(float) * Count);
+
+	Count = ActiveComplexityMetricInfo->MeshData.UVs.size();
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)ActiveComplexityMetricInfo->MeshData.UVs.data(), sizeof(float) * Count);
+
+	Count = ActiveComplexityMetricInfo->MeshData.Normals.size();
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)ActiveComplexityMetricInfo->MeshData.Normals.data(), sizeof(float) * Count);
+
+	Count = ActiveComplexityMetricInfo->MeshData.Tangents.size();
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)ActiveComplexityMetricInfo->MeshData.Tangents.data(), sizeof(float) * Count);
+
+	Count = ActiveComplexityMetricInfo->MeshData.Indices.size();
+	file.write((char*)&Count, sizeof(int));
+	file.write((char*)ActiveComplexityMetricInfo->MeshData.Indices.data(), sizeof(int) * Count);
+
+	Count = ActiveComplexityMetricInfo->Layers.size();
+	file.write((char*)&Count, sizeof(int));
+
+	for (size_t i = 0; i < ActiveComplexityMetricInfo->Layers.size(); i++)
+	{
+		int LayerType = ActiveComplexityMetricInfo->Layers[i].GetType();
+		file.write((char*)&LayerType, sizeof(int));
+
+		Count = static_cast<int>(ActiveComplexityMetricInfo->Layers[i].GetCaption().size());
+		file.write((char*)&Count, sizeof(int));
+		file.write((char*)ActiveComplexityMetricInfo->Layers[i].GetCaption().c_str(), sizeof(char) * Count);
+
+		Count = static_cast<int>(ActiveComplexityMetricInfo->Layers[i].GetNote().size());
+		file.write((char*)&Count, sizeof(int));
+		file.write((char*)ActiveComplexityMetricInfo->Layers[i].GetNote().c_str(), sizeof(char) * Count);
+
+		Count = ActiveComplexityMetricInfo->Layers[i].TrianglesToData.size();
+		file.write((char*)&Count, sizeof(int));
+		file.write((char*)ActiveComplexityMetricInfo->Layers[i].TrianglesToData.data(), sizeof(float) * Count);
+
+		Count = ActiveComplexityMetricInfo->Layers[i].DebugInfo != nullptr;
+		file.write((char*)&Count, sizeof(int));
+		if (Count)
+			ActiveComplexityMetricInfo->Layers[i].DebugInfo->ToFile(file);
+	}
+
+	FEAABB TempAABB(ActiveComplexityMetricInfo->MeshData.Vertices.data(), ActiveComplexityMetricInfo->MeshData.Vertices.size());
+	file.write((char*)&TempAABB.getMin()[0], sizeof(float));
+	file.write((char*)&TempAABB.getMin()[1], sizeof(float));
+	file.write((char*)&TempAABB.getMin()[2], sizeof(float));
+
+	file.write((char*)&TempAABB.getMax()[0], sizeof(float));
+	file.write((char*)&TempAABB.getMax()[1], sizeof(float));
+	file.write((char*)&TempAABB.getMax()[2], sizeof(float));
+
+	file.close();
 }
 
 //FEMesh* MeshManager::LoadRUGMesh(std::string FileName)

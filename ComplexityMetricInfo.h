@@ -117,6 +117,19 @@ namespace FocalEngine
 		void SetSelectedRangeMax(float NewValue);
 	};
 
+	// For purposes of complexity metric storing of all of raw data is redundant,but it is needed for saving RUG file.
+	struct RawMeshData
+	{
+		std::vector<float> Vertices;
+		std::vector<float> Colors;
+		std::vector<float> UVs;
+		std::vector<float> Tangents;
+		std::vector<int> Indices;
+		std::vector<float> Normals;
+
+		FEAABB AABB;
+	};
+
 	class MeshManager;
 	class LayerManager;
 
@@ -133,9 +146,7 @@ namespace FocalEngine
 
 		std::vector<int> TriangleSelected;
 
-		std::vector<double> MeshVertices;
-		std::vector<int> MeshIndices;
-		std::vector<float> MeshNormals;
+		RawMeshData MeshData;
 
 		std::vector<std::vector<glm::vec3>> Triangles;
 		std::vector<double> TrianglesArea;
@@ -150,7 +161,7 @@ namespace FocalEngine
 		std::vector<float> rugosityDataAdditional;
 		std::vector<float> TrianglesRugosityAdditional;
 
-		void fillTrianglesData(std::vector<double>& FEVertices, std::vector<int>& FEIndices, std::vector<float>& FENormals);
+		void fillTrianglesData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
 
 		glm::vec3 AverageNormal = glm::vec3();
 		glm::vec3 GetAverageNormal();

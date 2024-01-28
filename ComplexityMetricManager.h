@@ -4,8 +4,20 @@ using namespace FocalEngine;
 
 #include "SubSystems/FEObjLoader.h"
 
+#define APP_VERSION 0.55
+
 namespace FocalEngine
 {
+	const COMDLG_FILTERSPEC RUGOSITY_LOAD_FILE_FILTER[] =
+	{
+		{ L"Mesh files (*.obj; *.rug)", L"*.obj;*.rug" }
+	};
+
+	const COMDLG_FILTERSPEC RUGOSITY_SAVE_FILE_FILTER[] =
+	{
+		{ L"Rugosity file (*.rug)", L"*.rug" }
+	};
+
 	class ComplexityMetricManager
 	{
 	public:
@@ -13,9 +25,10 @@ namespace FocalEngine
 
 		ComplexityMetricInfo* ActiveComplexityMetricInfo = nullptr;
 
-		void Init(std::vector<double>& FEVertices, std::vector<int>& FEIndices, std::vector<float>& FENormals);
+		void Init(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
 		void ImportOBJ(const char* FileName, bool bForceOneMesh);
 
+		void SaveToRUGFile();
 	private:
 		SINGLETON_PRIVATE_PART(ComplexityMetricManager)
 

@@ -3,11 +3,21 @@ using namespace FocalEngine;
 
 ComplexityMetricInfo::ComplexityMetricInfo() {}
 
-void ComplexityMetricInfo::fillTrianglesData(std::vector<double>& FEVertices, std::vector<int>& FEIndices, std::vector<float>& FENormals)
+void ComplexityMetricInfo::fillTrianglesData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
 {
-	MeshVertices = FEVertices;
-	MeshIndices = FEIndices;
-	MeshNormals = FENormals;
+	std::vector<float> FloatVertices;
+	FloatVertices.resize(Vertices.size());
+	for (size_t i = 0; i < Vertices.size(); i++)
+	{
+		FloatVertices[i] = float(Vertices[i]);
+	}
+
+	MeshData.Vertices = FloatVertices;
+	MeshData.Colors = Colors;
+	MeshData.UVs = UVs;
+	MeshData.Tangents = Tangents;
+	MeshData.Indices = Indices;
+	MeshData.Normals = Normals;
 
 	Triangles.clear();
 	TrianglesNormals.clear();
@@ -18,16 +28,16 @@ void ComplexityMetricInfo::fillTrianglesData(std::vector<double>& FEVertices, st
 	std::vector<glm::vec3> triangle;
 	triangle.resize(3);
 
-	for (size_t i = 0; i < FEIndices.size(); i += 3)
+	for (size_t i = 0; i < Indices.size(); i += 3)
 	{
-		int vertexPosition = FEIndices[i] * 3;
-		triangle[0] = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+		int vertexPosition = Indices[i] * 3;
+		triangle[0] = glm::vec3(Vertices[vertexPosition], Vertices[vertexPosition + 1], Vertices[vertexPosition + 2]);
 
-		vertexPosition = FEIndices[i + 1] * 3;
-		triangle[1] = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+		vertexPosition = Indices[i + 1] * 3;
+		triangle[1] = glm::vec3(Vertices[vertexPosition], Vertices[vertexPosition + 1], Vertices[vertexPosition + 2]);
 
-		vertexPosition = FEIndices[i + 2] * 3;
-		triangle[2] = glm::vec3(FEVertices[vertexPosition], FEVertices[vertexPosition + 1], FEVertices[vertexPosition + 2]);
+		vertexPosition = Indices[i + 2] * 3;
+		triangle[2] = glm::vec3(Vertices[vertexPosition], Vertices[vertexPosition + 1], Vertices[vertexPosition + 2]);
 
 		Triangles.push_back(triangle);
 		TrianglesArea.push_back(TriangleArea(triangle[0], triangle[1], triangle[2]));
@@ -35,20 +45,22 @@ void ComplexityMetricInfo::fillTrianglesData(std::vector<double>& FEVertices, st
 
 		TrianglesCentroids.push_back((triangle[0] + triangle[1] + triangle[2]) / 3.0f);
 
-		if (!FENormals.empty())
+		if (!Normals.empty())
 		{
-			vertexPosition = FEIndices[i] * 3;
-			triangle[0] = glm::vec3(FENormals[vertexPosition], FENormals[vertexPosition + 1], FENormals[vertexPosition + 2]);
+			vertexPosition = Indices[i] * 3;
+			triangle[0] = glm::vec3(Normals[vertexPosition], Normals[vertexPosition + 1], Normals[vertexPosition + 2]);
 
-			vertexPosition = FEIndices[i + 1] * 3;
-			triangle[1] = glm::vec3(FENormals[vertexPosition], FENormals[vertexPosition + 1], FENormals[vertexPosition + 2]);
+			vertexPosition = Indices[i + 1] * 3;
+			triangle[1] = glm::vec3(Normals[vertexPosition], Normals[vertexPosition + 1], Normals[vertexPosition + 2]);
 
-			vertexPosition = FEIndices[i + 2] * 3;
-			triangle[2] = glm::vec3(FENormals[vertexPosition], FENormals[vertexPosition + 1], FENormals[vertexPosition + 2]);
+			vertexPosition = Indices[i + 2] * 3;
+			triangle[2] = glm::vec3(Normals[vertexPosition], Normals[vertexPosition + 1], Normals[vertexPosition + 2]);
 
 			TrianglesNormals.push_back(triangle);
 		}
 	}
+
+	MeshData.AABB = FEAABB(FloatVertices.data(), Vertices.size());
 }
 
 void ComplexityMetricInfo::UpdateAverageNormal()
@@ -206,30 +218,19 @@ void MeshLayer::FillRawData()
 	if (ParentComplexityMetricData == nullptr || TrianglesToData.empty())
 		return;
 
-	/*const int PosSize = ParentMesh->getPositionsCount();
-	float* positions = new float[PosSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(ParentMesh->getPositionsBufferID(), 0, sizeof(float) * PosSize, positions));
-
-	const int IndexSize = ParentMesh->getIndicesCount();
-	int* indices = new int[IndexSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(ParentMesh->getIndicesBufferID(), 0, sizeof(int) * IndexSize, indices));*/
-
 	std::vector<float> PositionsVector;
-	for (size_t i = 0; i < ParentComplexityMetricData->MeshVertices.size(); i++)
+	for (size_t i = 0; i < ParentComplexityMetricData->MeshData.Vertices.size(); i++)
 	{
-		PositionsVector.push_back(ParentComplexityMetricData->MeshVertices[i]);
+		PositionsVector.push_back(ParentComplexityMetricData->MeshData.Vertices[i]);
 	}
 
 	std::vector<int> IndexVector;
-	for (size_t i = 0; i < ParentComplexityMetricData->MeshIndices.size(); i++)
+	for (size_t i = 0; i < ParentComplexityMetricData->MeshData.Indices.size(); i++)
 	{
-		IndexVector.push_back(ParentComplexityMetricData->MeshIndices[i]);
+		IndexVector.push_back(ParentComplexityMetricData->MeshData.Indices[i]);
 	}
 
-	//delete positions;
-	//delete indices;
-
-	RawData.resize(ParentComplexityMetricData->MeshVertices.size());
+	RawData.resize(ParentComplexityMetricData->MeshData.Vertices.size());
 	auto GetVertexOfFace = [&](const int FaceIndex) {
 		std::vector<int> result;
 		result.push_back(IndexVector[FaceIndex * 3]);

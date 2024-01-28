@@ -5,8 +5,11 @@ MeshManager* MeshManager::Instance = nullptr;
 
 MeshManager::MeshManager()
 {
-	MeshShader = new FEShader("mainShader", sTestVS, sTestFS);
-	MeshShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr || !COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole)
+	{
+		MeshShader = new FEShader("mainShader", sTestVS, sTestFS);
+		MeshShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
+	}
 }
 
 MeshManager::~MeshManager() {}
@@ -159,7 +162,7 @@ FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 			objLoader.loadedObjects[0]->matIDs.data(), int(objLoader.loadedObjects[0]->matIDs.size()), int(objLoader.loadedObjects[0]->materialRecords.size()), "");
 	}
 
-	COMPLEXITY_METRIC_MANAGER.Init(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
+	COMPLEXITY_METRIC_MANAGER.Init(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fColorsC, objLoader.loadedObjects[0]->fTexC, objLoader.loadedObjects[0]->fTanC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
 
 	return result;
 }
@@ -299,6 +302,27 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 		FEVertices[i] = ((float*)VertexBuffer)[i];
 	}
 
+	std::vector<float> FEColors;
+	FEColors.resize(ColorCount);
+	for (size_t i = 0; i < ColorCount; i++)
+	{
+		FEColors[i] = ((float*)ColorBuffer)[i];
+	}
+
+	std::vector<float> FEUVs;
+	FEUVs.resize(TexCout);
+	for (size_t i = 0; i < TexCout; i++)
+	{
+		FEUVs[i] = ((float*)TexBuffer)[i];
+	}
+
+	std::vector<float> FETangents;
+	FETangents.resize(TangCout);
+	for (size_t i = 0; i < TangCout; i++)
+	{
+		FETangents[i] = ((float*)TangBuffer)[i];
+	}
+
 	std::vector<int> FEIndices;
 	FEIndices.resize(IndexCout);
 	for (size_t i = 0; i < IndexCout; i++)
@@ -312,8 +336,8 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 	{
 		FENormals[i] = ((float*)NormBuffer)[i];
 	}
-
-	COMPLEXITY_METRIC_MANAGER.Init(FEVertices, FEIndices, FENormals);
+	
+	COMPLEXITY_METRIC_MANAGER.Init(FEVertices, FEColors, FEUVs, FETangents, FEIndices, FENormals);
 
 	delete[] Buffer;
 	delete[] VertexBuffer;
@@ -382,98 +406,100 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 	if (Mesh == nullptr)
 		return;
 
-	std::string FilePath;
-	FILE_SYSTEM.ShowFileSaveDialog(FilePath, RUGOSITY_SAVE_FILE_FILTER, 1);
+	COMPLEXITY_METRIC_MANAGER.SaveToRUGFile();
 
-	if (FilePath.empty())
-		return;
+	//std::string FilePath;
+	//FILE_SYSTEM.ShowFileSaveDialog(FilePath, RUGOSITY_SAVE_FILE_FILTER, 1);
 
-	if (FilePath.find(".rug") == std::string::npos)
-		FilePath += ".rug";
+	//if (FilePath.empty())
+	//	return;
 
-	std::fstream file;
-	file.open(FilePath, std::ios::out | std::ios::binary);
+	//if (FilePath.find(".rug") == std::string::npos)
+	//	FilePath += ".rug";
 
-	// Version of FEMesh file type.
-	float version = APP_VERSION;
-	file.write((char*)&version, sizeof(float));
+	//std::fstream file;
+	//file.open(FilePath, std::ios::out | std::ios::binary);
 
-	int Count = Mesh->getPositionsCount();
-	float* Positions = new float[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getPositionsBufferID(), 0, sizeof(float) * Count, Positions));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Positions, sizeof(float) * Count);
+	//// Version of FEMesh file type.
+	//float version = APP_VERSION;
+	//file.write((char*)&version, sizeof(float));
 
-	Count = Mesh->getColorCount();
-	float* Colors = new float[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getColorBufferID(), 0, sizeof(float) * Count, Colors));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Colors, sizeof(float) * Count);
+	//int Count = Mesh->getPositionsCount();
+	//float* Positions = new float[Count];
+	//FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getPositionsBufferID(), 0, sizeof(float) * Count, Positions));
+	//file.write((char*)&Count, sizeof(int));
+	//file.write((char*)Positions, sizeof(float) * Count);
 
-	Count = Mesh->getUVCount();
-	float* UV = new float[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getUVBufferID(), 0, sizeof(float) * Count, UV));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)UV, sizeof(float) * Count);
+	//Count = Mesh->getColorCount();
+	//float* Colors = new float[Count];
+	//FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getColorBufferID(), 0, sizeof(float) * Count, Colors));
+	//file.write((char*)&Count, sizeof(int));
+	//file.write((char*)Colors, sizeof(float) * Count);
 
-	Count = Mesh->getNormalsCount();
-	float* Normals = new float[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getNormalsBufferID(), 0, sizeof(float) * Count, Normals));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Normals, sizeof(float) * Count);
+	//Count = Mesh->getUVCount();
+	//float* UV = new float[Count];
+	//FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getUVBufferID(), 0, sizeof(float) * Count, UV));
+	//file.write((char*)&Count, sizeof(int));
+	//file.write((char*)UV, sizeof(float) * Count);
 
-	Count = Mesh->getTangentsCount();
-	float* Tangents = new float[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getTangentsBufferID(), 0, sizeof(float) * Count, Tangents));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Tangents, sizeof(float) * Count);
+	//Count = Mesh->getNormalsCount();
+	//float* Normals = new float[Count];
+	//FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getNormalsBufferID(), 0, sizeof(float) * Count, Normals));
+	//file.write((char*)&Count, sizeof(int));
+	//file.write((char*)Normals, sizeof(float) * Count);
 
-	Count = Mesh->getIndicesCount();
-	int* Indices = new int[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getIndicesBufferID(), 0, sizeof(int) * Count, Indices));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Indices, sizeof(int) * Count);
+	//Count = Mesh->getTangentsCount();
+	//float* Tangents = new float[Count];
+	//FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getTangentsBufferID(), 0, sizeof(float) * Count, Tangents));
+	//file.write((char*)&Count, sizeof(int));
+	//file.write((char*)Tangents, sizeof(float) * Count);
 
-	Count = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size();
-	file.write((char*)&Count, sizeof(int));
+	//Count = Mesh->getIndicesCount();
+	//int* Indices = new int[Count];
+	//FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getIndicesBufferID(), 0, sizeof(int) * Count, Indices));
+	//file.write((char*)&Count, sizeof(int));
+	//file.write((char*)Indices, sizeof(int) * Count);
 
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
-	{
-		int LayerType = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetType();
-		file.write((char*)&LayerType, sizeof(int));
+	//Count = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size();
+	//file.write((char*)&Count, sizeof(int));
 
-		Count = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption().size());
-		file.write((char*)&Count, sizeof(int));
-		file.write((char*)COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption().c_str(), sizeof(char) * Count);
+	//for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
+	//{
+	//	int LayerType = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetType();
+	//	file.write((char*)&LayerType, sizeof(int));
 
-		Count = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetNote().size());
-		file.write((char*)&Count, sizeof(int));
-		file.write((char*)COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetNote().c_str(), sizeof(char) * Count);
+	//	Count = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption().size());
+	//	file.write((char*)&Count, sizeof(int));
+	//	file.write((char*)COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption().c_str(), sizeof(char) * Count);
 
-		Count = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].TrianglesToData.size();
-		file.write((char*)&Count, sizeof(int));
-		file.write((char*)COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].TrianglesToData.data(), sizeof(float) * Count);
+	//	Count = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetNote().size());
+	//	file.write((char*)&Count, sizeof(int));
+	//	file.write((char*)COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetNote().c_str(), sizeof(char) * Count);
 
-		Count = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].DebugInfo != nullptr;
-		file.write((char*)&Count, sizeof(int));
-		if (Count)
-			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].DebugInfo->ToFile(file);
-	}
+	//	Count = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].TrianglesToData.size();
+	//	file.write((char*)&Count, sizeof(int));
+	//	file.write((char*)COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].TrianglesToData.data(), sizeof(float) * Count);
 
-	FEAABB TempAABB(Positions, Mesh->getPositionsCount());
-	file.write((char*)&TempAABB.getMin()[0], sizeof(float));
-	file.write((char*)&TempAABB.getMin()[1], sizeof(float));
-	file.write((char*)&TempAABB.getMin()[2], sizeof(float));
+	//	Count = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].DebugInfo != nullptr;
+	//	file.write((char*)&Count, sizeof(int));
+	//	if (Count)
+	//		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].DebugInfo->ToFile(file);
+	//}
 
-	file.write((char*)&TempAABB.getMax()[0], sizeof(float));
-	file.write((char*)&TempAABB.getMax()[1], sizeof(float));
-	file.write((char*)&TempAABB.getMax()[2], sizeof(float));
+	//FEAABB TempAABB(Positions, Mesh->getPositionsCount());
+	//file.write((char*)&TempAABB.getMin()[0], sizeof(float));
+	//file.write((char*)&TempAABB.getMin()[1], sizeof(float));
+	//file.write((char*)&TempAABB.getMin()[2], sizeof(float));
 
-	file.close();
+	//file.write((char*)&TempAABB.getMax()[0], sizeof(float));
+	//file.write((char*)&TempAABB.getMax()[1], sizeof(float));
+	//file.write((char*)&TempAABB.getMax()[2], sizeof(float));
 
-	delete[] Positions;
-	delete[] UV;
-	delete[] Normals;
-	delete[] Tangents;
-	delete[] Indices;
+	//file.close();
+
+	//delete[] Positions;
+	//delete[] UV;
+	//delete[] Normals;
+	//delete[] Tangents;
+	//delete[] Indices;
 }

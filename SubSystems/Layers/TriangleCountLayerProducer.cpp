@@ -10,9 +10,9 @@ TriangleCountLayerProducer::TriangleCountLayerProducer()
 
 TriangleCountLayerProducer::~TriangleCountLayerProducer() {}
 
-void TriangleCountLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool bSmootherResult)
+void TriangleCountLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
-	if (Mesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	bWaitForJitterResult = true;
@@ -30,7 +30,7 @@ void TriangleCountLayerProducer::CalculateWithJitterAsync(FEMesh* Mesh, bool bSm
 
 void TriangleCountLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	if (!TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult)

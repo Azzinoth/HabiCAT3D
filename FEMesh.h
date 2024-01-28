@@ -3,8 +3,6 @@
 #include "FETexture.h"
 #include "ComplexityMetricManager.h"
 
-#define APP_VERSION 0.55
-
 namespace FocalEngine
 {
 	class FEMesh
