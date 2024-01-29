@@ -19,9 +19,6 @@ UIManager::UIManager()
 	JITTER_MANAGER.SetOnCalculationsStartCallback(OnJitterCalculationsStart);
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
 
-	RUGOSITY_MANAGER.SetOnRugosityCalculationsEndCallback(OnRugosityCalculationsEnd);
-	RUGOSITY_MANAGER.SetOnRugosityCalculationsStartCallback(OnRugosityCalculationsStart);
-
 	VECTOR_DISPERSION_LAYER_PRODUCER.SetOnCalculationsEndCallback(OnVectorDispersionCalculationsEnd);
 	FRACTAL_DIMENSION_LAYER_PRODUCER.SetOnCalculationsEndCallback(OnFractalDimensionCalculationsEnd);
 
@@ -517,74 +514,16 @@ void UIManager::SetLayerSelectionMode(const int NewValue)
 	LayerSelectionMode = NewValue;
 }
 
-void UIManager::OnRugosityCalculationsStart()
-{
-	UI.bShouldCloseProgressPopup = false;
-	UI.bShouldOpenProgressPopup = true;
-}
-
 void UIManager::OnJitterCalculationsStart()
 {
 	UI.bShouldCloseProgressPopup = false;
 	UI.bShouldOpenProgressPopup = true;
 }
 
-//void WriteJitterSettingsToDebugInfo(MeshLayerDebugInfo* DebugInfo, std::vector<SDFInitData_Jitter>& JitterSettings)
-//{
-//	if (DebugInfo == nullptr)
-//		return;
-//
-//	for (size_t i = 0; i < JitterSettings.size(); i++)
-//	{
-//		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftX", JitterSettings[i].ShiftX);
-//		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftY", JitterSettings[i].ShiftY);
-//		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftZ", JitterSettings[i].ShiftZ);
-//		DebugInfo->AddEntry("Jitter " + std::to_string(i) + " GridScale", JitterSettings[i].GridScale);
-//	}
-//}
-
-void UIManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
-{
-	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
-	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
-	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
-
-	//LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
-
-	//if (RUGOSITY_MANAGER.bCalculateStandardDeviation)
-	//{
-	//	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	//	std::vector<float> TrianglesToStandardDeviation;
-	//	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
-	//	{
-	//		std::vector<float> CurrentTriangleResults;
-	//		for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
-	//		{
-	//			CurrentTriangleResults.push_back(JITTER_MANAGER.PerJitterResult[j][i]);
-	//		}
-
-	//		TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
-	//	}
-	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
-	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
-
-	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-	//	MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
-	//	DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
-	//	DebugInfo->AddEntry("Start time", StarTime);
-	//	DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-	//	DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
-	//	DebugInfo->AddEntry("Source layer Caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
-	//}
-}
-
 void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 {
 	UI.bShouldCloseProgressPopup = true;
 	UI.CurrentJitterStepIndexVisualize = JITTER_MANAGER.GetLastUsedJitterSettings().size() - 1;
-
-	// Add per jitter debug info to the layer.
-	//WriteJitterSettingsToDebugInfo(NewLayer.DebugInfo, JITTER_MANAGER.GetLastUsedJitterSettings());
 }
 
 void UIManager::OnVectorDispersionCalculationsEnd(MeshLayer NewLayer)

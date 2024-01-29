@@ -91,9 +91,7 @@ namespace FocalEngine
 		void RenderHistogramWindow();
 		
 		static void OnJitterCalculationsStart();
-		static void OnRugosityCalculationsStart();
 		static void OnJitterCalculationsEnd(MeshLayer NewLayer);
-		static void OnRugosityCalculationsEnd(MeshLayer NewLayer);
 		static void OnVectorDispersionCalculationsEnd(MeshLayer NewLayer);
 		static void OnFractalDimensionCalculationsEnd(MeshLayer NewLayer);
 
