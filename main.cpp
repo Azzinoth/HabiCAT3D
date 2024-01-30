@@ -759,6 +759,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Now you can use standard I/O
 	std::cout << "Hello, Console!" << std::endl;
 	std::string filePath;
+
 	std::cout << "Please enter the file path:\n";
 	std::getline(std::cin, filePath);
 	std::cout << "File path entered: " << filePath << std::endl;
@@ -776,6 +777,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//while (JITTER_MANAGER.GetJitterToDoCount() != 0)
 	while (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() < 2)
 	{
+		float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
+		std::cout << "\rProgress: " << std::to_string(Progress * 100.0f) << " %" << std::flush;
+
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		THREAD_POOL.Update();
 	}
