@@ -1,5 +1,4 @@
-#include "SubSystems/UI/UIManager.h"
-#include "SubSystems/ScreenshotManager.h"
+#include "SubSystems/ConsoleJobs/ConsoleJobManager.h"
 using namespace FocalEngine;
 
 #include <windows.h>
@@ -743,32 +742,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	THREAD_POOL.SetConcurrentThreadCount(HowManyToUse);
 
-	// Class AppTask
-	// ID (unique)
-	// ConsoleMessages: on Start, on Finish, on Progress
-	// ..Type (FileLoad, FileSave, ComplexityTask) // BulkFile, BulkFolder will be extracted and converted to list of AppTasks
-
-
-	// Class ComplexityTask child of AppTask
-	// ..Type (TriangleCount, VectorDispersion, FractalDimension, etc.)
-	// ..Class ComplexityTaskSettings
-	// ....Resolution(in range of 0.0 to 1.0, or explicit M), Jitter, algorithm, etc.
-	// ....Class ComplexityTaskCheckpoint, ussually empty, but can be used for QA.
-	// ......Type, what to check (min, max, average, mean)
-	// ......Value, what to check against
-	// ......Tolerance, how much can be off
 	
-
-	// There will be a queue of AppTasks
-	// Console commands would be converted to AppTasks and added to the queue
-	// Command line arguments would be converted to AppTasks and added to the queue
-	// All of that would be working only if -console argument is passed to the application
-
-	// There will be a special script file that can represent a list of AppTasks, but also it would have 
-	// a way to define a ComplexityTaskCheckpoint, so it can be used for QA.
-
-
-	// TaskManager would be responsible for executing AppTasks and parsing console commands to create AppTasks
 
 
 
