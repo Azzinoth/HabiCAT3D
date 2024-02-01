@@ -95,15 +95,11 @@ void ScrollCall(double Xoffset, double Yoffset)
 		reinterpret_cast<FEModelViewCamera*>(CurrentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(CurrentCamera)->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->AABB.getSize() * 0.05f);
 }
 
-static std::string FileNameForSelectionOutput = "Selections";
-
 void AfterMeshLoads()
 {
 	if (!COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole)
 		MESH_MANAGER.ActiveMesh->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
 
-	// Get AABB for complexity metric....
-	
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->UpdateAverageNormal();
 
 	if (!COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole)
@@ -115,8 +111,6 @@ void AfterMeshLoads()
 	
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
-
-	FileNameForSelectionOutput = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName;
 }
 
 void LoadMesh(std::string FileName)
@@ -207,11 +201,14 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 
 void OutputSeletedAreaInfoToFile()
 {
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+		return;
+
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() < 2)
 		return;
 
 	std::string Text = "Area radius : " + std::to_string(UI.GetRadiusOfAreaToMeasure());
-	LOG.Add(Text, FileNameForSelectionOutput);
+	LOG.Add(Text, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName);
 
 	Text = "Area approximate center : X - ";
 	const glm::vec3 Center = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
@@ -220,7 +217,7 @@ void OutputSeletedAreaInfoToFile()
 	Text += std::to_string(Center.y);
 	Text += " Z - ";
 	Text += std::to_string(Center.z);
-	LOG.Add(Text, FileNameForSelectionOutput);
+	LOG.Add(Text, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName);
 
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
 	{
@@ -236,7 +233,7 @@ void OutputSeletedAreaInfoToFile()
 
 		Total /= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size();
 		Text += std::to_string(Total);
-		LOG.Add(Text, FileNameForSelectionOutput);
+		LOG.Add(Text, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName);
 	}
 }
 
@@ -758,39 +755,56 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	FILE* pCin;
 	freopen_s(&pCin, "CONIN$", "r", stdin);
 
-	// Now you can use standard I/O
-	std::cout << "Hello, Console!" << std::endl;
+
 	std::string filePath;
 
 	std::cout << "Please enter the file path:\n";
 	std::getline(std::cin, filePath);
 	std::cout << "File path entered: " << filePath << std::endl;
 
-	COMPLEXITY_METRIC_MANAGER.ImportOBJ(filePath.c_str(), true);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole = true;
-	AfterMeshLoads();
+
+	FileLoadJob* LoadJob = new FileLoadJob(filePath.c_str());
+	CONSOLE_JOB_MANAGER.AddJob(LoadJob);
+
+	ComplexityJob* VectorDispersionJob = new ComplexityJob();
+	VectorDispersionJob->ComplexityType = "VECTOR_DISPERSION";
+	CONSOLE_JOB_MANAGER.AddJob(VectorDispersionJob);
+
+	FileSaveJob* SaveJob = new FileSaveJob("qwe");
+	CONSOLE_JOB_MANAGER.AddJob(SaveJob);
+
+	//COMPLEXITY_METRIC_MANAGER.ImportOBJ(filePath.c_str(), true);
+	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole = true;
+	//AfterMeshLoads();
+
+
+
 
 	//TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(true);
 	//VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(true);
 	//FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(true, true);
 
-	RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
 
-	//while (JITTER_MANAGER.GetJitterToDoCount() != 0)
+
+	while(true)
+	{
+		CONSOLE_JOB_MANAGER.Update();
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+
+	/*RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
+
 	while (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() < 2)
 	{
 		float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
 		std::cout << "\rProgress: " << std::to_string(Progress * 100.0f) << " %" << std::flush;
 
+
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		THREAD_POOL.Update();
 	}
 
-	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer();
-	COMPLEXITY_METRIC_MANAGER.SaveToRUGFile();
-	//std::cin >> filePath;
-
-	// Your GUI code can still run here
+	COMPLEXITY_METRIC_MANAGER.SaveToRUGFile();*/
 
 	// Cleanup
 	fclose(pCout);

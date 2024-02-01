@@ -21,21 +21,21 @@ using namespace FocalEngine;
 // There will be a special script file that can represent a list of ConsoleJobs, but also it would have 
 // a way to define a ComplexityJobEvaluation, so it can be used for QA.
 
-
+class ConsoleJobManager;
 class ConsoleJob      // Class ConsoleJob
 {
+	friend ConsoleJobManager;
 	std::string ID;   // ID (unique)
 protected:
 	std::string Type; // ..Type (FileLoad, FileSave, ComplexityJob) // BulkFile, BulkFolder will be extracted and converted to list of ConsoleJobs
 
-	ConsoleJob()
-	{
-		ID = APPLICATION.GetUniqueHexID();
-	}
+	ConsoleJob();
 };
 
 class ComplexityJobEvaluation // ....Class ComplexityJobEvaluation, ussually empty, but can be used for QA.
 {
+	friend ConsoleJobManager;
+
 	std::string Type;         // ......Type, what to check (min, max, average, mean)
 	float Value;			  // ......Value, what to check against
 	float Tolerance;          // ......Tolerance, how much can be off
@@ -43,12 +43,19 @@ class ComplexityJobEvaluation // ....Class ComplexityJobEvaluation, ussually emp
 
 class ComplexityJobSettings  // ..Class ComplexityJobSettings
 {
+	friend ConsoleJobManager;
 	// ....Resolution(in range of 0.0 to 1.0, or explicit M), Jitter, algorithm, etc.
 	float Resolution;
 };
 
 class ComplexityJob : public ConsoleJob              // Class ComplexityJob child of ConsoleJobs
 {
+public:
+	friend ConsoleJobManager;
+
+	ComplexityJob();
+	ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings, ComplexityJobEvaluation* Evaluation);
+
 	std::string ComplexityType;                      // ..Type (TriangleCount, VectorDispersion, FractalDimension, etc.)
 
 	ComplexityJobSettings Settings;
@@ -57,6 +64,7 @@ class ComplexityJob : public ConsoleJob              // Class ComplexityJob chil
 
 class FileLoadJob : public ConsoleJob
 {
+	friend ConsoleJobManager;
 	std::string FilePath;
 
 public:
@@ -69,8 +77,10 @@ public:
 
 class FileSaveJob : public ConsoleJob
 {
+	friend ConsoleJobManager;
 	std::string FilePath;
 
+public:
 	FileSaveJob(std::string FilePath)
 	{
 		this->FilePath = FilePath;
@@ -78,15 +88,19 @@ class FileSaveJob : public ConsoleJob
 	};
 };
 
-class ConsoleJobManager // ConsoleJobManager would be responsible for executing ConsoleJobs and parsing console commands to create ConsoleJobs
+class ConsoleJobManager
 {
 public:
 	SINGLETON_PUBLIC_PART(ConsoleJobManager)
 
+	void AddJob(ConsoleJob* Job);
+	void Update();
 private:
 	SINGLETON_PRIVATE_PART(ConsoleJobManager)
 
 	std::vector<ConsoleJob*> JobsList;
+
+	void ExecuteJob(ConsoleJob* Job);
 };
 
 #define CONSOLE_JOB_MANAGER ConsoleJobManager::getInstance()
