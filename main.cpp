@@ -766,45 +766,42 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	FileLoadJob* LoadJob = new FileLoadJob(filePath.c_str());
 	CONSOLE_JOB_MANAGER.AddJob(LoadJob);
 
-	ComplexityJob* VectorDispersionJob = new ComplexityJob();
-	VectorDispersionJob->ComplexityType = "VECTOR_DISPERSION";
-	CONSOLE_JOB_MANAGER.AddJob(VectorDispersionJob);
+	ComplexityJob* NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "HEIGHT";
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "AREA";
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "TRIANGLE_COUNT";
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "RUGOSITY";
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "VECTOR_DISPERSION";
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
 	FileSaveJob* SaveJob = new FileSaveJob("qwe");
 	CONSOLE_JOB_MANAGER.AddJob(SaveJob);
-
-	//COMPLEXITY_METRIC_MANAGER.ImportOBJ(filePath.c_str(), true);
-	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole = true;
-	//AfterMeshLoads();
-
-
-
-
-	//TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(true);
-	//VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(true);
-	//FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(true, true);
-
-
 
 	while(true)
 	{
 		CONSOLE_JOB_MANAGER.Update();
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
-
-	/*RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
-
-	while (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() < 2)
-	{
-		float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
-		std::cout << "\rProgress: " << std::to_string(Progress * 100.0f) << " %" << std::flush;
-
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		THREAD_POOL.Update();
-	}
-
-	COMPLEXITY_METRIC_MANAGER.SaveToRUGFile();*/
 
 	// Cleanup
 	fclose(pCout);

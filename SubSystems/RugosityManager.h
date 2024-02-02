@@ -25,7 +25,7 @@ namespace FocalEngine
 		bool bCalculateStandardDeviation = false;
 		std::vector<std::string> OrientationSetNamesForMinRugosityList;
 
-		void CalculateRugorsityWithJitterAsync();
+		void CalculateWithJitterAsync();
 		void CalculateOnWholeModel();
 
 		std::vector<std::string> dimentionsList;

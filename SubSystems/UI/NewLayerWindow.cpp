@@ -166,7 +166,7 @@ void NewLayerWindow::AddLayer()
 			}
 			else
 			{
-				RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
+				RUGOSITY_MANAGER.CalculateWithJitterAsync();
 				MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 			}
 

@@ -441,7 +441,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 	LOG.Add("========================================================", "CalculateOneNodeRugosity");*/
 }
 
-void RugosityManager::CalculateRugorsityWithJitterAsync()
+void RugosityManager::CalculateWithJitterAsync()
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
