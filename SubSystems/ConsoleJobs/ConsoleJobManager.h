@@ -44,8 +44,39 @@ class ComplexityJobEvaluation // ....Class ComplexityJobEvaluation, ussually emp
 class ComplexityJobSettings  // ..Class ComplexityJobSettings
 {
 	friend ConsoleJobManager;
-	// ....Resolution(in range of 0.0 to 1.0, or explicit M), Jitter, algorithm, etc.
-	float Resolution;
+
+	float RelativeResolution = 0.0f;
+	float ResolutionInM = 0.0f;
+	bool bRunOnWholeModel = false;
+
+
+	bool bRugosity_DeleteOutliers = true;
+
+public:
+
+	// Resolution in range of 0.0 to 1.0
+	float GetRelativeResolution();
+
+	// Resolution in range of 0.0 to 1.0
+	void SetRelativeResolution(float NewValue);
+
+	// Explicit resolution in meters, would be used first if valid
+	float GetResolutionInM();
+
+	// Explicit resolution in meters, would be used first if valid
+	void SetResolutionInM(float NewValue);
+
+	// No jitter, just whole model as input
+	bool IsRunOnWholeModel();
+
+	// No jitter, just whole model as input
+	void SetRunOnWholeModel(bool NewValue);
+
+	bool IsRugosity_DeleteOutliers();
+	void SetRugosity_DeleteOutliers(bool NewValue);
+
+
+	// , Jitter, algorithm, etc.
 };
 
 class ComplexityJob : public ConsoleJob              // Class ComplexityJob child of ConsoleJobs
@@ -100,6 +131,7 @@ private:
 
 	std::vector<ConsoleJob*> JobsList;
 
+	void SetGridResolution(ComplexityJob* Job);
 	void ExecuteJob(ConsoleJob* Job);
 };
 

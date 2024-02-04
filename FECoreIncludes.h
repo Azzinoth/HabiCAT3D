@@ -60,3 +60,5 @@ while (iterator != map.end())              \
 return result;
 
 #define FE_WIN_32
+
+#define CONSOLE_MODE

@@ -20,6 +20,54 @@ ComplexityJob::ComplexityJob(std::string ComplexityType, ComplexityJobSettings S
 	Type = "COMPLEXITY_JOB";
 };
 
+// Resolution in range of 0.0 to 1.0
+float ComplexityJobSettings::GetRelativeResolution()
+{
+	return RelativeResolution;
+}
+
+// Resolution in range of 0.0 to 1.0
+void ComplexityJobSettings::SetRelativeResolution(float NewValue)
+{
+	if (NewValue >= 0.0f && NewValue <= 1.0f)
+		RelativeResolution = NewValue;
+}
+
+// Explicit resolution in meters, would be used first if valid
+float ComplexityJobSettings::GetResolutionInM()
+{
+	return ResolutionInM;
+}
+
+// Explicit resolution in meters, would be used first if valid
+void ComplexityJobSettings::SetResolutionInM(float NewValue)
+{
+	if (NewValue > 0.0f)
+		ResolutionInM = NewValue;
+}
+
+// No jitter, just whole model as input
+bool ComplexityJobSettings::IsRunOnWholeModel()
+{
+	return bRunOnWholeModel;
+}
+
+// No jitter, just whole model as input
+void ComplexityJobSettings::SetRunOnWholeModel(bool NewValue)
+{
+	bRunOnWholeModel = NewValue;
+}
+
+bool ComplexityJobSettings::IsRugosity_DeleteOutliers()
+{
+	return bRugosity_DeleteOutliers;
+}
+
+void ComplexityJobSettings::SetRugosity_DeleteOutliers(bool NewValue)
+{
+	bRugosity_DeleteOutliers = NewValue;
+}
+
 ConsoleJobManager* ConsoleJobManager::Instance = nullptr;
 
 ConsoleJobManager::ConsoleJobManager() {}
@@ -28,6 +76,24 @@ ConsoleJobManager::~ConsoleJobManager() {}
 void ConsoleJobManager::AddJob(ConsoleJob* Job)
 {
 	JobsList.push_back(Job);
+}
+
+void ConsoleJobManager::SetGridResolution(ComplexityJob* Job)
+{
+	JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
+
+	if (Job->Settings.ResolutionInM != 0.0f &&
+		Job->Settings.ResolutionInM >= JITTER_MANAGER.GetLowestPossibleResolution() &&
+		Job->Settings.ResolutionInM <= JITTER_MANAGER.GetHigestPossibleResolution())
+	{
+		JITTER_MANAGER.SetResolutonInM(Job->Settings.ResolutionInM);
+	}
+
+	if (Job->Settings.ResolutionInM == 0.0f && Job->Settings.RelativeResolution != 0.0f)
+	{
+		float Range = JITTER_MANAGER.GetHigestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution();
+		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution() + Range * Job->Settings.RelativeResolution);
+	}
 }
 
 void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
@@ -42,7 +108,6 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 			std::cout << "File found. Loading file: " << FileJob->FilePath << std::endl;
 
 			COMPLEXITY_METRIC_MANAGER.ImportOBJ(FileJob->FilePath.c_str(), true);
-			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole = true;
 			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->UpdateAverageNormal();
 
 			std::cout << "Successfully completed loading file: " << FileJob->FilePath << std::endl;
@@ -70,7 +135,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		}
 
 		ComplexityJob* CurrentComplexityJob = reinterpret_cast<ComplexityJob*>(Job);
-
+		SetGridResolution(CurrentComplexityJob);
 
 		if (CurrentComplexityJob->ComplexityType == "HEIGHT")
 		{
@@ -100,15 +165,14 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		{
 			std::cout << "Initiating Triangle Count Layer calculation." << std::endl;
 
-			/*if (bRunOnWholeModel)
+			if (CurrentComplexityJob->Settings.IsRunOnWholeModel())
 			{
 				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateOnWholeModel();
 			}
 			else
 			{
-				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-			}*/
-			TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(true);
+				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(false);
+			}
 
 			while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
 			{
@@ -127,15 +191,16 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		{
 			std::cout << "Initiating Rugosity Layer calculation." << std::endl;
 
-			/*if (bRunOnWholeModel)
+			RUGOSITY_MANAGER.bDeleteOutliers = CurrentComplexityJob->Settings.IsRugosity_DeleteOutliers();
+
+			if (CurrentComplexityJob->Settings.IsRunOnWholeModel())
 			{
 				RUGOSITY_MANAGER.CalculateOnWholeModel();
 			}
 			else
 			{
-				RUGOSITY_MANAGER.CalculateRugorsityWithJitterAsync();
-			}*/
-			RUGOSITY_MANAGER.CalculateWithJitterAsync();
+				RUGOSITY_MANAGER.CalculateWithJitterAsync();
+			}
 
 			while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
 			{
@@ -154,15 +219,14 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		{
 			std::cout << "Initiating Vector Dispersion calculation." << std::endl;
 
-			/*if (bRunOnWholeModel)
+			if (CurrentComplexityJob->Settings.IsRunOnWholeModel())
 			{
 				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateOnWholeModel();
 			}
 			else
 			{
-				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-			}*/
-			VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(true);
+				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(false);
+			}
 
 			while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
 			{
@@ -182,15 +246,14 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		{
 			std::cout << "Initiating Fractal Dimension Layer calculation." << std::endl;
 
-			/*if (bRunOnWholeModel)
+			if (CurrentComplexityJob->Settings.IsRunOnWholeModel())
 			{
 				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel();
 			}
 			else
 			{
-				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult, bFilterFractalDimention);
-			}*/
-			FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(true, true);
+				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(false, true);
+			}
 
 			while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
 			{

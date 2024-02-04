@@ -3,7 +3,11 @@
 JitterManager* JitterManager::Instance = nullptr;
 JitterManager::JitterManager()
 {
+#ifdef CONSOLE_MODE
+	COMPLEXITY_METRIC_MANAGER.AddLoadCallback(JitterManager::OnMeshUpdate);
+#else
 	MESH_MANAGER.AddLoadCallback(JitterManager::OnMeshUpdate);
+#endif
 
 	JitterVectorSetNames.push_back("1");
 	JitterVectorSetNames.push_back("7");
@@ -169,6 +173,9 @@ void JitterManager::AfterCalculationFinishSDFCallback(void* OutputData)
 	JITTER_MANAGER.JitterDoneCount++;
 
 	JITTER_MANAGER.MoveResultDataFromSDF(JITTER_MANAGER.LastUsedSDF);
+
+	auto test = JITTER_MANAGER.JitterDoneCount;
+	auto test2 = JITTER_MANAGER.JitterToDoCount;
 
 	if (JITTER_MANAGER.JitterDoneCount != JITTER_MANAGER.JitterToDoCount)
 	{

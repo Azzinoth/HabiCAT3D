@@ -142,7 +142,7 @@ namespace FocalEngine
 	public:
 		ComplexityMetricInfo();
 
-		bool bDummyVariableForConsole = false;
+		/*bool bDummyVariableForConsole = false;*/
 
 		std::vector<int> TriangleSelected;
 

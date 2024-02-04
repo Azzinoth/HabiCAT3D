@@ -15,6 +15,11 @@ void ComplexityMetricManager::Init(std::vector<double>& Vertices, std::vector<fl
 	ActiveComplexityMetricInfo->fillTrianglesData(Vertices, Colors, UVs, Tangents, Indices, Normals);
 }
 
+void ComplexityMetricManager::AddLoadCallback(std::function<void()> Func)
+{
+	ClientLoadCallbacks.push_back(Func);
+}
+
 void ComplexityMetricManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
 	FEObjLoader& objLoader = FEObjLoader::getInstance();
@@ -24,6 +29,14 @@ void ComplexityMetricManager::ImportOBJ(const char* FileName, bool bForceOneMesh
 	if (objLoader.loadedObjects.size() > 0)
 	{
 		COMPLEXITY_METRIC_MANAGER.Init(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fColorsC, objLoader.loadedObjects[0]->fTexC, objLoader.loadedObjects[0]->fTanC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
+	}
+
+	for (size_t i = 0; i < ClientLoadCallbacks.size(); i++)
+	{
+		if (ClientLoadCallbacks[i] == nullptr)
+			continue;
+
+		ClientLoadCallbacks[i]();
 	}
 }
 

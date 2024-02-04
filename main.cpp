@@ -97,17 +97,16 @@ void ScrollCall(double Xoffset, double Yoffset)
 
 void AfterMeshLoads()
 {
-	if (!COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole)
-		MESH_MANAGER.ActiveMesh->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
+#ifndef CONSOLE_MODE
+	MESH_MANAGER.ActiveMesh->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
+#endif
 
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->UpdateAverageNormal();
 
-	if (!COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole)
-	{
-		UI.SetIsModelCamera(true);
-
-		MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
-	}
+#ifndef CONSOLE_MODE
+	UI.SetIsModelCamera(true);
+	MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
+#endif
 	
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
@@ -745,7 +744,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 
 
-
+#ifdef CONSOLE_MODE
 	// Allocate a console
 	AllocConsole();
 
@@ -755,6 +754,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	FILE* pCin;
 	freopen_s(&pCin, "CONIN$", "r", stdin);
 
+	// To ensure initialisation of JITTER_MANAGER
+	JITTER_MANAGER.getInstance();
 
 	std::string filePath;
 
@@ -792,12 +793,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
+	NewJobToAdd->Settings.SetRelativeResolution(0.65f);
+	//NewJobToAdd->Settings.SetResolutionInM(3.879f);
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
+	NewJobToAdd->Settings.SetRunOnWholeModel(true);
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
 	FileSaveJob* SaveJob = new FileSaveJob("qwe");
 	CONSOLE_JOB_MANAGER.AddJob(SaveJob);
 
-	while(true)
+	while (true)
 	{
 		CONSOLE_JOB_MANAGER.Update();
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -809,8 +817,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	FreeConsole();
 
 	return 0;
-
-
+#endif
+	
 
 
 

@@ -5,11 +5,10 @@ MeshManager* MeshManager::Instance = nullptr;
 
 MeshManager::MeshManager()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr || !COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->bDummyVariableForConsole)
-	{
-		MeshShader = new FEShader("mainShader", sTestVS, sTestFS);
-		MeshShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
-	}
+#ifndef CONSOLE_MODE
+	MeshShader = new FEShader("mainShader", sTestVS, sTestFS);
+	MeshShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
+#endif
 }
 
 MeshManager::~MeshManager() {}

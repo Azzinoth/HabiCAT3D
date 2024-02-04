@@ -28,6 +28,7 @@ namespace FocalEngine
 		void Init(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
 		void ImportOBJ(const char* FileName, bool bForceOneMesh);
 
+		void AddLoadCallback(std::function<void()> Func);
 		void SaveToRUGFile();
 	private:
 		SINGLETON_PRIVATE_PART(ComplexityMetricManager)
@@ -35,7 +36,7 @@ namespace FocalEngine
 		//FEMesh* ImportOBJ(const char* FileName, bool bForceOneMesh);
 		//FEMesh* LoadRUGMesh(std::string FileName);
 
-		//std::vector<std::function<void()>> ClientLoadCallbacks;
+		std::vector<std::function<void()>> ClientLoadCallbacks;
 	};
 
 	#define COMPLEXITY_METRIC_MANAGER ComplexityMetricManager::getInstance()
