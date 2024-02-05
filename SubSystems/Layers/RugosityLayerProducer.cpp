@@ -149,7 +149,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 		glm::dvec3 base2 = glm::dvec3(plane.base2().x(), plane.base2().y(), plane.base2().z());
 #endif
 
-		if (RUGOSITY_LAYER_PRODUCER.bOverlapAware)
+		if (RUGOSITY_LAYER_PRODUCER.bUniqueProjectedArea)
 		{
 			CGALCorrectTotalArea = TotalArea;
 
@@ -602,7 +602,7 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	NewLayer.DebugInfo->AddEntry("Delete outliers", DeleteOutliers);
 
 	std::string OverlapAware = "No";
-	if (RUGOSITY_LAYER_PRODUCER.bOverlapAware)
+	if (RUGOSITY_LAYER_PRODUCER.bUniqueProjectedArea)
 		OverlapAware = "Yes";
 	NewLayer.DebugInfo->AddEntry("Unique projected area (very slow)", OverlapAware);
 
@@ -669,4 +669,14 @@ void RugosityLayerProducer::SetOrientationSetForMinRugosityName(std::string name
 {
 	if (OrientationSetOptions.find(name) != OrientationSetOptions.end())
 		OrientationSetForMinRugosity = name;
+}
+
+bool RugosityLayerProducer::GetIsUsingUniqueProjectedArea()
+{
+	return bUniqueProjectedArea;
+}
+
+void RugosityLayerProducer::SetIsUsingUniqueProjectedArea(bool NewValue)
+{
+	bUniqueProjectedArea = NewValue;
 }

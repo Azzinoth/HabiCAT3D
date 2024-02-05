@@ -767,74 +767,96 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	FileLoadJob* LoadJob = new FileLoadJob(filePath.c_str());
 	CONSOLE_JOB_MANAGER.AddJob(LoadJob);
 
+	// Layer 0
 	ComplexityJob* NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "HEIGHT";
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 1
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "AREA";
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 2
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 3
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
 	NewJobToAdd->Settings.SetTriangleEdges_Mode("MIN_LEHGTH");
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 4
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
 	NewJobToAdd->Settings.SetTriangleEdges_Mode("MEAN_LEHGTH");
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 5
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "TRIANGLE_COUNT";
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 6
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "RUGOSITY";
 	NewJobToAdd->Settings.SetJitterQuality("1");
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 7
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "RUGOSITY";
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 8
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "RUGOSITY";
 	NewJobToAdd->Settings.SetJitterQuality("73");
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 9
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "RUGOSITY";
 	NewJobToAdd->Settings.SetRugosity_Algorithm("MIN");
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 10
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "RUGOSITY";
 	NewJobToAdd->Settings.SetRugosity_Algorithm("LSF(CGAL)");
 	NewJobToAdd->Settings.SetIsStandardDeviationNeeded(true);
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 11
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "VECTOR_DISPERSION";
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 12
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
 	NewJobToAdd->Settings.SetRelativeResolution(0.65f);
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 13
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
 	NewJobToAdd->Settings.SetRunOnWholeModel(true);
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
+	// Layer 14
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "COMPARE";
+	NewJobToAdd->Settings.SetCompare_FirstLayerIndex(11);
+	NewJobToAdd->Settings.SetCompare_SecondLayerIndex(12);
+	NewJobToAdd->Settings.SetCompare_Normalize(true);
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
 	FileSaveJob* SaveJob = new FileSaveJob("qwe");
 	CONSOLE_JOB_MANAGER.AddJob(SaveJob);
-
+	
 	while (true)
 	{
 		CONSOLE_JOB_MANAGER.Update();

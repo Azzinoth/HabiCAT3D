@@ -93,6 +93,31 @@ void ComplexityJobSettings::SetRugosity_Algorithm(std::string NewValue)
 	Rugosity_Algorithm = NewValue;
 }
 
+// Number of reference planes, more planes better results, but slower
+std::string ComplexityJobSettings::GetRugosity_MinAlgorithm_Quality()
+{
+	return Rugosity_MinAlgorithm_Quality;
+
+}
+
+// Is unique projected area used, it yields very accurate results, but this method is very slow.
+bool ComplexityJobSettings::GetRugosity_IsUsingUniqueProjectedArea()
+{
+	return bUniqueProjectedArea;
+}
+
+// Is unique projected area used, it yields very accurate results, but this method is very slow.
+void ComplexityJobSettings::SetRugosity_IsUsingUniqueProjectedArea(bool NewValue)
+{
+	bUniqueProjectedArea = NewValue;
+}
+
+// Number of reference planes, more planes better results, but slower
+void ComplexityJobSettings::SetRugosity_MinAlgorithm_Quality(std::string NewValue)
+{
+	Rugosity_MinAlgorithm_Quality = NewValue;
+}
+
 bool ComplexityJobSettings::IsRugosity_DeleteOutliers()
 {
 	return bRugosity_DeleteOutliers;
@@ -101,6 +126,18 @@ bool ComplexityJobSettings::IsRugosity_DeleteOutliers()
 void ComplexityJobSettings::SetRugosity_DeleteOutliers(bool NewValue)
 {
 	bRugosity_DeleteOutliers = NewValue;
+}
+
+// Should app filter values that are less that 2.0
+bool ComplexityJobSettings::GetFractalDimension_ShouldFilterValues()
+{
+	return bFractalDimension_FilterValues;
+}
+
+// Should app filter values that are less that 2.0
+void ComplexityJobSettings::SetFractalDimension_ShouldFilterValues(bool NewValue)
+{
+	bFractalDimension_FilterValues = NewValue;
 }
 
 // Posible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
@@ -126,6 +163,46 @@ bool ComplexityJobSettings::IsStandardDeviationNeeded()
 void ComplexityJobSettings::SetIsStandardDeviationNeeded(bool NewValue)
 {
 	bCalculateStandardDeviation = NewValue;
+}
+
+// Index of the first layer to compare
+// ID is not used, because could be unknown at the time of the job creation
+int ComplexityJobSettings::GetCompare_FirstLayerIndex()
+{
+	return Compare_FirstLayerIndex;
+}
+
+// Index of the first layer to compare
+// ID is not used, because could be unknown at the time of the job creation
+void ComplexityJobSettings::SetCompare_FirstLayerIndex(int NewValue)
+{
+	Compare_FirstLayerIndex = NewValue;
+}
+
+// Index of the second layer to compare
+// ID is not used, because could be unknown at the time of the job creation
+int ComplexityJobSettings::GetCompare_SecondLayerIndex()
+{
+	return Compare_SecondLayerIndex;
+}
+
+// Index of the second layer to compare
+// ID is not used, because could be unknown at the time of the job creation
+void ComplexityJobSettings::SetCompare_SecondLayerIndex(int NewValue)
+{
+	Compare_SecondLayerIndex = NewValue;
+}
+
+// Should app normalize the layers before comparing
+bool ComplexityJobSettings::IsCompare_Normalize()
+{
+	return bCompare_Normalize;
+}
+
+// Should app normalize the layers before comparing
+void ComplexityJobSettings::SetCompare_Normalize(bool NewValue)
+{
+	bCompare_Normalize = NewValue;
 }
 
 ConsoleJobManager* ConsoleJobManager::Instance = nullptr;
@@ -275,6 +352,9 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 			RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation = CurrentComplexityJob->Settings.IsStandardDeviationNeeded();
 			RUGOSITY_LAYER_PRODUCER.bDeleteOutliers = CurrentComplexityJob->Settings.IsRugosity_DeleteOutliers();
 
+			RUGOSITY_LAYER_PRODUCER.SetOrientationSetForMinRugosityName(CurrentComplexityJob->Settings.GetRugosity_MinAlgorithm_Quality());
+			RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedArea(CurrentComplexityJob->Settings.GetRugosity_IsUsingUniqueProjectedArea());
+
 			if (CurrentComplexityJob->Settings.IsRunOnWholeModel())
 			{
 				RUGOSITY_LAYER_PRODUCER.CalculateOnWholeModel();
@@ -331,6 +411,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 			std::cout << "Initiating Fractal Dimension Layer calculation." << std::endl;
 
 			FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation = CurrentComplexityJob->Settings.IsStandardDeviationNeeded();
+			FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldFilterFractalDimensionValues(CurrentComplexityJob->Settings.GetFractalDimension_ShouldFilterValues());
 
 			if (CurrentComplexityJob->Settings.IsRunOnWholeModel())
 			{
@@ -338,7 +419,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 			}
 			else
 			{
-				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(false, true);
+				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(false);
 			}
 
 			while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
@@ -358,7 +439,26 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		{
 			std::cout << "Initiating Compare Layer calculation." << std::endl;
 
-			//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
+			int FirstLayerIndex = CurrentComplexityJob->Settings.GetCompare_FirstLayerIndex();
+			if (FirstLayerIndex < 0 || FirstLayerIndex > COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+			{
+				std::string ErrorMessage = "Error: First layer index is out of range. Please check the layer index and try again.";
+				LOG.Add(ErrorMessage, "CONSOLE_LOG");
+				std::cout << ErrorMessage << std::endl;
+				return;
+			}
+
+			int SecondLayerIndex = CurrentComplexityJob->Settings.GetCompare_SecondLayerIndex();
+			if (SecondLayerIndex < 0 || SecondLayerIndex > COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+			{
+				std::string ErrorMessage = "Error: Second layer index is out of range. Please check the layer index and try again.";
+				LOG.Add(ErrorMessage, "CONSOLE_LOG");
+				std::cout << ErrorMessage << std::endl;
+				return;
+			}
+
+			COMPARE_LAYER_PRODUCER.SetShouldNormalize(CurrentComplexityJob->Settings.IsCompare_Normalize());
+			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstLayerIndex, SecondLayerIndex));
 
 			std::cout << "Compare Layer calculation completed." << std::endl;
 		}

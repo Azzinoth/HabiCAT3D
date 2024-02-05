@@ -131,7 +131,7 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 	CurrentNode->UserData = FractalDimension;
 }
 
-void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResult, bool bUseFilter)
+void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
@@ -139,9 +139,8 @@ void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 	bWaitForJitterResult = true;
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	bLastUsedUseFilter = bUseFilter;
 	// Before each run, we set the IgnoreValueFunction relevant to the fractal dimension calculation.
-	if (bUseFilter)
+	if (bFilterFractalDimensionValues)
 	{
 		JITTER_MANAGER.SetIgnoreValueFunction([](float Value) -> bool {
 			return Value < 2.0f;
@@ -170,7 +169,7 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 
 	FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult = false;
 
-	NewLayer.DebugInfo->AddEntry("FD outliers: ", std::string(FRACTAL_DIMENSION_LAYER_PRODUCER.bLastUsedUseFilter ? "Yes" : "No"));
+	NewLayer.DebugInfo->AddEntry("FD outliers: ", std::string(FRACTAL_DIMENSION_LAYER_PRODUCER.bFilterFractalDimensionValues ? "Yes" : "No"));
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::FRACTAL_DIMENSION);
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal dimension"));
@@ -376,4 +375,14 @@ void FractalDimensionLayerProducer::CalculateOnWholeModel()
 void FractalDimensionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(MeshLayer))
 {
 	OnCalculationsEndCallbackImpl = Func;
+}
+
+bool FractalDimensionLayerProducer::GetShouldFilterFractalDimensionValues()
+{
+	return bFilterFractalDimensionValues;
+}
+
+void FractalDimensionLayerProducer::SetShouldFilterFractalDimensionValues(bool NewValue)
+{
+	bFilterFractalDimensionValues = NewValue;
 }

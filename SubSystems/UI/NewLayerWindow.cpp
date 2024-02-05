@@ -198,7 +198,7 @@ void NewLayerWindow::AddLayer()
 			}
 			else
 			{
-				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult, bFilterFractalDimention);
+				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
 				MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 			}
 
@@ -370,7 +370,11 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 
 	if (!bRunOnWholeModel)
 		ImGui::Checkbox("Delete outliers", &RUGOSITY_LAYER_PRODUCER.bDeleteOutliers);
-	ImGui::Checkbox("Unique projected area (very slow).", &RUGOSITY_LAYER_PRODUCER.bOverlapAware);
+
+	bool TempBool = RUGOSITY_LAYER_PRODUCER.GetIsUsingUniqueProjectedArea();
+	ImGui::Checkbox("Unique projected area (very slow).", &TempBool);
+	RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedArea(TempBool);
+
 	ImGui::Checkbox("Add standard deviation layer.", &RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation);
 
 	RenderCellSizeSettings();
@@ -384,7 +388,10 @@ void NewLayerWindow::RenderVectorDispersionSettings()
 
 void NewLayerWindow::RenderFractalDimentionSettings()
 {
-	ImGui::Checkbox("Filter FD outliers", &bFilterFractalDimention);
+	bool TempBool = FRACTAL_DIMENSION_LAYER_PRODUCER.GetShouldFilterFractalDimensionValues();
+	ImGui::Checkbox("Filter FD outliers", &TempBool);
+	FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldFilterFractalDimensionValues(TempBool);
+
 	ImGui::Checkbox("Add standard deviation layer.", &FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation);
 	RenderCellSizeSettings();
 }

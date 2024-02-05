@@ -20,7 +20,7 @@ namespace FocalEngine
 		bool bWeightedNormals = true;
 		bool bNormalizedNormals = true;
 		bool bDeleteOutliers = true;
-		bool bOverlapAware = false;
+		
 		bool bCalculateStandardDeviation = false;
 		std::vector<std::string> OrientationSetNamesForMinRugosityList;
 
@@ -52,6 +52,9 @@ namespace FocalEngine
 
 		std::string GetOrientationSetForMinRugosityName();
 		void SetOrientationSetForMinRugosityName(std::string name);
+
+		bool GetIsUsingUniqueProjectedArea();
+		void SetIsUsingUniqueProjectedArea(bool NewValue);
 	private:
 		SINGLETON_PRIVATE_PART(RugosityLayerProducer)
 
@@ -59,6 +62,7 @@ namespace FocalEngine
 		bool bUseFindSmallestRugosity = false;
 		bool bUseCGALVariant = false;
 		bool bWaitForJitterResult = false;
+		bool bUniqueProjectedArea = false;
 		std::string OrientationSetForMinRugosity = "91";
 
 		static float LastTimeTookForCalculation;
