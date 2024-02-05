@@ -469,6 +469,9 @@ namespace FocalEngine
 		std::vector<std::string> GetJitterVectorSetNames();
 
 		void AdjustOutliers(std::vector<float>& Data, float LowerPercentile, float UpperPercentile);
+
+		// Produces a data layer of standard deviation values for all jitters from last run.
+		std::vector<float> ProduceStandardDeviationData();
 	private:
 		SINGLETON_PRIVATE_PART(JitterManager)
 
@@ -514,6 +517,8 @@ namespace FocalEngine
 
 		float LastTimeTookForCalculation;
 		uint64_t StartTime;
+
+		float FindStandardDeviation(std::vector<float> DataPoints);
 	};
 
 	#define JITTER_MANAGER JitterManager::getInstance()

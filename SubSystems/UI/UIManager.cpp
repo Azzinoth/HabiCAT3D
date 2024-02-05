@@ -19,9 +19,6 @@ UIManager::UIManager()
 	JITTER_MANAGER.SetOnCalculationsStartCallback(OnJitterCalculationsStart);
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
 
-	VECTOR_DISPERSION_LAYER_PRODUCER.SetOnCalculationsEndCallback(OnVectorDispersionCalculationsEnd);
-	FRACTAL_DIMENSION_LAYER_PRODUCER.SetOnCalculationsEndCallback(OnFractalDimensionCalculationsEnd);
-
 	MESH_MANAGER.AddLoadCallback(UIManager::OnMeshUpdate);
 	LAYER_MANAGER.AddActiveLayerChangedCallback(UIManager::OnLayerChange);
 
@@ -524,68 +521,6 @@ void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 {
 	UI.bShouldCloseProgressPopup = true;
 	UI.CurrentJitterStepIndexVisualize = JITTER_MANAGER.GetLastUsedJitterSettings().size() - 1;
-}
-
-void UIManager::OnVectorDispersionCalculationsEnd(MeshLayer NewLayer)
-{
-	if (VECTOR_DISPERSION_LAYER_PRODUCER.bCalculateStandardDeviation)
-	{
-		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-		std::vector<float> TrianglesToStandardDeviation;
-		for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
-		{
-			std::vector<float> CurrentTriangleResults;
-			for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
-			{
-				CurrentTriangleResults.push_back(JITTER_MANAGER.PerJitterResult[j][i]);
-			}
-
-			TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
-		}
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
-
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-		MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
-		DebugInfo->Type = "VectorDispersionDeviationLayerDebugInfo";
-		DebugInfo->AddEntry("Start time", StarTime);
-		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer Caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
-	}
-
-	UI.bShouldCloseProgressPopup = true;
-}
-
-void UIManager::OnFractalDimensionCalculationsEnd(MeshLayer NewLayer)
-{
-	if (FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation)
-	{
-		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-		std::vector<float> TrianglesToStandardDeviation;
-		for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
-		{
-			std::vector<float> CurrentTriangleResults;
-			for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
-			{
-				CurrentTriangleResults.push_back(JITTER_MANAGER.PerJitterResult[j][i]);
-			}
-
-			TrianglesToStandardDeviation.push_back(UI.FindStandardDeviation(CurrentTriangleResults));
-		}
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
-
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-		MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
-		DebugInfo->Type = "FractalDimensionDeviationLayerDebugInfo";
-		DebugInfo->AddEntry("Start time", StarTime);
-		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer Caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
-	}
-
-	UI.bShouldCloseProgressPopup = true;
 }
 
 static auto CompareColormapValue = [](float Value) {
@@ -1359,15 +1294,9 @@ void UIManager::OnLayerChange()
 		MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 		UI.HeatMapColorRange.SetColorRangeFunction(TurboColorMapValue);
 		UI.HeatMapColorRange.bRenderSlider = true;
-		if (CurrentLayer->MaxVisible == CurrentLayer->Max)
-		{
-			float MiddleOfRange = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) / 2.0f;
-			UI.HeatMapColorRange.SetSliderValue(MiddleOfRange / CurrentLayer->Max);
-		}
-		else
-		{
-			UI.HeatMapColorRange.SetSliderValue(CurrentLayer->MaxVisible / CurrentLayer->Max);
-		}
+	
+		float MiddleOfRange = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) / 2.0f;
+		UI.HeatMapColorRange.SetSliderValue(MiddleOfRange / CurrentLayer->Max);
 
 		if (CurrentLayer->GetType() == COMPARE)
 		{
@@ -1401,28 +1330,6 @@ void UIManager::OnLayerChange()
 		UI.InitDebugSDF(UI.CurrentJitterStepIndexVisualize);
 		UI.UpdateRenderingMode(UI.GetDebugSDF(), UI.GetDebugSDF()->RenderingMode);
 	}	
-}
-
-// DELETE
-float UIManager::FindStandardDeviation(std::vector<float> DataPoints)
-{
-	float Mean = 0.0f;
-	for (int i = 0; i < DataPoints.size(); i++)
-	{
-		Mean += DataPoints[i];
-	}
-	Mean /= DataPoints.size();
-
-	float Variance = 0.0f;
-	for (int i = 0; i < DataPoints.size(); i++)
-	{
-		DataPoints[i] -= Mean;
-		DataPoints[i] = std::pow(DataPoints[i], 2.0);
-		Variance += DataPoints[i];
-	}
-	Variance /= DataPoints.size();
-
-	return std::sqrt(Variance);
 }
 
 std::vector<SDFInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugInfo* DebugInfo)
@@ -2008,7 +1915,7 @@ void UIManager::UpdateRenderingMode(SDF* SDF, int NewRenderingMode)
 	{
 		case LAYER_TYPE::RUGOSITY:
 		{
-			RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(SDF);
+			RUGOSITY_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(SDF);
 			break;
 		}
 

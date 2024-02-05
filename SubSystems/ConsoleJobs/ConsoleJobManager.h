@@ -47,33 +47,55 @@ class ComplexityJobSettings  // ..Class ComplexityJobSettings
 
 	float RelativeResolution = 0.0f;
 	float ResolutionInM = 0.0f;
+
+	std::string JitterQuality = "55";
 	bool bRunOnWholeModel = false;
 
+	std::string TriangleEdges_Mode = "MAX_LEHGTH";
 
+	std::string Rugosity_Algorithm = "AVERAGE";
 	bool bRugosity_DeleteOutliers = true;
 
+	bool bCalculateStandardDeviation = false;
 public:
 
 	// Resolution in range of 0.0 to 1.0
 	float GetRelativeResolution();
-
 	// Resolution in range of 0.0 to 1.0
 	void SetRelativeResolution(float NewValue);
 
 	// Explicit resolution in meters, would be used first if valid
 	float GetResolutionInM();
-
 	// Explicit resolution in meters, would be used first if valid
 	void SetResolutionInM(float NewValue);
 
+	// Number of jitters, more jitters, smoother result, but slower
+	std::string GetJitterQuality();
+	// Number of jitters, more jitters, smoother result, but slower
+	void SetJitterQuality(std::string NewValue);
+
 	// No jitter, just whole model as input
 	bool IsRunOnWholeModel();
-
 	// No jitter, just whole model as input
 	void SetRunOnWholeModel(bool NewValue);
 
+	// Posible values: AVERAGE, MIN, LSF(CGAL)
+	std::string GetRugosity_Algorithm();
+	// Posible values: AVERAGE, MIN, LSF(CGAL)
+	void SetRugosity_Algorithm(std::string NewValue);
+
 	bool IsRugosity_DeleteOutliers();
 	void SetRugosity_DeleteOutliers(bool NewValue);
+
+	// Posible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
+	std::string GetTriangleEdges_Mode();
+	// Posible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
+	void SetTriangleEdges_Mode(std::string NewValue);
+
+	bool IsStandardDeviationNeeded();
+	void SetIsStandardDeviationNeeded(bool NewValue);
+
+
 
 
 	// , Jitter, algorithm, etc.
@@ -132,6 +154,7 @@ private:
 	std::vector<ConsoleJob*> JobsList;
 
 	void SetGridResolution(ComplexityJob* Job);
+	void SetRugosityAlgorithm(ComplexityJob* Job);
 	void ExecuteJob(ConsoleJob* Job);
 };
 

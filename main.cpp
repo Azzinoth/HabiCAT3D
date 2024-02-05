@@ -780,11 +780,42 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
 	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
+	NewJobToAdd->Settings.SetTriangleEdges_Mode("MIN_LEHGTH");
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
+	NewJobToAdd->Settings.SetTriangleEdges_Mode("MEAN_LEHGTH");
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "TRIANGLE_COUNT";
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "RUGOSITY";
+	NewJobToAdd->Settings.SetJitterQuality("1");
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "RUGOSITY";
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "RUGOSITY";
+	NewJobToAdd->Settings.SetJitterQuality("73");
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "RUGOSITY";
+	NewJobToAdd->Settings.SetRugosity_Algorithm("MIN");
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "RUGOSITY";
+	NewJobToAdd->Settings.SetRugosity_Algorithm("LSF(CGAL)");
+	NewJobToAdd->Settings.SetIsStandardDeviationNeeded(true);
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
 	NewJobToAdd = new ComplexityJob();
@@ -794,7 +825,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
 	NewJobToAdd->Settings.SetRelativeResolution(0.65f);
-	//NewJobToAdd->Settings.SetResolutionInM(3.879f);
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
 	NewJobToAdd = new ComplexityJob();

@@ -1,12 +1,12 @@
-#include "RugosityManager.h"
+#include "RugosityLayerProducer.h"
 using namespace FocalEngine;
 
-RugosityManager* RugosityManager::Instance = nullptr;
-float RugosityManager::LastTimeTookForCalculation = 0.0f;
-void(*RugosityManager::OnRugosityCalculationsStartCallbackImpl)(void) = nullptr;
-void(*RugosityManager::OnRugosityCalculationsEndCallbackImpl)(MeshLayer) = nullptr;
+RugosityLayerProducer* RugosityLayerProducer::Instance = nullptr;
+float RugosityLayerProducer::LastTimeTookForCalculation = 0.0f;
+void(*RugosityLayerProducer::OnRugosityCalculationsStartCallbackImpl)(void) = nullptr;
+void(*RugosityLayerProducer::OnRugosityCalculationsEndCallbackImpl)(MeshLayer) = nullptr;
 
-RugosityManager::RugosityManager()
+RugosityLayerProducer::RugosityLayerProducer()
 {
 	dimentionsList.push_back("4");
 	dimentionsList.push_back("8");
@@ -47,7 +47,7 @@ RugosityManager::RugosityManager()
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
 }
 
-RugosityManager::~RugosityManager() {}
+RugosityLayerProducer::~RugosityLayerProducer() {}
 
 typedef CGAL::Exact_predicates_exact_constructions_kernel  Kernel2;
 typedef Kernel2::Point_2                                   Point_2;
@@ -122,7 +122,7 @@ typedef Kernel::Vector_3 Vector_3;
 typedef Kernel::Plane_3 Plane_3;
 #endif
 
-void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
+void RugosityLayerProducer::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 {
 	if (CurrentNode->TrianglesInCell.empty())
 		return;
@@ -149,7 +149,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 		glm::dvec3 base2 = glm::dvec3(plane.base2().x(), plane.base2().y(), plane.base2().z());
 #endif
 
-		if (RUGOSITY_MANAGER.bOverlapAware)
+		if (RUGOSITY_LAYER_PRODUCER.bOverlapAware)
 		{
 			CGALCorrectTotalArea = TotalArea;
 
@@ -293,7 +293,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 		return Result;
 	};
 
-	if (RUGOSITY_MANAGER.bUseCGALVariant)
+	if (RUGOSITY_LAYER_PRODUCER.bUseCGALVariant)
 	{
 		std::vector<float> FEVerticesFinal;
 		std::vector<int> FEIndicesFinal;
@@ -372,7 +372,7 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 		std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[l]];
 		std::vector<glm::vec3> CurrentTriangleNormals = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[CurrentNode->TrianglesInCell[l]];
 
-		if (RUGOSITY_MANAGER.bWeightedNormals)
+		if (RUGOSITY_LAYER_PRODUCER.bWeightedNormals)
 		{
 			const float CurrentTriangleCoef = static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
 
@@ -392,23 +392,23 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 		CurrentNode->CellTrianglesCentroid += CurrentTriangle[2];
 	}
 
-	if (!RUGOSITY_MANAGER.bWeightedNormals)
+	if (!RUGOSITY_LAYER_PRODUCER.bWeightedNormals)
 		CurrentNode->AverageCellNormal /= CurrentNode->TrianglesInCell.size() * 3;
 
-	if (RUGOSITY_MANAGER.bNormalizedNormals)
+	if (RUGOSITY_LAYER_PRODUCER.bNormalizedNormals)
 		CurrentNode->AverageCellNormal = glm::normalize(CurrentNode->AverageCellNormal);
 	CurrentNode->CellTrianglesCentroid /= CurrentNode->TrianglesInCell.size() * 3;
 	// ******* Getting average normal END *******
 
-	if (RUGOSITY_MANAGER.bUseFindSmallestRugosity && RUGOSITY_MANAGER.OrientationSetForMinRugosity != "1")
+	if (RUGOSITY_LAYER_PRODUCER.bUseFindSmallestRugosity && RUGOSITY_LAYER_PRODUCER.OrientationSetForMinRugosity != "1")
 	{
 		std::unordered_map<int, float> TriangleNormalsToRugosity;
 		TriangleNormalsToRugosity[-1] = static_cast<float>(CalculateCellRugosity(CurrentNode->CellTrianglesCentroid, CurrentNode->AverageCellNormal));
 
-		if (OrientationSetOptions.find(RUGOSITY_MANAGER.OrientationSetForMinRugosity) == OrientationSetOptions.end())
-			RUGOSITY_MANAGER.OrientationSetForMinRugosity = "91";
+		if (OrientationSetOptions.find(RUGOSITY_LAYER_PRODUCER.OrientationSetForMinRugosity) == OrientationSetOptions.end())
+			RUGOSITY_LAYER_PRODUCER.OrientationSetForMinRugosity = "91";
 
-		std::vector<glm::vec3> OrientationSet = OrientationSetOptions[RUGOSITY_MANAGER.OrientationSetForMinRugosity];
+		std::vector<glm::vec3> OrientationSet = OrientationSetOptions[RUGOSITY_LAYER_PRODUCER.OrientationSetForMinRugosity];
 		for (int i = 0; i < OrientationSet.size(); i++)
 		{
 			TriangleNormalsToRugosity[i] = static_cast<float>(CalculateCellRugosity(glm::vec3(0.0f), OrientationSet[i]));
@@ -441,29 +441,29 @@ void RugosityManager::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 	LOG.Add("========================================================", "CalculateOneNodeRugosity");*/
 }
 
-void RugosityManager::CalculateWithJitterAsync()
+void RugosityLayerProducer::CalculateWithJitterAsync()
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	RUGOSITY_MANAGER.bWaitForJitterResult = true;
+	RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = true;
 	JITTER_MANAGER.CalculateWithSDFJitterAsync(CalculateOneNodeRugosity);
 }
 
-void RugosityManager::CalculateOnWholeModel()
+void RugosityLayerProducer::CalculateOnWholeModel()
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	RUGOSITY_MANAGER.bWaitForJitterResult = true;
+	RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = true;
 	JITTER_MANAGER.CalculateOnWholeModel(CalculateOneNodeRugosity);
 }
 
-std::string RugosityManager::colorSchemeIndexToString(int index)
+std::string RugosityLayerProducer::colorSchemeIndexToString(int index)
 {
 	switch (index)
 	{
@@ -478,7 +478,7 @@ std::string RugosityManager::colorSchemeIndexToString(int index)
 	return "Default";
 }
 
-int RugosityManager::colorSchemeIndexFromString(std::string name)
+int RugosityLayerProducer::colorSchemeIndexFromString(std::string name)
 {
 	if (name == colorSchemesList[0])
 		return 3;
@@ -492,7 +492,7 @@ int RugosityManager::colorSchemeIndexFromString(std::string name)
 	return 3;
 }
 
-std::string RugosityManager::GetUsedRugosityAlgorithmName()
+std::string RugosityLayerProducer::GetUsedRugosityAlgorithmName()
 {
 	if (bUseFindSmallestRugosity)
 		return RugosityAlgorithmList[1];
@@ -503,7 +503,7 @@ std::string RugosityManager::GetUsedRugosityAlgorithmName()
 	return RugosityAlgorithmList[0];
 }
 
-void RugosityManager::SetUsedRugosityAlgorithmName(std::string name)
+void RugosityLayerProducer::SetUsedRugosityAlgorithmName(std::string name)
 {
 	if (name == RugosityAlgorithmList[1])
 	{
@@ -522,112 +522,119 @@ void RugosityManager::SetUsedRugosityAlgorithmName(std::string name)
 	}
 }
 
-bool RugosityManager::GetUseFindSmallestRugosity()
+bool RugosityLayerProducer::GetUseFindSmallestRugosity()
 {
 	return bUseFindSmallestRugosity;
 }
 
-void RugosityManager::SetUseFindSmallestRugosity(bool NewValue)
+void RugosityLayerProducer::SetUseFindSmallestRugosity(bool NewValue)
 {
 	bUseFindSmallestRugosity = NewValue;
 }
 
-bool RugosityManager::GetUseCGALVariant()
+bool RugosityLayerProducer::GetUseCGALVariant()
 {
 	return bUseCGALVariant;
 }
 
-void RugosityManager::SetUseCGALVariant(bool NewValue)
+void RugosityLayerProducer::SetUseCGALVariant(bool NewValue)
 {
 	bUseCGALVariant = NewValue;
 }
 
-float RugosityManager::GetLastTimeTookForCalculation()
+float RugosityLayerProducer::GetLastTimeTookForCalculation()
 {
 	return LastTimeTookForCalculation;
 }
 
-void RugosityManager::SetOnRugosityCalculationsStartCallback(void(*Func)(void))
+void RugosityLayerProducer::SetOnRugosityCalculationsStartCallback(void(*Func)(void))
 {
 	OnRugosityCalculationsStartCallbackImpl = Func;
 }
 
-void RugosityManager::OnRugosityCalculationsStart()
+void RugosityLayerProducer::OnRugosityCalculationsStart()
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
-	RUGOSITY_MANAGER.bWaitForJitterResult = true;
+	RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = true;
 
 	TIME.BeginTimeStamp("CalculateRugorsityTotal");
-	RUGOSITY_MANAGER.StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	RUGOSITY_LAYER_PRODUCER.StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	if (OnRugosityCalculationsStartCallbackImpl != nullptr)
 		OnRugosityCalculationsStartCallbackImpl();
 }
 
-void RugosityManager::SetOnRugosityCalculationsEndCallback(void(*Func)(MeshLayer))
+void RugosityLayerProducer::SetOnRugosityCalculationsEndCallback(void(*Func)(MeshLayer))
 {
 	OnRugosityCalculationsEndCallbackImpl = Func;
 }
 
-void RugosityManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
+void RugosityLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 {
-	if (!RUGOSITY_MANAGER.bWaitForJitterResult)
+	if (!RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult)
 		return;
 
 	NewLayer.SetType(RUGOSITY);
-	RUGOSITY_MANAGER.bWaitForJitterResult = false;
+	RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = false;
 	NewLayer.DebugInfo->Type = "RugosityMeshLayerDebugInfo";
 
-	std::string AlgorithmUsed = RUGOSITY_MANAGER.RugosityAlgorithmList[0];
-	if (RUGOSITY_MANAGER.bUseFindSmallestRugosity)
-		AlgorithmUsed = RUGOSITY_MANAGER.RugosityAlgorithmList[1];
+	std::string AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[0];
+	if (RUGOSITY_LAYER_PRODUCER.bUseFindSmallestRugosity)
+		AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[1];
 
-	if (RUGOSITY_MANAGER.bUseCGALVariant)
-		AlgorithmUsed = RUGOSITY_MANAGER.RugosityAlgorithmList[2];
+	if (RUGOSITY_LAYER_PRODUCER.bUseCGALVariant)
+		AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[2];
 
 	NewLayer.DebugInfo->AddEntry("Algorithm used", AlgorithmUsed);
 
 	if (AlgorithmUsed == "Min Rugosity")
-		NewLayer.DebugInfo->AddEntry("Orientation set name", RUGOSITY_MANAGER.GetOrientationSetForMinRugosityName());
+		NewLayer.DebugInfo->AddEntry("Orientation set name", RUGOSITY_LAYER_PRODUCER.GetOrientationSetForMinRugosityName());
 	
 	std::string DeleteOutliers = "No";
 	// Remove outliers.
-	if (RUGOSITY_MANAGER.bDeleteOutliers || (RUGOSITY_MANAGER.bUseFindSmallestRugosity && RUGOSITY_MANAGER.OrientationSetForMinRugosity == "1"))
+	if (RUGOSITY_LAYER_PRODUCER.bDeleteOutliers || (RUGOSITY_LAYER_PRODUCER.bUseFindSmallestRugosity && RUGOSITY_LAYER_PRODUCER.OrientationSetForMinRugosity == "1"))
 	{
 		DeleteOutliers = "Yes";
 		JITTER_MANAGER.AdjustOutliers(NewLayer.TrianglesToData, 0.00f, 0.99f);
-		/*float OutlierBeginValue = FLT_MAX;
-
-		std::vector<float> SortedData = NewLayer.TrianglesToData;
-		std::sort(SortedData.begin(), SortedData.end());
-
-		int OutlierBeginPosition = SortedData.size() * 0.99;
-		OutlierBeginValue = SortedData[OutlierBeginPosition];
-		float NewMax = SortedData[OutlierBeginPosition - 1];
-
-		for (int i = 0; i < NewLayer.TrianglesToData.size(); i++)
-		{
-			if (NewLayer.TrianglesToData[i] >= OutlierBeginValue)
-				NewLayer.TrianglesToData[i] = NewMax;
-		}*/
 	}
 	NewLayer.DebugInfo->AddEntry("Delete outliers", DeleteOutliers);
 
-
 	std::string OverlapAware = "No";
-	if (RUGOSITY_MANAGER.bOverlapAware)
+	if (RUGOSITY_LAYER_PRODUCER.bOverlapAware)
 		OverlapAware = "Yes";
 	NewLayer.DebugInfo->AddEntry("Unique projected area (very slow)", OverlapAware);
 
 	LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
 
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
+
+	LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
+
+	if (RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation)
+	{
+		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+		std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
+		MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
+		DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
+		DebugInfo->AddEntry("Start time", StarTime);
+		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
+		DebugInfo->AddEntry("Source layer Caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
+	}
+
 	if (OnRugosityCalculationsEndCallbackImpl != nullptr)
 		OnRugosityCalculationsEndCallbackImpl(NewLayer);
 }
 
-void RugosityManager::RenderDebugInfoForSelectedNode(SDF* Grid)
+void RugosityLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 {
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
@@ -653,12 +660,12 @@ void RugosityManager::RenderDebugInfoForSelectedNode(SDF* Grid)
 	LINE_RENDERER.SyncWithGPU();
 }
 
-std::string RugosityManager::GetOrientationSetForMinRugosityName()
+std::string RugosityLayerProducer::GetOrientationSetForMinRugosityName()
 {
 	return OrientationSetForMinRugosity;
 }
 
-void RugosityManager::SetOrientationSetForMinRugosityName(std::string name)
+void RugosityLayerProducer::SetOrientationSetForMinRugosityName(std::string name)
 {
 	if (OrientationSetOptions.find(name) != OrientationSetOptions.end())
 		OrientationSetForMinRugosity = name;

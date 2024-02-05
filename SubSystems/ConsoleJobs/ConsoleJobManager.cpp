@@ -46,6 +46,26 @@ void ComplexityJobSettings::SetResolutionInM(float NewValue)
 		ResolutionInM = NewValue;
 }
 
+// Number of jitters, more jitters, smoother result, but slower
+std::string ComplexityJobSettings::GetJitterQuality()
+{
+	return JitterQuality;
+}
+
+// Number of jitters, more jitters, smoother result, but slower
+void ComplexityJobSettings::SetJitterQuality(std::string NewValue)
+{
+	auto& ListOFValidValues = JITTER_MANAGER.GetJitterVectorSetNames();
+	for (auto& Value : ListOFValidValues)
+	{
+		if (Value == NewValue)
+		{
+			JitterQuality = NewValue;
+			return;
+		}
+	}
+}
+
 // No jitter, just whole model as input
 bool ComplexityJobSettings::IsRunOnWholeModel()
 {
@@ -58,6 +78,21 @@ void ComplexityJobSettings::SetRunOnWholeModel(bool NewValue)
 	bRunOnWholeModel = NewValue;
 }
 
+// Posible values: AVERAGE, MIN, LSF(CGAL)
+std::string ComplexityJobSettings::GetRugosity_Algorithm()
+{
+	return Rugosity_Algorithm;
+}
+
+// Posible values: AVERAGE, MIN, LSF(CGAL)
+void ComplexityJobSettings::SetRugosity_Algorithm(std::string NewValue)
+{
+	if (NewValue != "AVERAGE" && NewValue != "MIN" && NewValue != "LSF(CGAL)")
+		return;
+
+	Rugosity_Algorithm = NewValue;
+}
+
 bool ComplexityJobSettings::IsRugosity_DeleteOutliers()
 {
 	return bRugosity_DeleteOutliers;
@@ -66,6 +101,31 @@ bool ComplexityJobSettings::IsRugosity_DeleteOutliers()
 void ComplexityJobSettings::SetRugosity_DeleteOutliers(bool NewValue)
 {
 	bRugosity_DeleteOutliers = NewValue;
+}
+
+// Posible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
+std::string ComplexityJobSettings::GetTriangleEdges_Mode()
+{
+	return TriangleEdges_Mode;
+}
+
+// Posible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
+void ComplexityJobSettings::SetTriangleEdges_Mode(std::string NewValue)
+{
+	if (NewValue != "MAX_LEHGTH" && NewValue != "MIN_LEHGTH" && NewValue != "MEAN_LEHGTH")
+		return;
+
+	TriangleEdges_Mode = NewValue;
+}
+
+bool ComplexityJobSettings::IsStandardDeviationNeeded()
+{
+	return bCalculateStandardDeviation;
+}
+
+void ComplexityJobSettings::SetIsStandardDeviationNeeded(bool NewValue)
+{
+	bCalculateStandardDeviation = NewValue;
 }
 
 ConsoleJobManager* ConsoleJobManager::Instance = nullptr;
@@ -94,6 +154,15 @@ void ConsoleJobManager::SetGridResolution(ComplexityJob* Job)
 		float Range = JITTER_MANAGER.GetHigestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution();
 		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution() + Range * Job->Settings.RelativeResolution);
 	}
+}
+
+void ConsoleJobManager::SetRugosityAlgorithm(ComplexityJob* Job)
+{
+	if (Job->ComplexityType != "RUGOSITY")
+		return;
+
+	RUGOSITY_LAYER_PRODUCER.SetUseFindSmallestRugosity(Job->Settings.GetRugosity_Algorithm() == "MIN");
+	RUGOSITY_LAYER_PRODUCER.SetUseCGALVariant(Job->Settings.GetRugosity_Algorithm() == "LSF(CGAL)");
 }
 
 void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
@@ -136,6 +205,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 
 		ComplexityJob* CurrentComplexityJob = reinterpret_cast<ComplexityJob*>(Job);
 		SetGridResolution(CurrentComplexityJob);
+		JITTER_MANAGER.SetCurrentJitterVectorSetName(CurrentComplexityJob->Settings.GetJitterQuality());
 
 		if (CurrentComplexityJob->ComplexityType == "HEIGHT")
 		{
@@ -157,7 +227,17 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		{
 			std::cout << "Initiating Triangle Edge Layer calculation." << std::endl;
 
-			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(0));
+			int Mode = 0;
+			if (CurrentComplexityJob->Settings.GetTriangleEdges_Mode() == "MIN_LEHGTH")
+			{
+				Mode = 1;
+			}
+			else if (CurrentComplexityJob->Settings.GetTriangleEdges_Mode() == "MEAN_LEHGTH")
+			{
+				Mode = 2;
+			}
+
+			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(Mode));
 
 			std::cout << "Triangle Edge Layer calculation completed." << std::endl;
 		}
@@ -191,15 +271,17 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		{
 			std::cout << "Initiating Rugosity Layer calculation." << std::endl;
 
-			RUGOSITY_MANAGER.bDeleteOutliers = CurrentComplexityJob->Settings.IsRugosity_DeleteOutliers();
+			SetRugosityAlgorithm(CurrentComplexityJob);
+			RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation = CurrentComplexityJob->Settings.IsStandardDeviationNeeded();
+			RUGOSITY_LAYER_PRODUCER.bDeleteOutliers = CurrentComplexityJob->Settings.IsRugosity_DeleteOutliers();
 
 			if (CurrentComplexityJob->Settings.IsRunOnWholeModel())
 			{
-				RUGOSITY_MANAGER.CalculateOnWholeModel();
+				RUGOSITY_LAYER_PRODUCER.CalculateOnWholeModel();
 			}
 			else
 			{
-				RUGOSITY_MANAGER.CalculateWithJitterAsync();
+				RUGOSITY_LAYER_PRODUCER.CalculateWithJitterAsync();
 			}
 
 			while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
@@ -218,6 +300,8 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		else if (CurrentComplexityJob->ComplexityType == "VECTOR_DISPERSION")
 		{
 			std::cout << "Initiating Vector Dispersion calculation." << std::endl;
+			
+			VECTOR_DISPERSION_LAYER_PRODUCER.bCalculateStandardDeviation = CurrentComplexityJob->Settings.IsStandardDeviationNeeded();
 
 			if (CurrentComplexityJob->Settings.IsRunOnWholeModel())
 			{
@@ -245,6 +329,8 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		else if (CurrentComplexityJob->ComplexityType == "FRACTAL_DIMENSION")
 		{
 			std::cout << "Initiating Fractal Dimension Layer calculation." << std::endl;
+
+			FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation = CurrentComplexityJob->Settings.IsStandardDeviationNeeded();
 
 			if (CurrentComplexityJob->Settings.IsRunOnWholeModel())
 			{

@@ -161,12 +161,12 @@ void NewLayerWindow::AddLayer()
 		{
 			if (bRunOnWholeModel)
 			{
-				RUGOSITY_MANAGER.CalculateOnWholeModel();
+				RUGOSITY_LAYER_PRODUCER.CalculateOnWholeModel();
 				MESH_MANAGER.ActiveMesh->HeatMapType = -1;
 			}
 			else
 			{
-				RUGOSITY_MANAGER.CalculateWithJitterAsync();
+				RUGOSITY_LAYER_PRODUCER.CalculateWithJitterAsync();
 				MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 			}
 
@@ -326,17 +326,17 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(190);
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
-	if (ImGui::BeginCombo("##ChooseRugosityAlgorithm", (RUGOSITY_MANAGER.GetUsedRugosityAlgorithmName()).c_str(), ImGuiWindowFlags_None))
+	if (ImGui::BeginCombo("##ChooseRugosityAlgorithm", (RUGOSITY_LAYER_PRODUCER.GetUsedRugosityAlgorithmName()).c_str(), ImGuiWindowFlags_None))
 	{
-		for (size_t i = 0; i < RUGOSITY_MANAGER.RugosityAlgorithmList.size(); i++)
+		for (size_t i = 0; i < RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList.size(); i++)
 		{
-			bool is_selected = (RUGOSITY_MANAGER.GetUsedRugosityAlgorithmName() == RUGOSITY_MANAGER.RugosityAlgorithmList[i]);
-			if (ImGui::Selectable(RUGOSITY_MANAGER.RugosityAlgorithmList[i].c_str(), is_selected))
+			bool is_selected = (RUGOSITY_LAYER_PRODUCER.GetUsedRugosityAlgorithmName() == RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[i]);
+			if (ImGui::Selectable(RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[i].c_str(), is_selected))
 			{
-				RUGOSITY_MANAGER.SetUsedRugosityAlgorithmName(RUGOSITY_MANAGER.RugosityAlgorithmList[i]);
-				RUGOSITY_MANAGER.bDeleteOutliers = true;
+				RUGOSITY_LAYER_PRODUCER.SetUsedRugosityAlgorithmName(RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[i]);
+				RUGOSITY_LAYER_PRODUCER.bDeleteOutliers = true;
 				if (i != 0)
-					RUGOSITY_MANAGER.bDeleteOutliers = false;
+					RUGOSITY_LAYER_PRODUCER.bDeleteOutliers = false;
 			}
 
 			if (is_selected)
@@ -345,20 +345,20 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 		ImGui::EndCombo();
 	}
 
-	if (RUGOSITY_MANAGER.GetUsedRugosityAlgorithmName() == "Min Rugosity")
+	if (RUGOSITY_LAYER_PRODUCER.GetUsedRugosityAlgorithmName() == "Min Rugosity")
 	{
 		ImGui::Text("Orientation set(advanced option): ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(190);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
-		if (ImGui::BeginCombo("##OrientationSet", (RUGOSITY_MANAGER.GetOrientationSetForMinRugosityName()).c_str(), ImGuiWindowFlags_None))
+		if (ImGui::BeginCombo("##OrientationSet", (RUGOSITY_LAYER_PRODUCER.GetOrientationSetForMinRugosityName()).c_str(), ImGuiWindowFlags_None))
 		{
-			for (size_t i = 0; i < RUGOSITY_MANAGER.OrientationSetNamesForMinRugosityList.size(); i++)
+			for (size_t i = 0; i < RUGOSITY_LAYER_PRODUCER.OrientationSetNamesForMinRugosityList.size(); i++)
 			{
-				bool is_selected = (RUGOSITY_MANAGER.GetOrientationSetForMinRugosityName() == RUGOSITY_MANAGER.OrientationSetNamesForMinRugosityList[i]);
-				if (ImGui::Selectable(RUGOSITY_MANAGER.OrientationSetNamesForMinRugosityList[i].c_str(), is_selected))
+				bool is_selected = (RUGOSITY_LAYER_PRODUCER.GetOrientationSetForMinRugosityName() == RUGOSITY_LAYER_PRODUCER.OrientationSetNamesForMinRugosityList[i]);
+				if (ImGui::Selectable(RUGOSITY_LAYER_PRODUCER.OrientationSetNamesForMinRugosityList[i].c_str(), is_selected))
 				{
-					RUGOSITY_MANAGER.SetOrientationSetForMinRugosityName(RUGOSITY_MANAGER.OrientationSetNamesForMinRugosityList[i]);
+					RUGOSITY_LAYER_PRODUCER.SetOrientationSetForMinRugosityName(RUGOSITY_LAYER_PRODUCER.OrientationSetNamesForMinRugosityList[i]);
 				}
 
 				if (is_selected)
@@ -369,9 +369,9 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 	}
 
 	if (!bRunOnWholeModel)
-		ImGui::Checkbox("Delete outliers", &RUGOSITY_MANAGER.bDeleteOutliers);
-	ImGui::Checkbox("Unique projected area (very slow).", &RUGOSITY_MANAGER.bOverlapAware);
-	ImGui::Checkbox("Add standard deviation layer.", &RUGOSITY_MANAGER.bCalculateStandardDeviation);
+		ImGui::Checkbox("Delete outliers", &RUGOSITY_LAYER_PRODUCER.bDeleteOutliers);
+	ImGui::Checkbox("Unique projected area (very slow).", &RUGOSITY_LAYER_PRODUCER.bOverlapAware);
+	ImGui::Checkbox("Add standard deviation layer.", &RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation);
 
 	RenderCellSizeSettings();
 }
@@ -486,7 +486,6 @@ void NewLayerWindow::RenderSettings()
 			RenderRugosityLayerSettings();
 			break;
 		}
-		
 		case 5:
 		{
 			RenderVectorDispersionSettings();

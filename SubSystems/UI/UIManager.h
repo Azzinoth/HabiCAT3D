@@ -92,8 +92,6 @@ namespace FocalEngine
 		
 		static void OnJitterCalculationsStart();
 		static void OnJitterCalculationsEnd(MeshLayer NewLayer);
-		static void OnVectorDispersionCalculationsEnd(MeshLayer NewLayer);
-		static void OnFractalDimensionCalculationsEnd(MeshLayer NewLayer);
 
 		bool bOutputSelectionToFile = false;
 
@@ -102,8 +100,6 @@ namespace FocalEngine
 		void RenderAboutWindow();
 
 		static void OnLayerChange();
-		// DELETE
-		float FindStandardDeviation(std::vector<float> DataPoints);
 
 		FETexture* AddNewLayerIcon = nullptr;
 		std::vector<std::string> DummyLayers;

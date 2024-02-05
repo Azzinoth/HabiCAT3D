@@ -453,3 +453,48 @@ void JitterManager::AdjustOutliers(std::vector<float>& Data, float LowerPercenti
 		}
 	}
 }
+
+float JitterManager::FindStandardDeviation(std::vector<float> DataPoints)
+{
+	float Mean = 0.0f;
+	for (int i = 0; i < DataPoints.size(); i++)
+	{
+		Mean += DataPoints[i];
+	}
+	Mean /= DataPoints.size();
+
+	float Variance = 0.0f;
+	for (int i = 0; i < DataPoints.size(); i++)
+	{
+		DataPoints[i] -= Mean;
+		DataPoints[i] = std::pow(DataPoints[i], 2.0);
+		Variance += DataPoints[i];
+	}
+	Variance /= DataPoints.size();
+
+	return std::sqrt(Variance);
+}
+
+std::vector<float> JitterManager::ProduceStandardDeviationData()
+{
+	std::vector<float> Result;
+
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+		return Result;
+
+	if (PerJitterResult.empty())
+		return Result;
+
+	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	{
+		std::vector<float> CurrentTriangleResults;
+		for (int j = 0; j < JitterToDoCount; j++)
+		{
+			CurrentTriangleResults.push_back(PerJitterResult[j][i]);
+		}
+
+		Result.push_back(FindStandardDeviation(CurrentTriangleResults));
+	}
+
+	return Result;
+}

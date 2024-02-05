@@ -3,11 +3,7 @@ using namespace FocalEngine;
 
 LayerManager* LayerManager::Instance = nullptr;
 
-LayerManager::LayerManager()
-{
-	RUGOSITY_MANAGER.SetOnRugosityCalculationsEndCallback(OnRugosityCalculationsEnd);
-}
-
+LayerManager::LayerManager() {}
 LayerManager::~LayerManager() {}
 
 int LayerManager::FindHigestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List)
@@ -73,16 +69,6 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 	return Result;
 }
 
-//bool LayerManager::AddLayer(std::vector<float> TrianglesToData)
-//{
-//	
-//}
-//
-//bool LayerManager::AddLayer(MeshLayer NewLayer)
-//{
-//	
-//}
-
 void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
 {
 	if (MESH_MANAGER.ActiveMesh == nullptr || NewLayerIndex < -1 || NewLayerIndex >= int(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size()))
@@ -124,60 +110,4 @@ MeshLayer* LayerManager::GetActiveLayer()
 		return nullptr;
 
 	return &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentLayerIndex];
-}
-
-float LayerManager::FindStandardDeviation(std::vector<float> DataPoints)
-{
-	float Mean = 0.0f;
-	for (int i = 0; i < DataPoints.size(); i++)
-	{
-		Mean += DataPoints[i];
-	}
-	Mean /= DataPoints.size();
-
-	float Variance = 0.0f;
-	for (int i = 0; i < DataPoints.size(); i++)
-	{
-		DataPoints[i] -= Mean;
-		DataPoints[i] = std::pow(DataPoints[i], 2.0);
-		Variance += DataPoints[i];
-	}
-	Variance /= DataPoints.size();
-
-	return std::sqrt(Variance);
-}
-
-void LayerManager::OnRugosityCalculationsEnd(MeshLayer NewLayer)
-{
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
-
-	LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
-
-	if (RUGOSITY_MANAGER.bCalculateStandardDeviation)
-	{
-		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-		std::vector<float> TrianglesToStandardDeviation;
-		for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
-		{
-			std::vector<float> CurrentTriangleResults;
-			for (int j = 0; j < JITTER_MANAGER.JitterToDoCount; j++)
-			{
-				CurrentTriangleResults.push_back(JITTER_MANAGER.PerJitterResult[j][i]);
-			}
-
-			TrianglesToStandardDeviation.push_back(LAYER_MANAGER.FindStandardDeviation(CurrentTriangleResults));
-		}
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
-
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-		MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
-		DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
-		DebugInfo->AddEntry("Start time", StarTime);
-		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer Caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
-	}
 }

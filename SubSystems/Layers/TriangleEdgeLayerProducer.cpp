@@ -58,7 +58,7 @@ MeshLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 	{
 		ModeUsed = "Mean edge length.";
 	}
-	Result.DebugInfo->AddEntry("Mode: ", ModeUsed);
+	Result.DebugInfo->AddEntry("Mode", ModeUsed);
 
 	return Result;
 }
