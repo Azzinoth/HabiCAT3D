@@ -729,22 +729,8 @@ void AddFontOnSecondFrame()
 	}
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+void ConsoleThreadCode()
 {
-	LOG.SetFileOutput(true);
-
-	const auto processor_count = THREAD_POOL.GetLogicalCoreCount();
-	const unsigned int HowManyToUse = processor_count > 4 ? processor_count - 2 : 1;
-
-	THREAD_POOL.SetConcurrentThreadCount(HowManyToUse);
-
-	
-
-
-
-
-
-#ifdef CONSOLE_MODE
 	// Allocate a console
 	AllocConsole();
 
@@ -770,6 +756,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Layer 0
 	ComplexityJob* NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "HEIGHT";
+	ComplexityJobEvaluation EvaluateJob;
+	EvaluateJob.Type = "MAX_LAYER_VALUE";
+	EvaluateJob.ExpectedValue = 6.0f;
+	EvaluateJob.Tolerance = 0.1f;
+	NewJobToAdd->Evaluations.push_back(EvaluateJob);
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
 	// Layer 1
@@ -856,7 +847,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	FileSaveJob* SaveJob = new FileSaveJob("qwe");
 	CONSOLE_JOB_MANAGER.AddJob(SaveJob);
-	
+
 	while (true)
 	{
 		CONSOLE_JOB_MANAGER.Update();
@@ -867,6 +858,157 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	fclose(pCout);
 	fclose(pCin);
 	FreeConsole();
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+{
+	LOG.SetFileOutput(true);
+
+	const auto processor_count = THREAD_POOL.GetLogicalCoreCount();
+	const unsigned int HowManyToUse = processor_count > 4 ? processor_count - 2 : 1;
+
+	THREAD_POOL.SetConcurrentThreadCount(HowManyToUse);
+
+	
+
+#ifdef CONSOLE_MODE
+
+	std::thread ConsoleThreadHandler = std::thread(ConsoleThreadCode);
+	ConsoleThreadHandler.detach();
+
+	// Just not to close.
+	while (true)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+
+	//// Allocate a console
+	//AllocConsole();
+
+	//// Redirect standard I/O to the console
+	//FILE* pCout;
+	//freopen_s(&pCout, "CONOUT$", "w", stdout);
+	//FILE* pCin;
+	//freopen_s(&pCin, "CONIN$", "r", stdin);
+
+	//// To ensure initialisation of JITTER_MANAGER
+	//JITTER_MANAGER.getInstance();
+
+	//std::string filePath;
+
+	//std::cout << "Please enter the file path:\n";
+	//std::getline(std::cin, filePath);
+	//std::cout << "File path entered: " << filePath << std::endl;
+
+
+	//FileLoadJob* LoadJob = new FileLoadJob(filePath.c_str());
+	//CONSOLE_JOB_MANAGER.AddJob(LoadJob);
+
+	//// Layer 0
+	//ComplexityJob* NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "HEIGHT";
+	//ComplexityJobEvaluation EvaluateJob;
+	//EvaluateJob.Type = "MAX_LAYER_VALUE";
+	//EvaluateJob.ExpectedValue = 6.0f;
+	//EvaluateJob.Tolerance = 0.1f;
+	//NewJobToAdd->Evaluations.push_back(EvaluateJob);
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 1
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "AREA";
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 2
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 3
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
+	//NewJobToAdd->Settings.SetTriangleEdges_Mode("MIN_LEHGTH");
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 4
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
+	//NewJobToAdd->Settings.SetTriangleEdges_Mode("MEAN_LEHGTH");
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 5
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "TRIANGLE_COUNT";
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 6
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "RUGOSITY";
+	//NewJobToAdd->Settings.SetJitterQuality("1");
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 7
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "RUGOSITY";
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 8
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "RUGOSITY";
+	//NewJobToAdd->Settings.SetJitterQuality("73");
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 9
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "RUGOSITY";
+	//NewJobToAdd->Settings.SetRugosity_Algorithm("MIN");
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 10 and 11
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "RUGOSITY";
+	//NewJobToAdd->Settings.SetRugosity_Algorithm("LSF(CGAL)");
+	//NewJobToAdd->Settings.SetIsStandardDeviationNeeded(true);
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 12
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "VECTOR_DISPERSION";
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 13
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
+	//NewJobToAdd->Settings.SetRelativeResolution(0.65f);
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 14
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
+	//NewJobToAdd->Settings.SetRunOnWholeModel(true);
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//// Layer 15
+	//NewJobToAdd = new ComplexityJob();
+	//NewJobToAdd->ComplexityType = "COMPARE";
+	//NewJobToAdd->Settings.SetCompare_FirstLayerIndex(12);
+	//NewJobToAdd->Settings.SetCompare_SecondLayerIndex(13);
+	//NewJobToAdd->Settings.SetCompare_Normalize(true);
+	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	//FileSaveJob* SaveJob = new FileSaveJob("qwe");
+	//CONSOLE_JOB_MANAGER.AddJob(SaveJob);
+	//
+	//while (true)
+	//{
+	//	CONSOLE_JOB_MANAGER.Update();
+	//	std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	//}
+
+	//// Cleanup
+	//fclose(pCout);
+	//fclose(pCin);
+	//FreeConsole();
 
 	return 0;
 #endif

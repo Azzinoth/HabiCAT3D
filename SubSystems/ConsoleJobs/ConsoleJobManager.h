@@ -35,10 +35,15 @@ protected:
 class ComplexityJobEvaluation // ....Class ComplexityJobEvaluation, ussually empty, but can be used for QA.
 {
 	friend ConsoleJobManager;
-
+public:
 	std::string Type;         // ......Type, what to check (min, max, average, mean)
-	float Value;			  // ......Value, what to check against
-	float Tolerance;          // ......Tolerance, how much can be off
+	float ExpectedValue;
+	float ActualValue;
+	float Tolerance = 0.0f;
+	
+	bool Failed();
+private:
+	bool bFailed = true;
 };
 
 class ComplexityJobSettings
@@ -145,12 +150,12 @@ public:
 	friend ConsoleJobManager;
 
 	ComplexityJob();
-	ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings, ComplexityJobEvaluation* Evaluation);
+	ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings, std::vector<ComplexityJobEvaluation> Evaluations);
 
 	std::string ComplexityType;
 
 	ComplexityJobSettings Settings;
-	ComplexityJobEvaluation* Evaluation = nullptr;
+	std::vector<ComplexityJobEvaluation> Evaluations;
 };
 
 class FileLoadJob : public ConsoleJob
@@ -190,9 +195,12 @@ private:
 	SINGLETON_PRIVATE_PART(ConsoleJobManager)
 
 	std::vector<ConsoleJob*> JobsList;
+	std::vector<ConsoleJob*> JobsWithFailedEvaluations;
 
 	void SetGridResolution(ComplexityJob* Job);
 	void SetRugosityAlgorithm(ComplexityJob* Job);
+	void RunEvaluations(ComplexityJob* Job);
+
 	void ExecuteJob(ConsoleJob* Job);
 };
 

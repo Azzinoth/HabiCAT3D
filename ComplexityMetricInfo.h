@@ -65,6 +65,8 @@ namespace FocalEngine
 		std::string UserNote;
 		LAYER_TYPE Type = LAYER_TYPE::UNKNOWN;
 
+		float Max = -FLT_MAX;
+		float Min = FLT_MAX;
 		float Mean = -FLT_MAX;
 		float Median = -FLT_MAX;
 
@@ -93,12 +95,12 @@ namespace FocalEngine
 		ComplexityMetricInfo* GetParent();
 		void SetParent(ComplexityMetricInfo* NewValue);
 
+		float GetMax();
+		float GetMin();
 		float GetMean();
 		float GetMedian();
 
-		float Min = FLT_MAX;
 		float MinVisible = FLT_MAX;
-		float Max = -FLT_MAX;
 		float MaxVisible = FLT_MAX;
 
 		std::vector<float> RawData;

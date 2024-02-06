@@ -12,13 +12,18 @@ ComplexityJob::ComplexityJob()
 	ComplexityType = "NONE";
 };
 
-ComplexityJob::ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings, ComplexityJobEvaluation* Evaluation)
+ComplexityJob::ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings, std::vector<ComplexityJobEvaluation> Evaluations)
 {
 	this->ComplexityType = ComplexityType;
 	this->Settings = Settings;
-	this->Evaluation = Evaluation;
+	this->Evaluations = Evaluations;
 	Type = "COMPLEXITY_JOB";
 };
+
+bool ComplexityJobEvaluation::Failed()
+{
+	return bFailed;
+}
 
 // Resolution in range of 0.0 to 1.0
 float ComplexityJobSettings::GetRelativeResolution()
@@ -242,6 +247,59 @@ void ConsoleJobManager::SetRugosityAlgorithm(ComplexityJob* Job)
 	RUGOSITY_LAYER_PRODUCER.SetUseCGALVariant(Job->Settings.GetRugosity_Algorithm() == "LSF(CGAL)");
 }
 
+void ConsoleJobManager::RunEvaluations(ComplexityJob* Job)
+{
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
+		return;
+
+	MeshLayer& LastLayer = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back();
+
+	for (size_t i = 0; i < Job->Evaluations.size(); i++)
+	{
+		Job->Evaluations[i].bFailed = false;
+		float Difference = 0.0f;
+
+		if (Job->Evaluations[i].Type == "MEAN_LAYER_VALUE")
+		{
+			Job->Evaluations[i].ActualValue = LastLayer.GetMean();
+			Difference = Job->Evaluations[i].ExpectedValue - Job->Evaluations[i].ActualValue;
+		}
+		else if (Job->Evaluations[i].Type == "MEDIAN_LAYER_VALUE")
+		{
+			Job->Evaluations[i].ActualValue = LastLayer.GetMedian();
+			Difference = Job->Evaluations[i].ExpectedValue - Job->Evaluations[i].ActualValue;
+		}
+		else if (Job->Evaluations[i].Type == "MAX_LAYER_VALUE")
+		{
+			Job->Evaluations[i].ActualValue = LastLayer.GetMax();
+			Difference = Job->Evaluations[i].ExpectedValue - Job->Evaluations[i].ActualValue;
+		}
+		else if (Job->Evaluations[i].Type == "MIN_LAYER_VALUE")
+		{
+			Job->Evaluations[i].ActualValue = LastLayer.GetMin();
+			Difference = Job->Evaluations[i].ExpectedValue - Job->Evaluations[i].ActualValue;
+		}
+
+		if (abs(Difference) > Job->Evaluations[i].Tolerance)
+			Job->Evaluations[i].bFailed = true;
+		
+		if (Job->Evaluations[i].Failed())
+		{
+			std::string ErrorMessage = "Error: Evaluation failed. Type: " + Job->Evaluations[i].Type + " Expected: " + std::to_string(Job->Evaluations[i].ExpectedValue) + " Tolerance: " + std::to_string(Job->Evaluations[i].Tolerance) + " Actual: " + std::to_string(Job->Evaluations[i].ActualValue);
+			LOG.Add(ErrorMessage, "CONSOLE_LOG");
+			std::cout << ErrorMessage << std::endl;
+
+			JobsWithFailedEvaluations.push_back(Job);
+		}
+		else
+		{
+			std::string ErrorMessage = "Evaluation passed. Type: " + Job->Evaluations[i].Type + " Expected: " + std::to_string(Job->Evaluations[i].ExpectedValue) + " Tolerance: " + std::to_string(Job->Evaluations[i].Tolerance) + " Actual: " + std::to_string(Job->Evaluations[i].ActualValue);
+			LOG.Add(ErrorMessage, "CONSOLE_LOG");
+			std::cout << ErrorMessage << std::endl;
+		}
+	}
+}
+
 void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 {
 	if (Job->Type == "FILE_LOAD")
@@ -397,7 +455,6 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 				float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
 				std::cout << "\rProgress: " << std::to_string(Progress * 100.0f) << " %" << std::flush;
 
-
 				std::this_thread::sleep_for(std::chrono::milliseconds(10));
 				THREAD_POOL.Update();
 			}
@@ -462,6 +519,8 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 
 			std::cout << "Compare Layer calculation completed." << std::endl;
 		}
+
+		RunEvaluations(CurrentComplexityJob);
 	}
 }
 

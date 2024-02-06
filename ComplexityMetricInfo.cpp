@@ -283,6 +283,16 @@ void MeshLayer::SetNote(const std::string NewValue)
 	UserNote = NewValue;
 }
 
+float MeshLayer::GetMax()
+{
+	return Max;
+}
+
+float MeshLayer::GetMin()
+{
+	return Min;
+}
+
 float MeshLayer::GetMean()
 {
 	return Mean;

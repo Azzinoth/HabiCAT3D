@@ -631,15 +631,15 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 	if (bScreenshotMode && MeshAndCurrentLayerIsValid())
 	{
 		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-		if (CurrentLayer->Min == CurrentLayer->Max)
+		if (CurrentLayer->GetMin() == CurrentLayer->GetMax())
 		{
 			HeatMapColorRange.Legend.SetDummyValues();
 		}
 		else
 		{
 			HeatMapColorRange.Legend.Clear();
-			HeatMapColorRange.Legend.SetCaption(1.0f, TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetSliderValue())));
-			const float MiddleOfUsedRange = (HeatMapColorRange.GetSliderValue() + CurrentLayer->MinVisible / CurrentLayer->Max) / 2.0f;
+			HeatMapColorRange.Legend.SetCaption(1.0f, TruncateAfterDot(std::to_string(CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * HeatMapColorRange.GetSliderValue())));
+			const float MiddleOfUsedRange = (HeatMapColorRange.GetSliderValue() + CurrentLayer->MinVisible / CurrentLayer->GetMax()) / 2.0f;
 			HeatMapColorRange.Legend.SetCaption(0.0f, TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
 		}
 	}
@@ -658,27 +658,27 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 	if (MeshAndCurrentLayerIsValid())
 	{
 		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-		if (CurrentLayer->Min == CurrentLayer->Max)
+		if (CurrentLayer->GetMin() == CurrentLayer->GetMax())
 		{
 			HeatMapColorRange.Legend.SetDummyValues();
 		}
 		else
 		{
-			if (abs(CurrentLayer->Max) < 100000 && LastValue != HeatMapColorRange.GetSliderValue())
+			if (abs(CurrentLayer->GetMax()) < 100000 && LastValue != HeatMapColorRange.GetSliderValue())
 			{
 				LastValue = HeatMapColorRange.GetSliderValue();
-				strcpy(CurrentRugosityMax, TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetSliderValue())).c_str());
+				strcpy(CurrentRugosityMax, TruncateAfterDot(std::to_string(CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * HeatMapColorRange.GetSliderValue())).c_str());
 			}
 
 			HeatMapColorRange.Legend.Clear();
-			HeatMapColorRange.Legend.SetCaption(1.0f, "max: " + TruncateAfterDot(std::to_string(CurrentLayer->Max)));
+			HeatMapColorRange.Legend.SetCaption(1.0f, "max: " + TruncateAfterDot(std::to_string(CurrentLayer->GetMax())));
 
-			HeatMapColorRange.Legend.SetCaption(HeatMapColorRange.GetSliderValue(), /*"current: " +*/ TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetSliderValue())));
+			HeatMapColorRange.Legend.SetCaption(HeatMapColorRange.GetSliderValue(), /*"current: " +*/ TruncateAfterDot(std::to_string(CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * HeatMapColorRange.GetSliderValue())));
 
-			const float MiddleOfUsedRange = (HeatMapColorRange.GetSliderValue() + CurrentLayer->MinVisible / CurrentLayer->Max) / 2.0f;
+			const float MiddleOfUsedRange = (HeatMapColorRange.GetSliderValue() + CurrentLayer->MinVisible / CurrentLayer->GetMax()) / 2.0f;
 			HeatMapColorRange.Legend.SetCaption(0.0f, "min: " + TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
 
-			CurrentLayer->MaxVisible = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * HeatMapColorRange.GetSliderValue();
+			CurrentLayer->MaxVisible = CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * HeatMapColorRange.GetSliderValue();
 		}
 	}
 
@@ -700,10 +700,10 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		float NewValue = float(atof(CurrentRugosityMax));
-		if (NewValue < CurrentLayer->Min)
-			NewValue = CurrentLayer->Min;
+		if (NewValue < CurrentLayer->GetMin())
+			NewValue = CurrentLayer->GetMin();
 
-		HeatMapColorRange.SetSliderValue((NewValue - CurrentLayer->Min) / float(CurrentLayer->Max - CurrentLayer->Min));
+		HeatMapColorRange.SetSliderValue((NewValue - CurrentLayer->GetMin()) / float(CurrentLayer->GetMax() - CurrentLayer->GetMin()));
 	}
 
 	if (!MeshAndCurrentLayerIsValid())
@@ -968,7 +968,7 @@ void UIManager::RenderHistogramWindow()
 	bool bLayerWithOneValue = false;
 	if (MeshAndCurrentLayerIsValid())
 	{
-		if (LAYER_MANAGER.GetActiveLayer()->Min == LAYER_MANAGER.GetActiveLayer()->Max)
+		if (LAYER_MANAGER.GetActiveLayer()->GetMin() == LAYER_MANAGER.GetActiveLayer()->GetMax())
 			bLayerWithOneValue = true;
 	}
 
@@ -1062,8 +1062,8 @@ void UIManager::RenderHistogramWindow()
 			}
 
 			// Render a text about what percentage of the area is selected
-			float MinValueSelected = LAYER_MANAGER.GetActiveLayer()->Min + (LAYER_MANAGER.GetActiveLayer()->Max - LAYER_MANAGER.GetActiveLayer()->Min) * HistogramSelectRegionMin.GetRangePosition();
-			float MaxValueSelected = LAYER_MANAGER.GetActiveLayer()->Min + (LAYER_MANAGER.GetActiveLayer()->Max - LAYER_MANAGER.GetActiveLayer()->Min) * HistogramSelectRegionMax.GetRangePosition();
+			float MinValueSelected = LAYER_MANAGER.GetActiveLayer()->GetMin() + (LAYER_MANAGER.GetActiveLayer()->GetMax() - LAYER_MANAGER.GetActiveLayer()->GetMin()) * HistogramSelectRegionMin.GetRangePosition();
+			float MaxValueSelected = LAYER_MANAGER.GetActiveLayer()->GetMin() + (LAYER_MANAGER.GetActiveLayer()->GetMax() - LAYER_MANAGER.GetActiveLayer()->GetMin()) * HistogramSelectRegionMax.GetRangePosition();
 
 			glm::vec2 MinValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
 			glm::vec2 MaxValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
@@ -1285,7 +1285,7 @@ void UIManager::OnLayerChange()
 	LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMin(0.0f);
 	LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMax(0.0f);
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Min != COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Max)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMin() != COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMax())
 	{
 		UI.UpdateHistogramData(&COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()], UI.Histogram.GetCurrentBinCount());
 
@@ -1295,8 +1295,8 @@ void UIManager::OnLayerChange()
 		UI.HeatMapColorRange.SetColorRangeFunction(TurboColorMapValue);
 		UI.HeatMapColorRange.bRenderSlider = true;
 	
-		float MiddleOfRange = CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) / 2.0f;
-		UI.HeatMapColorRange.SetSliderValue(MiddleOfRange / CurrentLayer->Max);
+		float MiddleOfRange = CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) / 2.0f;
+		UI.HeatMapColorRange.SetSliderValue(MiddleOfRange / CurrentLayer->GetMax());
 
 		if (CurrentLayer->GetType() == COMPARE)
 		{
@@ -1313,12 +1313,12 @@ void UIManager::OnLayerChange()
 		for (size_t i = 0; i <= CaptionsCount; i++)
 		{
 			UI.Histogram.SetLegendCaption(i == 0 ? NormalizedPosition + 0.0075f : NormalizedPosition,
-				TruncateAfterDot(std::to_string(CurrentLayer->Min + (CurrentLayer->Max - CurrentLayer->Min) * NormalizedPosition)));
+				TruncateAfterDot(std::to_string(CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * NormalizedPosition)));
 
 			NormalizedPosition += PositionStep;
 		}
 
-		UI.HeatMapColorRange.SetRangeBottomLimit(CurrentLayer->Min / CurrentLayer->Max);
+		UI.HeatMapColorRange.SetRangeBottomLimit(CurrentLayer->GetMin() / CurrentLayer->GetMax());
 	}
 	else
 	{
@@ -1768,7 +1768,7 @@ void UIManager::RenderExportTab()
 		if (HeightLayerIndex != -1)
 		{
 			AverageHeight = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[HeightLayerIndex].TrianglesToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
-			AverageHeight -= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[HeightLayerIndex].Min;
+			AverageHeight -= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[HeightLayerIndex].GetMin();
 		}
 
 		Text += std::to_string(AverageHeight);
@@ -1811,7 +1811,7 @@ void UIManager::RenderExportTab()
 			}
 
 			AverageHeight /= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size();
-			AverageHeight -= CurrentLayer->Min;
+			AverageHeight -= CurrentLayer->GetMin();
 		}
 
 		Text += std::to_string(AverageHeight);

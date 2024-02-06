@@ -32,8 +32,8 @@ void MeshRenderer::RenderFEMesh(FEMesh* Mesh)
 		MESH_MANAGER.MeshShader->getParameter("LayerMin")->updateData(float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MinVisible));
 		MESH_MANAGER.MeshShader->getParameter("LayerMax")->updateData(float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MaxVisible));
 
-		MESH_MANAGER.MeshShader->getParameter("LayerAbsoluteMin")->updateData(float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Min));
-		MESH_MANAGER.MeshShader->getParameter("LayerAbsoluteMax")->updateData(float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].Max));
+		MESH_MANAGER.MeshShader->getParameter("LayerAbsoluteMin")->updateData(float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMin()));
+		MESH_MANAGER.MeshShader->getParameter("LayerAbsoluteMax")->updateData(float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMax()));
 	}
 
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
