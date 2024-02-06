@@ -141,6 +141,8 @@ MeshLayer::MeshLayer(ComplexityMetricInfo* Parent, const std::vector<float> Tria
 	if (TrianglesToData.size() != Parent->Triangles.size())
 		return;
 
+	ID = APPLICATION.GetUniqueHexID();
+
 	this->ParentComplexityMetricData = Parent;
 	this->TrianglesToData = TrianglesToData;
 
@@ -336,6 +338,11 @@ void MeshLayer::SetSelectedRangeMax(float NewValue)
 std::string MeshLayer::GetID()
 {
 	return ID;
+}
+
+void FocalEngine::MeshLayer::ForceID(std::string ID)
+{
+	this->ID = ID;
 }
 
 std::string DebugEntry::ToString()

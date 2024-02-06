@@ -92,7 +92,7 @@ MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 	MeshLayer Result;
 	Result.SetType(COMPARE);
 
-	if (MESH_MANAGER.ActiveMesh == nullptr || FirstLayer == -1 || SecondLayer == -1)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr || FirstLayer == -1 || SecondLayer == -1)
 		return Result;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -140,7 +140,12 @@ MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 
 	std::string TempString = bNormalize ? "Yes" : "No";
 	Result.DebugInfo->AddEntry("Normalized", TempString);
+
+	//auto& Layer = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[FirstLayer];
+
+	Result.DebugInfo->AddEntry("First layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[FirstLayer].GetID());
 	Result.DebugInfo->AddEntry("First layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[FirstLayer].GetCaption());
+	Result.DebugInfo->AddEntry("Second layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[SecondLayer].GetID());
 	Result.DebugInfo->AddEntry("Second layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[SecondLayer].GetCaption());
 
 	return Result;

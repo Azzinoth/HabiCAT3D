@@ -822,35 +822,35 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	NewJobToAdd->Settings.SetRugosity_Algorithm("MIN");
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
-	// Layer 10
+	// Layer 10 and 11
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "RUGOSITY";
 	NewJobToAdd->Settings.SetRugosity_Algorithm("LSF(CGAL)");
 	NewJobToAdd->Settings.SetIsStandardDeviationNeeded(true);
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
-	// Layer 11
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "VECTOR_DISPERSION";
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
 	// Layer 12
 	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
-	NewJobToAdd->Settings.SetRelativeResolution(0.65f);
+	NewJobToAdd->ComplexityType = "VECTOR_DISPERSION";
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
 	// Layer 13
 	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
-	NewJobToAdd->Settings.SetRunOnWholeModel(true);
+	NewJobToAdd->Settings.SetRelativeResolution(0.65f);
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 
 	// Layer 14
 	NewJobToAdd = new ComplexityJob();
+	NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
+	NewJobToAdd->Settings.SetRunOnWholeModel(true);
+	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
+
+	// Layer 15
+	NewJobToAdd = new ComplexityJob();
 	NewJobToAdd->ComplexityType = "COMPARE";
-	NewJobToAdd->Settings.SetCompare_FirstLayerIndex(11);
-	NewJobToAdd->Settings.SetCompare_SecondLayerIndex(12);
+	NewJobToAdd->Settings.SetCompare_FirstLayerIndex(12);
+	NewJobToAdd->Settings.SetCompare_SecondLayerIndex(13);
 	NewJobToAdd->Settings.SetCompare_Normalize(true);
 	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
 

@@ -90,6 +90,10 @@ void ComplexityMetricManager::SaveToRUGFile()
 		int LayerType = ActiveComplexityMetricInfo->Layers[i].GetType();
 		file.write((char*)&LayerType, sizeof(int));
 
+		int LayerIDSize = static_cast<int>(ActiveComplexityMetricInfo->Layers[i].GetID().size() + 1);
+		file.write((char*)&LayerIDSize, sizeof(int));
+		file.write((char*)ActiveComplexityMetricInfo->Layers[i].GetID().c_str(), sizeof(char) * LayerIDSize);
+
 		Count = static_cast<int>(ActiveComplexityMetricInfo->Layers[i].GetCaption().size());
 		file.write((char*)&Count, sizeof(int));
 		file.write((char*)ActiveComplexityMetricInfo->Layers[i].GetCaption().c_str(), sizeof(char) * Count);

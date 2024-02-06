@@ -4,7 +4,7 @@ using namespace FocalEngine;
 
 #include "SubSystems/FEObjLoader.h"
 
-#define APP_VERSION 0.55
+#define APP_VERSION 0.62
 
 namespace FocalEngine
 {

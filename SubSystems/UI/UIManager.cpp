@@ -1460,6 +1460,7 @@ void UIManager::RenderLayerSettingsTab()
 		ImGui::SameLine();
 		ImGui::Text(std::to_string(MESH_MANAGER.ActiveMesh->getTriangleCount()).c_str());
 
+		ImGui::Text((std::string("ID: ") + Layer->GetID()).c_str());
 		static char CurrentLayerCaption[1024];
 		strcpy(CurrentLayerCaption, Layer->GetCaption().c_str());
 		ImGui::Text("Caption: ");
