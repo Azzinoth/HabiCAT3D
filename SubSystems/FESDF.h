@@ -43,7 +43,7 @@ namespace FocalEngine
 			this->Normal = Normal;
 
 			// Distance is length of perpendicular from origin to plane.
-			float PlaneD = glm::length(glm::dot(PointOnPlane, Normal));
+			double PlaneD = glm::length(glm::dot(PointOnPlane, Normal));
 		}
 
 		glm::vec3 ProjectPoint(const glm::dvec3& Point) const

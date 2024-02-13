@@ -10,6 +10,8 @@ namespace FocalEngine
 	public:
 		SINGLETON_PUBLIC_PART(UIManager)
 
+		FEWindow* MainWindow = nullptr;
+
 		void ShowTransformConfiguration(std::string Name, FETransformComponent* Transform);
 		void ShowCameraTransform();
 

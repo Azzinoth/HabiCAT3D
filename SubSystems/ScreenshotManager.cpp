@@ -13,14 +13,14 @@ void ScreenshotManager::CreateFB()
 
 	glGenTextures(1, &ColorBufferTexture);
 	glBindTexture(GL_TEXTURE_2D, ColorBufferTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ColorBufferTexture, 0);
 
 	glGenRenderbuffers(1, &DepthBufferTexture);
 	glBindRenderbuffer(GL_RENDERBUFFER, DepthBufferTexture);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight());
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DepthBufferTexture);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -243,19 +243,24 @@ void ScreenshotManager::TakeScreenshot(FEBasicCamera* CurrentCamera)
 
 	UI.Render(true);
 
-	APPLICATION.EndFrame();
+	auto TempRenderFunction = APPLICATION.GetMainWindow()->GetRenderFunction();
+	APPLICATION.GetMainWindow()->ClearRenderFunction();
+	APPLICATION.GetMainWindow()->Render();
+	APPLICATION.GetMainWindow()->EndFrame();
+	APPLICATION.GetMainWindow()->SetRenderFunction(TempRenderFunction);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	size_t RawDataSize = 0;
-	unsigned char* RawData = FETexture::GetTextureRawData(ColorBufferTexture, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight(), &RawDataSize);
-	FlipImageVertically(RawData, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
+	unsigned char* RawData = FETexture::GetTextureRawData(ColorBufferTexture, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight(), &RawDataSize);
+	FlipImageVertically(RawData, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight());
 
 	if (RawDataSize != 0)
 	{
 		std::string BaseFileName = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName;
 		std::string FileName = SuitableNewFileName(BaseFileName, ".png");
 
-		ExportRawDataToPNG(FileName.c_str(), RawData, APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight(), GL_RGBA);
+		ExportRawDataToPNG(FileName.c_str(), RawData, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight(), GL_RGBA);
 	}
 
 	delete[] RawData;

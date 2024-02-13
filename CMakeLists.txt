@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.10)
 
 set(BUILD_TYPE "Debug and Release" CACHE STRING "Choose Build type")
 set(CMAKE_BUILD_TYPE Debug)

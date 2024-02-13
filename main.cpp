@@ -31,7 +31,7 @@ double mouseY;
 glm::dvec3 mouseRay(double mouseX, double mouseY)
 {
 	int W, H;
-	APPLICATION.GetWindowSize(&W, &H);
+	UI.MainWindow->GetSize(&W, &H);
 
 	glm::dvec2 normalizedMouseCoords;
 	normalizedMouseCoords.x = (2.0f * mouseX) / W - 1;
@@ -53,10 +53,10 @@ void renderTargetCenterForCamera()
 	int shiftX, shiftY = 0;
 
 	int xpos, ypos;
-	APPLICATION.GetWindowPosition(&xpos, &ypos);
+	UI.MainWindow->GetPosition(&xpos, &ypos);
 	
 	int windowW, windowH = 0;
-	APPLICATION.GetWindowSize(&windowW, &windowH);
+	UI.MainWindow->GetSize(&windowW, &windowH);
 	centerX = xpos + (windowW / 2);
 	centerY = ypos + (windowH / 2);
 
@@ -97,16 +97,16 @@ void ScrollCall(double Xoffset, double Yoffset)
 
 void AfterMeshLoads()
 {
-#ifndef CONSOLE_MODE
-	MESH_MANAGER.ActiveMesh->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
-#endif
+	if (!APPLICATION.HasConsoleWindow())
+		MESH_MANAGER.ActiveMesh->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
 
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->UpdateAverageNormal();
 
-#ifndef CONSOLE_MODE
-	UI.SetIsModelCamera(true);
-	MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
-#endif
+	if (!APPLICATION.HasConsoleWindow())
+	{
+		UI.SetIsModelCamera(true);
+		MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
+	}
 	
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
@@ -326,7 +326,7 @@ void mouseButtonCallback(int button, int action, int mods)
 void windowResizeCallback(int width, int height)
 {
 	int W, H;
-	APPLICATION.GetWindowSize(&W, &H);
+	UI.MainWindow->GetSize(&W, &H);
 	CurrentCamera->SetAspectRatio(float(W) / float(H));
 
 	UI.ApplyStandardWindowsSizeAndPosition();
@@ -584,7 +584,7 @@ bool AABBSideTriangleIntersection(FEAABB& box, std::vector<glm::vec3>& triangleV
 			// then the AABB and triangle intersect
 			if (glm::length(hitPoint - origin) <= glm::length(direction))
 			{
-				LINE_RENDERER.AddLineToBuffer(FELine(hitPoint, hitPoint + direction * glm::vec3(0.1), glm::vec3(1.0f, 0.0f, 0.0f)));
+				LINE_RENDERER.AddLineToBuffer(FELine(hitPoint, hitPoint + direction * glm::vec3(0.1f), glm::vec3(1.0f, 0.0f, 0.0f)));
 				return true;
 			}
 		}
@@ -720,6 +720,9 @@ void AddFontOnSecondFrame()
 	}
 	else
 	{
+		glfwMakeContextCurrent(APPLICATION.GetMainWindow()->GetGlfwWindow());
+		ImGui::SetCurrentContext(APPLICATION.GetMainWindow()->GetImGuiContext());
+		
 		if (ImGui::GetIO().Fonts->Fonts.Size == 1)
 		{
 			ImGui::GetIO().Fonts->AddFontFromFileTTF("Resources/Cousine-Regular.ttf", 32);
@@ -729,16 +732,14 @@ void AddFontOnSecondFrame()
 	}
 }
 
-void ConsoleThreadCode()
+void ConsoleMainFunction()
 {
-	// Allocate a console
-	AllocConsole();
-
-	// Redirect standard I/O to the console
-	FILE* pCout;
-	freopen_s(&pCout, "CONOUT$", "w", stdout);
-	FILE* pCin;
-	freopen_s(&pCin, "CONIN$", "r", stdin);
+	// Wait until the console window is created
+	bool Success = APPLICATION.HasConsoleWindow();
+	while (!Success)
+	{
+		Success = APPLICATION.HasConsoleWindow();
+	}
 
 	// To ensure initialisation of JITTER_MANAGER
 	JITTER_MANAGER.getInstance();
@@ -853,11 +854,112 @@ void ConsoleThreadCode()
 		CONSOLE_JOB_MANAGER.Update();
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
+}
 
-	// Cleanup
-	fclose(pCout);
-	fclose(pCin);
-	FreeConsole();
+void ConsoleThreadCode(void* InputData)
+{
+	// To keep console window open
+	while (APPLICATION.IsNotTerminated())
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+}
+
+void MainWindowRender()
+{
+	static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
+	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
+	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
+	static bool FirstFrame = true;
+
+	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+	if (UI.ShouldTakeScreenshot())
+	{
+		ClearColor.w = UI.ShouldUseTransparentBackground() ? 0.0f : 1.0f;
+		glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
+
+		UI.SetShouldTakeScreenshot(false);
+		SCREENSHOT_MANAGER.TakeScreenshot(CurrentCamera);
+		return;
+	}
+
+	renderTargetCenterForCamera();
+	CurrentCamera->Move(10);
+
+	//ImGui::ShowDemoWindow();
+	//TestTriangleAndAABBboxIntersections();
+
+	if (MESH_MANAGER.ActiveMesh != nullptr)
+	{
+		MESH_MANAGER.MeshShader->start();
+
+		auto iterator = MESH_MANAGER.MeshShader->parameters.begin();
+		while (iterator != MESH_MANAGER.MeshShader->parameters.end())
+		{
+			if (iterator->second.nameHash == FEWorldMatrix_hash)
+				iterator->second.updateData(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
+
+			if (iterator->second.nameHash == FEViewMatrix_hash)
+				iterator->second.updateData(CurrentCamera->GetViewMatrix());
+
+			if (iterator->second.nameHash == FEProjectionMatrix_hash)
+				iterator->second.updateData(CurrentCamera->GetProjectionMatrix());
+
+			iterator++;
+		}
+
+		MESH_MANAGER.MeshShader->loadDataToGPU();
+
+		if (UI.GetWireFrameMode())
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+
+		MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
+
+		MESH_MANAGER.MeshShader->stop();
+	}
+
+	LINE_RENDERER.Render(CurrentCamera);
+
+	UI.Render();
+
+	if (FirstFrame)
+	{
+		FirstFrame = false;
+		UI.ApplyStandardWindowsSizeAndPosition();
+	}
+}
+
+//void SecondWindowRender()
+//{
+//	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+//
+//	ImGui::ShowDemoWindow();
+//}
+
+std::vector<std::string> SplitString(const std::string& Line, const std::string& Delimiter)
+{
+	std::vector<std::string> SubStrings;
+	size_t StartPos = 0;
+	size_t EndPos = 0;
+
+	while ((EndPos = Line.find(Delimiter, StartPos)) != std::string::npos)
+	{
+		std::string Token = Line.substr(StartPos, EndPos - StartPos);
+		SubStrings.push_back(Token);
+		StartPos = EndPos + Delimiter.length();
+	}
+
+	// Add the last substring after the last delimiter
+	SubStrings.push_back(Line.substr(StartPos));
+
+	return SubStrings;
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -869,256 +971,79 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	THREAD_POOL.SetConcurrentThreadCount(HowManyToUse);
 
+	std::string CommandLine = lpCmdLine;
+	auto result = SplitString(CommandLine, " ");
+
+	bool bIsConsoleModeRequested = false;
+	if (!result.empty() && result[0] == "-console")
+		bIsConsoleModeRequested = true;
 	
-
-#ifdef CONSOLE_MODE
-
-	std::thread ConsoleThreadHandler = std::thread(ConsoleThreadCode);
-	ConsoleThreadHandler.detach();
-
-	// Just not to close.
-	while (true)
+	if (bIsConsoleModeRequested)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		APPLICATION.CreateConsoleWindow(ConsoleThreadCode);
+		APPLICATION.WaitForConsoleWindowCreation();
+		APPLICATION.SetConsoleWindowTitle("Rugosity Calculator console");
+
+		while (APPLICATION.IsNotTerminated())
+		{
+			APPLICATION.BeginFrame();
+
+			ConsoleMainFunction();
+			APPLICATION.RenderWindows();
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+			APPLICATION.EndFrame();
+		}
 	}
-
-	//// Allocate a console
-	//AllocConsole();
-
-	//// Redirect standard I/O to the console
-	//FILE* pCout;
-	//freopen_s(&pCout, "CONOUT$", "w", stdout);
-	//FILE* pCin;
-	//freopen_s(&pCin, "CONIN$", "r", stdin);
-
-	//// To ensure initialisation of JITTER_MANAGER
-	//JITTER_MANAGER.getInstance();
-
-	//std::string filePath;
-
-	//std::cout << "Please enter the file path:\n";
-	//std::getline(std::cin, filePath);
-	//std::cout << "File path entered: " << filePath << std::endl;
-
-
-	//FileLoadJob* LoadJob = new FileLoadJob(filePath.c_str());
-	//CONSOLE_JOB_MANAGER.AddJob(LoadJob);
-
-	//// Layer 0
-	//ComplexityJob* NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "HEIGHT";
-	//ComplexityJobEvaluation EvaluateJob;
-	//EvaluateJob.Type = "MAX_LAYER_VALUE";
-	//EvaluateJob.ExpectedValue = 6.0f;
-	//EvaluateJob.Tolerance = 0.1f;
-	//NewJobToAdd->Evaluations.push_back(EvaluateJob);
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 1
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "AREA";
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 2
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 3
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
-	//NewJobToAdd->Settings.SetTriangleEdges_Mode("MIN_LEHGTH");
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 4
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
-	//NewJobToAdd->Settings.SetTriangleEdges_Mode("MEAN_LEHGTH");
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 5
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "TRIANGLE_COUNT";
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 6
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "RUGOSITY";
-	//NewJobToAdd->Settings.SetJitterQuality("1");
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 7
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "RUGOSITY";
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 8
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "RUGOSITY";
-	//NewJobToAdd->Settings.SetJitterQuality("73");
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 9
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "RUGOSITY";
-	//NewJobToAdd->Settings.SetRugosity_Algorithm("MIN");
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 10 and 11
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "RUGOSITY";
-	//NewJobToAdd->Settings.SetRugosity_Algorithm("LSF(CGAL)");
-	//NewJobToAdd->Settings.SetIsStandardDeviationNeeded(true);
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 12
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "VECTOR_DISPERSION";
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 13
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
-	//NewJobToAdd->Settings.SetRelativeResolution(0.65f);
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 14
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
-	//NewJobToAdd->Settings.SetRunOnWholeModel(true);
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//// Layer 15
-	//NewJobToAdd = new ComplexityJob();
-	//NewJobToAdd->ComplexityType = "COMPARE";
-	//NewJobToAdd->Settings.SetCompare_FirstLayerIndex(12);
-	//NewJobToAdd->Settings.SetCompare_SecondLayerIndex(13);
-	//NewJobToAdd->Settings.SetCompare_Normalize(true);
-	//CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	//FileSaveJob* SaveJob = new FileSaveJob("qwe");
-	//CONSOLE_JOB_MANAGER.AddJob(SaveJob);
-	//
-	//while (true)
-	//{
-	//	CONSOLE_JOB_MANAGER.Update();
-	//	std::this_thread::sleep_for(std::chrono::milliseconds(10));
-	//}
-
-	//// Cleanup
-	//fclose(pCout);
-	//fclose(pCin);
-	//FreeConsole();
-
-	return 0;
-#endif
-	
-
-
-
-
-	
-
-	APPLICATION.InitWindow(1280, 720, "Rugosity Calculator");
-	APPLICATION.SetDropCallback(dropCallback);
-	APPLICATION.SetKeyCallback(keyButtonCallback);
-	APPLICATION.SetMouseMoveCallback(mouseMoveCallback);
-	APPLICATION.SetMouseButtonCallback(mouseButtonCallback);
-	APPLICATION.SetWindowResizeCallback(windowResizeCallback);
-	APPLICATION.SetScrollCallback(ScrollCall);
-
-	glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
-	FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
-
-	static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
-	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
-	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
-
-	CurrentCamera = new FEModelViewCamera("mainCamera");
-	CurrentCamera->SetIsInputActive(false);
-	CurrentCamera->SetAspectRatio(1280.0f / 720.0f);
-
-	UI.SetCamera(CurrentCamera);
-	UI.SwapCameraImpl = SwapCamera;
-
-	MESH_MANAGER.AddLoadCallback(AfterMeshLoads);
-
-	SCREENSHOT_MANAGER.Init();
-
-	static bool FirstFrame = true;
-	while (APPLICATION.IsWindowOpened())
+	else
 	{
-		AddFontOnSecondFrame();
+		// If I will directly assign result of APPLICATION.AddWindow to UI.MainWindow, then in Release build with full optimization app will crash, because of execution order.
+		FEWindow* MainWinodw = APPLICATION.AddWindow(1280, 720, "Rugosity Calculator");
+		UI.MainWindow = MainWinodw;
+		UI.MainWindow->SetRenderFunction(MainWindowRender);
 
-		APPLICATION.BeginFrame();
-		FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+		UI.MainWindow->AddOnDropCallback(dropCallback);
+		UI.MainWindow->AddOnKeyCallback(keyButtonCallback);
+		UI.MainWindow->AddOnMouseMoveCallback(mouseMoveCallback);
+		UI.MainWindow->AddOnMouseButtonCallback(mouseButtonCallback);
+		UI.MainWindow->AddOnResizeCallback(windowResizeCallback);
+		UI.MainWindow->AddOnScrollCallback(ScrollCall);
 
-		if (UI.ShouldTakeScreenshot())
+		glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
+		FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
+
+		CurrentCamera = new FEModelViewCamera("mainCamera");
+		CurrentCamera->SetIsInputActive(false);
+		CurrentCamera->SetAspectRatio(1280.0f / 720.0f);
+
+		UI.SetCamera(CurrentCamera);
+		UI.SwapCameraImpl = SwapCamera;
+
+		MESH_MANAGER.AddLoadCallback(AfterMeshLoads);
+
+		SCREENSHOT_MANAGER.Init();
+
+		//auto SecondWindow = APPLICATION.AddWindow(1580, 320, "Rugosity Calculator_2");
+		//SecondWindow->SetRenderFunction(SecondWindowRender);
+
+		//glClearColor(ClearColor.x + 0.4, ClearColor.y, ClearColor.z, ClearColor.w);
+		//FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
+
+		while (APPLICATION.IsNotTerminated())
 		{
-			ClearColor.w = UI.ShouldUseTransparentBackground() ? 0.0f : 1.0f;
-			glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
+			if (ImGui::GetCurrentContext() != nullptr)
+				AddFontOnSecondFrame();
 
-			UI.SetShouldTakeScreenshot(false);
-			SCREENSHOT_MANAGER.TakeScreenshot(CurrentCamera);
-			continue;
+			APPLICATION.BeginFrame();
+
+			APPLICATION.RenderWindows();
+
+			APPLICATION.EndFrame();
+
+			/*auto ID = GetCurrentProcess();
+			auto test = RAMUsed();
+			int y = 0;*/
 		}
-
-		renderTargetCenterForCamera();
-		CurrentCamera->Move(10);
-
-		//ImGui::ShowDemoWindow();
-		//TestTriangleAndAABBboxIntersections();
-
-		if (MESH_MANAGER.ActiveMesh != nullptr)
-		{
-			MESH_MANAGER.MeshShader->start();
-
-			auto iterator = MESH_MANAGER.MeshShader->parameters.begin();
-			while (iterator != MESH_MANAGER.MeshShader->parameters.end())
-			{
-				if (iterator->second.nameHash == FEWorldMatrix_hash)
-					iterator->second.updateData(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
-
-				if (iterator->second.nameHash == FEViewMatrix_hash)
-					iterator->second.updateData(CurrentCamera->GetViewMatrix());
-
-				if (iterator->second.nameHash == FEProjectionMatrix_hash)
-					iterator->second.updateData(CurrentCamera->GetProjectionMatrix());
-
-				iterator++;
-			}
-
-			MESH_MANAGER.MeshShader->loadDataToGPU();
-
-			if (UI.GetWireFrameMode())
-			{
-				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			}
-			else
-			{
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			}
-
-			MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
-			
-			MESH_MANAGER.MeshShader->stop();
-		}
-
-		LINE_RENDERER.Render(CurrentCamera);
-			
-		UI.Render();
-
-		if (FirstFrame)
-		{
-			FirstFrame = false;
-			UI.ApplyStandardWindowsSizeAndPosition();
-		}
-		
-		APPLICATION.EndFrame();
-
-		/*auto ID = GetCurrentProcess();
-		auto test = RAMUsed();
-		int y = 0;*/
 	}
 
 	return 0;

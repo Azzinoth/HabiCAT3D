@@ -5,8 +5,7 @@ using namespace FocalEngine;
 
 class ScreenshotManager
 {
-public:
-	SINGLETON_PUBLIC_PART(ScreenshotManager)
+public:	SINGLETON_PUBLIC_PART(ScreenshotManager)
 
 	void Init();
 	void TakeScreenshot(FEBasicCamera* CurrentCamera);

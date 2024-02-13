@@ -202,6 +202,7 @@ private:
 	void RunEvaluations(ComplexityJob* Job);
 
 	void ExecuteJob(ConsoleJob* Job);
+	void WaitForJitterManager();
 };
 
 #define CONSOLE_JOB_MANAGER ConsoleJobManager::getInstance()

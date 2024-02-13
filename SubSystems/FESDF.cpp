@@ -6,7 +6,7 @@ FEBasicCamera* SDF::CurrentCamera = nullptr;
 glm::dvec3 mouseRay(double mouseX, double mouseY, FEBasicCamera* currentCamera)
 {
 	int W, H;
-	APPLICATION.GetWindowSize(&W, &H);
+	APPLICATION.GetMainWindow()->GetSize(&W, &H);
 
 	glm::dvec2 normalizedMouseCoords;
 	normalizedMouseCoords.x = (2.0f * mouseX) / W - 1;
@@ -170,7 +170,7 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 	Dimensions = 1;
 	if (ResolutionInM > 0)
 	{
-		const int MinDimensions = AABB.getSize() / ResolutionInM;
+		const int MinDimensions = static_cast<int>(AABB.getSize() / ResolutionInM);
 		Dimensions = DimensionsToPOWDimentions(MinDimensions);
 
 		if (Dimensions < 1 || Dimensions > 4096)
@@ -217,7 +217,7 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 		}
 	}
 
-	TimeTookToGenerateInMS = TIME.EndTimeStamp("SDF Generation");
+	TimeTookToGenerateInMS = static_cast<float>(TIME.EndTimeStamp("SDF Generation"));
 }
 
 void SDF::FillCellsWithTriangleInfo()
@@ -234,48 +234,48 @@ void SDF::FillCellsWithTriangleInfo()
 	{
 		FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
-		int XEnd = Data.size();
+		int XEnd = static_cast<int>(Data.size());
 
-		float distance = sqrt(pow(TriangleAABB.getMin().x - GridMin.x, 2.0));
+		float distance = static_cast<float>(sqrt(pow(TriangleAABB.getMin().x - GridMin.x, 2.0)));
 		int XBegin = static_cast<int>(distance / CellSize) - 1;
 		if (XBegin < 0)
 			XBegin = 0;
 
-		distance = sqrt(pow(TriangleAABB.getMax().x - GridMax.x, 2.0));
+		distance = static_cast<float>(sqrt(pow(TriangleAABB.getMax().x - GridMax.x, 2.0)));
 		XEnd -= static_cast<int>(distance / CellSize);
 		XEnd++;
 		if (XEnd > Data.size())
-			XEnd = Data.size();
+			XEnd = static_cast<int>(Data.size());
 
 		for (size_t i = XBegin; i < XEnd; i++)
 		{
-			int YEnd = Data.size();
+			int YEnd = static_cast<int>(Data.size());
 
-			distance = sqrt(pow(TriangleAABB.getMin().y - GridMin.y, 2.0));
+			distance = static_cast<float>(sqrt(pow(TriangleAABB.getMin().y - GridMin.y, 2.0)));
 			int YBegin = static_cast<int>(distance / CellSize) - 1;
 			if (YBegin < 0)
 				YBegin = 0;
 
-			distance = sqrt(pow(TriangleAABB.getMax().y - GridMax.y, 2.0));
+			distance = static_cast<float>(sqrt(pow(TriangleAABB.getMax().y - GridMax.y, 2.0)));
 			YEnd -= static_cast<int>(distance / CellSize);
 			YEnd++;
 			if (YEnd > Data.size())
-				YEnd = Data.size();
+				YEnd = static_cast<int>(Data.size());
 
 			for (size_t j = YBegin; j < YEnd; j++)
 			{
-				int ZEnd = Data.size();
+				int ZEnd = static_cast<int>(Data.size());
 
-				distance = sqrt(pow(TriangleAABB.getMin().z - GridMin.z, 2.0));
+				distance = static_cast<float>(sqrt(pow(TriangleAABB.getMin().z - GridMin.z, 2.0)));
 				int ZBegin = static_cast<int>(distance / CellSize) - 1;
 				if (ZBegin < 0)
 					ZBegin = 0;
 
-				distance = sqrt(pow(TriangleAABB.getMax().z - GridMax.z, 2.0));
+				distance = static_cast<float>(sqrt(pow(TriangleAABB.getMax().z - GridMax.z, 2.0)));
 				ZEnd -= static_cast<int>(distance / CellSize);
 				ZEnd++;
 				if (ZEnd > Data.size())
-					ZEnd = Data.size();
+					ZEnd = static_cast<int>(Data.size());
 
 				for (size_t k = ZBegin; k < ZEnd; k++)
 				{
@@ -289,7 +289,7 @@ void SDF::FillCellsWithTriangleInfo()
 		}
 	}
 
-	TimeTookFillCellsWithTriangleInfo = TIME.EndTimeStamp("Fill cells with triangle info");
+	TimeTookFillCellsWithTriangleInfo = static_cast<float>(TIME.EndTimeStamp("Fill cells with triangle info"));
 }
 
 void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 TransformMat)
@@ -371,7 +371,7 @@ void SDF::FillMeshWithUserData()
 		TrianglesUserData[i] /= TrianglesRugosityCount[i];
 	}
 
-	TimeTookFillMeshWithUserData = TIME.EndTimeStamp("FillMeshWithUserData");
+	TimeTookFillMeshWithUserData = static_cast<float>(TIME.EndTimeStamp("FillMeshWithUserData"));
 }
 
 void SDF::AddLinesOfSDF()

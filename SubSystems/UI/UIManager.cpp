@@ -290,7 +290,7 @@ void UIManager::Render(bool bScreenshotMode)
 
 			if (ImGui::MenuItem("Exit"))
 			{
-				APPLICATION.Terminate();
+				APPLICATION.Close();
 			}
 
 			ImGui::EndMenu();
@@ -328,7 +328,7 @@ void UIManager::Render(bool bScreenshotMode)
 	{
 		int WindowW = 0;
 		int WindowH = 0;
-		APPLICATION.GetWindowSize(&WindowW, &WindowH);
+		MainWindow->GetSize(&WindowW, &WindowH);
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
@@ -720,14 +720,14 @@ void UIManager::GetUsableSpaceForLayerList(ImVec2& UsableSpaceStart, ImVec2& Usa
 	ImGuiWindow* LegendWindow = ImGui::FindWindowByName("Heat map legend");
 
 	UsableSpaceStart = ImVec2(0.0f, 0.0f);
-	UsableSpaceEnd = ImVec2(APPLICATION.GetWindowWidth(), APPLICATION.GetWindowHeight());
+	UsableSpaceEnd = ImVec2(MainWindow->GetWidth(), MainWindow->GetHeight());
 	if (SettingsWindow != nullptr && LegendWindow != nullptr)
 	{
 		UsableSpaceStart.x = LegendWindow->Pos.x + LegendWindow->SizeFull.x;
 		UsableSpaceStart.y = 20;
 
 		UsableSpaceEnd.x = SettingsWindow->Pos.x;
-		UsableSpaceEnd.y = APPLICATION.GetWindowHeight() - 20;
+		UsableSpaceEnd.y = MainWindow->GetHeight() - 20;
 	}
 }
 
@@ -928,7 +928,7 @@ void UIManager::SetIsModelCamera(const bool NewValue)
 
 	int MainWindowW = 0;
 	int MainWindowH = 0;
-	APPLICATION.GetWindowSize(&MainWindowW, &MainWindowH);
+	MainWindow->GetSize(&MainWindowW, &MainWindowH);
 	CurrentCamera->SetAspectRatio(float(MainWindowW) / float(MainWindowH));
 
 	if (NewValue)
@@ -1173,18 +1173,18 @@ void UIManager::ApplyStandardWindowsSizeAndPosition()
 	ImGuiWindow* window = ImGui::FindWindowByName("Histogram");
 	if (window != nullptr)
 	{
-		window->SizeFull.x = APPLICATION.GetWindowWidth() * 0.5;
-		window->Pos.x = APPLICATION.GetWindowWidth() / 2 - window->SizeFull.x / 2;
+		window->SizeFull.x = MainWindow->GetWidth() * 0.5;
+		window->Pos.x = MainWindow->GetWidth() / 2 - window->SizeFull.x / 2;
 
-		window->SizeFull.y = APPLICATION.GetWindowHeight() * 0.35;
-		window->Pos.y = APPLICATION.GetWindowHeight() - 10 - window->SizeFull.y;
+		window->SizeFull.y = MainWindow->GetHeight() * 0.35;
+		window->Pos.y = MainWindow->GetHeight() - 10 - window->SizeFull.y;
 	}
 
 	window = ImGui::FindWindowByName("Settings");
 	if (window != nullptr)
 	{
-		window->SizeFull.x = APPLICATION.GetWindowWidth() * 0.30;
-		window->SizeFull.y = APPLICATION.GetWindowHeight() * 0.7;
+		window->SizeFull.x = MainWindow->GetWidth() * 0.30;
+		window->SizeFull.y = MainWindow->GetHeight() * 0.7;
 	}
 }
 
@@ -1208,7 +1208,7 @@ void UIManager::RenderAboutWindow()
 	{
 		int WindowW = 0;
 		int WindowH = 0;
-		APPLICATION.GetWindowSize(&WindowW, &WindowH);
+		MainWindow->GetSize(&WindowW, &WindowH);
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
@@ -1835,14 +1835,14 @@ void UIManager::RenderSettingsWindow()
 	if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove))
 	{
 		ImGuiWindow* window = ImGui::FindWindowByName("Settings");
-		auto AppW = APPLICATION.GetWindowWidth();
-		if (window->Size.x >= APPLICATION.GetWindowWidth() * 0.9)
+		auto AppW = MainWindow->GetWidth();
+		if (window->Size.x >= MainWindow->GetWidth() * 0.9)
 		{
-			window->Size.x = APPLICATION.GetWindowWidth() * 0.3;
-			window->SizeFull.x = APPLICATION.GetWindowWidth() * 0.3;
+			window->Size.x = MainWindow->GetWidth() * 0.3;
+			window->SizeFull.x = MainWindow->GetWidth() * 0.3;
 		}
 
-		window->Pos.x = APPLICATION.GetWindowWidth() - (window->SizeFull.x + 1);
+		window->Pos.x = MainWindow->GetWidth() - (window->SizeFull.x + 1);
 		window->Pos.y = 20;
 		
 

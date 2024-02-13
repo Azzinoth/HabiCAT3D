@@ -5,10 +5,11 @@ MeshManager* MeshManager::Instance = nullptr;
 
 MeshManager::MeshManager()
 {
-#ifndef CONSOLE_MODE
-	MeshShader = new FEShader("mainShader", sTestVS, sTestFS);
-	MeshShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
-#endif
+	if (!APPLICATION.HasConsoleWindow())
+	{
+		MeshShader = new FEShader("mainShader", sTestVS, sTestFS);
+		MeshShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
+	}
 }
 
 MeshManager::~MeshManager() {}

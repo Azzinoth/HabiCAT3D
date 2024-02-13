@@ -726,7 +726,7 @@ void FEGraphRender::RenderOneColumn(int XPosition, ImVec2 WindowPosition)
 		{
 			ImColor CurrentColor = CacheGraph[XPosition][CurrentIndex++];
 
-			if (CurrentColor == ImColor(0.0f, 0.0f, 0.0f, 0.0f))
+			if (CurrentColor.Value == ImColor(0.0f, 0.0f, 0.0f, 0.0f).Value)
 				break;
 
 			ImVec2 MinPosition = ImVec2(Position.x + XPosition, i - 1);

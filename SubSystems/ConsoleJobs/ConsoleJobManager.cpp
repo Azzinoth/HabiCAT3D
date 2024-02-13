@@ -300,6 +300,18 @@ void ConsoleJobManager::RunEvaluations(ComplexityJob* Job)
 	}
 }
 
+void ConsoleJobManager::WaitForJitterManager()
+{
+	while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
+	{
+		float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
+		std::cout << "\rProgress: " << std::to_string(Progress * 100.0f) << " %" << std::flush;
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		THREAD_POOL.Update();
+	}
+}
+
 void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 {
 	if (Job->Type == "FILE_LOAD")
@@ -389,14 +401,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(false);
 			}
 
-			while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
-			{
-				float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
-				std::cout << "\rProgress: " << std::to_string(Progress * 100.0f) << " %" << std::flush;
-
-				std::this_thread::sleep_for(std::chrono::milliseconds(10));
-				THREAD_POOL.Update();
-			}
+			WaitForJitterManager();
 
 			std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
 			std::cout << std::endl;
@@ -422,14 +427,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 				RUGOSITY_LAYER_PRODUCER.CalculateWithJitterAsync();
 			}
 
-			while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
-			{
-				float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
-				std::cout << "\rProgress: " << std::to_string(Progress * 100.0f) << " %" << std::flush;
-
-				std::this_thread::sleep_for(std::chrono::milliseconds(10));
-				THREAD_POOL.Update();
-			}
+			WaitForJitterManager();
 
 			std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
 			std::cout << std::endl;
@@ -450,14 +448,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(false);
 			}
 
-			while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
-			{
-				float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
-				std::cout << "\rProgress: " << std::to_string(Progress * 100.0f) << " %" << std::flush;
-
-				std::this_thread::sleep_for(std::chrono::milliseconds(10));
-				THREAD_POOL.Update();
-			}
+			WaitForJitterManager();
 
 			std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
 			std::cout << std::endl;
@@ -479,14 +470,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(false);
 			}
 
-			while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
-			{
-				float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
-				std::cout << "\rProgress: " << std::to_string(Progress * 100.0f) << " %" << std::flush;
-
-				std::this_thread::sleep_for(std::chrono::milliseconds(10));
-				THREAD_POOL.Update();
-			}
+			WaitForJitterManager();
 
 			std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
 			std::cout << std::endl;
