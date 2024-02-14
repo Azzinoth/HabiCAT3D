@@ -14,7 +14,7 @@ FractalDimensionLayerProducer::~FractalDimensionLayerProducer() {}
 // Custom linear regression function
 std::pair<double, double> linearRegression(const std::vector<double>& x, const std::vector<double>& y)
 {
-	double n = x.size();
+	double n = static_cast<double>(x.size());
 	double sumX = 0.0, sumY = 0.0, sumXY = 0.0, sumX2 = 0.0;
 
 	for (size_t i = 0; i < n; ++i)
@@ -173,7 +173,7 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::FRACTAL_DIMENSION);
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal dimension"));
-	LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
+	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
 
 	if (FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{

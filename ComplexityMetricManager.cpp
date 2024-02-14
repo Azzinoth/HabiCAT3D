@@ -58,31 +58,31 @@ void ComplexityMetricManager::SaveToRUGFile()
 	float version = APP_VERSION;
 	file.write((char*)&version, sizeof(float));
 
-	int Count = ActiveComplexityMetricInfo->MeshData.Vertices.size();
+	int Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Vertices.size());
 	file.write((char*)&Count, sizeof(int));
 	file.write((char*)ActiveComplexityMetricInfo->MeshData.Vertices.data(), sizeof(float) * Count);
 
-	Count = ActiveComplexityMetricInfo->MeshData.Colors.size();
+	Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Colors.size());
 	file.write((char*)&Count, sizeof(int));
 	file.write((char*)ActiveComplexityMetricInfo->MeshData.Colors.data(), sizeof(float) * Count);
 
-	Count = ActiveComplexityMetricInfo->MeshData.UVs.size();
+	Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.UVs.size());
 	file.write((char*)&Count, sizeof(int));
 	file.write((char*)ActiveComplexityMetricInfo->MeshData.UVs.data(), sizeof(float) * Count);
 
-	Count = ActiveComplexityMetricInfo->MeshData.Normals.size();
+	Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Normals.size());
 	file.write((char*)&Count, sizeof(int));
 	file.write((char*)ActiveComplexityMetricInfo->MeshData.Normals.data(), sizeof(float) * Count);
 
-	Count = ActiveComplexityMetricInfo->MeshData.Tangents.size();
+	Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Tangents.size());
 	file.write((char*)&Count, sizeof(int));
 	file.write((char*)ActiveComplexityMetricInfo->MeshData.Tangents.data(), sizeof(float) * Count);
 
-	Count = ActiveComplexityMetricInfo->MeshData.Indices.size();
+	Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Indices.size());
 	file.write((char*)&Count, sizeof(int));
 	file.write((char*)ActiveComplexityMetricInfo->MeshData.Indices.data(), sizeof(int) * Count);
 
-	Count = ActiveComplexityMetricInfo->Layers.size();
+	Count = static_cast<int>(ActiveComplexityMetricInfo->Layers.size());
 	file.write((char*)&Count, sizeof(int));
 
 	for (size_t i = 0; i < ActiveComplexityMetricInfo->Layers.size(); i++)
@@ -102,7 +102,7 @@ void ComplexityMetricManager::SaveToRUGFile()
 		file.write((char*)&Count, sizeof(int));
 		file.write((char*)ActiveComplexityMetricInfo->Layers[i].GetNote().c_str(), sizeof(char) * Count);
 
-		Count = ActiveComplexityMetricInfo->Layers[i].TrianglesToData.size();
+		Count = static_cast<int>(ActiveComplexityMetricInfo->Layers[i].TrianglesToData.size());
 		file.write((char*)&Count, sizeof(int));
 		file.write((char*)ActiveComplexityMetricInfo->Layers[i].TrianglesToData.data(), sizeof(float) * Count);
 
@@ -112,7 +112,7 @@ void ComplexityMetricManager::SaveToRUGFile()
 			ActiveComplexityMetricInfo->Layers[i].DebugInfo->ToFile(file);
 	}
 
-	FEAABB TempAABB(ActiveComplexityMetricInfo->MeshData.Vertices.data(), ActiveComplexityMetricInfo->MeshData.Vertices.size());
+	FEAABB TempAABB(ActiveComplexityMetricInfo->MeshData.Vertices.data(), static_cast<int>(ActiveComplexityMetricInfo->MeshData.Vertices.size()));
 	file.write((char*)&TempAABB.getMin()[0], sizeof(float));
 	file.write((char*)&TempAABB.getMin()[1], sizeof(float));
 	file.write((char*)&TempAABB.getMin()[2], sizeof(float));

@@ -22,7 +22,7 @@ void TriangleCountLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 		if (CurrentNode->TrianglesInCell.empty())
 			return;
 
-		CurrentNode->UserData = CurrentNode->TrianglesInCell.size();
+		CurrentNode->UserData = static_cast<double>(CurrentNode->TrianglesInCell.size());
 	};
 
 	JITTER_MANAGER.CalculateWithSDFJitterAsync(WorkOnNode, bSmootherResult);
@@ -42,7 +42,7 @@ void TriangleCountLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle density"));
-	LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
+	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
 }
 
 void TriangleCountLayerProducer::CalculateOnWholeModel()
@@ -57,7 +57,7 @@ void TriangleCountLayerProducer::CalculateOnWholeModel()
 		if (CurrentNode->TrianglesInCell.empty())
 			return;
 
-		CurrentNode->UserData = CurrentNode->TrianglesInCell.size();
+		CurrentNode->UserData = static_cast<double>(CurrentNode->TrianglesInCell.size());
 	};
 
 	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);

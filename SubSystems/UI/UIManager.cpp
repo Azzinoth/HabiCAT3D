@@ -520,12 +520,12 @@ void UIManager::OnJitterCalculationsStart()
 void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 {
 	UI.bShouldCloseProgressPopup = true;
-	UI.CurrentJitterStepIndexVisualize = JITTER_MANAGER.GetLastUsedJitterSettings().size() - 1;
+	UI.CurrentJitterStepIndexVisualize = static_cast<int>(JITTER_MANAGER.GetLastUsedJitterSettings().size() - 1);
 }
 
 static auto CompareColormapValue = [](float Value) {
 
-	Value = Value * 2.0 - 1.0f;
+	Value = Value * 2.0f - 1.0f;
 
 	static auto mix = [](glm::vec3 FirstColor, glm::vec3 SecondColor, float Factor) {
 		return glm::vec3(FirstColor.x + (SecondColor.x - FirstColor.x) * Factor,
@@ -667,7 +667,7 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 			if (abs(CurrentLayer->GetMax()) < 100000 && LastValue != HeatMapColorRange.GetSliderValue())
 			{
 				LastValue = HeatMapColorRange.GetSliderValue();
-				strcpy(CurrentRugosityMax, TruncateAfterDot(std::to_string(CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * HeatMapColorRange.GetSliderValue())).c_str());
+				strcpy_s(CurrentRugosityMax, TruncateAfterDot(std::to_string(CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * HeatMapColorRange.GetSliderValue())).c_str());
 			}
 
 			HeatMapColorRange.Legend.Clear();
@@ -720,14 +720,14 @@ void UIManager::GetUsableSpaceForLayerList(ImVec2& UsableSpaceStart, ImVec2& Usa
 	ImGuiWindow* LegendWindow = ImGui::FindWindowByName("Heat map legend");
 
 	UsableSpaceStart = ImVec2(0.0f, 0.0f);
-	UsableSpaceEnd = ImVec2(MainWindow->GetWidth(), MainWindow->GetHeight());
+	UsableSpaceEnd = ImVec2(static_cast<float>(MainWindow->GetWidth()), static_cast<float>(MainWindow->GetHeight()));
 	if (SettingsWindow != nullptr && LegendWindow != nullptr)
 	{
 		UsableSpaceStart.x = LegendWindow->Pos.x + LegendWindow->SizeFull.x;
 		UsableSpaceStart.y = 20;
 
 		UsableSpaceEnd.x = SettingsWindow->Pos.x;
-		UsableSpaceEnd.y = MainWindow->GetHeight() - 20;
+		UsableSpaceEnd.y = static_cast<float>(MainWindow->GetHeight() - 20);
 	}
 }
 
@@ -749,18 +749,18 @@ int UIManager::TotalWidthNeededForLayerList(int ButtonUsed)
 	const int ButtonSpacing = 6;
 	const int FirstLastButtonPadding = 4;
 
-	ButtonUsed = std::min(size_t(ButtonUsed), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size());
+	ButtonUsed = static_cast<int>(std::min(size_t(ButtonUsed), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size()));
 
 	if (ButtonUsed == 0)
 		return Result;
 
-	Result += GetLayerListButtonSize("No Layer").x + 16;
+	Result += static_cast<int>(GetLayerListButtonSize("No Layer").x + 16);
 	for (int i = 0; i < ButtonUsed; i++)
 	{
-		Result += GetLayerListButtonSize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption()).x + ButtonSpacing * 2.0f + 4;
+		Result += static_cast<int>(GetLayerListButtonSize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption()).x + ButtonSpacing * 2.0f + 4);
 	}
 
-	Result += FirstLastButtonPadding * 2.0f;
+	Result += static_cast<int>(FirstLastButtonPadding * 2.0f);
 	
 	return Result;
 }
@@ -779,32 +779,32 @@ void UIManager::RenderLayerChooseWindow()
 	ImVec2 UsableSpaceStart, UsableSpaceEnd;
 	GetUsableSpaceForLayerList(UsableSpaceStart, UsableSpaceEnd);
 
-	int UsableSpaceCenter = UsableSpaceStart.x + (UsableSpaceEnd.x - UsableSpaceStart.x) / 2.0f;
-	int UsableSpaceWidth = UsableSpaceEnd.x - UsableSpaceStart.x;
+	int UsableSpaceCenter = static_cast<int>(UsableSpaceStart.x + (UsableSpaceEnd.x - UsableSpaceStart.x) / 2.0f);
+	int UsableSpaceWidth = static_cast<int>(UsableSpaceEnd.x - UsableSpaceStart.x);
 
 	int TotalWidthNeeded = 0;
 
 	if (MESH_MANAGER.ActiveMesh != nullptr)
-		TotalWidthNeeded = TotalWidthNeededForLayerList(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size());
+		TotalWidthNeeded = TotalWidthNeededForLayerList(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size()));
 	if (TotalWidthNeeded == 0)
 	{
 		if (MESH_MANAGER.ActiveMesh == nullptr)
 		{
-			TotalWidthNeeded = ImGui::CalcTextSize("No Data.(Drag & Drop model)").x + 18;
+			TotalWidthNeeded = static_cast<int>(ImGui::CalcTextSize("No Data.(Drag & Drop model)").x + 18);
 		}
 		else
 		{
-			TotalWidthNeeded = GetLayerListButtonSize("No Layer").x + 16;
-			TotalWidthNeeded += FirstLastButtonPadding * 2.0f;
+			TotalWidthNeeded = static_cast<int>(GetLayerListButtonSize("No Layer").x + 16);
+			TotalWidthNeeded += static_cast<int>(FirstLastButtonPadding * 2.0f);
 		}
 	}
 	else if (TotalWidthNeeded > UsableSpaceWidth - 10.0f)
 	{
-		TotalWidthNeeded = UsableSpaceWidth - 10.0f;
+		TotalWidthNeeded = static_cast<int>(UsableSpaceWidth - 10.0f);
 	}
 
-	const float CurrentWindowW = TotalWidthNeeded;
-	const float CurrentWindowH = 6 + RowHeight * RowCount;
+	const float CurrentWindowW = static_cast<float>(TotalWidthNeeded);
+	const float CurrentWindowH = 6.0f + RowHeight * RowCount;
 
 	ImVec2 LayerListWindowPosition = ImVec2(UsableSpaceCenter - CurrentWindowW / 2.0f, 21);
 	ImGui::SetNextWindowPos(LayerListWindowPosition);
@@ -832,7 +832,7 @@ void UIManager::RenderLayerChooseWindow()
 
 	int CurrentRow = 0;
 	int PreviousButtonWidth = 0;
-	int YPosition = ImGui::GetCursorPosY() + 7;
+	int YPosition = static_cast<int>(ImGui::GetCursorPosY() + 7);
 	for (int i = -1; i < int(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size()); i++)
 	{
 		ImGui::SameLine();
@@ -851,7 +851,7 @@ void UIManager::RenderLayerChooseWindow()
 
 		if (i == -1)
 		{
-			ImGui::SetCursorPosY(YPosition);
+			ImGui::SetCursorPosY(static_cast<float>(YPosition));
 			if (ImGui::Button("No Layer"))
 			{
 				LAYER_MANAGER.SetActiveLayerIndex(i);
@@ -865,7 +865,7 @@ void UIManager::RenderLayerChooseWindow()
 				CurrentRow++;
 			}
 
-			ImGui::SetCursorPosY(YPosition + CurrentRow * RowHeight);
+			ImGui::SetCursorPosY(static_cast<float>(YPosition + CurrentRow * RowHeight));
 			if (ImGui::Button((COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption() + "##" + std::to_string(i)).c_str()))
 			{
 				LAYER_MANAGER.SetActiveLayerIndex(i);
@@ -1116,7 +1116,7 @@ void UIManager::RenderHistogramWindow()
 		{
 			int NewBinCount = 128;
 			if (bHistogramPixelBins)
-				NewBinCount = HistogramWindow->SizeFull.x - 20;
+				NewBinCount = static_cast<int>(HistogramWindow->SizeFull.x - 20);
 
 			UpdateHistogramData(&COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewBinCount);
 		}
@@ -1138,7 +1138,7 @@ void UIManager::RenderHistogramWindow()
 				if (HistogramWindow != nullptr)
 				{
 					if (TempInt > HistogramWindow->SizeFull.x - 20)
-						TempInt = HistogramWindow->SizeFull.x - 20;
+						TempInt = static_cast<int>(HistogramWindow->SizeFull.x - 20);
 				}
 
 				if (Histogram.GetCurrentBinCount() != TempInt)
@@ -1173,18 +1173,18 @@ void UIManager::ApplyStandardWindowsSizeAndPosition()
 	ImGuiWindow* window = ImGui::FindWindowByName("Histogram");
 	if (window != nullptr)
 	{
-		window->SizeFull.x = MainWindow->GetWidth() * 0.5;
-		window->Pos.x = MainWindow->GetWidth() / 2 - window->SizeFull.x / 2;
+		window->SizeFull.x = MainWindow->GetWidth() * 0.5f;
+		window->Pos.x = MainWindow->GetWidth() / 2.0f - window->SizeFull.x / 2.0f;
 
-		window->SizeFull.y = MainWindow->GetHeight() * 0.35;
-		window->Pos.y = MainWindow->GetHeight() - 10 - window->SizeFull.y;
+		window->SizeFull.y = MainWindow->GetHeight() * 0.35f;
+		window->Pos.y = MainWindow->GetHeight() - 10.0f - window->SizeFull.y;
 	}
 
 	window = ImGui::FindWindowByName("Settings");
 	if (window != nullptr)
 	{
-		window->SizeFull.x = MainWindow->GetWidth() * 0.30;
-		window->SizeFull.y = MainWindow->GetHeight() * 0.7;
+		window->SizeFull.x = MainWindow->GetWidth() * 0.30f;
+		window->SizeFull.y = MainWindow->GetHeight() * 0.7f;
 	}
 }
 
@@ -1201,8 +1201,8 @@ void UIManager::RenderAboutWindow()
 		bShouldOpenAboutWindow = false;
 	}
 
-	int PopupW = 400;
-	int PopupH = 135;
+	float PopupW = 400.0f;
+	float PopupH = 135.0f;
 	ImGui::SetNextWindowSize(ImVec2(PopupW, PopupH));
 	if (ImGui::BeginPopupModal("About", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
 	{
@@ -1214,29 +1214,29 @@ void UIManager::RenderAboutWindow()
 		
 		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 06\\09\\2023";
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
+		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
 
 		ImGui::Separator();
 
 		Text = "To submit a bug report or provide feedback, ";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
+		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
 
 		Text = "please email me at kberegovyi@ccom.unh.edu.";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
+		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
 
 		ImGui::Separator();
 
 		Text = "UNH CCOM";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupW / 2 - TextSize.x / 2);
+		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
 
-		ImGui::SetCursorPosX(PopupW / 2 - 210 / 2);
+		ImGui::SetCursorPosX(PopupW / 2.0f - 210 / 2.0f);
 		ImGui::SetNextItemWidth(210);
 		if (ImGui::Button("Close", ImVec2(210, 20)))
 			ImGui::CloseCurrentPopup();
@@ -1405,7 +1405,7 @@ void UIManager::InitDebugSDF(size_t JitterIndex)
 		{
 			std::string Data = Layer->DebugInfo->Entries[i].RawData;
 			Data.erase(Data.begin() + Data.find(" m."), Data.end());
-			CurrentLayerResolutionInM = atof(Data.c_str());
+			CurrentLayerResolutionInM = static_cast<float>(atof(Data.c_str()));
 			break;
 		}
 	}
@@ -1462,7 +1462,7 @@ void UIManager::RenderLayerSettingsTab()
 
 		ImGui::Text((std::string("ID: ") + Layer->GetID()).c_str());
 		static char CurrentLayerCaption[1024];
-		strcpy(CurrentLayerCaption, Layer->GetCaption().c_str());
+		strcpy_s(CurrentLayerCaption, Layer->GetCaption().c_str());
 		ImGui::Text("Caption: ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(160);
@@ -1507,7 +1507,7 @@ void UIManager::RenderLayerSettingsTab()
 
 		ImGui::Text("Notes:");
 		static char CurrentLayerUserNotes[10000];
-		strcpy(CurrentLayerUserNotes, Layer->GetNote().c_str());
+		strcpy_s(CurrentLayerUserNotes, Layer->GetNote().c_str());
 		ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 15);
 		if (ImGui::InputTextMultiline("##Notes", CurrentLayerUserNotes, IM_ARRAYSIZE(CurrentLayerUserNotes)))
 		{
@@ -1519,7 +1519,7 @@ void UIManager::RenderLayerSettingsTab()
 		std::string DebugInfo;
 		if (Layer->DebugInfo != nullptr)
 			DebugInfo = Layer->DebugInfo->ToString();
-		strcpy(CurrentLayerDebugInfo, DebugInfo.c_str());
+		strcpy_s(CurrentLayerDebugInfo, DebugInfo.c_str());
 		ImGui::BeginDisabled();
 		ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 15);
 		ImGui::InputTextMultiline("##DebugInfo", CurrentLayerDebugInfo, IM_ARRAYSIZE(CurrentLayerDebugInfo));
@@ -1609,7 +1609,7 @@ void UIManager::RenderGeneralSettingsTab()
 			if (UsedSettings.size() > 0)
 			{
 				if (CurrentJitterStepIndexVisualize < 0 || CurrentJitterStepIndexVisualize >= UsedSettings.size())
-					CurrentJitterStepIndexVisualize = UsedSettings.size() - 1;
+					CurrentJitterStepIndexVisualize = static_cast<int>(UsedSettings.size() - 1);
 
 				ImGui::Text("Individual jitter steps: ");
 				ImGui::SameLine();
@@ -1622,7 +1622,7 @@ void UIManager::RenderGeneralSettingsTab()
 						bool is_selected = (CurrentJitterStepIndexVisualize == i);
 						if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
 						{
-							CurrentJitterStepIndexVisualize = i;
+							CurrentJitterStepIndexVisualize = static_cast<int>(i);
 							int LastSDFRendetingMode = DebugSDF->RenderingMode;
 
 							InitDebugSDF(CurrentJitterStepIndexVisualize);
@@ -1760,7 +1760,7 @@ void UIManager::RenderExportTab()
 		for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
 		{
 			if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption() == "Height")
-				HeightLayerIndex = i;
+				HeightLayerIndex = static_cast<int>(i);
 		}
 
 		Text = "Triangle height : ";
@@ -1797,7 +1797,7 @@ void UIManager::RenderExportTab()
 		for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
 		{
 			if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption() == "Height")
-				HeightLayerIndex = i;
+				HeightLayerIndex = static_cast<int>(i);
 		}
 
 		if (HeightLayerIndex != -1)
@@ -1838,8 +1838,8 @@ void UIManager::RenderSettingsWindow()
 		auto AppW = MainWindow->GetWidth();
 		if (window->Size.x >= MainWindow->GetWidth() * 0.9)
 		{
-			window->Size.x = MainWindow->GetWidth() * 0.3;
-			window->SizeFull.x = MainWindow->GetWidth() * 0.3;
+			window->Size.x = MainWindow->GetWidth() * 0.3f;
+			window->SizeFull.x = MainWindow->GetWidth() * 0.3f;
 		}
 
 		window->Pos.x = MainWindow->GetWidth() - (window->SizeFull.x + 1);

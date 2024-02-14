@@ -226,7 +226,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 					}
 					catch (...)
 					{
-						CGALFailedIndexes.push_back(i);
+						CGALFailedIndexes.push_back(static_cast<int>(i));
 					}
 				}
 
@@ -612,7 +612,7 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
 
-	LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
+	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
 
 	if (RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{

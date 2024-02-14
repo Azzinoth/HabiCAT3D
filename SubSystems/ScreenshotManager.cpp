@@ -97,10 +97,10 @@ int ScreenshotManager::FindHigestIntPostfix(std::string Prefix, std::string Deli
 	{
 		std::transform(List[i].begin(), List[i].end(), List[i].begin(), [](const unsigned char C) { return std::tolower(C); });
 
-		int PrefixPos = List[i].find(Prefix);
+		int PrefixPos = static_cast<int>(List[i].find(Prefix));
 		if (PrefixPos != std::string::npos)
 		{
-			int DelimiterPos = List[i].find(Delimiter);
+			int DelimiterPos = static_cast<int>(List[i].find(Delimiter));
 			if (DelimiterPos != std::string::npos && List[i].size() > Prefix.size() + Delimiter.size())
 			{
 				std::string PostfixPart = List[i].substr(DelimiterPos + 1, List[i].size() - (DelimiterPos + 1));

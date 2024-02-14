@@ -21,21 +21,21 @@ MeshLayer HeightLayerProducer::Calculate()
 	double Min = DBL_MAX;
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
 	{
-		float AverageTriangleHeight = 0.0f;
+		double AverageTriangleHeight = 0.0;
 		for (size_t j = 0; j < 3; j++)
 		{
 			double CurrentHeight = glm::dot(glm::vec3(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->getTransformMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][j], 1.0)), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AverageNormal);
 			AverageTriangleHeight += CurrentHeight;
 		}
 
-		Result.TrianglesToData.push_back(AverageTriangleHeight / 3.0f);
+		Result.TrianglesToData.push_back(static_cast<float>(AverageTriangleHeight / 3.0));
 		Min = std::min(float(Min), Result.TrianglesToData.back());
 	}
 
 	// Smallest value should be 0.0f.
 	for (size_t i = 0; i < Result.TrianglesToData.size(); i++)
 	{
-		Result.TrianglesToData[i] += abs(Min);
+		Result.TrianglesToData[i] += static_cast<float>(abs(Min));
 	}
 	
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Height"));

@@ -559,7 +559,7 @@ void FEGraphRender::SetSize(ImVec2 NewValue)
 
 	if (!DataPonts.empty())
 	{
-		ColumnWidth = Size.x / DataPonts.size();
+		ColumnWidth = static_cast<int>(Size.x / DataPonts.size());
 	}
 
 	bCacheIsDirty = true;
@@ -578,7 +578,7 @@ std::vector<double> FEGraphRender::NormalizeArray(std::vector<float> Array)
 		MaxValue = std::max(MaxValue, double(Array[i]));
 	}
 
-	float CurrentCeiling = Ceiling == -FLT_MAX ? MaxValue : Ceiling;
+	float CurrentCeiling = static_cast<float>(Ceiling == -FLT_MAX ? MaxValue : Ceiling);
 	for (size_t i = 0; i < Array.size(); i++)
 	{
 		Result.push_back((Array[i] - MinValue) / CurrentCeiling);
@@ -630,14 +630,14 @@ float FEGraphRender::GetValueAtPosition(float NormalizedPosition)
 			{
 				if (i + 1 >= DataPonts.size())
 				{
-					result = NormalizedDataPonts[i];
+					result = static_cast<float>(NormalizedDataPonts[i]);
 					return result;
 				}
-				result = NormalizedDataPonts[i] * (1.0f - NormalizedPositionBetweenDataPoints) + NormalizedDataPonts[i + 1] * NormalizedPositionBetweenDataPoints;
+				result = static_cast<float>(NormalizedDataPonts[i] * (1.0f - NormalizedPositionBetweenDataPoints) + NormalizedDataPonts[i + 1] * NormalizedPositionBetweenDataPoints);
 			}
 			else
 			{
-				result = NormalizedDataPonts[i];
+				result = static_cast<float>(NormalizedDataPonts[i]);
 			}
 
 			return result;
@@ -645,6 +645,8 @@ float FEGraphRender::GetValueAtPosition(float NormalizedPosition)
 
 		CurrentPosition += NormalizedDataPointWidth;
 	}
+
+	return 0.0f;
 }
 
 float FEGraphRender::GraphHeightAtPixel(int PixelX)
@@ -652,7 +654,7 @@ float FEGraphRender::GraphHeightAtPixel(int PixelX)
 	if (PixelX < 0 || PixelX > Size.x)
 		return -1.0f;
 
-	int GraphBottom = Size.y + Position.y;
+	int GraphBottom = static_cast<int>(Size.y + Position.y);
 
 	float NormalizedPosition = PixelX / Size.x;
 	if (NormalizedPosition > 1.0f)
@@ -680,11 +682,11 @@ bool FEGraphRender::ShouldOutline(int XPosition, int YPosition)
 
 void FEGraphRender::RenderOneColumn(int XPosition, ImVec2 WindowPosition)
 {
-	int GraphBottom = Size.y + Position.y;
+	int GraphBottom = static_cast<int>(Size.y + Position.y);
 
 	if (bCacheIsDirty)
 	{
-		int ColumnTop = GraphHeightAtPixel(XPosition);
+		int ColumnTop = static_cast<int>(GraphHeightAtPixel(XPosition));
 
 		if (abs(GraphBottom - ColumnTop) == 0)
 		{
@@ -692,7 +694,7 @@ void FEGraphRender::RenderOneColumn(int XPosition, ImVec2 WindowPosition)
 		}
 		else if (ColumnTop < Position.y)
 		{
-			ColumnTop = Position.y + OutlineThickness + 1;
+			ColumnTop = static_cast<int>(Position.y + OutlineThickness + 1);
 		}
 
 		int CurrentIndex = 0;
@@ -729,8 +731,8 @@ void FEGraphRender::RenderOneColumn(int XPosition, ImVec2 WindowPosition)
 			if (CurrentColor.Value == ImColor(0.0f, 0.0f, 0.0f, 0.0f).Value)
 				break;
 
-			ImVec2 MinPosition = ImVec2(Position.x + XPosition, i - 1);
-			ImVec2 MaxPosition = ImVec2(Position.x + XPosition + 1, i);
+			ImVec2 MinPosition = ImVec2(Position.x + XPosition, static_cast<float>(i - 1));
+			ImVec2 MaxPosition = ImVec2(Position.x + XPosition + 1, static_cast<float>(i));
 			ImGui::GetWindowDrawList()->AddRectFilled(WindowPosition + MinPosition,
 													  WindowPosition + MaxPosition,
 													  CurrentColor);
@@ -842,5 +844,5 @@ void FEGraphRender::Clear()
 
 int FEGraphRender::GetDataPointsCount()
 {
-	return DataPonts.size();
+	return static_cast<int>(DataPonts.size());
 }

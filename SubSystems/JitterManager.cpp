@@ -94,7 +94,7 @@ void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* curr
 	//if (bSmootherResult)
 	//	ShiftsToUse = &PseudoRandom64;
 
-	JitterToDoCount = TempShifts.size() / 4;
+	JitterToDoCount = static_cast<int>(TempShifts.size() / 4);
 	if (DebugJitterToDoCount != -1)
 		JitterToDoCount = DebugJitterToDoCount;
 
@@ -161,7 +161,7 @@ void JitterManager::RunCalculationOnSDFAsync(void* InputData, void* OutputData)
 	Output->FillCellsWithTriangleInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");
 	Output->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
-	Output->TimeTookCalculate = TIME.EndTimeStamp("Calculate CurrentFunc");
+	Output->TimeTookCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
 
 	//JITTER_MANAGER.ExtractDataFromSDF(Output);
 	Output->FillMeshWithUserData();
@@ -401,7 +401,7 @@ void JitterManager::RunCalculationOnWholeModel(SDF* ResultSDF)
 	ResultSDF->FillCellsWithTriangleInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");
 	ResultSDF->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
-	ResultSDF->TimeTookCalculate = TIME.EndTimeStamp("Calculate CurrentFunc");
+	ResultSDF->TimeTookCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
 
 	ResultSDF->FillMeshWithUserData();
 	ResultSDF->bFullyLoaded = true;
@@ -431,8 +431,8 @@ void JitterManager::AdjustOutliers(std::vector<float>& Data, float LowerPercenti
 	std::sort(SortedData.begin(), SortedData.end());
 
 	// Calculate positions for lower and upper outliers
-	int lowerOutlierPosition = SortedData.size() * LowerPercentile;
-	int upperOutlierPosition = SortedData.size() * UpperPercentile;
+	int lowerOutlierPosition = static_cast<int>(SortedData.size() * LowerPercentile);
+	int upperOutlierPosition = static_cast<int>(SortedData.size() * UpperPercentile);
 
 	// Get the values for outlier thresholds
 	float lowerOutlierValue = SortedData[lowerOutlierPosition];
@@ -469,7 +469,7 @@ float JitterManager::FindStandardDeviation(std::vector<float> DataPoints)
 	for (int i = 0; i < DataPoints.size(); i++)
 	{
 		DataPoints[i] -= Mean;
-		DataPoints[i] = std::pow(DataPoints[i], 2.0);
+		DataPoints[i] = static_cast<float>(std::pow(DataPoints[i], 2.0));
 		Variance += DataPoints[i];
 	}
 	Variance /= DataPoints.size();

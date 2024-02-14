@@ -225,7 +225,6 @@ glm::vec3 FEMesh::IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentC
 {
 	float currentDistance = 0.0f;
 	float lastDistance = 9999.0f;
-	glm::vec3 HitPosition;
 
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
 	{
@@ -247,6 +246,8 @@ glm::vec3 FEMesh::IntersectTriangle(glm::dvec3 MouseRay, FEBasicCamera* currentC
 			return Inverse * glm::vec4(HitPosition, 1.0f);
 		}
 	}
+
+	return glm::vec3(0.0f);
 }
 
 bool FEMesh::SelectTrianglesInRadius(glm::dvec3 MouseRay, FEBasicCamera* currentCamera, float Radius)

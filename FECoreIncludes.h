@@ -1,6 +1,7 @@
 #pragma once
 #pragma warning (disable: 4752)     // found Intel(R) Advanced Vector Extensions; consider using / arch:AVX	FocalEnginePrivate
 #pragma warning (disable: 4334)     // '<<': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?) in lodepng.cpp
+#define CGAL_NO_GMP 1				// To suppress the warning in the CGAL library(warning C4068: unknown pragma 'CGAL_WARNING')
 
 #include "SubSystems/FEBasicApplication/FEBasicApplication.h"
 

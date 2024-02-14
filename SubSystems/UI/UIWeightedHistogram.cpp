@@ -84,8 +84,8 @@ void FEWeightedHistogram::FillDataBins(const std::vector<double>& Values, const 
 		const double NormalizedPixelPosition = double(i) / (BinsCount);
 		const double NextNormalizedPixelPosition = double(i + 1) / (BinsCount);
 
-		MinRugosity[i] = MinValue + (MaxValue - MinValue) * NormalizedPixelPosition;
-		MaxRugosity[i] = MinValue + (MaxValue - MinValue) * NextNormalizedPixelPosition;
+		MinRugosity[i] = static_cast<float>(MinValue + (MaxValue - MinValue) * NormalizedPixelPosition);
+		MaxRugosity[i] = static_cast<float>(MinValue + (MaxValue - MinValue) * NextNormalizedPixelPosition);
 	}
 
 	for (size_t i = 0; i < BinsCount; i++)
@@ -100,7 +100,7 @@ void FEWeightedHistogram::FillDataBins(const std::vector<double>& Values, const 
 			}
 		}
 
-		DataPoints.push_back(CurrentArea);
+		DataPoints.push_back(static_cast<float>(CurrentArea));
 	}
 
 	double TotalArea = 0.0;
@@ -127,5 +127,5 @@ void FEWeightedHistogram::SetIsUsingInterpolation(bool NewValue)
 
 int FEWeightedHistogram::GetCurrentBinCount() const
 {
-	return Graph.GetDataPoints().size();
+	return static_cast<int>(Graph.GetDataPoints().size());
 }

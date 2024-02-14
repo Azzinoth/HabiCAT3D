@@ -60,7 +60,7 @@ void ComplexityMetricInfo::fillTrianglesData(std::vector<double>& Vertices, std:
 		}
 	}
 
-	MeshData.AABB = FEAABB(FloatVertices.data(), Vertices.size());
+	MeshData.AABB = FEAABB(FloatVertices.data(), static_cast<int>(Vertices.size()));
 }
 
 void ComplexityMetricInfo::UpdateAverageNormal()
@@ -73,7 +73,7 @@ void ComplexityMetricInfo::UpdateAverageNormal()
 	{
 		const double originalArea = TriangleArea(Triangles[i][0], Triangles[i][1], Triangles[i][2]);
 		originalAreas.push_back(static_cast<float>(originalArea));
-		totalArea += originalArea;
+		totalArea += static_cast<float>(originalArea);
 	}
 
 	// ******* Geting average normal *******
@@ -194,14 +194,14 @@ void MeshLayer::CalculateInitData()
 
 	std::vector<float> SortedData = TrianglesToData;
 	std::sort(SortedData.begin(), SortedData.end());
-	int MaxVisiableIndex = SortedData.size() * 0.85;
+	int MaxVisiableIndex = static_cast<int>(SortedData.size() * 0.85);
 
 	MinVisible = Min;
 	MaxVisible = SortedData[MaxVisiableIndex];
 
 	if (!TrianglesToData.empty())
 	{
-		Mean = TotalSum / TrianglesToData.size();
+		Mean = static_cast<float>(TotalSum / TrianglesToData.size());
 		Median = SortedData[SortedData.size() / 2];
 	}
 
@@ -449,7 +449,7 @@ void MeshLayerDebugInfo::FromFile(std::fstream& File)
 
 void MeshLayerDebugInfo::ToFile(std::fstream& File)
 {
-	int Count = Entries.size();
+	int Count = static_cast<int>(Entries.size());
 	File.write((char*)&Count, sizeof(int));
 
 	std::string TempType;
@@ -457,11 +457,11 @@ void MeshLayerDebugInfo::ToFile(std::fstream& File)
 	{
 		TempType = Entries[i].Type;
 
-		Count = TempType.size();
+		Count = static_cast<int>(TempType.size());
 		File.write((char*)&Count, sizeof(int));
 		File.write(TempType.data(), sizeof(char) * Count);
 
-		Count = Entries[i].Name.size();
+		Count = static_cast<int>(Entries[i].Name.size());
 		File.write((char*)&Count, sizeof(int));
 		File.write(Entries[i].Name.data(), sizeof(char) * Count);
 
@@ -532,7 +532,7 @@ void MeshLayerDebugInfo::AddEntry(const std::string Name, const std::string Data
 	Entry.Name = Name;
 	Entry.Type = "std::string";
 	Entry.RawData = new char[Data.size() + 1];
-	Entry.Size = Data.size() + 1;
+	Entry.Size = static_cast<int>(Data.size() + 1);
 	memcpy(Entry.RawData, Data.data(), Data.size());
 	Entry.RawData[Data.size()] = '\0';
 	Entries.push_back(Entry);

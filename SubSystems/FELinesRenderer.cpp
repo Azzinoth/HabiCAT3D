@@ -116,7 +116,7 @@ void FELinesRenderer::SyncWithGPU()
 	if (LinePointVector.size() == 0)
 		return;
 
-	PointsToRender = LinePointVector.size();
+	PointsToRender = static_cast<int>(LinePointVector.size());
 
 	glBindVertexArray(LineVAO);
 

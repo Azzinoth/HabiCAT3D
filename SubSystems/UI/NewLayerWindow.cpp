@@ -63,7 +63,7 @@ void NewLayerWindow::Render()
 				if (ImGui::Selectable(LayerTypesNames[i].c_str(), is_selected))
 				{
 					int OldMode = Mode;
-					Mode = i;
+					Mode = static_cast<int>(i);
 					OnModeChanged(OldMode);
 				}
 
@@ -120,7 +120,7 @@ void NewLayerWindow::AddLayer()
 		case 0:
 		{
 			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
-			LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
+			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
 
 			InternalClose();
 			break;
@@ -128,7 +128,7 @@ void NewLayerWindow::AddLayer()
 		case 1:
 		{
 			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(AREA_LAYER_PRODUCER.Calculate());
-			LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
+			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
 
 			InternalClose();
 			break;
@@ -136,7 +136,7 @@ void NewLayerWindow::AddLayer()
 		case 2:
 		{
 			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(TrianglesEdgesMode));
-			LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
+			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
 
 			InternalClose();
 			break;
@@ -208,7 +208,7 @@ void NewLayerWindow::AddLayer()
 		case 7:
 		{
 			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
-			LAYER_MANAGER.SetActiveLayerIndex(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1);
+			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
 			MESH_MANAGER.ActiveMesh->HeatMapType = 6;
 
 			InternalClose();
@@ -304,7 +304,7 @@ void NewLayerWindow::RenderTrianglesEdgesLayerSettings()
 			bool is_selected = (i == TrianglesEdgesMode);
 			if (ImGui::Selectable(TrianglesEdgesModeNames[i].c_str(), is_selected))
 			{
-				TrianglesEdgesMode = i;
+				TrianglesEdgesMode = static_cast<int>(i);
 			}
 
 			if (is_selected)
@@ -425,7 +425,7 @@ void NewLayerWindow::RenderCompareLayerSettings()
 			bool is_selected = (i == FirstChoosenLayerIndex);
 			if (ImGui::Selectable(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption().c_str(), is_selected))
 			{
-				FirstChoosenLayerIndex = i;
+				FirstChoosenLayerIndex = static_cast<int>(i);
 			}
 
 			if (is_selected)
@@ -450,7 +450,7 @@ void NewLayerWindow::RenderCompareLayerSettings()
 			bool is_selected = (i == SecondChoosenLayerIndex);
 			if (ImGui::Selectable(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption().c_str(), is_selected))
 			{
-				SecondChoosenLayerIndex = i;
+				SecondChoosenLayerIndex = static_cast<int>(i);
 			}
 
 			if (is_selected)
@@ -550,7 +550,7 @@ void NewLayerWindow::OnModeChanged(int OldMode)
 		{
 			FeaturesSizeSelectionMode = 3;
 			double StartingResolution = JITTER_MANAGER.GetLowestPossibleResolution() + (JITTER_MANAGER.GetHigestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution()) / 2.0f;
-			JITTER_MANAGER.SetResolutonInM(StartingResolution);
+			JITTER_MANAGER.SetResolutonInM(static_cast<float>(StartingResolution));
 
 			break;
 		}

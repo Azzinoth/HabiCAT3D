@@ -16,10 +16,10 @@ int LayerManager::FindHigestIntPostfix(std::string Prefix, std::string Delimiter
 	{
 		std::transform(List[i].begin(), List[i].end(), List[i].begin(), [](const unsigned char C) { return std::tolower(C); });
 
-		int PrefixPos = List[i].find(Prefix);
+		size_t PrefixPos = List[i].find(Prefix);
 		if (PrefixPos != std::string::npos)
 		{
-			int DelimiterPos = List[i].find(Delimiter);
+			size_t DelimiterPos = List[i].find(Delimiter);
 			if (DelimiterPos != std::string::npos && List[i].size() > Prefix.size() + Delimiter.size())
 			{
 				std::string PostfixPart = List[i].substr(DelimiterPos + 1, List[i].size() - (DelimiterPos + 1));
