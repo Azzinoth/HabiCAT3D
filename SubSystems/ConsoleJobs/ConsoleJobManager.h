@@ -5,38 +5,22 @@
 
 using namespace FocalEngine;
 
-// ConsoleMessages: on Start, on Finish, on Progress
-
-
-
-
-
-
-
-// There will be a queue of ConsoleJobs
-// Console commands would be converted to ConsoleJobs and added to the queue
-// Command line arguments would be converted to ConsoleJobs and added to the queue
-// All of that would be working only if -console argument is passed to the application
-
-// There will be a special script file that can represent a list of ConsoleJobs, but also it would have 
-// a way to define a ComplexityJobEvaluation, so it can be used for QA.
-
 class ConsoleJobManager;
-class ConsoleJob      // Class ConsoleJob
+class ConsoleJob
 {
 	friend ConsoleJobManager;
-	std::string ID;   // ID (unique)
+	std::string ID;
 protected:
-	std::string Type; // ..Type (FileLoad, FileSave, ComplexityJob) // BulkFile, BulkFolder will be extracted and converted to list of ConsoleJobs
+	std::string Type;
 
 	ConsoleJob();
 };
 
-class ComplexityJobEvaluation // ....Class ComplexityJobEvaluation, ussually empty, but can be used for QA.
+class ComplexityJobEvaluation
 {
 	friend ConsoleJobManager;
 public:
-	std::string Type;         // ......Type, what to check (min, max, average, mean)
+	std::string Type;
 	float ExpectedValue;
 	float ActualValue;
 	float Tolerance = 0.0f;

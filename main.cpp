@@ -858,6 +858,63 @@ void ConsoleMainFunction()
 
 void ConsoleThreadCode(void* InputData)
 {
+	/*std::vector<std::string> split(const std::string & s, char delimiter) {
+		std::vector<std::string> tokens;
+		std::string token;
+		std::istringstream tokenStream(s);
+		while (getline(tokenStream, token, delimiter)) {
+			tokens.push_back(token);
+		}
+		return tokens;
+	}*/
+
+	auto split = [](const std::string& s, char delimiter) {
+		std::vector<std::string> tokens;
+		std::string token;
+		std::istringstream tokenStream(s);
+		while (getline(tokenStream, token, delimiter)) {
+			tokens.push_back(token);
+		}
+		return tokens;
+	};
+
+	std::string input = "--some_action_name setting1=value1 --another_action setting2=-7 --other_action";
+	// Replace newlines with spaces if your input is multiline
+	std::replace(input.begin(), input.end(), '\n', ' ');
+
+	std::vector<std::string> tokens = split(input, ' ');
+
+	std::vector<std::string> actionOrder; // To maintain the order of actions
+	std::map<std::string, std::map<std::string, std::string>> actions;
+	std::string currentAction;
+	for (const auto& token : tokens) {
+		if (token.substr(0, 2) == "--") {
+			currentAction = token.substr(2); // Remove "--"
+			if (actions.find(currentAction) == actions.end()) {
+				actionOrder.push_back(currentAction); // Keep track of the order
+			}
+			actions[currentAction]; // Ensure the action is created in the map
+		}
+		else {
+			auto delimPos = token.find('=');
+			if (delimPos != std::string::npos) {
+				std::string key = token.substr(0, delimPos);
+				std::string value = token.substr(delimPos + 1);
+				actions[currentAction][key] = value;
+			}
+		}
+	}
+
+	// Example output preserving the order of actions
+	for (const auto& actionName : actionOrder) {
+		std::cout << "Action: " << actionName << std::endl;
+		for (const auto& setting : actions[actionName]) {
+			std::cout << "  Setting: " << setting.first << " = " << setting.second << std::endl;
+		}
+	}
+
+
+
 	// To keep console window open
 	while (APPLICATION.IsNotTerminated())
 	{
@@ -962,6 +1019,8 @@ std::vector<std::string> SplitString(const std::string& Line, const std::string&
 	return SubStrings;
 }
 
+
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	LOG.SetFileOutput(true);
@@ -977,6 +1036,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	bool bIsConsoleModeRequested = false;
 	if (!result.empty() && result[0] == "-console")
 		bIsConsoleModeRequested = true;
+
+	// -console --some_action_name setting1=value1 --another_action setting2=-7 --other_action
 	
 	if (bIsConsoleModeRequested)
 	{
