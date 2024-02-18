@@ -744,111 +744,6 @@ void ConsoleMainFunction()
 	// To ensure initialisation of JITTER_MANAGER
 	JITTER_MANAGER.getInstance();
 
-	std::string filePath;
-
-	std::cout << "Please enter the file path:\n";
-	std::getline(std::cin, filePath);
-	std::cout << "File path entered: " << filePath << std::endl;
-
-
-	FileLoadJob* LoadJob = new FileLoadJob(filePath.c_str());
-	CONSOLE_JOB_MANAGER.AddJob(LoadJob);
-
-	// Layer 0
-	ComplexityJob* NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "HEIGHT";
-	ComplexityJobEvaluation EvaluateJob;
-	EvaluateJob.Type = "MAX_LAYER_VALUE";
-	EvaluateJob.ExpectedValue = 6.0f;
-	EvaluateJob.Tolerance = 0.1f;
-	NewJobToAdd->Evaluations.push_back(EvaluateJob);
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 1
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "AREA";
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 2
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 3
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
-	NewJobToAdd->Settings.SetTriangleEdges_Mode("MIN_LEHGTH");
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 4
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "TRIANGLE_EDGE";
-	NewJobToAdd->Settings.SetTriangleEdges_Mode("MEAN_LEHGTH");
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 5
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "TRIANGLE_COUNT";
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 6
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "RUGOSITY";
-	NewJobToAdd->Settings.SetJitterQuality("1");
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 7
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "RUGOSITY";
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 8
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "RUGOSITY";
-	NewJobToAdd->Settings.SetJitterQuality("73");
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 9
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "RUGOSITY";
-	NewJobToAdd->Settings.SetRugosity_Algorithm("MIN");
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 10 and 11
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "RUGOSITY";
-	NewJobToAdd->Settings.SetRugosity_Algorithm("LSF(CGAL)");
-	NewJobToAdd->Settings.SetIsStandardDeviationNeeded(true);
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 12
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "VECTOR_DISPERSION";
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 13
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
-	NewJobToAdd->Settings.SetRelativeResolution(0.65f);
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 14
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "FRACTAL_DIMENSION";
-	NewJobToAdd->Settings.SetRunOnWholeModel(true);
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	// Layer 15
-	NewJobToAdd = new ComplexityJob();
-	NewJobToAdd->ComplexityType = "COMPARE";
-	NewJobToAdd->Settings.SetCompare_FirstLayerIndex(12);
-	NewJobToAdd->Settings.SetCompare_SecondLayerIndex(13);
-	NewJobToAdd->Settings.SetCompare_Normalize(true);
-	CONSOLE_JOB_MANAGER.AddJob(NewJobToAdd);
-
-	FileSaveJob* SaveJob = new FileSaveJob("qwe");
-	CONSOLE_JOB_MANAGER.AddJob(SaveJob);
-
 	while (true)
 	{
 		CONSOLE_JOB_MANAGER.Update();
@@ -858,16 +753,6 @@ void ConsoleMainFunction()
 
 void ConsoleThreadCode(void* InputData)
 {
-	auto actions = APPLICATION.ParseCommandLine("-some_action_name setting1=value1 -another_action setting2=-7 -other_action");
-
-	// Example output preserving the order of actions
-	for (const auto& action : actions) {
-		std::cout << "Action: " << action.Action << std::endl;
-		for (const auto& setting : action.Settings) {
-			std::cout << "  Setting: " << setting.first << " = " << setting.second << std::endl;
-		}
-	}
-
 	// To keep console window open
 	while (APPLICATION.IsNotTerminated())
 	{
@@ -946,32 +831,6 @@ void MainWindowRender()
 	}
 }
 
-//void SecondWindowRender()
-//{
-//	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-//
-//	ImGui::ShowDemoWindow();
-//}
-
-std::vector<std::string> SplitString(const std::string& Line, const std::string& Delimiter)
-{
-	std::vector<std::string> SubStrings;
-	size_t StartPos = 0;
-	size_t EndPos = 0;
-
-	while ((EndPos = Line.find(Delimiter, StartPos)) != std::string::npos)
-	{
-		std::string Token = Line.substr(StartPos, EndPos - StartPos);
-		SubStrings.push_back(Token);
-		StartPos = EndPos + Delimiter.length();
-	}
-
-	// Add the last substring after the last delimiter
-	SubStrings.push_back(Line.substr(StartPos));
-
-	return SubStrings;
-}
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	LOG.SetFileOutput(true);
@@ -981,21 +840,34 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	THREAD_POOL.SetConcurrentThreadCount(HowManyToUse);
 
-	std::string CommandLine = lpCmdLine;
-	auto result = SplitString(CommandLine, " ");
-
 	bool bIsConsoleModeRequested = false;
-	if (!result.empty() && result[0] == "-console")
+	std::vector<CommandLineAction> ParsedCommandActions;
+
+	/*std::string Test = R"(
+		-console
+		-run_script_file filepath="C:/Users/Kindr/OneDrive/University/ocean_lab/Rugosity project/testScript.txt"
+	)";
+
+	ParsedCommandActions = APPLICATION.ParseCommandLine(Test);
+	if (!ParsedCommandActions.empty())
+		std::transform(ParsedCommandActions[0].Action.begin(), ParsedCommandActions[0].Action.end(), ParsedCommandActions[0].Action.begin(), [](unsigned char c) { return std::tolower(c); });
+
+	if (!ParsedCommandActions.empty() && ParsedCommandActions[0].Action == "console")
 		bIsConsoleModeRequested = true;
 
-	// -console --some_action_name setting1=value1 --another_action setting2=-7 --other_action
-	bIsConsoleModeRequested = true;
+	ParsedCommandActions.erase(ParsedCommandActions.begin());*/
 
 	if (bIsConsoleModeRequested)
 	{
 		FEConsoleWindow* Console = APPLICATION.CreateConsoleWindow(ConsoleThreadCode);
 		Console->WaitForCreation();
 		Console->SetTitle("Rugosity Calculator console");
+
+		std::vector<ConsoleJob*> ParsedJobs = CONSOLE_JOB_MANAGER.ConvertCommandAction(ParsedCommandActions);
+		for (size_t i = 0; i < ParsedJobs.size(); i++)
+		{
+			CONSOLE_JOB_MANAGER.AddJob(ParsedJobs[i]);
+		}
 
 		while (APPLICATION.IsNotTerminated())
 		{
@@ -1035,12 +907,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		MESH_MANAGER.AddLoadCallback(AfterMeshLoads);
 
 		SCREENSHOT_MANAGER.Init();
-
-		//auto SecondWindow = APPLICATION.AddWindow(1580, 320, "Rugosity Calculator_2");
-		//SecondWindow->SetRenderFunction(SecondWindowRender);
-
-		//glClearColor(ClearColor.x + 0.4, ClearColor.y, ClearColor.z, ClearColor.w);
-		//FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
 
 		while (APPLICATION.IsNotTerminated())
 		{

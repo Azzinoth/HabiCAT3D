@@ -29,7 +29,8 @@ namespace FocalEngine
 		void ImportOBJ(const char* FileName, bool bForceOneMesh);
 
 		void AddLoadCallback(std::function<void()> Func);
-		void SaveToRUGFile();
+		void SaveToRUGFile(std::string FilePath);
+		void SaveToRUGFileAskForFilePath();
 	private:
 		SINGLETON_PRIVATE_PART(ComplexityMetricManager)
 

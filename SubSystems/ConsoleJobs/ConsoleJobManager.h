@@ -16,20 +16,6 @@ protected:
 	ConsoleJob();
 };
 
-class ComplexityJobEvaluation
-{
-	friend ConsoleJobManager;
-public:
-	std::string Type;
-	float ExpectedValue;
-	float ActualValue;
-	float Tolerance = 0.0f;
-	
-	bool Failed();
-private:
-	bool bFailed = true;
-};
-
 class ComplexityJobSettings
 {
 	friend ConsoleJobManager;
@@ -134,12 +120,11 @@ public:
 	friend ConsoleJobManager;
 
 	ComplexityJob();
-	ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings, std::vector<ComplexityJobEvaluation> Evaluations);
+	ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings);
 
 	std::string ComplexityType;
 
 	ComplexityJobSettings Settings;
-	std::vector<ComplexityJobEvaluation> Evaluations;
 };
 
 class FileLoadJob : public ConsoleJob
@@ -168,6 +153,48 @@ public:
 	}
 };
 
+class EvaluationJob : public ConsoleJob
+{
+	friend ConsoleJobManager;
+
+	bool bFailed = true;
+protected:
+	std::string EvaluationType;
+public:
+
+	bool Failed();
+};
+
+class ComplexityEvaluationJob : public EvaluationJob
+{
+	friend ConsoleJobManager;
+
+	std::string EvaluationSubType;
+
+	float ExpectedValue = 0.0f;
+	float ActualValue = 0.0f;
+	float Tolerance = 0.0f;
+
+	int LayerIndex = -1;
+public:
+	ComplexityEvaluationJob();
+
+	float GetExpectedValue();
+	void SetExpectedValue(float NewValue);
+
+	float GetActualValue();
+	void SetActualValue(float NewValue);
+
+	float GetTolerance();
+	void SetTolerance(float NewValue);
+
+	int GetLayerIndex();
+	void SetLayerIndex(int NewValue);
+
+	std::string GetEvaluationSubType();
+	void SetEvaluationSubType(std::string NewValue);
+};
+
 class ConsoleJobManager
 {
 public:
@@ -175,18 +202,25 @@ public:
 
 	void AddJob(ConsoleJob* Job);
 	void Update();
+
+	std::vector<ConsoleJob*> ConvertCommandAction(CommandLineAction Action);
+	std::vector<ConsoleJob*> ConvertCommandAction(std::vector<CommandLineAction> Actions);
 private:
 	SINGLETON_PRIVATE_PART(ConsoleJobManager)
 
 	std::vector<ConsoleJob*> JobsList;
 	std::vector<ConsoleJob*> JobsWithFailedEvaluations;
 
+	int EvaluationsTotalCount = 0;
+	int EvaluationsFailedCount = 0;
+
 	void SetGridResolution(ComplexityJob* Job);
 	void SetRugosityAlgorithm(ComplexityJob* Job);
-	void RunEvaluations(ComplexityJob* Job);
 
 	void ExecuteJob(ConsoleJob* Job);
 	void WaitForJitterManager();
+
+	void OutputConsoleTextWithColor(std::string Text, int R, int G, int B);
 };
 
 #define CONSOLE_JOB_MANAGER ConsoleJobManager::getInstance()

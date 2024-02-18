@@ -411,5 +411,5 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 	if (Mesh == nullptr)
 		return;
 
-	COMPLEXITY_METRIC_MANAGER.SaveToRUGFile();
+	COMPLEXITY_METRIC_MANAGER.SaveToRUGFileAskForFilePath();
 }

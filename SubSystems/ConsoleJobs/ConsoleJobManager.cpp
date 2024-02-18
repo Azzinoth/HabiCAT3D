@@ -12,17 +12,73 @@ ComplexityJob::ComplexityJob()
 	ComplexityType = "NONE";
 };
 
-ComplexityJob::ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings, std::vector<ComplexityJobEvaluation> Evaluations)
+ComplexityJob::ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings)
 {
 	this->ComplexityType = ComplexityType;
 	this->Settings = Settings;
-	this->Evaluations = Evaluations;
+
 	Type = "COMPLEXITY_JOB";
 };
 
-bool ComplexityJobEvaluation::Failed()
+bool EvaluationJob::Failed()
 {
 	return bFailed;
+}
+
+ComplexityEvaluationJob::ComplexityEvaluationJob()
+{
+	Type = "EVALUATION_JOB";
+	EvaluationType = "COMPLEXITY";
+}
+
+float ComplexityEvaluationJob::GetExpectedValue()
+{
+	return ExpectedValue;
+}
+
+void ComplexityEvaluationJob::SetExpectedValue(float NewValue)
+{
+	ExpectedValue = NewValue;
+}
+
+float ComplexityEvaluationJob::GetActualValue()
+{
+	return ActualValue;
+}
+
+void ComplexityEvaluationJob::SetActualValue(float NewValue)
+{
+	ActualValue = NewValue;
+}
+
+float ComplexityEvaluationJob::GetTolerance()
+{
+	return Tolerance;
+}
+
+void ComplexityEvaluationJob::SetTolerance(float NewValue)
+{
+	Tolerance = NewValue;
+}
+
+int ComplexityEvaluationJob::GetLayerIndex()
+{
+	return LayerIndex;
+}
+
+void ComplexityEvaluationJob::SetLayerIndex(int NewValue)
+{
+	LayerIndex = NewValue;
+}
+
+void ComplexityEvaluationJob::SetEvaluationSubType(std::string NewValue)
+{
+	EvaluationSubType = NewValue;
+}
+
+std::string ComplexityEvaluationJob::GetEvaluationSubType()
+{
+	return EvaluationSubType;
 }
 
 // Resolution in range of 0.0 to 1.0
@@ -247,59 +303,6 @@ void ConsoleJobManager::SetRugosityAlgorithm(ComplexityJob* Job)
 	RUGOSITY_LAYER_PRODUCER.SetUseCGALVariant(Job->Settings.GetRugosity_Algorithm() == "LSF(CGAL)");
 }
 
-void ConsoleJobManager::RunEvaluations(ComplexityJob* Job)
-{
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
-		return;
-
-	MeshLayer& LastLayer = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back();
-
-	for (size_t i = 0; i < Job->Evaluations.size(); i++)
-	{
-		Job->Evaluations[i].bFailed = false;
-		float Difference = 0.0f;
-
-		if (Job->Evaluations[i].Type == "MEAN_LAYER_VALUE")
-		{
-			Job->Evaluations[i].ActualValue = LastLayer.GetMean();
-			Difference = Job->Evaluations[i].ExpectedValue - Job->Evaluations[i].ActualValue;
-		}
-		else if (Job->Evaluations[i].Type == "MEDIAN_LAYER_VALUE")
-		{
-			Job->Evaluations[i].ActualValue = LastLayer.GetMedian();
-			Difference = Job->Evaluations[i].ExpectedValue - Job->Evaluations[i].ActualValue;
-		}
-		else if (Job->Evaluations[i].Type == "MAX_LAYER_VALUE")
-		{
-			Job->Evaluations[i].ActualValue = LastLayer.GetMax();
-			Difference = Job->Evaluations[i].ExpectedValue - Job->Evaluations[i].ActualValue;
-		}
-		else if (Job->Evaluations[i].Type == "MIN_LAYER_VALUE")
-		{
-			Job->Evaluations[i].ActualValue = LastLayer.GetMin();
-			Difference = Job->Evaluations[i].ExpectedValue - Job->Evaluations[i].ActualValue;
-		}
-
-		if (abs(Difference) > Job->Evaluations[i].Tolerance)
-			Job->Evaluations[i].bFailed = true;
-		
-		if (Job->Evaluations[i].Failed())
-		{
-			std::string ErrorMessage = "Error: Evaluation failed. Type: " + Job->Evaluations[i].Type + " Expected: " + std::to_string(Job->Evaluations[i].ExpectedValue) + " Tolerance: " + std::to_string(Job->Evaluations[i].Tolerance) + " Actual: " + std::to_string(Job->Evaluations[i].ActualValue);
-			LOG.Add(ErrorMessage, "CONSOLE_LOG");
-			std::cout << ErrorMessage << std::endl;
-
-			JobsWithFailedEvaluations.push_back(Job);
-		}
-		else
-		{
-			std::string ErrorMessage = "Evaluation passed. Type: " + Job->Evaluations[i].Type + " Expected: " + std::to_string(Job->Evaluations[i].ExpectedValue) + " Tolerance: " + std::to_string(Job->Evaluations[i].Tolerance) + " Actual: " + std::to_string(Job->Evaluations[i].ActualValue);
-			LOG.Add(ErrorMessage, "CONSOLE_LOG");
-			std::cout << ErrorMessage << std::endl;
-		}
-	}
-}
-
 void ConsoleJobManager::WaitForJitterManager()
 {
 	while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
@@ -326,19 +329,20 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 			COMPLEXITY_METRIC_MANAGER.ImportOBJ(FileJob->FilePath.c_str(), true);
 			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->UpdateAverageNormal();
 
-			std::cout << "Successfully completed loading file: " << FileJob->FilePath << std::endl;
+			OutputConsoleTextWithColor("Successfully completed loading file: ", 0, 255, 0);
+			OutputConsoleTextWithColor(FileJob->FilePath, 0, 255, 0);
 		}
 		else
 		{
 			std::string ErrorMessage = "Error: File not found - " + FileJob->FilePath + ". Please check the file path and try again.";
 			LOG.Add(ErrorMessage, "CONSOLE_LOG");
-			std::cout << ErrorMessage << std::endl;
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 		}
 	}
 	else if (Job->Type == "FILE_SAVE")
 	{
-		COMPLEXITY_METRIC_MANAGER.SaveToRUGFile();
-		std::cout << "File saved successfully." << std::endl;
+		COMPLEXITY_METRIC_MANAGER.SaveToRUGFile(reinterpret_cast<FileSaveJob*>(Job)->FilePath);
+		OutputConsoleTextWithColor("File saved successfully.", 0, 255, 0);
 	}
 	else if (Job->Type == "COMPLEXITY_JOB")
 	{
@@ -346,7 +350,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		{
 			std::string ErrorMessage = "Error: No file loaded. Please load a file before attempting to calculate complexity.";
 			LOG.Add(ErrorMessage, "CONSOLE_LOG");
-			std::cout << ErrorMessage << std::endl;
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			return;
 		}
 
@@ -485,7 +489,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 			{
 				std::string ErrorMessage = "Error: First layer index is out of range. Please check the layer index and try again.";
 				LOG.Add(ErrorMessage, "CONSOLE_LOG");
-				std::cout << ErrorMessage << std::endl;
+				OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 				return;
 			}
 
@@ -494,7 +498,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 			{
 				std::string ErrorMessage = "Error: Second layer index is out of range. Please check the layer index and try again.";
 				LOG.Add(ErrorMessage, "CONSOLE_LOG");
-				std::cout << ErrorMessage << std::endl;
+				OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 				return;
 			}
 
@@ -503,13 +507,112 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 
 			std::cout << "Compare Layer calculation completed." << std::endl;
 		}
+	}
+ 	else if (Job->Type == "EVALUATION_JOB")
+	{
+		EvaluationJob* CurrentEvaluationJob = reinterpret_cast<EvaluationJob*>(Job);
 
-		RunEvaluations(CurrentComplexityJob);
+		if (CurrentEvaluationJob->EvaluationType == "COMPLEXITY")
+		{
+			ComplexityEvaluationJob* CurrentComplexityEvaluationJob = reinterpret_cast<ComplexityEvaluationJob*>(Job);
+
+			if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
+			{
+				std::string ErrorMessage = "Error: No layers to evaluate. Please calculate a layer before attempting to evaluate.";
+				LOG.Add(ErrorMessage, "CONSOLE_LOG");
+				OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+				return;
+			}
+
+			MeshLayer* LayerToEvaluate = nullptr;
+			if (CurrentComplexityEvaluationJob->GetLayerIndex() != -1)
+			{
+				LayerToEvaluate = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[CurrentComplexityEvaluationJob->GetLayerIndex()];
+			}
+			else
+			{
+				LayerToEvaluate = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back();
+			}
+			
+			if (LayerToEvaluate == nullptr)
+			{
+				std::string ErrorMessage = "Error: Layer to evaluate is null. Please check the layer index and try again.";
+				LOG.Add(ErrorMessage, "CONSOLE_LOG");
+				OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+				return;
+			}
+
+			CurrentEvaluationJob->bFailed = false;
+			float Difference = FLT_MAX;
+
+			if (CurrentComplexityEvaluationJob->GetEvaluationSubType() == "MEAN_LAYER_VALUE")
+			{
+				CurrentComplexityEvaluationJob->SetActualValue(LayerToEvaluate->GetMean());
+			}
+			else if (CurrentComplexityEvaluationJob->GetEvaluationSubType() == "MEDIAN_LAYER_VALUE")
+			{
+				CurrentComplexityEvaluationJob->SetActualValue(LayerToEvaluate->GetMedian());
+			}
+			else if (CurrentComplexityEvaluationJob->GetEvaluationSubType() == "MAX_LAYER_VALUE")
+			{
+				CurrentComplexityEvaluationJob->SetActualValue(LayerToEvaluate->GetMax());
+			}
+			else if (CurrentComplexityEvaluationJob->GetEvaluationSubType() == "MIN_LAYER_VALUE")
+			{
+				CurrentComplexityEvaluationJob->SetActualValue(LayerToEvaluate->GetMin());
+			}
+
+			Difference = CurrentComplexityEvaluationJob->GetExpectedValue() - CurrentComplexityEvaluationJob->GetActualValue();
+
+			if (abs(Difference) > CurrentComplexityEvaluationJob->GetTolerance())
+				CurrentComplexityEvaluationJob->bFailed = true;
+
+			EvaluationsTotalCount++;
+			if (CurrentComplexityEvaluationJob->Failed())
+			{
+				std::string ErrorMessage = "Error: Evaluation failed. Type: " + CurrentComplexityEvaluationJob->EvaluationType + " SubType: " + CurrentComplexityEvaluationJob->GetEvaluationSubType() + " Expected: " + std::to_string(CurrentComplexityEvaluationJob->GetExpectedValue()) + " Tolerance: " + std::to_string(CurrentComplexityEvaluationJob->GetTolerance()) + " Actual: " + std::to_string(CurrentComplexityEvaluationJob->GetActualValue());
+				LOG.Add(ErrorMessage, "CONSOLE_LOG");
+				OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+
+				EvaluationsFailedCount++;
+			}
+			else
+			{
+				std::string Message = "Evaluation passed. Type: " + CurrentComplexityEvaluationJob->EvaluationType + " SubType: " + CurrentComplexityEvaluationJob->GetEvaluationSubType() + " Expected: " + std::to_string(CurrentComplexityEvaluationJob->GetExpectedValue()) + " Tolerance: " + std::to_string(CurrentComplexityEvaluationJob->GetTolerance()) + " Actual: " + std::to_string(CurrentComplexityEvaluationJob->GetActualValue());
+				LOG.Add(Message, "CONSOLE_LOG");
+				OutputConsoleTextWithColor(Message, 0, 255, 0);
+			}
+		}
+
 	}
 }
 
 void ConsoleJobManager::Update()
 {
+	if (JobsList.empty() && EvaluationsTotalCount != 0)
+	{
+		std::cout << "All jobs finished." << std::endl;
+
+		if (EvaluationsFailedCount == 0)
+		{
+			OutputConsoleTextWithColor("All evaluations passed: " + std::to_string(EvaluationsTotalCount) + " out of " + std::to_string(EvaluationsTotalCount), 0, 255, 0);
+		}
+		else if (EvaluationsFailedCount > 0 && EvaluationsFailedCount < EvaluationsTotalCount)
+		{
+			OutputConsoleTextWithColor("Some evaluations failed: " + std::to_string(EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount), 255, 255, 0);
+		}
+		else if (EvaluationsFailedCount == EvaluationsTotalCount)
+		{
+			OutputConsoleTextWithColor("All evaluations failed: " + std::to_string(EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount), 255, 0, 0);
+
+		}
+
+		EvaluationsTotalCount = 0;
+		EvaluationsFailedCount = 0;
+
+		return;
+	}
+		
 	if (!JobsList.empty())
 	{
 		ConsoleJob* CurrentJob = JobsList.front();
@@ -521,4 +624,213 @@ void ConsoleJobManager::Update()
 			JobsList.erase(JobsList.begin());
 		}
 	}
+}
+
+std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineAction ActionToParse)
+{
+	std::vector<ConsoleJob*> Result;
+
+	std::transform(ActionToParse.Action.begin(), ActionToParse.Action.end(), ActionToParse.Action.begin(), [](unsigned char c) { return std::tolower(c); });
+
+	if (ActionToParse.Action == "load")
+	{
+		if (ActionToParse.Settings.find("filepath") != ActionToParse.Settings.end())
+		{
+			Result.push_back(new FileLoadJob(ActionToParse.Settings["filepath"]));
+		}
+	}
+	else if (ActionToParse.Action == "save")
+	{
+		if (ActionToParse.Settings.find("filepath") != ActionToParse.Settings.end())
+		{
+			Result.push_back(new FileSaveJob(ActionToParse.Settings["filepath"]));
+		}
+	}
+	else if (ActionToParse.Action == "complexity")
+	{
+		if (ActionToParse.Settings.find("type") == ActionToParse.Settings.end())
+			return Result;
+
+		std::string Type = ActionToParse.Settings["type"];
+		std::transform(Type.begin(), Type.end(), Type.begin(), [](unsigned char c) { return std::toupper(c); });
+
+		auto Iterator = ActionToParse.Settings.begin();
+		while (Iterator != ActionToParse.Settings.end())
+		{
+			std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
+			Iterator++;
+		}
+
+		ComplexityJob* NewJobToAdd = new ComplexityJob();
+		NewJobToAdd->ComplexityType = Type;
+
+		if (ActionToParse.Settings.find("resolution") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetResolutionInM(std::stof(ActionToParse.Settings["resolution"]));
+		}
+
+		if (ActionToParse.Settings.find("relative_resolution") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetRelativeResolution(std::stof(ActionToParse.Settings["relative_resolution"]));
+		}
+
+		if (ActionToParse.Settings.find("jitter_quality") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetJitterQuality(ActionToParse.Settings["jitter_quality"]);
+		}
+
+		if (ActionToParse.Settings.find("run_on_whole_model") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetRunOnWholeModel(ActionToParse.Settings["run_on_whole_model"] == "TRUE" ? true : false);
+		}
+
+		if (ActionToParse.Settings.find("rugosity_algorithm") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetRugosity_Algorithm(ActionToParse.Settings["rugosity_algorithm"]);
+		}
+
+		if (ActionToParse.Settings.find("rugosity_min_algorithm_quality") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetRugosity_MinAlgorithm_Quality(ActionToParse.Settings["rugosity_min_algorithm_quality"]);
+		}
+
+		if (ActionToParse.Settings.find("rugosity_is_using_unique_projected_area") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetRugosity_IsUsingUniqueProjectedArea(ActionToParse.Settings["rugosity_is_using_unique_projected_area"] == "TRUE" ? true : false);
+		}
+
+		if (ActionToParse.Settings.find("rugosity_delete_outliers") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetRugosity_DeleteOutliers(ActionToParse.Settings["rugosity_delete_outliers"] == "TRUE" ? true : false);
+		}
+
+		if (ActionToParse.Settings.find("fractal_dimension_should_filter_values") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetFractalDimension_ShouldFilterValues(ActionToParse.Settings["fractal_dimension_should_filter_values"] == "true" ? true : false);
+		}
+
+		if (ActionToParse.Settings.find("triangle_edges_mode") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetTriangleEdges_Mode(ActionToParse.Settings["triangle_edges_mode"]);
+		}
+
+		if (ActionToParse.Settings.find("is_standard_deviation_needed") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetIsStandardDeviationNeeded(ActionToParse.Settings["is_standard_deviation_needed"] == "true" ? true : false);
+		}
+
+		if (ActionToParse.Settings.find("compare_first_layer_index") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetCompare_FirstLayerIndex(std::stoi(ActionToParse.Settings["compare_first_layer_index"]));
+		}
+
+		if (ActionToParse.Settings.find("compare_second_layer_index") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetCompare_SecondLayerIndex(std::stoi(ActionToParse.Settings["compare_second_layer_index"]));
+		}
+
+		if (ActionToParse.Settings.find("compare_normalize") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->Settings.SetCompare_Normalize(ActionToParse.Settings["compare_normalize"] == "true" ? true : false);
+		}
+
+		Result.push_back(NewJobToAdd);
+	}
+	else if (ActionToParse.Action == "evaluation")
+	{
+		if (ActionToParse.Settings.find("type") == ActionToParse.Settings.end())
+			return Result;
+
+		if (ActionToParse.Settings.find("subtype") == ActionToParse.Settings.end())
+			return Result;
+
+		std::string Type = ActionToParse.Settings["type"];
+		std::transform(Type.begin(), Type.end(), Type.begin(), [](unsigned char c) { return std::toupper(c); });
+
+		auto Iterator = ActionToParse.Settings.begin();
+		while (Iterator != ActionToParse.Settings.end())
+		{
+			std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
+			Iterator++;
+		}
+
+		if (ActionToParse.Settings["type"] == "COMPLEXITY")
+		{
+			ComplexityEvaluationJob* NewJobToAdd = new ComplexityEvaluationJob();
+
+			NewJobToAdd->SetEvaluationSubType(ActionToParse.Settings["subtype"]);
+
+			if (ActionToParse.Settings.find("expected_value") != ActionToParse.Settings.end())
+			{
+				NewJobToAdd->SetExpectedValue(std::stof(ActionToParse.Settings["expected_value"]));
+			}
+
+			if (ActionToParse.Settings.find("tolerance") != ActionToParse.Settings.end())
+			{
+				NewJobToAdd->SetTolerance(std::stof(ActionToParse.Settings["tolerance"]));
+			}
+
+			if (ActionToParse.Settings.find("layer_index") != ActionToParse.Settings.end())
+			{
+				NewJobToAdd->SetLayerIndex(std::stoi(ActionToParse.Settings["layer_index"]));
+			}
+
+			Result.push_back(NewJobToAdd);
+		}
+	}
+	else if (ActionToParse.Action == "run_script_file")
+	{
+		if (ActionToParse.Settings.find("filepath") != ActionToParse.Settings.end())
+		{
+			std::string FilePath = ActionToParse.Settings["filepath"];
+			if (FILE_SYSTEM.CheckFile(FilePath.c_str()))
+			{
+				std::ifstream File(FilePath);
+				std::string Line;
+				while (std::getline(File, Line))
+				{
+					std::vector<CommandLineAction> Actions = APPLICATION.ParseCommandLine(Line);
+					std::vector<ConsoleJob*> NewJobs = ConvertCommandAction(Actions);
+					for (size_t i = 0; i < NewJobs.size(); i++)
+					{
+						Result.push_back(NewJobs[i]);
+					}
+				}
+
+				File.close();
+				OutputConsoleTextWithColor("Script file read successfully. Jobs added to the queue: " + std::to_string(Result.size()), 0, 255, 0);
+			}
+			else
+			{
+				std::string ErrorMessage = "Error: File not found - " + FilePath + ". Please check the file path and try again.";
+				LOG.Add(ErrorMessage, "CONSOLE_LOG");
+				OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			}
+		}
+	}
+
+	return Result;
+}
+
+std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(std::vector<CommandLineAction> Actions)
+{
+	std::vector<ConsoleJob*> Result;
+
+	for (size_t i = 0; i < Actions.size(); i++)
+	{
+		std::vector<ConsoleJob*> NewJobs = ConvertCommandAction(Actions[i]);
+		for (size_t j = 0; j < NewJobs.size(); j++)
+		{
+			Result.push_back(NewJobs[j]);
+		}
+	}
+
+	return Result;
+}
+
+void ConsoleJobManager::OutputConsoleTextWithColor(std::string Text, int R, int G, int B)
+{
+	APPLICATION.GetConsoleWindow()->SetNearestConsoleTextColor(R, G, B);
+	std::cout << Text << std::endl;
+	APPLICATION.GetConsoleWindow()->SetNearestConsoleTextColor(255, 255, 255);
 }
