@@ -335,10 +335,10 @@ void ConsoleJobManager::PrintHelp(std::string Command)
 			"-evaluation type=[TYPE] subtype=[WHAT_TO_TEST]  Create an evaluation job with the specified settings to test a layer or other objects.\n\n"
 
 			"Examples:\n"
-			"-load filepath = \"C:/data/mesh.obj\"\n"
-			"-save filepath = \"C:/data/processed_mesh.rug\"\n"
-			"-complexity type = RUGOSITY rugosity_algorithm = MIN jitter_quality = 73\n"
-			"-evaluation type = COMPLEXITY subtype = MAX_LAYER_VALUE expected_value = 5.02 tolerance = 0.01\n\n"
+			"-load filepath=\"C:/data/mesh.obj\"\n"
+			"-save filepath=\"C:/data/processed_mesh.rug\"\n"
+			"-complexity type=RUGOSITY rugosity_algorithm = MIN jitter_quality=73\n"
+			"-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=5.02 tolerance=0.01\n\n"
 
 			"Notes:\n"
 			"For Boolean settings, use true or false.\n"

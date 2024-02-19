@@ -846,22 +846,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	bool bIsConsoleModeRequested = false;
 	std::vector<CommandLineAction> ParsedCommandActions;
 
-	std::string Test = R"(
-		-console
-		
-	)";
-
-	//-run_script_file filepath="C:/Users/Kindr/OneDrive/University/ocean_lab/Rugosity project/Test scripts/TestBench_tiny.txt"
-
-	ParsedCommandActions = APPLICATION.ParseCommandLine(Test);
+	ParsedCommandActions = APPLICATION.ParseCommandLine(lpCmdLine);
 	if (!ParsedCommandActions.empty())
 		std::transform(ParsedCommandActions[0].Action.begin(), ParsedCommandActions[0].Action.end(), ParsedCommandActions[0].Action.begin(), [](unsigned char c) { return std::tolower(c); });
 
 	if (!ParsedCommandActions.empty() && ParsedCommandActions[0].Action == "console")
+	{
 		bIsConsoleModeRequested = true;
-
-	ParsedCommandActions.erase(ParsedCommandActions.begin());
-
+		ParsedCommandActions.erase(ParsedCommandActions.begin());
+	}
+	
 	if (bIsConsoleModeRequested)
 	{
 		FEConsoleWindow* Console = APPLICATION.CreateConsoleWindow(ConsoleThreadCode);
