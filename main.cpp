@@ -748,6 +748,9 @@ void ConsoleMainFunction()
 	{
 		CONSOLE_JOB_MANAGER.Update();
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+		if (!APPLICATION.IsNotTerminated())
+			break;
 	}
 }
 
@@ -843,10 +846,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	bool bIsConsoleModeRequested = false;
 	std::vector<CommandLineAction> ParsedCommandActions;
 
-	/*std::string Test = R"(
+	std::string Test = R"(
 		-console
-		-run_script_file filepath="C:/Users/Kindr/OneDrive/University/ocean_lab/Rugosity project/testScript.txt"
+		
 	)";
+
+	//-run_script_file filepath="C:/Users/Kindr/OneDrive/University/ocean_lab/Rugosity project/Test scripts/TestBench_tiny.txt"
 
 	ParsedCommandActions = APPLICATION.ParseCommandLine(Test);
 	if (!ParsedCommandActions.empty())
@@ -855,7 +860,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	if (!ParsedCommandActions.empty() && ParsedCommandActions[0].Action == "console")
 		bIsConsoleModeRequested = true;
 
-	ParsedCommandActions.erase(ParsedCommandActions.begin());*/
+	ParsedCommandActions.erase(ParsedCommandActions.begin());
 
 	if (bIsConsoleModeRequested)
 	{

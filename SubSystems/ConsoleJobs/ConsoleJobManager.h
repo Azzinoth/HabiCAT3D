@@ -40,9 +40,7 @@ class ComplexityJobSettings
 	int Compare_FirstLayerIndex = -1;
 	int Compare_SecondLayerIndex = -1;
 	bool bCompare_Normalize = true;
-
 public:
-
 	// Resolution in range of 0.0 to 1.0
 	float GetRelativeResolution();
 	// Resolution in range of 0.0 to 1.0
@@ -221,6 +219,7 @@ private:
 	void WaitForJitterManager();
 
 	void OutputConsoleTextWithColor(std::string Text, int R, int G, int B);
+	void PrintHelp(std::string Command = "");
 };
 
 #define CONSOLE_JOB_MANAGER ConsoleJobManager::getInstance()

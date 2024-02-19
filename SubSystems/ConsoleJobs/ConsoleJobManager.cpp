@@ -315,6 +315,37 @@ void ConsoleJobManager::WaitForJitterManager()
 	}
 }
 
+void ConsoleJobManager::PrintHelp(std::string Command)
+{
+	if (Command == "")
+	{
+		std::cout <<
+			"\nFirst command should be:\n"
+			"  -console\n"
+			"Then any other command:\n"
+			"  -[COMMAND] [OPTIONS]=[VALUE]\n\n"
+
+			"Commands:\n"
+			"-help                                           Display this help message.\n"
+			"-help command_name=[COMMAND]                    Display help for a specific command along with all its settings.\n"
+			"-file_load filepath=[PATH]                      Load a file from the specified path.\n"
+			"-file_save filepath=[PATH]                      Save the current state to a file at the specified path.\n"
+			"-run_script_file filepath=[PATH]                Execute a sequence of commands from a specified script(text) file.Each command in the file should be on a new line.\n"
+			"-complexity type=[LAYER_TYPE]                   Create a complexity job with the specified settings to create a layer.\n"
+			"-evaluation type=[TYPE] subtype=[WHAT_TO_TEST]  Create an evaluation job with the specified settings to test a layer or other objects.\n\n"
+
+			"Examples:\n"
+			"-load filepath = \"C:/data/mesh.obj\"\n"
+			"-save filepath = \"C:/data/processed_mesh.rug\"\n"
+			"-complexity type = RUGOSITY rugosity_algorithm = MIN jitter_quality = 73\n"
+			"-evaluation type = COMPLEXITY subtype = MAX_LAYER_VALUE expected_value = 5.02 tolerance = 0.01\n\n"
+
+			"Notes:\n"
+			"For Boolean settings, use true or false.\n"
+			"Paths must be enclosed in quotes.\n\n";
+	}
+}
+
 void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 {
 	if (Job->Type == "FILE_LOAD")
@@ -567,6 +598,9 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 			if (abs(Difference) > CurrentComplexityEvaluationJob->GetTolerance())
 				CurrentComplexityEvaluationJob->bFailed = true;
 
+			if (isnan(CurrentComplexityEvaluationJob->GetActualValue()))
+				CurrentComplexityEvaluationJob->bFailed = true;
+
 			EvaluationsTotalCount++;
 			if (CurrentComplexityEvaluationJob->Failed())
 			{
@@ -583,13 +617,26 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 				OutputConsoleTextWithColor(Message, 0, 255, 0);
 			}
 		}
-
+	}
+	else if (Job->Type == "HELP_JOB")
+	{
+		PrintHelp();
+	}
+	else if (Job->Type == "EXIT_JOB")
+	{
+		APPLICATION.Close();
+	}
+	else
+	{
+		std::string ErrorMessage = "Error: Unknown job type: " + Job->Type + ". Please check the job type and try again.";
+		LOG.Add(ErrorMessage, "CONSOLE_LOG");
+		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 	}
 }
 
 void ConsoleJobManager::Update()
 {
-	if (JobsList.empty() && EvaluationsTotalCount != 0)
+	if (JobsList.empty() && EvaluationsTotalCount > 1)
 	{
 		std::cout << "All jobs finished." << std::endl;
 
@@ -599,7 +646,7 @@ void ConsoleJobManager::Update()
 		}
 		else if (EvaluationsFailedCount > 0 && EvaluationsFailedCount < EvaluationsTotalCount)
 		{
-			OutputConsoleTextWithColor("Some evaluations failed: " + std::to_string(EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount), 255, 255, 0);
+			OutputConsoleTextWithColor("Some evaluations failed, only: " + std::to_string(EvaluationsTotalCount - EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount) + " passed.", 255, 255, 0);
 		}
 		else if (EvaluationsFailedCount == EvaluationsTotalCount)
 		{
@@ -620,8 +667,26 @@ void ConsoleJobManager::Update()
 		{
 			ExecuteJob(CurrentJob);
 
+			if (!APPLICATION.IsNotTerminated())
+			{
+				JobsList.clear();
+				return;
+			}
+
 			delete CurrentJob;
 			JobsList.erase(JobsList.begin());
+		}
+	}
+	else
+	{
+		std::string NewCommand;
+		std::cout << "Enter command: ";
+		std::getline(std::cin, NewCommand);
+		std::vector<CommandLineAction> Actions = APPLICATION.ParseCommandLine(NewCommand);
+		std::vector<ConsoleJob*> NewJobs = ConvertCommandAction(Actions);
+		for (size_t i = 0; i < NewJobs.size(); i++)
+		{
+			JobsList.push_back(NewJobs[i]);
 		}
 	}
 }
@@ -706,7 +771,7 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 
 		if (ActionToParse.Settings.find("fractal_dimension_should_filter_values") != ActionToParse.Settings.end())
 		{
-			NewJobToAdd->Settings.SetFractalDimension_ShouldFilterValues(ActionToParse.Settings["fractal_dimension_should_filter_values"] == "true" ? true : false);
+			NewJobToAdd->Settings.SetFractalDimension_ShouldFilterValues(ActionToParse.Settings["fractal_dimension_should_filter_values"] == "TRUE" ? true : false);
 		}
 
 		if (ActionToParse.Settings.find("triangle_edges_mode") != ActionToParse.Settings.end())
@@ -716,7 +781,7 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 
 		if (ActionToParse.Settings.find("is_standard_deviation_needed") != ActionToParse.Settings.end())
 		{
-			NewJobToAdd->Settings.SetIsStandardDeviationNeeded(ActionToParse.Settings["is_standard_deviation_needed"] == "true" ? true : false);
+			NewJobToAdd->Settings.SetIsStandardDeviationNeeded(ActionToParse.Settings["is_standard_deviation_needed"] == "TRUE" ? true : false);
 		}
 
 		if (ActionToParse.Settings.find("compare_first_layer_index") != ActionToParse.Settings.end())
@@ -731,7 +796,7 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 
 		if (ActionToParse.Settings.find("compare_normalize") != ActionToParse.Settings.end())
 		{
-			NewJobToAdd->Settings.SetCompare_Normalize(ActionToParse.Settings["compare_normalize"] == "true" ? true : false);
+			NewJobToAdd->Settings.SetCompare_Normalize(ActionToParse.Settings["compare_normalize"] == "TRUE" ? true : false);
 		}
 
 		Result.push_back(NewJobToAdd);
@@ -807,6 +872,18 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 				OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			}
 		}
+	}
+	else if (ActionToParse.Action == "help")
+	{
+		ConsoleJob* NewJobToAdd = new ConsoleJob();
+		NewJobToAdd->Type = "HELP_JOB";
+		Result.push_back(NewJobToAdd);
+	}
+	else if (ActionToParse.Action == "exit")
+	{
+		ConsoleJob* NewJobToAdd = new ConsoleJob();
+		NewJobToAdd->Type = "EXIT_JOB";
+		Result.push_back(NewJobToAdd);
 	}
 
 	return Result;
