@@ -98,7 +98,10 @@ void ScrollCall(double Xoffset, double Yoffset)
 void AfterMeshLoads()
 {
 	if (!APPLICATION.HasConsoleWindow())
+	{
 		MESH_MANAGER.ActiveMesh->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
+	}
 
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->UpdateAverageNormal();
 
