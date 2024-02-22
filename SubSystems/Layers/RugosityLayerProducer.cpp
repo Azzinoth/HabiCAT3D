@@ -289,6 +289,10 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 			}
 		}
 
+		// In very rare cases, 0.001% of area would have rugosity below 1.
+		if (Result < 1.0)
+			Result = 1.0;
+
 		delete ProjectionPlane;
 		return Result;
 	};
