@@ -14,6 +14,17 @@ protected:
 	std::string Type;
 
 	ConsoleJob();
+public:
+	std::string GetID();
+};
+
+class HelpJob : public ConsoleJob
+{
+	friend ConsoleJobManager;
+	std::string CommandName = "";
+public:
+	HelpJob(std::string CommandName = "");
+	std::string GetCommandName();
 };
 
 class ComplexityJobSettings
@@ -219,7 +230,26 @@ private:
 	void WaitForJitterManager();
 
 	void OutputConsoleTextWithColor(std::string Text, int R, int G, int B);
-	void PrintHelp(std::string Command = "");
+
+	struct ConsoleJobSettingsInfo
+	{
+		std::string Name;
+		std::string Description;
+		bool bIsOptional;
+		std::string DefaultValue;
+		std::vector<std::string> PossibleValues;
+	};
+
+	struct ConsoleJobInfo
+	{
+		std::string CommandName;
+		std::string Purpose;
+		std::vector<ConsoleJobSettingsInfo> SettingsInfo;
+	};
+
+	std::map<std::string, ConsoleJobInfo> ConsoleJobsInfo;
+	void PrintCommandHelp(std::string CommandName);
+	void PrintHelp(std::string CommandName = "");
 };
 
 #define CONSOLE_JOB_MANAGER ConsoleJobManager::getInstance()
