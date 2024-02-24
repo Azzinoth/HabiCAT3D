@@ -472,6 +472,8 @@ namespace FocalEngine
 
 		// Produces a data layer of standard deviation values for all jitters from last run.
 		std::vector<float> ProduceStandardDeviationData();
+
+		FEAABB GetAABBForJitteredSDF(SDFInitData_Jitter* Settings, float CurrentResolutionInM);
 	private:
 		SINGLETON_PRIVATE_PART(JitterManager)
 

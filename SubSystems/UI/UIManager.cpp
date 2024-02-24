@@ -1417,17 +1417,9 @@ void UIManager::InitDebugSDF(size_t JitterIndex)
 	DebugSDF = new SDF();
 
 	SDFInitData_Jitter* CurrentSettings = &UsedSettings[JitterIndex];
-	FEAABB finalAABB = MESH_MANAGER.ActiveMesh->AABB;
+	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredSDF(CurrentSettings, CurrentLayerResolutionInM);
 
-	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
-	transformMatrix = glm::scale(transformMatrix, glm::vec3(CurrentSettings->GridScale));
-	finalAABB = finalAABB.transform(transformMatrix);
-
-	const glm::vec3 center = MESH_MANAGER.ActiveMesh->AABB.getCenter() + glm::vec3(CurrentSettings->ShiftX, CurrentSettings->ShiftY, CurrentSettings->ShiftZ) * CurrentLayerResolutionInM;
-	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
-	finalAABB = SDFAABB;
-
-	DebugSDF->Init(0, finalAABB, CurrentLayerResolutionInM);
+	DebugSDF->Init(0, FinalAABB, CurrentLayerResolutionInM);
 	DebugSDF->FillCellsWithTriangleInfo();
 	DebugSDF->bFullyLoaded = true;
 }

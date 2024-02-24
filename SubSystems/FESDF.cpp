@@ -99,62 +99,21 @@ bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vec
 	return false;
 }
 
-SDF::SDF()
-{
+SDF::SDF() {}
 
+SDF::~SDF()
+{
+	Data.clear();
 }
 
-SDF::SDF(const int Dimentions, FEAABB AABB)
-{
-	if (Dimentions < 1 || Dimentions > 4096)
-		return;
-
-	// If dimension is not power of 2, we can't continue.
-	if (log2(Dimentions) != static_cast<int>(log2(Dimentions)))
-		return;
-
-	TIME.BeginTimeStamp("SDF Generation");
-
-	const glm::vec3 center = AABB.getCenter();
-	FEAABB SDFAABB = FEAABB(center - glm::vec3(AABB.getSize() / 2.0f), center + glm::vec3(AABB.getSize() / 2.0f));
-
-	Data.resize(Dimentions);
-	for (size_t i = 0; i < Dimentions; i++)
-	{
-		Data[i].resize(Dimentions);
-		for (size_t j = 0; j < Dimentions; j++)
-		{
-			Data[i][j].resize(Dimentions);
-		}
-	}
-
-	const glm::vec3 start = SDFAABB.getMin();
-	const float CellSize = SDFAABB.getSize() / Dimentions;
-
-	for (size_t i = 0; i < Dimentions; i++)
-	{
-		for (size_t j = 0; j < Dimentions; j++)
-		{
-			for (size_t k = 0; k < Dimentions; k++)
-			{
-				glm::vec3 CurrentAABBMin = start + glm::vec3(CellSize * i, CellSize * j, CellSize * k);
-				Data[i][j][k].AABB = FEAABB(CurrentAABBMin, CurrentAABBMin + glm::vec3(CellSize));
-				//float SignedDistance = GetSignedDistanceForNode(&Data[i][j][k]);
-			}
-		}
-	}
-
-	TimeTookToGenerateInMS = static_cast<float>(TIME.EndTimeStamp("SDF Generation"));
-}
-
-int DimensionsToPOWDimentions(const int Dimentions)
+int DimensionsToPOWDimensions(const int Dimensions)
 {
 	for (size_t i = 0; i < 12; i++)
 	{
-		if (Dimentions > pow(2.0, i))
+		if (Dimensions > pow(2.0, i))
 			continue;
 
-		if (Dimentions <= pow(2.0, i))
+		if (Dimensions <= pow(2.0, i))
 			return static_cast<int>(pow(2.0, i));
 	}
 
@@ -167,19 +126,21 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 
 	const glm::vec3 center = AABB.getCenter();
 
+	int AdditionalDimensions = 0;
 	Dimensions = 1;
 	if (ResolutionInM > 0)
 	{
+		AdditionalDimensions = 2;
 		const int MinDimensions = static_cast<int>(AABB.getSize() / ResolutionInM);
-		Dimensions = DimensionsToPOWDimentions(MinDimensions);
+		Dimensions = DimensionsToPOWDimensions(MinDimensions) + AdditionalDimensions;
 
 		if (Dimensions < 1 || Dimensions > 4096)
 			return;
 	}
 
 	// If dimensions is not power of 2, we can't continue.
-	if (log2(Dimensions) != static_cast<int>(log2(Dimensions)))
-		return;
+	/*if (log2(Dimensions) != static_cast<int>(log2(Dimensions)))
+		return;*/
 
 	Data.resize(Dimensions);
 	for (size_t i = 0; i < Dimensions; i++)
@@ -201,23 +162,31 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 		SDFAABB = FEAABB(center - glm::vec3(AABB.getSize() / 2.0f), center + glm::vec3(AABB.getSize() / 2.0f));
 	}
 
-	const glm::vec3 start = SDFAABB.getMin();
-	const float CellSize = SDFAABB.getSize() / Dimensions;
+	float CellSize;
+	if (ResolutionInM > 0)
+	{
+		CellSize = ResolutionInM;
+	}
+	else
+	{
+		CellSize = SDFAABB.getSize();
+	}
 
+	const glm::vec3 Start = SDFAABB.getMin();
 	for (size_t i = 0; i < Dimensions; i++)
 	{
 		for (size_t j = 0; j < Dimensions; j++)
 		{
 			for (size_t k = 0; k < Dimensions; k++)
 			{
-				glm::vec3 CurrentAABBMin = start + glm::vec3(CellSize * i, CellSize * j, CellSize * k);
+				glm::vec3 CurrentAABBMin = Start + glm::vec3(CellSize * i, CellSize * j, CellSize * k);
 				Data[i][j][k].AABB = FEAABB(CurrentAABBMin, CurrentAABBMin + glm::vec3(CellSize));
 				//float SignedDistance = GetSignedDistanceForNode(&Data[i][j][k]);
 			}
 		}
 	}
 
-	TimeTookToGenerateInMS = static_cast<float>(TIME.EndTimeStamp("SDF Generation"));
+	TimeTakenToGenerateInMS = static_cast<float>(TIME.EndTimeStamp("SDF Generation"));
 }
 
 void SDF::FillCellsWithTriangleInfo()
@@ -289,7 +258,7 @@ void SDF::FillCellsWithTriangleInfo()
 		}
 	}
 
-	TimeTookFillCellsWithTriangleInfo = static_cast<float>(TIME.EndTimeStamp("Fill cells with triangle info"));
+	TimeTakenFillCellsWithTriangleInfo = static_cast<float>(TIME.EndTimeStamp("Fill cells with triangle info"));
 }
 
 void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 TransformMat)
@@ -371,7 +340,7 @@ void SDF::FillMeshWithUserData()
 		TrianglesUserData[i] /= TrianglesRugosityCount[i];
 	}
 
-	TimeTookFillMeshWithUserData = static_cast<float>(TIME.EndTimeStamp("FillMeshWithUserData"));
+	TimeTakenToFillMeshWithUserData = static_cast<float>(TIME.EndTimeStamp("FillMeshWithUserData"));
 }
 
 void SDF::AddLinesOfSDF()
@@ -442,8 +411,6 @@ void SDF::RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func)
 		{
 			for (size_t k = 0; k < Data[i][j].size(); k++)
 			{
-				// Delete this line, just for testing
-				//Func(&Data[55][73][65]);
 				Func(&Data[i][j][k]);
 			}
 		}

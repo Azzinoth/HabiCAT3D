@@ -143,25 +143,16 @@ void JitterManager::RunCreationOfSDFAsync()
 
 void JitterManager::RunCalculationOnSDFAsync(void* InputData, void* OutputData)
 {
-	const SDFInitData_Jitter* Input = reinterpret_cast<SDFInitData_Jitter*>(InputData);
+	SDFInitData_Jitter* Input = reinterpret_cast<SDFInitData_Jitter*>(InputData);
 	SDF* Output = reinterpret_cast<SDF*>(OutputData);
 
-	FEAABB finalAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
-
-	glm::mat4 transformMatrix = glm::identity<glm::mat4>();
-	transformMatrix = glm::scale(transformMatrix, glm::vec3(Input->GridScale));
-	finalAABB = finalAABB.transform(transformMatrix);
-
-	const glm::vec3 center = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.getCenter() + glm::vec3(Input->ShiftX, Input->ShiftY, Input->ShiftZ) * JITTER_MANAGER.ResolutonInM;
-	const FEAABB SDFAABB = FEAABB(center - glm::vec3(finalAABB.getSize() / 2.0f), center + glm::vec3(finalAABB.getSize() / 2.0f));
-	finalAABB = SDFAABB;
-
-	Output->Init(0, finalAABB, JITTER_MANAGER.ResolutonInM);
+	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredSDF(Input, JITTER_MANAGER.ResolutonInM);
+	Output->Init(0, FinalAABB, JITTER_MANAGER.ResolutonInM);
 
 	Output->FillCellsWithTriangleInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");
 	Output->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
-	Output->TimeTookCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
+	Output->TimeTakenToCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
 
 	//JITTER_MANAGER.ExtractDataFromSDF(Output);
 	Output->FillMeshWithUserData();
@@ -401,7 +392,7 @@ void JitterManager::RunCalculationOnWholeModel(SDF* ResultSDF)
 	ResultSDF->FillCellsWithTriangleInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");
 	ResultSDF->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
-	ResultSDF->TimeTookCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
+	ResultSDF->TimeTakenToCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
 
 	ResultSDF->FillMeshWithUserData();
 	ResultSDF->bFullyLoaded = true;
@@ -499,4 +490,21 @@ std::vector<float> JitterManager::ProduceStandardDeviationData()
 	}
 
 	return Result;
+}
+
+FEAABB JitterManager::GetAABBForJitteredSDF(SDFInitData_Jitter* Settings, float CurrentResolutionInM)
+{
+	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
+	FEAABB FinalAABB = MeshAABB;
+
+	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
+	TransformMatrix = glm::translate(TransformMatrix, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetPosition());
+	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(Settings->GridScale));
+	FinalAABB = FinalAABB.transform(TransformMatrix);
+
+	const glm::vec3 Center = MeshAABB.getCenter() + glm::vec3(Settings->ShiftX, Settings->ShiftY, Settings->ShiftZ) * CurrentResolutionInM;
+	const FEAABB SDFAABB = FEAABB(Center - glm::vec3(FinalAABB.getSize() / 2.0f), Center + glm::vec3(FinalAABB.getSize() / 2.0f));
+	FinalAABB = SDFAABB;
+
+	return FinalAABB;
 }

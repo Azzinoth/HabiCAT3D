@@ -42,7 +42,7 @@ namespace FocalEngine
 			this->PointOnPlane = PointOnPlane;
 			this->Normal = Normal;
 
-			// Distance is length of perpendicular from origin to plane.
+			// Distance is the length of the perpendicular line from the origin to the plane.
 			double PlaneD = glm::length(glm::dot(PointOnPlane, Normal));
 		}
 
@@ -79,11 +79,11 @@ namespace FocalEngine
 		static FEBasicCamera* CurrentCamera;
 
 		std::vector<std::vector<std::vector<SDFNode>>> Data;
-		glm::vec3 AverageNormal;
+		glm::vec3 AverageNormal = glm::vec3(0.0f);
 		glm::vec3 SelectedCell = glm::vec3(-1.0);
 
 		SDF();
-		SDF(int Dimentions, FEAABB AABB);
+		~SDF();
 
 		void Init(int Dimensions, FEAABB AABB, float ResolutionInM = 0.0f);
 		void FillCellsWithTriangleInfo();
@@ -94,10 +94,10 @@ namespace FocalEngine
 
 		void FillMeshWithUserData();
 
-		float TimeTookToGenerateInMS = 0.0f;
-		float TimeTookFillCellsWithTriangleInfo = 0.0f;
-		float TimeTookCalculate = 0.0f;
-		float TimeTookFillMeshWithUserData = 0.0f;
+		float TimeTakenToGenerateInMS = 0.0f;
+		float TimeTakenFillCellsWithTriangleInfo = 0.0f;
+		float TimeTakenToCalculate = 0.0f;
+		float TimeTakenToFillMeshWithUserData = 0.0f;
 
 		int DebugTotalTrianglesInCells = 0;
 		bool bWeightedNormals = false;
@@ -114,12 +114,6 @@ namespace FocalEngine
 		void UpdateRenderedLines();
 
 		void RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func);
-
-		~SDF()
-		{
-			Data.clear();
-		}
-
 		void AddLinesOfSDF();
 	};
 }
