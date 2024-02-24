@@ -84,6 +84,14 @@ uniform float MeasuredRugosityAreaRadius;
 
 uniform float AmbientFactor;
 
+uniform float LayerAbsoluteMin;
+uniform float LayerAbsoluteMax;
+uniform float SelectedRangeMin;
+uniform float SelectedRangeMax;
+
+uniform float saturationFactor;  // A factor between 0.0 and 1.0
+uniform float brightnessValue;   // A value to add/subtract for brightness. Can be positive or negative.
+
 layout (location = 0) out vec4 out_Color;
 
 // Copyright 2019 Google LLC.
@@ -100,6 +108,26 @@ vec3 getTurboColormapValue(float factor)
 	int index = int(255 * factor);
 
 	return vec3(turbo_srgb_floats[index][0], turbo_srgb_floats[index][1], turbo_srgb_floats[index][2]);
+}
+
+vec3 getCompareColormapValue(float factor)
+{
+    // Define the colors
+    vec3 colorNegative = vec3(0.0, 0.0, 1.0); // Blue for negative
+    vec3 colorNeutral = vec3(1.0, 1.0, 1.0);  // White for zero
+    vec3 colorPositive = vec3(1.0, 0.0, 0.0); // Red for positive
+
+    // Interpolate between the colors based on the factor
+    if (factor < 0)
+	{
+        // Interpolate between blue and white for negative values
+        return mix(colorNeutral, colorNegative, -factor);
+    }
+	else
+	{
+        // Interpolate between white and red for positive values
+        return mix(colorNeutral, colorPositive, factor);
+    }
 }
 
 vec3 getRainbowScaledColor(float factor)
@@ -219,30 +247,68 @@ vec3 getCorrectColor()
 
 	if (LayerIndex == -1)
 		return result;
-	
+
 	float NormalizedValue = (FS_IN.FirstLayer - LayerMin) / (LayerMax - LayerMin);
 	NormalizedValue = clamp(NormalizedValue, 0, 1);
 
 	switch (HeatMapType)
-    {
-        case 3:
+	{
+		case 3:
 				result = getScaledColor(NormalizedValue);
-                break;
-        case 4:
+				break;
+		case 4:
 				result = getRainbowScaledColor(NormalizedValue);
-                break;
+				break;
 		case 5:
 				result = getTurboColormapValue(NormalizedValue);
-                break;
-    }
+				break;
+		case 6:
+				float CompareMapFactor = 0.0;
+
+				// Mapping
+				if (FS_IN.FirstLayer == 0)
+				{
+					CompareMapFactor = 0.0;
+				}
+				else if (FS_IN.FirstLayer <= 0)
+				{
+					// Map negatives to [-1, 0)
+					CompareMapFactor = (LayerMin < 0) ? (FS_IN.FirstLayer / -LayerMin) : -1.0;
+				}
+				else
+				{
+					// Map positives to (0, 1]
+					CompareMapFactor = (LayerMax > 0) ? (FS_IN.FirstLayer / LayerMax) : 1.0;
+				}
+
+				result = getCompareColormapValue(CompareMapFactor);
+				break;
+	}
+	
 
 	return result;
+}
+
+vec3 rgb2hsv(vec3 c) {
+    vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
 void main(void)
 {
 	float diffuseFactor = max(dot(FS_IN.vertexNormal, lightDirection), 0.15);
-	vec3 ambientColor = vec3(0.55f, 0.73f, 0.87f) * AmbientFactor; // 2.8f
+	vec3 ambientColor = vec3(1.0f, 1.0f, 1.0f) * AmbientFactor; // vec3(0.55f, 0.73f, 0.87f)
 
 	vec3 firstRugosityLayer = getCorrectColor();
 	vec3 finalBaseColor = firstRugosityLayer;
@@ -254,22 +320,40 @@ void main(void)
 			finalBaseColor = vec3(0.8f, 0.0f, 0.8f);
 	}
 
+	float NormalizedAbsoluteValue = (FS_IN.FirstLayer - LayerAbsoluteMin) / (LayerAbsoluteMax - LayerAbsoluteMin);
+	NormalizedAbsoluteValue = clamp(NormalizedAbsoluteValue, 0, 1);
+
+	if (SelectedRangeMin != 0.0 || SelectedRangeMax != 0.0)
+	{
+		if (NormalizedAbsoluteValue >= SelectedRangeMin &&
+			NormalizedAbsoluteValue <= SelectedRangeMax)
+		{
+
+		}
+		else
+		{
+			// Convert RGB to HSV
+			vec3 hsv = rgb2hsv(finalBaseColor.rgb);
+
+			// Adjust saturation and brightness (value)
+			hsv.y *= saturationFactor;
+			hsv.z *= brightnessValue;
+
+			// Clamp the saturation and brightness components
+			hsv.y = clamp(hsv.y, 0.0, 1.0);
+			hsv.z = clamp(hsv.z, 0.0, 1.0);
+
+			// Convert back to RGB
+			finalBaseColor.rgb = hsv2rgb(hsv);
+		}
+	}
+
 	out_Color = vec4(ambientColor * (diffuseFactor * finalBaseColor) * 0.5, 1.0f);
 }
 )";
 
 namespace FocalEngine
 {
-	const COMDLG_FILTERSPEC RUGOSITY_LOAD_FILE_FILTER[] =
-	{
-		{ L"Mesh files (*.obj; *.rug)", L"*.obj;*.rug" }
-	};
-
-	const COMDLG_FILTERSPEC RUGOSITY_SAVE_FILE_FILTER[] =
-	{
-		{ L"Rugosity file (*.rug)", L"*.rug" }
-	};
-
 	class FECGALWrapper;
 	class MeshManager
 	{
@@ -284,6 +368,10 @@ namespace FocalEngine
 
 		void AddLoadCallback(std::function<void()> Func);
 		void SaveRUGMesh(FEMesh* Mesh);
+
+		float saturationFactor = 0.3f;
+		float brightnessValue = 0.2f;
+
 	private:
 		SINGLETON_PRIVATE_PART(MeshManager)
 

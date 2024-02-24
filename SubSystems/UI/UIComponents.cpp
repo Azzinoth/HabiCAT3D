@@ -38,7 +38,7 @@ void FEArrowScroller::Clear()
 
 	AvailableRange = FLT_MAX;
 	RangePosition = 0.0f;
-	RangeBottomLimit = 1.0f;
+	//RangeBottomLimit = 1.0f;
 }
 
 ImVec2 FEArrowScroller::GetPixelPosition() const
@@ -123,7 +123,7 @@ void FEArrowScroller::Render()
 	if (IsSelected())
 	{
 		LastFrameDelta = bHorizontal ? MouseXWindows - LastFrameMouseX : MouseYWindows - LastFrameMouseY;
-		float BottomLimitInPixels = AvailableRange * (1.0f - RangeBottomLimit);
+		float BottomLimitInPixels = AvailableRange * 0.0f/** (1.0f - RangeBottomLimit)*/;
 
 		if (bHorizontal)
 		{
@@ -259,7 +259,8 @@ void FEArrowScroller::SetRangePosition(float NewValue)
 
 float FEArrowScroller::GetRangeBottomLimit()
 {
-	return RangeBottomLimit;
+	return 0.0f;
+	//return RangeBottomLimit;
 }
 
 void FEArrowScroller::SetRangeBottomLimit(float NewValue)
@@ -270,7 +271,7 @@ void FEArrowScroller::SetRangeBottomLimit(float NewValue)
 	if (NewValue > 1.0f)
 		NewValue = 1.0f;
 
-	RangeBottomLimit = NewValue;
+	//RangeBottomLimit = NewValue;
 }
 
 ImVec2 Legend::GetPosition()
@@ -358,7 +359,7 @@ ImVec2 Legend::NormalizedPositionToVec2(float NormalizedPosition, std::string Te
 		return NormalizedPositionToVec2Impl(Position, Size, NormalizedPosition, Text);
 
 	ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
-	return ImVec2(Position.x + Size.x * NormalizedPosition - TextSize.x / 2.0f, Size.y);
+	return ImVec2(Position.x + Size.x * NormalizedPosition - TextSize.x / 2.0f, Position.y + Size.y);
 }
 
 void Legend::Render()
@@ -378,12 +379,12 @@ FEColorRangeAdjuster::FEColorRangeAdjuster()
 	RangeSize = ImVec2(20, 600);
 	RangePosition = ImVec2(17, 15);
 
-	Ceiling.SetOrientation(false);
+	Slider.SetOrientation(false);
 
-	Ceiling.SetSize(13.0f);
-	Ceiling.SetAvailableRange(RangeSize.y - 1);
-	Ceiling.SetStartPosition(ImVec2(15.0f, 32.0f));
-	Ceiling.SetColor(ImColor(255, 155, 155, 255));
+	Slider.SetSize(13.0f);
+	Slider.SetAvailableRange(RangeSize.y - 1);
+	Slider.SetStartPosition(ImVec2(15.0f, 32.0f));
+	Slider.SetColor(ImColor(255, 155, 155, 255));
 
 	Legend.SetDummyValues();
 	Legend.SetNormalizedPositionToVec2Impl(FEColorRangeAdjuster::LegendCaptionsPosition);
@@ -409,12 +410,12 @@ void FEColorRangeAdjuster::SetColorRangeFunction(std::function<ImColor(float)> U
 	ColorRangeFunction = UserFunc;
 }
 
-float FEColorRangeAdjuster::GetCeilingValue()
+float FEColorRangeAdjuster::GetSliderValue()
 {
-	return 1.0f - Ceiling.GetRangePosition();
+	return 1.0f - Slider.GetRangePosition();
 }
 
-void FEColorRangeAdjuster::SetCeilingValue(float NewValue)
+void FEColorRangeAdjuster::SetSliderValue(float NewValue)
 {
 	if (NewValue < 0.0f)
 		NewValue = 0.0f;
@@ -422,13 +423,13 @@ void FEColorRangeAdjuster::SetCeilingValue(float NewValue)
 	if (NewValue > 1.0f)
 		NewValue = 1.0f;
 
-	Ceiling.SetRangePosition(1.0f - NewValue);
-	Ceiling.SetPixelPosition(ImVec2(Ceiling.GetPixelPosition().x, Ceiling.GetRangePosition() * Ceiling.GetAvailableRange()));
+	Slider.SetRangePosition(1.0f - NewValue);
+	Slider.SetPixelPosition(ImVec2(Slider.GetPixelPosition().x, Slider.GetRangePosition() * Slider.GetAvailableRange()));
 }
 
 float FEColorRangeAdjuster::GetRangeBottomLimit()
 {
-	return 1.0f - Ceiling.GetRangeBottomLimit();
+	return 1.0f - Slider.GetRangeBottomLimit();
 }
 
 void FEColorRangeAdjuster::SetRangeBottomLimit(float NewValue)
@@ -439,21 +440,21 @@ void FEColorRangeAdjuster::SetRangeBottomLimit(float NewValue)
 	if (NewValue > 1.0f)
 		NewValue = 1.0f;
 
-	Ceiling.SetRangeBottomLimit(1.0f - NewValue);
+	Slider.SetRangeBottomLimit(1.0f - NewValue);
 }
 
 void FEColorRangeAdjuster::Clear()
 {
-	Ceiling.Clear();
+	Slider.Clear();
 	RangeSize = ImVec2(20, 600);
 	RangePosition = ImVec2(17, 15);
 
-	Ceiling.SetOrientation(false);
+	Slider.SetOrientation(false);
 
-	Ceiling.SetSize(13.0f);
-	Ceiling.SetAvailableRange(RangeSize.y - 1);
-	Ceiling.SetStartPosition(ImVec2(15.0f, 32.0f));
-	Ceiling.SetColor(ImColor(255, 155, 155, 255));
+	Slider.SetSize(13.0f);
+	Slider.SetAvailableRange(RangeSize.y - 1);
+	Slider.SetStartPosition(ImVec2(15.0f, 32.0f));
+	Slider.SetColor(ImColor(255, 155, 155, 255));
 
 	Legend.SetDummyValues();
 	Legend.SetNormalizedPositionToVec2Impl(FEColorRangeAdjuster::LegendCaptionsPosition);
@@ -469,7 +470,7 @@ ImVec2 FEColorRangeAdjuster::LegendCaptionsPosition(ImVec2 Position, ImVec2 Size
 	return Result;
 }
 
-void FEColorRangeAdjuster::Render()
+void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 {
 	float WindowX = ImGui::GetCurrentWindow()->Pos.x;
 	float WindowY = ImGui::GetCurrentWindow()->Pos.y;
@@ -485,43 +486,44 @@ void FEColorRangeAdjuster::Render()
 
 	Legend.SetPosition(RangePosition + ImVec2(15, -10));
 	Legend.SetSize(RangeSize);
+
+	if (bScreenshotMode)
+	{
+		ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
+	}
+	
 	Legend.Render();
 
-	int UpperUnusedStart = int(RangeSize.y * Ceiling.GetRangePosition());
-	int BottomUnusedStart = int(RangeSize.y * (1.0f - Ceiling.GetRangeBottomLimit()));
+	if (bScreenshotMode)
+	{
+		ImGui::PopStyleColor();
+		ImGui::PopFont();
+	}
+
+	int UpperUnusedStart = static_cast<int>(RangeSize.y * Slider.GetRangePosition());
+	if (bScreenshotMode)
+		UpperUnusedStart = 0;
 
 	ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY) + RangePosition,
 		ImVec2(WindowX + RangeSize.x, WindowY + UpperUnusedStart + 1) + RangePosition,
 		CurrentColor);
 
-	for (size_t i = BottomUnusedStart; i < RangeSize.y - UpperUnusedStart; i++)
+	for (size_t i = 0; i < RangeSize.y - UpperUnusedStart; i++)
 	{
-		float factor = (i - BottomUnusedStart) / float(RangeSize.y - UpperUnusedStart - BottomUnusedStart);
+		float factor = i / float(RangeSize.y - UpperUnusedStart);
 
 		if (ColorRangeFunction != nullptr)
 			CurrentColor = ColorRangeFunction(factor);
-
-		ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY + RangeSize.y - i + 1) + RangePosition,
-			ImVec2(WindowX + RangeSize.x, WindowY + RangeSize.y - i) + RangePosition,
-			CurrentColor);
-	}
-
-	for (size_t i = 0; i < BottomUnusedStart; i++)
-	{
-		CurrentColor = ImColor(155, 155, 155, 255);
-		if (ColorRangeFunction != nullptr)
-		{
-			CurrentColor = ColorRangeFunction(0.0f);
-			CurrentColor = ImColor(CurrentColor.Value.x * 0.5f + 0.15f, CurrentColor.Value.y * 0.5f + 0.15f, CurrentColor.Value.z * 0.5f + 0.15f);
-		}
-
+			
 		ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY + RangeSize.y - i + 1) + RangePosition,
 			ImVec2(WindowX + RangeSize.x, WindowY + RangeSize.y - i) + RangePosition,
 			CurrentColor);
 	}
 
 	RangePosition.y = Position.y + 10;
-	Ceiling.Render();
+	if (!bScreenshotMode && bRenderSlider)
+		Slider.Render();
 }
 
 ImVec2 FEGraphRender::GetPosition() const
@@ -557,8 +559,10 @@ void FEGraphRender::SetSize(ImVec2 NewValue)
 
 	if (!DataPonts.empty())
 	{
-		ColumnWidth = Size.x / DataPonts.size();
+		ColumnWidth = static_cast<int>(Size.x / DataPonts.size());
 	}
+
+	bCacheIsDirty = true;
 }
 
 std::vector<double> FEGraphRender::NormalizeArray(std::vector<float> Array)
@@ -574,7 +578,7 @@ std::vector<double> FEGraphRender::NormalizeArray(std::vector<float> Array)
 		MaxValue = std::max(MaxValue, double(Array[i]));
 	}
 
-	float CurrentCeiling = Ceiling == -FLT_MAX ? MaxValue : Ceiling;
+	float CurrentCeiling = static_cast<float>(Ceiling == -FLT_MAX ? MaxValue : Ceiling);
 	for (size_t i = 0; i < Array.size(); i++)
 	{
 		Result.push_back((Array[i] - MinValue) / CurrentCeiling);
@@ -604,6 +608,7 @@ void FEGraphRender::SetDataPoints(std::vector<float> NewValue)
 	Ceiling = -FLT_MAX;
 	DataPonts = NewValue;
 	NormalizedDataPonts = NormalizeArray(DataPonts);
+	bCacheIsDirty = true;
 }
 
 float FEGraphRender::GetValueAtPosition(float NormalizedPosition)
@@ -625,14 +630,14 @@ float FEGraphRender::GetValueAtPosition(float NormalizedPosition)
 			{
 				if (i + 1 >= DataPonts.size())
 				{
-					result = NormalizedDataPonts[i];
+					result = static_cast<float>(NormalizedDataPonts[i]);
 					return result;
 				}
-				result = NormalizedDataPonts[i] * (1.0f - NormalizedPositionBetweenDataPoints) + NormalizedDataPonts[i + 1] * NormalizedPositionBetweenDataPoints;
+				result = static_cast<float>(NormalizedDataPonts[i] * (1.0f - NormalizedPositionBetweenDataPoints) + NormalizedDataPonts[i + 1] * NormalizedPositionBetweenDataPoints);
 			}
 			else
 			{
-				result = NormalizedDataPonts[i];
+				result = static_cast<float>(NormalizedDataPonts[i]);
 			}
 
 			return result;
@@ -640,6 +645,8 @@ float FEGraphRender::GetValueAtPosition(float NormalizedPosition)
 
 		CurrentPosition += NormalizedDataPointWidth;
 	}
+
+	return 0.0f;
 }
 
 float FEGraphRender::GraphHeightAtPixel(int PixelX)
@@ -647,14 +654,13 @@ float FEGraphRender::GraphHeightAtPixel(int PixelX)
 	if (PixelX < 0 || PixelX > Size.x)
 		return -1.0f;
 
-	int GraphBottom = Size.y /*- Position.y*/;
+	int GraphBottom = static_cast<int>(Size.y + Position.y);
 
 	float NormalizedPosition = PixelX / Size.x;
 	if (NormalizedPosition > 1.0f)
 		NormalizedPosition = 1.0f;
 
 	float ValueAtThisPixel = GetValueAtPosition(NormalizedPosition);
-	//float ColumnHeight = GraphBottom - float(GraphBottom - Position.y) * ValueAtThisPixel;
 	float ColumnHeight = GraphBottom - float(Size.y) * ValueAtThisPixel;
 
 	return ColumnHeight;
@@ -674,64 +680,135 @@ bool FEGraphRender::ShouldOutline(int XPosition, int YPosition)
 	return false;
 }
 
-void FEGraphRender::RenderOneColumn(int XPosition)
+void FEGraphRender::RenderOneColumn(int XPosition, ImVec2 WindowPosition)
 {
-	int GraphBottom = Size.y /*- Position.y*/;
-	int ColumnTop = GraphHeightAtPixel(XPosition);
+	int GraphBottom = static_cast<int>(Size.y + Position.y);
 
-	if (abs(GraphBottom - ColumnTop) == 0)
+	if (bCacheIsDirty)
 	{
-		ColumnTop -= 1;
+		int ColumnTop = static_cast<int>(GraphHeightAtPixel(XPosition));
+
+		if (abs(GraphBottom - ColumnTop) == 0)
+		{
+			ColumnTop -= 1;
+		}
+		else if (ColumnTop < Position.y)
+		{
+			ColumnTop = static_cast<int>(Position.y + OutlineThickness + 1);
+		}
+
+		int CurrentIndex = 0;
+		for (int i = GraphBottom; i > ColumnTop; i--)
+		{
+			float CombineFactor = (float(GraphBottom) - float(i)) / (float(GraphBottom) - float(Position.y));
+
+			ImColor FirstPart = ImColor(EndGradientColor.Value.x * CombineFactor,
+				EndGradientColor.Value.y * CombineFactor,
+				EndGradientColor.Value.z * CombineFactor);
+
+			ImColor SecondPart = ImColor(StartGradientColor.Value.x * (1.0f - CombineFactor),
+				StartGradientColor.Value.y * (1.0f - CombineFactor),
+				StartGradientColor.Value.z * (1.0f - CombineFactor));
+
+			ImColor CurrentColor = ImColor(FirstPart.Value.x + SecondPart.Value.x,
+				FirstPart.Value.y + SecondPart.Value.y,
+				FirstPart.Value.z + SecondPart.Value.z);
+
+			// Outline of graph
+			if (ShouldOutline(XPosition, i))
+				CurrentColor = OutlineColor;
+
+			CacheGraph[XPosition][CurrentIndex++] = CurrentColor;
+		}
 	}
-	else if (ColumnTop < Position.y)
+	else
 	{
-		ColumnTop = Position.y + OutlineThickness + 1;
-	}
+		int CurrentIndex = 0;
+		for (int i = GraphBottom; i > Position.y; i--)
+		{
+			ImColor CurrentColor = CacheGraph[XPosition][CurrentIndex++];
 
-	float WindowX = ImGui::GetCurrentWindow()->Pos.x;
-	float WindowY = ImGui::GetCurrentWindow()->Pos.y;
+			if (CurrentColor.Value == ImColor(0.0f, 0.0f, 0.0f, 0.0f).Value)
+				break;
 
-	for (int i = GraphBottom; i > ColumnTop; i--)
-	{
-		float CombineFactor = (float(GraphBottom) - float(i)) / (float(GraphBottom) - float(Position.y));
-
-		ImColor FirstPart = ImColor(EndGradientColor.Value.x * CombineFactor,
-			EndGradientColor.Value.y * CombineFactor,
-			EndGradientColor.Value.z * CombineFactor);
-
-		ImColor SecondPart = ImColor(StartGradientColor.Value.x * (1.0f - CombineFactor),
-			StartGradientColor.Value.y * (1.0f - CombineFactor),
-			StartGradientColor.Value.z * (1.0f - CombineFactor));
-
-		ImColor CurrentColor = ImColor(FirstPart.Value.x + SecondPart.Value.x,
-			FirstPart.Value.y + SecondPart.Value.y,
-			FirstPart.Value.z + SecondPart.Value.z);
-
-		// Outline of graph
-		if (ShouldOutline(XPosition, i))
-			CurrentColor = OutlineColor;
-
-		ImVec2 MinPosition = ImVec2(WindowX + Position.x + XPosition, WindowY + i - 1);
-		ImVec2 MaxPosition = ImVec2(WindowX + Position.x + XPosition + 1, WindowY + i);
-		ImGui::GetWindowDrawList()->AddRectFilled(MinPosition,
-			MaxPosition,
-			CurrentColor);
+			ImVec2 MinPosition = ImVec2(Position.x + XPosition, static_cast<float>(i - 1));
+			ImVec2 MaxPosition = ImVec2(Position.x + XPosition + 1, static_cast<float>(i));
+			ImGui::GetWindowDrawList()->AddRectFilled(WindowPosition + MinPosition,
+													  WindowPosition + MaxPosition,
+													  CurrentColor);
+		}
 	}
 }
 
 void FEGraphRender::Render()
 {
-	for (int i = 0; i < Size.x; i++)
+	ImVec2 WindowPosition = ImVec2(0.0f, 0.0f);
+	ImGuiWindow* CurrentWindow = ImGui::GetCurrentWindow();
+	if (CurrentWindow != nullptr)
+		WindowPosition = CurrentWindow->Pos;
+
+	int SizeX = static_cast<int>(Size.x);
+
+	if (bCacheIsDirty)
 	{
-		RenderOneColumn(i);
+		int SizeY = static_cast<int>(Size.y);
+
+		CacheGraph.clear();
+		CacheGraph.resize(SizeX);
+		
+		for (size_t i = 0; i < SizeX; i++)
+		{
+			CacheGraph[i].resize(SizeY);
+			for (size_t j = 0; j < SizeY; j++)
+			{
+				CacheGraph[i][j] = ImColor(0.0f, 0.0f, 0.0f, 0.0f);
+			}
+		}
+	}
+
+	InputUpdate();
+
+	for (int i = 0; i < SizeX; i++)
+	{
+		RenderOneColumn(i, WindowPosition);
 	}
 
 	RenderBottomLegend();
 
-	// Debug functionality
-	/*ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY) + Position + GraphCanvasPosition,
-											  ImVec2(WindowX, WindowY) + Position + GraphCanvasSize,
-											  ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f, 45.0f / 255.0f));*/
+	bCacheIsDirty = false;
+
+	//ImGuiWindow* CurrentWindow = ImGui::GetCurrentWindow();
+	//if (CurrentWindow != nullptr)
+	//{
+	//	// Debug functionality
+	//	ImGui::GetWindowDrawList()->AddRectFilled(CurrentWindow->Pos + Position + GraphCanvasPosition,
+	//											  CurrentWindow->Pos + Position + Size,
+	//											  ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f, 45.0f / 255.0f));
+	//}
+}
+
+void FEGraphRender::InputUpdate()
+{
+	if (ImGui::IsMouseClicked(0))
+	{
+		ImVec2 MousePosition = ImGui::GetMousePos();
+		ImVec2 LocalMousePosition = MousePosition - ImGui::GetCurrentWindow()->Pos - Position;
+
+		float NormalizedPosition = LocalMousePosition.x / Size.x;
+		if (NormalizedPosition >= 0.0f && NormalizedPosition <= 1.0f)
+		{
+			for (size_t i = 0; i < MouseClickCallbacks.size(); i++)
+			{
+				if (MouseClickCallbacks[i] != nullptr)
+					MouseClickCallbacks[i](NormalizedPosition);
+			}
+		}
+	}
+}
+
+void FEGraphRender::AddMouseClickCallback(std::function<void(float)> Func)
+{
+	MouseClickCallbacks.push_back(Func);
 }
 
 bool FEGraphRender::IsUsingInterpolation()
@@ -742,6 +819,7 @@ bool FEGraphRender::IsUsingInterpolation()
 void FEGraphRender::SetIsUsingInterpolation(bool NewValue)
 {
 	bInterpolation = NewValue;
+	bCacheIsDirty = true;
 }
 
 void FEGraphRender::RenderBottomLegend()
@@ -761,9 +839,10 @@ void FEGraphRender::Clear()
 	bInterpolation = true;
 
 	Legend.Clear();
+	bCacheIsDirty = true;
 }
 
 int FEGraphRender::GetDataPointsCount()
 {
-	return DataPonts.size();
+	return static_cast<int>(DataPonts.size());
 }

@@ -10,13 +10,14 @@ namespace FocalEngine
 	public:
 		SINGLETON_PUBLIC_PART(UIManager)
 
+		FEWindow* MainWindow = nullptr;
+
 		void ShowTransformConfiguration(std::string Name, FETransformComponent* Transform);
 		void ShowCameraTransform();
 
 		void SetCamera(FEBasicCamera* NewCamera);
 
-		void RenderMainWindow();
-		void Render();
+		void Render(bool bScreenshotMode = false);
 
 		bool GetWireFrameMode();
 		void SetWireFrameMode(bool NewValue);
@@ -55,6 +56,12 @@ namespace FocalEngine
 
 		SDF* GetDebugSDF();
 		void UpdateRenderingMode(SDF* SDF, int NewRenderingMode);
+
+		bool ShouldTakeScreenshot();
+		void SetShouldTakeScreenshot(bool NewValue);
+
+		bool ShouldUseTransparentBackground();
+		void SetUseTransparentBackground(bool NewValue);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
 
@@ -74,38 +81,27 @@ namespace FocalEngine
 
 		FEColorRangeAdjuster HeatMapColorRange;
 
-		void RenderLegend();
+		void RenderLegend(bool bScreenshotMode = false);
 		void RenderLayerChooseWindow();
 
-		FEGraphRender Graph;
-		const int StandardGraphBinCount = 128;
-		bool bPixelBins = false;
-		int CurrentBinCount = StandardGraphBinCount;
-		void FillGraphDataPoints(int BinsCount);
-		void RenderHistogram();
-		float FillGraphDataPointsTotalTime = 0.0f;
-		float SetDataPoints = 0.0f;
-		float AreaWithRugositiesTotalTime = 0.0f;
+		FEWeightedHistogram Histogram;
+		FEArrowScroller HistogramSelectRegionMin;
+		FEArrowScroller HistogramSelectRegionMax;
+		bool bHistogramSelectRegionMode = false;
+		bool bHistogramPixelBins = false;
+		void UpdateHistogramData(MeshLayer* FromLayer, int NewBinCount);
+		void RenderHistogramWindow();
 		
 		static void OnJitterCalculationsStart();
-		static void OnRugosityCalculationsStart();
 		static void OnJitterCalculationsEnd(MeshLayer NewLayer);
-		static void OnRugosityCalculationsEnd(MeshLayer NewLayer);
-
-		static void OnVectorDispersionCalculationsEnd(MeshLayer NewLayer);
 
 		bool bOutputSelectionToFile = false;
-
-		void RenderDeveloperModeMainWindow();
-		void RenderUserModeMainWindow();
 
 		bool bShouldOpenAboutWindow = false;
 		void OpenAboutWindow();
 		void RenderAboutWindow();
 
-		static void AfterLayerChange();
-
-		float FindStandardDeviation(std::vector<float> DataPoints);
+		static void OnLayerChange();
 
 		FETexture* AddNewLayerIcon = nullptr;
 		std::vector<std::string> DummyLayers;
@@ -116,11 +112,19 @@ namespace FocalEngine
 		int TotalWidthNeededForLayerList(int ButtonUsed);
 
 		void RenderSettingsWindow();
+		void RenderLayerSettingsTab();
+		void RenderGeneralSettingsTab();
+		void RenderExportTab();
 
-		float AmbientLightFactor = 2.8f;
+		float AmbientLightFactor = 2.2f;
 		int CurrentJitterStepIndexVisualize = 0;
 		SDF* DebugSDF = nullptr;
 		void InitDebugSDF(size_t JitterIndex);
+
+		bool bNextFrameForScreenshot = false;
+		bool bUseTransparentBackground = false;
+
+		bool MeshAndCurrentLayerIsValid();
 	};
 
 	#define UI UIManager::getInstance()

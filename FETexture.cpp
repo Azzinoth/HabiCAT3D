@@ -321,3 +321,30 @@ FETexture* FETexture::LoadPNGTexture(const char* FileName, std::string Name)
 
 	return NewTexture;
 }
+
+unsigned char* FETexture::GetTextureRawData(GLuint TextureID, size_t Width, size_t Height, size_t* RawDataSize)
+{
+	unsigned char* Result = nullptr;
+	if (RawDataSize != nullptr)
+		*RawDataSize = 0;
+
+	if (TextureID == 0)
+		return Result;
+
+	if (Width == 0 || Height == 0)
+		return Result;
+
+	if (Width > 8196 || Height > 8196)
+		return Result;
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, TextureID);
+
+	if (RawDataSize != nullptr)
+		*RawDataSize = Width * Height * 4;
+
+	Result = new unsigned char[Width * Height * 4];
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, Result);
+
+	return Result;
+}

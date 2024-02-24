@@ -99,6 +99,9 @@ void FEModelViewCamera::SetDistanceToModel(double NewValue)
 
 void FEModelViewCamera::MouseScrollInput(const double Xoffset, const double Yoffset)
 {
+	if (!bIsInputActive)
+		return;
+
 	SetDistanceToModel(DistanceToModel + Yoffset * 2.0);
 }
 

@@ -6,7 +6,7 @@ FEBasicCamera* SDF::CurrentCamera = nullptr;
 glm::dvec3 mouseRay(double mouseX, double mouseY, FEBasicCamera* currentCamera)
 {
 	int W, H;
-	APPLICATION.GetWindowSize(&W, &H);
+	APPLICATION.GetMainWindow()->GetSize(&W, &H);
 
 	glm::dvec2 normalizedMouseCoords;
 	normalizedMouseCoords.x = (2.0f * mouseX) / W - 1;
@@ -99,160 +99,21 @@ bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vec
 	return false;
 }
 
-std::vector<triangleData> SDF::GetTrianglesData()
+SDF::SDF() {}
+
+SDF::~SDF()
 {
-	std::vector<triangleData> Result;
-
-	if (MESH_MANAGER.ActiveMesh == nullptr)
-		return Result;
-
-	std::vector<float> FEVertices;
-	FEVertices.resize(MESH_MANAGER.ActiveMesh->getPositionsCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(MESH_MANAGER.ActiveMesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
-
-	std::vector<float> FENormals;
-	FENormals.resize(MESH_MANAGER.ActiveMesh->getPositionsCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(MESH_MANAGER.ActiveMesh->getNormalsBufferID(), 0, sizeof(float) * FENormals.size(), FENormals.data()));
-
-	std::vector<int> FEIndices;
-	FEIndices.resize(MESH_MANAGER.ActiveMesh->getIndicesCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(MESH_MANAGER.ActiveMesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
-
-	for (size_t i = 0; i < FEIndices.size(); i += 3)
-	{
-		int VertexPosition = FEIndices[i] * 3;
-		glm::vec3 FirstVertex = glm::vec3(FEVertices[VertexPosition], FEVertices[VertexPosition + 1], FEVertices[VertexPosition + 2]);
-
-		VertexPosition = FEIndices[i + 1] * 3;
-		glm::vec3 SecondVertex = glm::vec3(FEVertices[VertexPosition], FEVertices[VertexPosition + 1], FEVertices[VertexPosition + 2]);
-
-		VertexPosition = FEIndices[i + 2] * 3;
-		glm::vec3 ThirdVertex = glm::vec3(FEVertices[VertexPosition], FEVertices[VertexPosition + 1], FEVertices[VertexPosition + 2]);
-
-		const glm::vec3 CurrentCentroid = (FirstVertex + SecondVertex + ThirdVertex) / 3.0f;
-
-		// We are taking index of last vertex because all verticies of triangle should have same normal.
-		const glm::vec3 TriangleNormal = glm::vec3(FENormals[VertexPosition], FENormals[VertexPosition + 1], FENormals[VertexPosition + 2]);
-
-		// First triangle side length
-		float FirstSideLength = glm::length(FirstVertex - SecondVertex);
-		float SecondSideLength = glm::length(FirstVertex - ThirdVertex);
-		float ThirdSideLength = glm::length(SecondVertex - ThirdVertex);
-
-		triangleData data;
-		data.centroid = CurrentCentroid;
-		data.normal = TriangleNormal;
-		data.maxSideLength = std::max(std::max(FirstSideLength, SecondSideLength), ThirdSideLength);
-		Result.push_back(data);
-	}
-
-	return Result;
+	Data.clear();
 }
 
-SDF::SDF()
-{
-
-}
-
-//float SDF::GetSignedDistanceForNode(SDFNode* Node)
-//{
-//	float minDistanceToCentroid = FLT_MAX;
-//	int centroidIndex = -1;
-//	glm::vec3 cellCenter = Node->AABB.getCenter();
-//	for (size_t p = 0; p < centroids.size(); p++)
-//	{
-//		float currentDistance = glm::distance(centroids[p].centroid, cellCenter);
-//		if (currentDistance < minDistanceToCentroid)
-//		{
-//			minDistanceToCentroid = currentDistance;
-//			centroidIndex = p;
-//		}
-//	}
-//
-//	if (centroidIndex != -1)
-//	{
-//		glm::vec3 vectorToCentroid = centroids[centroidIndex].centroid - cellCenter;
-//
-//		// Test whether cell is inside or outside of mesh
-//		if (glm::dot(vectorToCentroid, centroids[centroidIndex].normal) >= 0)
-//		{
-//			minDistanceToCentroid = -minDistanceToCentroid;
-//		}
-//
-//		// https://mathinsight.org/distance_point_plane
-//		// Normal of plane
-//		glm::vec3 N = centroids[centroidIndex].normal;
-//		// Point on plane
-//		glm::vec3 C = centroids[centroidIndex].centroid;
-//		glm::vec3 P = cellCenter;
-//
-//		float D = -N.x * C.x - N.y * C.y - N.z * C.z;
-//		float distance = abs(N.x * P.x + N.y * P.y + N.z * P.z + D) / glm::length(N);
-//
-//		// Distance to plane could be a lot greater than distance to triangle
-//		Node->distanceToTrianglePlane = distance;
-//		if (abs(minDistanceToCentroid) > centroids[centroidIndex].maxSideLength / 2.0f)
-//		{
-//			Node->distanceToTrianglePlane = FLT_MAX;
-//			if (minDistanceToCentroid < 0.0f)
-//				minDistanceToCentroid = -minDistanceToCentroid;
-//		}
-//	}
-//
-//	return minDistanceToCentroid;
-//}
-
-SDF::SDF(const int Dimentions, FEAABB AABB)
-{
-	if (Dimentions < 1 || Dimentions > 4096)
-		return;
-
-	// If dimension is not power of 2, we can't continue.
-	if (log2(Dimentions) != static_cast<int>(log2(Dimentions)))
-		return;
-
-	TIME.BeginTimeStamp("SDF Generation");
-
-	const glm::vec3 center = AABB.getCenter();
-	FEAABB SDFAABB = FEAABB(center - glm::vec3(AABB.getSize() / 2.0f), center + glm::vec3(AABB.getSize() / 2.0f));
-
-	Data.resize(Dimentions);
-	for (size_t i = 0; i < Dimentions; i++)
-	{
-		Data[i].resize(Dimentions);
-		for (size_t j = 0; j < Dimentions; j++)
-		{
-			Data[i][j].resize(Dimentions);
-		}
-	}
-
-	const glm::vec3 start = SDFAABB.getMin();
-	const float CellSize = SDFAABB.getSize() / Dimentions;
-
-	for (size_t i = 0; i < Dimentions; i++)
-	{
-		for (size_t j = 0; j < Dimentions; j++)
-		{
-			for (size_t k = 0; k < Dimentions; k++)
-			{
-				glm::vec3 CurrentAABBMin = start + glm::vec3(CellSize * i, CellSize * j, CellSize * k);
-				Data[i][j][k].AABB = FEAABB(CurrentAABBMin, CurrentAABBMin + glm::vec3(CellSize));
-				//float SignedDistance = GetSignedDistanceForNode(&Data[i][j][k]);
-			}
-		}
-	}
-
-	TimeTookToGenerateInMS = static_cast<float>(TIME.EndTimeStamp("SDF Generation"));
-}
-
-int DimensionsToPOWDimentions(const int Dimentions)
+int DimensionsToPOWDimensions(const int Dimensions)
 {
 	for (size_t i = 0; i < 12; i++)
 	{
-		if (Dimentions > pow(2.0, i))
+		if (Dimensions > pow(2.0, i))
 			continue;
 
-		if (Dimentions <= pow(2.0, i))
+		if (Dimensions <= pow(2.0, i))
 			return static_cast<int>(pow(2.0, i));
 	}
 
@@ -265,15 +126,21 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 
 	const glm::vec3 center = AABB.getCenter();
 
-	const int MinDimensions = AABB.getSize() / ResolutionInM;
-	Dimensions = DimensionsToPOWDimentions(MinDimensions);
+	int AdditionalDimensions = 0;
+	Dimensions = 1;
+	if (ResolutionInM > 0)
+	{
+		AdditionalDimensions = 2;
+		const int MinDimensions = static_cast<int>(AABB.getSize() / ResolutionInM);
+		Dimensions = DimensionsToPOWDimensions(MinDimensions) + AdditionalDimensions;
 
-	if (Dimensions < 1 || Dimensions > 4096)
-		return;
+		if (Dimensions < 1 || Dimensions > 4096)
+			return;
+	}
 
 	// If dimensions is not power of 2, we can't continue.
-	if (log2(Dimensions) != static_cast<int>(log2(Dimensions)))
-		return;
+	/*if (log2(Dimensions) != static_cast<int>(log2(Dimensions)))
+		return;*/
 
 	Data.resize(Dimensions);
 	for (size_t i = 0; i < Dimensions; i++)
@@ -286,7 +153,7 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 	}
 
 	FEAABB SDFAABB;
-	if (ResolutionInM != 0.0f)
+	if (ResolutionInM > 0.0f)
 	{
 		SDFAABB = FEAABB(center - glm::vec3(ResolutionInM * Dimensions / 2.0f), center + glm::vec3(ResolutionInM * Dimensions / 2.0f));
 	}
@@ -295,23 +162,31 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 		SDFAABB = FEAABB(center - glm::vec3(AABB.getSize() / 2.0f), center + glm::vec3(AABB.getSize() / 2.0f));
 	}
 
-	const glm::vec3 start = SDFAABB.getMin();
-	const float CellSize = SDFAABB.getSize() / Dimensions;
+	float CellSize;
+	if (ResolutionInM > 0)
+	{
+		CellSize = ResolutionInM;
+	}
+	else
+	{
+		CellSize = SDFAABB.getSize();
+	}
 
+	const glm::vec3 Start = SDFAABB.getMin();
 	for (size_t i = 0; i < Dimensions; i++)
 	{
 		for (size_t j = 0; j < Dimensions; j++)
 		{
 			for (size_t k = 0; k < Dimensions; k++)
 			{
-				glm::vec3 CurrentAABBMin = start + glm::vec3(CellSize * i, CellSize * j, CellSize * k);
+				glm::vec3 CurrentAABBMin = Start + glm::vec3(CellSize * i, CellSize * j, CellSize * k);
 				Data[i][j][k].AABB = FEAABB(CurrentAABBMin, CurrentAABBMin + glm::vec3(CellSize));
 				//float SignedDistance = GetSignedDistanceForNode(&Data[i][j][k]);
 			}
 		}
 	}
 
-	TimeTookToGenerateInMS = TIME.EndTimeStamp("SDF Generation");
+	TimeTakenToGenerateInMS = static_cast<float>(TIME.EndTimeStamp("SDF Generation"));
 }
 
 void SDF::FillCellsWithTriangleInfo()
@@ -324,52 +199,52 @@ void SDF::FillCellsWithTriangleInfo()
 
 	DebugTotalTrianglesInCells = 0;
 
-	for (int l = 0; l < MESH_MANAGER.ActiveMesh->Triangles.size(); l++)
+	for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); l++)
 	{
-		FEAABB TriangleAABB = FEAABB(MESH_MANAGER.ActiveMesh->Triangles[l]);
+		FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
-		int XEnd = Data.size();
+		int XEnd = static_cast<int>(Data.size());
 
-		float distance = sqrt(pow(TriangleAABB.getMin().x - GridMin.x, 2.0));
+		float distance = static_cast<float>(sqrt(pow(TriangleAABB.getMin().x - GridMin.x, 2.0)));
 		int XBegin = static_cast<int>(distance / CellSize) - 1;
 		if (XBegin < 0)
 			XBegin = 0;
 
-		distance = sqrt(pow(TriangleAABB.getMax().x - GridMax.x, 2.0));
+		distance = static_cast<float>(sqrt(pow(TriangleAABB.getMax().x - GridMax.x, 2.0)));
 		XEnd -= static_cast<int>(distance / CellSize);
 		XEnd++;
 		if (XEnd > Data.size())
-			XEnd = Data.size();
+			XEnd = static_cast<int>(Data.size());
 
 		for (size_t i = XBegin; i < XEnd; i++)
 		{
-			int YEnd = Data.size();
+			int YEnd = static_cast<int>(Data.size());
 
-			distance = sqrt(pow(TriangleAABB.getMin().y - GridMin.y, 2.0));
+			distance = static_cast<float>(sqrt(pow(TriangleAABB.getMin().y - GridMin.y, 2.0)));
 			int YBegin = static_cast<int>(distance / CellSize) - 1;
 			if (YBegin < 0)
 				YBegin = 0;
 
-			distance = sqrt(pow(TriangleAABB.getMax().y - GridMax.y, 2.0));
+			distance = static_cast<float>(sqrt(pow(TriangleAABB.getMax().y - GridMax.y, 2.0)));
 			YEnd -= static_cast<int>(distance / CellSize);
 			YEnd++;
 			if (YEnd > Data.size())
-				YEnd = Data.size();
+				YEnd = static_cast<int>(Data.size());
 
 			for (size_t j = YBegin; j < YEnd; j++)
 			{
-				int ZEnd = Data.size();
+				int ZEnd = static_cast<int>(Data.size());
 
-				distance = sqrt(pow(TriangleAABB.getMin().z - GridMin.z, 2.0));
+				distance = static_cast<float>(sqrt(pow(TriangleAABB.getMin().z - GridMin.z, 2.0)));
 				int ZBegin = static_cast<int>(distance / CellSize) - 1;
 				if (ZBegin < 0)
 					ZBegin = 0;
 
-				distance = sqrt(pow(TriangleAABB.getMax().z - GridMax.z, 2.0));
+				distance = static_cast<float>(sqrt(pow(TriangleAABB.getMax().z - GridMax.z, 2.0)));
 				ZEnd -= static_cast<int>(distance / CellSize);
 				ZEnd++;
 				if (ZEnd > Data.size())
-					ZEnd = Data.size();
+					ZEnd = static_cast<int>(Data.size());
 
 				for (size_t k = ZBegin; k < ZEnd; k++)
 				{
@@ -383,7 +258,7 @@ void SDF::FillCellsWithTriangleInfo()
 		}
 	}
 
-	TimeTookFillCellsWithTriangleInfo = TIME.EndTimeStamp("Fill cells with triangle info");
+	TimeTakenFillCellsWithTriangleInfo = static_cast<float>(TIME.EndTimeStamp("Fill cells with triangle info"));
 }
 
 void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 TransformMat)
@@ -433,16 +308,16 @@ void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 T
 		Data[static_cast<int>(SelectedCell.x)][static_cast<int>(SelectedCell.y)][static_cast<int>(SelectedCell.z)].bSelected = true;
 }
 
-void SDF::FillMeshWithRugosityData()
+void SDF::FillMeshWithUserData()
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
-	TIME.BeginTimeStamp("FillMeshWithRugosityData");
+	TIME.BeginTimeStamp("FillMeshWithUserData");
 
 	std::vector<int> TrianglesRugosityCount;
-	TrianglesUserData.resize(MESH_MANAGER.ActiveMesh->Triangles.size());
-	TrianglesRugosityCount.resize(MESH_MANAGER.ActiveMesh->Triangles.size());
+	TrianglesUserData.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
+	TrianglesRugosityCount.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
 
 	for (size_t i = 0; i < Data.size(); i++)
 	{
@@ -465,7 +340,7 @@ void SDF::FillMeshWithRugosityData()
 		TrianglesUserData[i] /= TrianglesRugosityCount[i];
 	}
 
-	TimeTookFillMeshWithRugosityData = TIME.EndTimeStamp("FillMeshWithRugosityData");
+	TimeTakenToFillMeshWithUserData = static_cast<float>(TIME.EndTimeStamp("FillMeshWithUserData"));
 }
 
 void SDF::AddLinesOfSDF()
@@ -517,10 +392,12 @@ void SDF::AddLinesOfSDF()
 
 void SDF::UpdateRenderedLines()
 {
+#ifndef NEW_LINES
 	LINE_RENDERER.clearAll();
 	if (RenderingMode != 0)
 		AddLinesOfSDF();
 	LINE_RENDERER.SyncWithGPU();
+#endif
 }
 
 void SDF::RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func)
@@ -534,8 +411,6 @@ void SDF::RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func)
 		{
 			for (size_t k = 0; k < Data[i][j].size(); k++)
 			{
-				// Delete this line, just for testing
-				//Func(&Data[55][73][65]);
 				Func(&Data[i][j][k]);
 			}
 		}

@@ -13,20 +13,20 @@ namespace FocalEngine
 
 		FETransformComponent combine(FETransformComponent& other);
 
-		glm::vec3 getPosition();
-		glm::vec3 getRotation();
+		glm::vec3 GetPosition();
+		glm::vec3 GetRotation();
 		glm::quat getQuaternion();
-		glm::vec3 getScale();
+		glm::vec3 GetScale();
 
-		void setPosition(glm::vec3 newPosition);
-		void setRotation(glm::vec3 newRotation);
+		void SetPosition(glm::vec3 newPosition);
+		void SetRotation(glm::vec3 newRotation);
 		void rotateByQuaternion(glm::quat quaternion);
-		void setScale(glm::vec3 newScale);
+		void SetScale(glm::vec3 newScale);
 
 		void changeScaleUniformlyBy(float delta);
-		void changeXScaleBy(float delta);
-		void changeYScaleBy(float delta);
-		void changeZScaleBy(float delta);
+		void ChangeXScaleBy(float delta);
+		void ChangeYScaleBy(float delta);
+		void ChangeZScaleBy(float delta);
 
 		glm::mat4 getTransformMatrix();
 		void forceSetTransformMatrix(glm::mat4 newValue);

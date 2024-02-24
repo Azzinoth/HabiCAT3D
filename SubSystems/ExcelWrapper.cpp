@@ -55,7 +55,7 @@ HRESULT ExcelWrapper::AutoWrap(int autoType, VARIANT* pvResult, IDispatch* pDisp
 		return hr;
 
 	if (FAILED(hr)) {
-		sprintf(buf, "IDispatch::GetIDsOfNames(\"%s\") failed w/err 0x%08lx", szName, hr);
+		sprintf_s(buf, "IDispatch::GetIDsOfNames(\"%s\") failed w/err 0x%08lx", szName, hr);
 		MessageBox(nullptr, buf, "AutoWrap()", 0x10010);
 		_exit(0);
 		return hr;
@@ -81,7 +81,7 @@ HRESULT ExcelWrapper::AutoWrap(int autoType, VARIANT* pvResult, IDispatch* pDisp
 	// Make the call!
 	hr = pDisp->Invoke(dispID, IID_NULL, LOCALE_SYSTEM_DEFAULT, autoType, &dp, pvResult, nullptr, nullptr);
 	if (FAILED(hr)) {
-		sprintf(buf, "IDispatch::Invoke(\"%s\"=%08lx) failed w/err 0x%08lx", szName, dispID, hr);
+		sprintf_s(buf, "IDispatch::Invoke(\"%s\"=%08lx) failed w/err 0x%08lx", szName, dispID, hr);
 		MessageBox(nullptr, buf, "AutoWrap()", 0x10010);
 		_exit(0);
 		return hr;
@@ -244,8 +244,8 @@ std::string ExcelWrapper::CellFromPosition(size_t ColumnIndex, size_t Row)
 
 void ExcelWrapper::OutputToExcel(std::vector<std::vector<int>> Data)
 {
-	int DataW = Data.size();
-	int DataH = Data[0].size();
+	int DataW = static_cast<int>(Data.size());
+	int DataH = static_cast<int>(Data[0].size());
 
 	// Start server and get IDispatch...
 	//IDispatch* pXlApp;
@@ -393,8 +393,8 @@ void ExcelWrapper::Test(std::vector<std::vector<int>> Data)
 	if (CurrentExcelApplication == nullptr)
 		return;
 
-	int DataW = Data.size();
-	int DataH = Data[0].size();
+	int DataW = static_cast<int>(Data.size());
+	int DataH = static_cast<int>(Data[0].size());
 
 	// Get Workbooks collection
 	IDispatch* pXlBooks;

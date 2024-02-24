@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.10)
 
 set(BUILD_TYPE "Debug and Release" CACHE STRING "Choose Build type")
 set(CMAKE_BUILD_TYPE Debug)
@@ -60,11 +60,14 @@ file(GLOB SubSystems_SRC
 	"SubSystems/FESDF.h"
 	"SubSystems/JitterManager.cpp"
 	"SubSystems/JitterManager.h"
-	"SubSystems/RugosityManager.cpp"
-	"SubSystems/RugosityManager.h"
+	"SubSystems/SphereVectors.h"
+	"SubSystems/MeshRenderer.cpp"
+	"SubSystems/MeshRenderer.h"
+	"SubSystems/ScreenshotManager.cpp"
+	"SubSystems/ScreenshotManager.h"
 )
 
-file(GLOB Layers_SRC
+file(GLOB SubSystems_Layers_SRC
 	"SubSystems/Layers/HeightLayerProducer.cpp"
 	"SubSystems/Layers/HeightLayerProducer.h"
 	"SubSystems/Layers/AreaLayerProducer.cpp"
@@ -73,10 +76,14 @@ file(GLOB Layers_SRC
 	"SubSystems/Layers/TriangleEdgeLayerProducer.h"
 	"SubSystems/Layers/CompareLayerProducer.cpp"
 	"SubSystems/Layers/CompareLayerProducer.h"
+	"SubSystems/Layers/RugosityLayerProducer.cpp" 
+	"SubSystems/Layers/RugosityLayerProducer.h"
 	"SubSystems/Layers/VectorDispersionLayerProducer.cpp"
 	"SubSystems/Layers/VectorDispersionLayerProducer.h"
 	"SubSystems/Layers/FractalDimensionLayerProducer.cpp"
 	"SubSystems/Layers/FractalDimensionLayerProducer.h"
+	"SubSystems/Layers/TriangleCountLayerProducer.cpp"
+	"SubSystems/Layers/TriangleCountLayerProducer.h"
 	"SubSystems/Layers/LayerManager.cpp"
 	"SubSystems/Layers/LayerManager.h"
 )
@@ -84,10 +91,17 @@ file(GLOB Layers_SRC
 file(GLOB SubSystems_UI_SRC
 	"SubSystems/UI/UIComponents.cpp"
 	"SubSystems/UI/UIComponents.h"
+	"SubSystems/UI/UIWeightedHistogram.cpp"
+	"SubSystems/UI/UIWeightedHistogram.h"
 	"SubSystems/UI/NewLayerWindow.cpp"
 	"SubSystems/UI/NewLayerWindow.h"
 	"SubSystems/UI/UIManager.cpp"
 	"SubSystems/UI/UIManager.h"
+)
+
+file(GLOB SubSystems_ConsoleJobs_SRC
+	"SubSystems/ConsoleJobs/ConsoleJobManager.h"
+	"SubSystems/ConsoleJobs/ConsoleJobManager.cpp"
 )
 
 file(GLOB source_SRC
@@ -100,6 +114,10 @@ file(GLOB source_SRC
 	"FEShader.h"
 	"FETexture.cpp"
 	"FETexture.h"
+	"ComplexityMetricInfo.cpp"
+	"ComplexityMetricInfo.h"
+	"ComplexityMetricManager.cpp"
+	"ComplexityMetricManager.h"
 	"FEMesh.cpp"
 	"FEMesh.h"
 	"main.cpp"
@@ -113,8 +131,9 @@ add_executable(RugosityCalculator WIN32
 								  ${source_SRC}
 								  # *************** SUB_SYSTEM ***************
 								  ${SubSystems_SRC}
-								  ${Layers_SRC}
+								  ${SubSystems_Layers_SRC}
 								  ${SubSystems_UI_SRC}
+								  ${SubSystems_ConsoleJobs_SRC}
 								  # *************** THIRD_PARTY ***************
 								  ${lodepng_SRC}
 								  ${imgui_SRC}
@@ -130,8 +149,9 @@ target_link_libraries(RugosityCalculator opengl32.lib)
 source_group("Source Files" FILES ${source_SRC})
 # *************** SUB_SYSTEM ***************
 source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
-source_group("Source Files/SubSystems/Layers" FILES ${Layers_SRC})
+source_group("Source Files/SubSystems/Layers" FILES ${SubSystems_Layers_SRC})
 source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
+source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJobs_SRC})
 # *************** THIRD_PARTY ***************
 source_group("Source Files/ThirdParty/lodepng" FILES ${lodepng_SRC})
 

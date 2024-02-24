@@ -6,19 +6,20 @@ TriangleEdgeLayerProducer* TriangleEdgeLayerProducer::Instance = nullptr;
 TriangleEdgeLayerProducer::TriangleEdgeLayerProducer() {}
 TriangleEdgeLayerProducer::~TriangleEdgeLayerProducer() {}
 
-MeshLayer TriangleEdgeLayerProducer::Calculate(FEMesh* Mesh, int Mode)
+MeshLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 {
 	MeshLayer Result;
+	Result.SetType(TRIANGLE_EDGE);
 
-	if (Mesh == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return Result;
 
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	for (size_t i = 0; i < Mesh->Triangles.size(); i++)
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
 	{
-		float Edge0Length = glm::distance(Mesh->Triangles[i][0], Mesh->Triangles[i][1]);
-		float Edge1Length = glm::distance(Mesh->Triangles[i][1], Mesh->Triangles[i][2]);
-		float Edge2Length = glm::distance(Mesh->Triangles[i][2], Mesh->Triangles[i][0]);
+		float Edge0Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][0], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][1]);
+		float Edge1Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][1], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][2]);
+		float Edge2Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][2], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][0]);
 
 		if (Mode == 0)
 		{
@@ -38,7 +39,7 @@ MeshLayer TriangleEdgeLayerProducer::Calculate(FEMesh* Mesh, int Mode)
 		}
 	}
 	
-	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangles edge"));
+	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle edge"));
 	Result.DebugInfo = new MeshLayerDebugInfo();
 
 	Result.DebugInfo->AddEntry("Start time", StarTime);
@@ -57,7 +58,7 @@ MeshLayer TriangleEdgeLayerProducer::Calculate(FEMesh* Mesh, int Mode)
 	{
 		ModeUsed = "Mean edge length.";
 	}
-	Result.DebugInfo->AddEntry("Mode: ", ModeUsed);
+	Result.DebugInfo->AddEntry("Mode", ModeUsed);
 
 	return Result;
 }

@@ -154,7 +154,16 @@ namespace FocalEngine
 		float getSize();
 		glm::vec3 getCenter();
 
-		bool IntersectsTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c);
+		//bool IntersectsTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c);
+
+		bool containsPoint(const glm::vec3& point) const
+		{
+			return (point.x >= min.x && point.x <= max.x) &&
+				   (point.y >= min.y && point.y <= max.y) &&
+				   (point.z >= min.z && point.z <= max.z);
+		}
+
+		bool IntersectsTriangle(std::vector<glm::vec3>& triangleVertices);
 
 	private:
 		glm::vec3 min = glm::vec3(0.0f);

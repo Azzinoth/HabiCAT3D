@@ -33,20 +33,20 @@ namespace FocalEngine
 
 	struct FEPlane
 	{
-		glm::vec3 PointOnPlane;
-		glm::vec3 Normal;
+		glm::dvec3 PointOnPlane;
+		glm::dvec3 Normal;
 		float Distance = 0.0f;
 
-		FEPlane(const glm::vec3 PointOnPlane, const glm::vec3 Normal)
+		FEPlane(const glm::dvec3 PointOnPlane, const glm::dvec3 Normal)
 		{
 			this->PointOnPlane = PointOnPlane;
 			this->Normal = Normal;
 
-			// Distance is length of perpendicular from origin to plane.
-			float PlaneD = glm::length(glm::dot(PointOnPlane, Normal));
+			// Distance is the length of the perpendicular line from the origin to the plane.
+			double PlaneD = glm::length(glm::dot(PointOnPlane, Normal));
 		}
 
-		glm::vec3 ProjectPoint(const glm::vec3& Point) const
+		glm::vec3 ProjectPoint(const glm::dvec3& Point) const
 		{
 			// 3D Math Primer, page 719
 			// Plane equation :
@@ -79,12 +79,11 @@ namespace FocalEngine
 		static FEBasicCamera* CurrentCamera;
 
 		std::vector<std::vector<std::vector<SDFNode>>> Data;
-		glm::vec3 AverageNormal;
+		glm::vec3 AverageNormal = glm::vec3(0.0f);
 		glm::vec3 SelectedCell = glm::vec3(-1.0);
 
-		std::vector<triangleData> GetTrianglesData();
 		SDF();
-		SDF(int Dimentions, FEAABB AABB);
+		~SDF();
 
 		void Init(int Dimensions, FEAABB AABB, float ResolutionInM = 0.0f);
 		void FillCellsWithTriangleInfo();
@@ -93,12 +92,12 @@ namespace FocalEngine
 
 		static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
 
-		void FillMeshWithRugosityData();
+		void FillMeshWithUserData();
 
-		float TimeTookToGenerateInMS = 0.0f;
-		float TimeTookFillCellsWithTriangleInfo = 0.0f;
-		float TimeTookCalculateRugosity = 0.0f;
-		float TimeTookFillMeshWithRugosityData = 0.0f;
+		float TimeTakenToGenerateInMS = 0.0f;
+		float TimeTakenFillCellsWithTriangleInfo = 0.0f;
+		float TimeTakenToCalculate = 0.0f;
+		float TimeTakenToFillMeshWithUserData = 0.0f;
 
 		int DebugTotalTrianglesInCells = 0;
 		bool bWeightedNormals = false;
@@ -115,14 +114,6 @@ namespace FocalEngine
 		void UpdateRenderedLines();
 
 		void RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func);
-		//float GetSignedDistanceForNode(SDFNode* Node);
-
-		~SDF()
-		{
-			Data.clear();
-		}
-
-	private:
 		void AddLinesOfSDF();
 	};
 }

@@ -47,6 +47,8 @@ namespace FocalEngine
 		void UpdateRawData(unsigned char* NewRawData, size_t MipCount = 1);
 
 		static FETexture* LoadPNGTexture(const char* FileName, std::string Name = "");
+
+		static unsigned char* GetTextureRawData(GLuint TextureID, size_t Width, size_t Height, size_t* RawDataSize);
 	private:
 		GLuint TextureID = -1;
 		void GetNewGlTextureID();

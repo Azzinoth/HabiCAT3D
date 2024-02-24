@@ -5,8 +5,11 @@ MeshManager* MeshManager::Instance = nullptr;
 
 MeshManager::MeshManager()
 {
-	MeshShader = new FEShader("mainShader", sTestVS, sTestFS);
-	MeshShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
+	if (!APPLICATION.HasConsoleWindow())
+	{
+		MeshShader = new FEShader("mainShader", sTestVS, sTestFS);
+		MeshShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
+	}
 }
 
 MeshManager::~MeshManager() {}
@@ -159,7 +162,7 @@ FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 			objLoader.loadedObjects[0]->matIDs.data(), int(objLoader.loadedObjects[0]->matIDs.size()), int(objLoader.loadedObjects[0]->materialRecords.size()), "");
 	}
 
-	result->fillTrianglesData();
+	COMPLEXITY_METRIC_MANAGER.Init(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fColorsC, objLoader.loadedObjects[0]->fTexC, objLoader.loadedObjects[0]->fTanC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
 
 	return result;
 }
@@ -182,9 +185,9 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 	// version of FEMesh file type
 	File.read(Buffer, 4);
 	const float Version = *(float*)Buffer;
-	if (Version > APP_VERSION)
+	if (Version > APP_VERSION && abs(Version - APP_VERSION) > 0.0001)
 	{
-		LOG.Add(std::string("Can't load file: ") + FileName + " in function LoadRUGMesh. File was created in different version of engine!");
+		LOG.Add(std::string("Can't load file: ") + FileName + " in function LoadRUGMesh. File was created in different version of application!");
 		return nullptr;
 	}
 
@@ -235,6 +238,18 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	for (size_t i = 0; i < Layers.size(); i++)
 	{
+		if (Version >= 0.55)
+		{
+			File.read(Buffer, 4);
+			const int LayerType = *(int*)Buffer;
+			Layers[i].SetType(LAYER_TYPE(LayerType));
+		}
+
+		if (Version >= 0.62)
+		{
+			Layers[i].ForceID(FILE_SYSTEM.ReadFEString(File));
+		}
+
 		Layers[i].SetCaption(FILE_SYSTEM.ReadFEString(File));
 		Layers[i].SetNote(FILE_SYSTEM.ReadFEString(File));
 
@@ -285,6 +300,50 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 		(int*)IndexBuffer, IndexCout,
 		nullptr, 0, 0, "");
 
+	std::vector<double> FEVertices;
+	FEVertices.resize(VertexCount);
+	for (size_t i = 0; i < VertexCount; i++)
+	{
+		FEVertices[i] = ((float*)VertexBuffer)[i];
+	}
+
+	std::vector<float> FEColors;
+	FEColors.resize(ColorCount);
+	for (size_t i = 0; i < ColorCount; i++)
+	{
+		FEColors[i] = ((float*)ColorBuffer)[i];
+	}
+
+	std::vector<float> FEUVs;
+	FEUVs.resize(TexCout);
+	for (size_t i = 0; i < TexCout; i++)
+	{
+		FEUVs[i] = ((float*)TexBuffer)[i];
+	}
+
+	std::vector<float> FETangents;
+	FETangents.resize(TangCout);
+	for (size_t i = 0; i < TangCout; i++)
+	{
+		FETangents[i] = ((float*)TangBuffer)[i];
+	}
+
+	std::vector<int> FEIndices;
+	FEIndices.resize(IndexCout);
+	for (size_t i = 0; i < IndexCout; i++)
+	{
+		FEIndices[i] = ((int*)IndexBuffer)[i];
+	}
+
+	std::vector<float> FENormals;
+	FENormals.resize(NormCout);
+	for (size_t i = 0; i < NormCout; i++)
+	{
+		FENormals[i] = ((float*)NormBuffer)[i];
+	}
+	
+	COMPLEXITY_METRIC_MANAGER.Init(FEVertices, FEColors, FEUVs, FETangents, FEIndices, FENormals);
+
 	delete[] Buffer;
 	delete[] VertexBuffer;
 	delete[] TexBuffer;
@@ -294,11 +353,9 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	NewMesh->AABB = MeshAABB;
 
-	NewMesh->fillTrianglesData();
-
 	for (size_t i = 0; i < Layers.size(); i++)
 	{
-		NewMesh->AddLayer(Layers[i]);
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(Layers[i]);
 	}
 
 	return NewMesh;
@@ -330,7 +387,7 @@ FEMesh* MeshManager::LoadMesh(std::string FileName)
 		return Result;
 	}
 
-	Result->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
 	ActiveMesh = Result;
 
 	for (size_t i = 0; i < ClientLoadCallbacks.size(); i++)
@@ -354,95 +411,5 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 	if (Mesh == nullptr)
 		return;
 
-	std::string FilePath;
-	FILE_SYSTEM.ShowFileSaveDialog(FilePath, RUGOSITY_SAVE_FILE_FILTER, 1);
-
-	if (FilePath.empty())
-		return;
-
-	if (FilePath.find(".rug") == std::string::npos)
-		FilePath += ".rug";
-
-	std::fstream file;
-	file.open(FilePath, std::ios::out | std::ios::binary);
-
-	// Version of FEMesh file type.
-	float version = APP_VERSION;
-	file.write((char*)&version, sizeof(float));
-
-	int Count = Mesh->getPositionsCount();
-	float* Positions = new float[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getPositionsBufferID(), 0, sizeof(float) * Count, Positions));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Positions, sizeof(float) * Count);
-
-	Count = Mesh->getColorCount();
-	float* Colors = new float[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getColorBufferID(), 0, sizeof(float) * Count, Colors));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Colors, sizeof(float) * Count);
-
-	Count = Mesh->getUVCount();
-	float* UV = new float[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getUVBufferID(), 0, sizeof(float) * Count, UV));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)UV, sizeof(float) * Count);
-
-	Count = Mesh->getNormalsCount();
-	float* Normals = new float[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getNormalsBufferID(), 0, sizeof(float) * Count, Normals));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Normals, sizeof(float) * Count);
-
-	Count = Mesh->getTangentsCount();
-	float* Tangents = new float[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getTangentsBufferID(), 0, sizeof(float) * Count, Tangents));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Tangents, sizeof(float) * Count);
-
-	Count = Mesh->getIndicesCount();
-	int* Indices = new int[Count];
-	FE_GL_ERROR(glGetNamedBufferSubData(Mesh->getIndicesBufferID(), 0, sizeof(int) * Count, Indices));
-	file.write((char*)&Count, sizeof(int));
-	file.write((char*)Indices, sizeof(int) * Count);
-
-	Count = Mesh->Layers.size();
-	file.write((char*)&Count, sizeof(int));
-
-	for (size_t i = 0; i < Mesh->Layers.size(); i++)
-	{
-		Count = static_cast<int>(Mesh->Layers[i].GetCaption().size());
-		file.write((char*)&Count, sizeof(int));
-		file.write((char*)Mesh->Layers[i].GetCaption().c_str(), sizeof(char) * Count);
-
-		Count = static_cast<int>(Mesh->Layers[i].GetNote().size());
-		file.write((char*)&Count, sizeof(int));
-		file.write((char*)Mesh->Layers[i].GetNote().c_str(), sizeof(char) * Count);
-
-		Count = Mesh->Layers[i].TrianglesToData.size();
-		file.write((char*)&Count, sizeof(int));
-		file.write((char*)Mesh->Layers[i].TrianglesToData.data(), sizeof(float) * Count);
-
-		Count = Mesh->Layers[i].DebugInfo != nullptr;
-		file.write((char*)&Count, sizeof(int));
-		if (Count)
-			Mesh->Layers[i].DebugInfo->ToFile(file);
-	}
-
-	FEAABB TempAABB(Positions, Mesh->getPositionsCount());
-	file.write((char*)&TempAABB.getMin()[0], sizeof(float));
-	file.write((char*)&TempAABB.getMin()[1], sizeof(float));
-	file.write((char*)&TempAABB.getMin()[2], sizeof(float));
-
-	file.write((char*)&TempAABB.getMax()[0], sizeof(float));
-	file.write((char*)&TempAABB.getMax()[1], sizeof(float));
-	file.write((char*)&TempAABB.getMax()[2], sizeof(float));
-
-	file.close();
-
-	delete[] Positions;
-	delete[] UV;
-	delete[] Normals;
-	delete[] Tangents;
-	delete[] Indices;
+	COMPLEXITY_METRIC_MANAGER.SaveToRUGFileAskForFilePath();
 }

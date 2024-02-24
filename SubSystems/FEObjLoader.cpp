@@ -195,7 +195,7 @@ void FEObjLoader::readFile(const char* fileName)
 	const auto begin = File.tellg();
 	File.seekg(0, std::ios::end);
 	const auto end = File.tellg();
-	const auto fsize = (end - begin);
+	const auto fsize = static_cast<size_t>(end - begin);
 
 	File.seekg(0, 0);
 

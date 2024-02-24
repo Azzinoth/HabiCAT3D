@@ -24,7 +24,7 @@ class FEArrowScroller
 
 	float AvailableRange;
 	float RangePosition = 0.0f;
-	float RangeBottomLimit = 1.0f;
+	//float RangeBottomLimit = 1.0f;
 public:
 	FEArrowScroller(bool Horizontal = true);
 
@@ -102,7 +102,7 @@ public:
 class FEColorRangeAdjuster
 {
 	ImVec2 Position;
-	FEArrowScroller Ceiling;
+	FEArrowScroller Slider;
 
 	ImVec2 RangeSize;
 	ImVec2 RangePosition;
@@ -111,6 +111,7 @@ class FEColorRangeAdjuster
 	static ImVec2 LegendCaptionsPosition(ImVec2 Position, ImVec2 Size, float NormalizedPosition, std::string Caption);
 public:
 	Legend Legend;
+	bool bRenderSlider = true;
 
 	FEColorRangeAdjuster();
 
@@ -120,13 +121,13 @@ public:
 	std::function<ImColor(float)> GetColorRangeFunction();
 	void SetColorRangeFunction(std::function<ImColor(float)> UserFunc);
 
-	float GetCeilingValue();
-	void SetCeilingValue(float NewValue);
+	float GetSliderValue();
+	void SetSliderValue(float NewValue);
 
 	float GetRangeBottomLimit();
 	void SetRangeBottomLimit(float NewValue);
 
-	void Render();
+	void Render(bool bScreenshotMode);
 	void Clear();
 };
 
@@ -155,11 +156,17 @@ class FEGraphRender
 	ImColor OutlineColor = ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f);
 
 	float GraphHeightAtPixel(int PixelX);
-	void RenderOneColumn(int XPosition);
+	void RenderOneColumn(int XPosition, ImVec2 WindowPosition);
 	int OutlineThickness = 2;
 	bool ShouldOutline(int XPosition, int YPosition);
 
 	void RenderBottomLegend();
+
+	void InputUpdate();
+	std::vector<std::function<void(float)>> MouseClickCallbacks;
+
+	std::vector<std::vector<ImColor>> CacheGraph;
+	bool bCacheIsDirty = true;
 public:
 	Legend Legend;
 
@@ -181,4 +188,6 @@ public:
 
 	void Render();
 	void Clear();
+
+	void AddMouseClickCallback(std::function<void(float)> Func);
 };

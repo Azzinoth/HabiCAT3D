@@ -12,15 +12,15 @@ namespace FocalEngine
 {
 #include "SphereVectors.h"
 
-	class RugosityManager
+	class RugosityLayerProducer
 	{
 	public:
-		SINGLETON_PUBLIC_PART(RugosityManager)
+		SINGLETON_PUBLIC_PART(RugosityLayerProducer)
 
 		bool bWeightedNormals = true;
 		bool bNormalizedNormals = true;
 		bool bDeleteOutliers = true;
-		bool bOverlapAware = false;
+		
 		bool bCalculateStandardDeviation = false;
 		std::vector<std::string> OrientationSetNamesForMinRugosityList;
 
@@ -52,13 +52,17 @@ namespace FocalEngine
 
 		std::string GetOrientationSetForMinRugosityName();
 		void SetOrientationSetForMinRugosityName(std::string name);
+
+		bool GetIsUsingUniqueProjectedArea();
+		void SetIsUsingUniqueProjectedArea(bool NewValue);
 	private:
-		SINGLETON_PRIVATE_PART(RugosityManager)
+		SINGLETON_PRIVATE_PART(RugosityLayerProducer)
 
 		int RugosityLayerIndex = 0;
 		bool bUseFindSmallestRugosity = false;
 		bool bUseCGALVariant = false;
 		bool bWaitForJitterResult = false;
+		bool bUniqueProjectedArea = false;
 		std::string OrientationSetForMinRugosity = "91";
 
 		static float LastTimeTookForCalculation;
@@ -74,5 +78,5 @@ namespace FocalEngine
 		uint64_t StartTime;
 	};
 
-	#define RUGOSITY_MANAGER RugosityManager::getInstance()
+	#define RUGOSITY_LAYER_PRODUCER RugosityLayerProducer::getInstance()
 }
