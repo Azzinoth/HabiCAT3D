@@ -1,6 +1,9 @@
 #pragma once
-#include "FEFileSystem.h"
-#include "FEBasicCamera.h"
+
+#include "../FECoreIncludes.h"
+
+//#include "FEFileSystem.h"
+//#include "FEBasicCamera.h"
 
 using namespace FocalEngine;
 
@@ -10,8 +13,8 @@ using namespace FocalEngine;
 //#include <fstream>
 //#include <unordered_map>
 
-namespace FocalEngine
-{
+//namespace FocalEngine
+//{
 //#define FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
 
 	struct materialRecord
@@ -40,7 +43,7 @@ namespace FocalEngine
 		unsigned int faceCount = 0;
 	};
 
-	struct FERawOBJData
+	struct RawOBJData
 	{
 		std::vector<glm::dvec3> rawVertexCoordinates;
 		std::vector<glm::vec3> rawVertexColors;
@@ -65,42 +68,42 @@ namespace FocalEngine
 		std::vector<float> matIDs;
 	};
 
-	class FEResourceManager;
+	//class FEResourceManager;
 
-	class FEObjLoader
+	class ObjLoader
 	{
 		friend FEResourceManager;
 	public:
-		SINGLETON_PUBLIC_PART(FEObjLoader)
+		SINGLETON_PUBLIC_PART(ObjLoader)
 	//private:
-		SINGLETON_PRIVATE_PART(FEObjLoader)
+		SINGLETON_PRIVATE_PART(ObjLoader)
 		
-		std::vector<FERawOBJData*> loadedObjects;
+		std::vector<RawOBJData*> loadedObjects;
 		bool forceOneMesh = false;
 		std::string currentFilePath = "";
 
 		void readFile(const char* fileName);
 
-		void readLine(std::stringstream& lineStream, FERawOBJData* data);
-		void processRawData(FERawOBJData* data);
+		void readLine(std::stringstream& lineStream, RawOBJData* data);
+		void processRawData(RawOBJData* data);
 
 		glm::vec3 calculateNormal(glm::dvec3 v0, glm::dvec3 v1, glm::dvec3 v2);
-		void calculateNormals(FERawOBJData* data);
+		void calculateNormals(RawOBJData* data);
 
 		glm::vec3 calculateTangent(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, std::vector<glm::vec2>&& textures);
-		void calculateTangents(FERawOBJData* data);
+		void calculateTangents(RawOBJData* data);
 
 		std::string materialFileName = "";
 		void readMaterialFile(const char* originalOBJFile);
 		void readMaterialLine(std::stringstream& lineStream);
-		FERawOBJData* currentMaterialObject = nullptr;
+		RawOBJData* currentMaterialObject = nullptr;
 		bool checkCurrentMaterialObject();
 
 		bool haveColors = false;
 		bool haveTextureCoord = false;
 		bool haveNormalCoord = false;
 
-		void NormilizeVertexPositions(FERawOBJData* data);
+		void NormilizeVertexPositions(RawOBJData* data);
 
 #ifdef FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
 		struct vertexThatNeedDoubling
@@ -121,4 +124,4 @@ namespace FocalEngine
 		};
 #endif // FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
 	};
-}
+//}

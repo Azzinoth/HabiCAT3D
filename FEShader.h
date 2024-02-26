@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SubSystems/FEObjLoader.h"
+#include "SubSystems/ObjLoader.h"
 
 #define FE_VERTEX_ATTRIBUTE_POSITION "@In_Position@"
 #define FE_VERTEX_ATTRIBUTE_COLOR "@In_Color@"

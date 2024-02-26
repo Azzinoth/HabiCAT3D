@@ -22,7 +22,7 @@ void ComplexityMetricManager::AddLoadCallback(std::function<void()> Func)
 
 void ComplexityMetricManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
-	FEObjLoader& objLoader = FEObjLoader::getInstance();
+	ObjLoader& objLoader = ObjLoader::getInstance();
 	objLoader.forceOneMesh = bForceOneMesh;
 	objLoader.readFile(FileName);
 
@@ -199,13 +199,13 @@ void ComplexityMetricManager::SaveToRUGFile(std::string FilePath)
 	}
 
 	FEAABB TempAABB(ActiveComplexityMetricInfo->MeshData.Vertices.data(), static_cast<int>(ActiveComplexityMetricInfo->MeshData.Vertices.size()));
-	file.write((char*)&TempAABB.getMin()[0], sizeof(float));
-	file.write((char*)&TempAABB.getMin()[1], sizeof(float));
-	file.write((char*)&TempAABB.getMin()[2], sizeof(float));
+	file.write((char*)&TempAABB.GetMin()[0], sizeof(float));
+	file.write((char*)&TempAABB.GetMin()[1], sizeof(float));
+	file.write((char*)&TempAABB.GetMin()[2], sizeof(float));
 
-	file.write((char*)&TempAABB.getMax()[0], sizeof(float));
-	file.write((char*)&TempAABB.getMax()[1], sizeof(float));
-	file.write((char*)&TempAABB.getMax()[2], sizeof(float));
+	file.write((char*)&TempAABB.GetMax()[0], sizeof(float));
+	file.write((char*)&TempAABB.GetMax()[1], sizeof(float));
+	file.write((char*)&TempAABB.GetMax()[2], sizeof(float));
 
 	file.close();
 }

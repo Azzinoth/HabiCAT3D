@@ -1,4 +1,4 @@
-#include "FEObjLoader.h"
+#include "ObjLoader.h"
 using namespace FocalEngine;
 
 ObjLoader* ObjLoader::Instance = nullptr;
@@ -116,7 +116,7 @@ void ObjLoader::readLine(std::stringstream& lineStream, RawOBJData* data)
 					}
 					else
 					{
-						//LOG.add(std::string("Not texture coordinates was absent in face description in function ObjLoader::readFile."), FE_LOG_ERROR, FE_LOG_LOADING);
+						//LOG.add(std::string("Not texture coordinates was absent in face description in function FEObjLoader::readFile."), FE_LOG_ERROR, FE_LOG_LOADING);
 					}
 				}
 
@@ -187,7 +187,7 @@ void ObjLoader::readFile(const char* fileName)
 
 	if (fileName == nullptr)
 	{
-		//LOG.add(std::string("No file name in function ObjLoader::readFile."), FE_LOG_ERROR, FE_LOG_LOADING);
+		//LOG.add(std::string("No file name in function FEObjLoader::readFile."), FE_LOG_ERROR, FE_LOG_LOADING);
 		return;
 	}
 
@@ -671,7 +671,7 @@ void ObjLoader::readMaterialFile(const char* originalOBJFile)
 
 	if ((file.rdstate() & std::ifstream::failbit) != 0)
 	{
-		//LOG.add(std::string("can't load material file: ") + materialFileFullPath + " in function ObjLoader::readMaterialFile.", FE_LOG_ERROR, FE_LOG_LOADING);
+		//LOG.add(std::string("can't load material file: ") + materialFileFullPath + " in function FEObjLoader::readMaterialFile.", FE_LOG_ERROR, FE_LOG_LOADING);
 		return;
 	}
 
@@ -694,13 +694,13 @@ bool ObjLoader::checkCurrentMaterialObject()
 {
 	if (currentMaterialObject == nullptr)
 	{
-		//LOG.add(std::string("currentMaterialObject is nullptr in function ObjLoader::readMaterialLine.", FE_LOG_ERROR, FE_LOG_LOADING));
+		//LOG.add(std::string("currentMaterialObject is nullptr in function FEObjLoader::readMaterialLine.", FE_LOG_ERROR, FE_LOG_LOADING));
 		return false;
 	}
 
 	if (currentMaterialObject->materialRecords.size() < 1)
 	{
-		//LOG.add(std::string("materialRecords is empty in function ObjLoader::readMaterialLine.", FE_LOG_ERROR, FE_LOG_LOADING));
+		//LOG.add(std::string("materialRecords is empty in function FEObjLoader::readMaterialLine.", FE_LOG_ERROR, FE_LOG_LOADING));
 		return false;
 	}
 
@@ -763,7 +763,7 @@ void ObjLoader::readMaterialLine(std::stringstream& lineStream)
 			}
 		}
 		
-		//LOG.add(std::string("can't find material: ") + materialName + " from material file in function ObjLoader::readMaterialLine.", FE_LOG_ERROR, FE_LOG_LOADING);
+		//LOG.add(std::string("can't find material: ") + materialName + " from material file in function FEObjLoader::readMaterialLine.", FE_LOG_ERROR, FE_LOG_LOADING);
 	}
 	// The diffuse texture map.
 	else if (sTemp.find("map_kd") != std::string::npos)

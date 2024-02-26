@@ -27,9 +27,9 @@ void JitterManager::OnMeshUpdate()
 {
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
-	FEAABB FinalAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.transform(TransformMatrix);
+	FEAABB FinalAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.Transform(TransformMatrix);
 
-	const float MaxMeshAABBSize = FinalAABB.getSize();
+	const float MaxMeshAABBSize = FinalAABB.GetSize();
 
 	JITTER_MANAGER.LowestPossibleResolution = MaxMeshAABBSize / 120;
 	JITTER_MANAGER.HigestPossibleResolution = MaxMeshAABBSize / 9;
@@ -383,8 +383,8 @@ void JitterManager::RunCalculationOnWholeModel(SDF* ResultSDF)
 {
 	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
 
-	const glm::vec3 Center = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.getCenter() ;
-	const FEAABB SDFAABB = FEAABB(Center - glm::vec3(MeshAABB.getSize() / 2.0f), Center + glm::vec3(MeshAABB.getSize() / 2.0f));
+	const glm::vec3 Center = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.GetCenter() ;
+	const FEAABB SDFAABB = FEAABB(Center - glm::vec3(MeshAABB.GetSize() / 2.0f), Center + glm::vec3(MeshAABB.GetSize() / 2.0f));
 	MeshAABB = SDFAABB;
 
 	ResultSDF->Init(0, MeshAABB, -1);
@@ -500,10 +500,10 @@ FEAABB JitterManager::GetAABBForJitteredSDF(SDFInitData_Jitter* Settings, float 
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
 	TransformMatrix = glm::translate(TransformMatrix, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetPosition());
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(Settings->GridScale));
-	FinalAABB = FinalAABB.transform(TransformMatrix);
+	FinalAABB = FinalAABB.Transform(TransformMatrix);
 
-	const glm::vec3 Center = MeshAABB.getCenter() + glm::vec3(Settings->ShiftX, Settings->ShiftY, Settings->ShiftZ) * CurrentResolutionInM;
-	const FEAABB SDFAABB = FEAABB(Center - glm::vec3(FinalAABB.getSize() / 2.0f), Center + glm::vec3(FinalAABB.getSize() / 2.0f));
+	const glm::vec3 Center = MeshAABB.GetCenter() + glm::vec3(Settings->ShiftX, Settings->ShiftY, Settings->ShiftZ) * CurrentResolutionInM;
+	const FEAABB SDFAABB = FEAABB(Center - glm::vec3(FinalAABB.GetSize() / 2.0f), Center + glm::vec3(FinalAABB.GetSize() / 2.0f));
 	FinalAABB = SDFAABB;
 
 	return FinalAABB;

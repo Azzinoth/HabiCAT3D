@@ -22,7 +22,7 @@ UIManager::UIManager()
 	MESH_MANAGER.AddLoadCallback(UIManager::OnMeshUpdate);
 	LAYER_MANAGER.AddActiveLayerChangedCallback(UIManager::OnLayerChange);
 
-	AddNewLayerIcon = FETexture::LoadPNGTexture("Resources/AddNewLayer.png");
+	AddNewLayerIcon = RESOURCE_MANAGER.LoadPNGTexture("Resources/AddNewLayer.png");
 }
 
 UIManager::~UIManager() {}
@@ -88,7 +88,8 @@ void UIManager::ShowTransformConfiguration(const std::string Name, FETransformCo
 	Transform->SetRotation(rotation);
 
 	// ********************* SCALE *********************
-	ImGui::Checkbox("Uniform scaling", &Transform->uniformScaling);
+	// FIX ME
+	//ImGui::Checkbox("Uniform scaling", &Transform->uniformScaling);
 	glm::vec3 scale = Transform->GetScale();
 	ImGui::Text("Scale : ");
 	ImGui::SameLine();
@@ -114,7 +115,7 @@ void UIManager::ShowCameraTransform()
 	if (!bModelCamera)
 	{
 		// ********* POSITION *********
-		glm::vec3 cameraPosition = CurrentCamera->GetPosition();
+		glm::vec3 cameraPosition = ENGINE.GetCamera()->GetPosition();
 
 		ImGui::Text("Position : ");
 		ImGui::SameLine();
@@ -129,7 +130,7 @@ void UIManager::ShowCameraTransform()
 		ImGui::SetNextItemWidth(70);
 		ImGui::DragFloat("##Z pos", &cameraPosition[2], 0.1f);
 
-		CurrentCamera->SetPosition(cameraPosition);
+		ENGINE.GetCamera()->SetPosition(cameraPosition);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
@@ -146,7 +147,7 @@ void UIManager::ShowCameraTransform()
 		}
 
 		// ********* ROTATION *********
-		glm::vec3 CameraRotation = glm::vec3(CurrentCamera->GetYaw(), CurrentCamera->GetPitch(), CurrentCamera->GetRoll());
+		glm::vec3 CameraRotation = glm::vec3(ENGINE.GetCamera()->GetYaw(), ENGINE.GetCamera()->GetPitch(), ENGINE.GetCamera()->GetRoll());
 
 		ImGui::Text("Rotation : ");
 		ImGui::SameLine();
@@ -168,9 +169,9 @@ void UIManager::ShowCameraTransform()
 			APPLICATION.SetClipboardText(CameraRotationToStr());
 		}
 
-		CurrentCamera->SetYaw(CameraRotation[0]);
-		CurrentCamera->SetPitch(CameraRotation[1]);
-		CurrentCamera->SetRoll(CameraRotation[2]);
+		ENGINE.GetCamera()->SetYaw(CameraRotation[0]);
+		ENGINE.GetCamera()->SetPitch(CameraRotation[1]);
+		ENGINE.GetCamera()->SetRoll(CameraRotation[2]);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
@@ -179,14 +180,14 @@ void UIManager::ShowCameraTransform()
 			StrToCameraRotation(APPLICATION.GetClipboardText());
 		}
 
-		float CameraSpeed = CurrentCamera->GetMovementSpeed();
+		float CameraSpeed = ENGINE.GetCamera()->GetMovementSpeed();
 		ImGui::Text("Camera speed: ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(70);
 		ImGui::DragFloat("##Camera_speed", &CameraSpeed, 0.01f, 0.01f, 100.0f);
-		CurrentCamera->SetMovementSpeed(CameraSpeed);
+		ENGINE.GetCamera()->SetMovementSpeed(CameraSpeed);
 
-		CurrentCamera->UpdateViewMatrix();
+		ENGINE.GetCamera()->UpdateViewMatrix();
 
 		if (bDeveloperMode)
 		{
@@ -220,7 +221,6 @@ void UIManager::ShowCameraTransform()
 void UIManager::SetCamera(FEBasicCamera* NewCamera)
 {
 	CurrentCamera = NewCamera;
-	SDF::CurrentCamera = CurrentCamera;
 }
 
 bool UIManager::GetWireFrameMode()
@@ -484,8 +484,9 @@ void UIManager::StrToCameraRotation(std::string Text)
 
 void UIManager::OnMeshUpdate()
 {
-	LINE_RENDERER.clearAll();
-	LINE_RENDERER.SyncWithGPU();
+	// FIX ME
+	//LINE_RENDERER.clearAll();
+	//LINE_RENDERER.SyncWithGPU();
 
 	UI.Histogram.Clear();
 	UI.HeatMapColorRange.Clear();
@@ -914,17 +915,12 @@ void UIManager::RenderLayerChooseWindow()
 	ImGui::End();
 }
 
-bool UIManager::GetIsModelCamera()
-{
-	return bModelCamera;
-}
-
 void UIManager::SetIsModelCamera(const bool NewValue)
 {
 	SwapCameraImpl(NewValue);
 
 	CurrentCamera->Reset();
-	CurrentCamera->SetFarPlane(MESH_MANAGER.ActiveMesh->AABB.getSize() * 5.0f);
+	CurrentCamera->SetFarPlane(MESH_MANAGER.ActiveMesh->GetAABB().GetSize() * 5.0f);
 
 	int MainWindowW = 0;
 	int MainWindowH = 0;
@@ -934,16 +930,16 @@ void UIManager::SetIsModelCamera(const bool NewValue)
 	if (NewValue)
 	{
 		FEModelViewCamera* ModelCamera = reinterpret_cast<FEModelViewCamera*>(CurrentCamera);
-		ModelCamera->SetDistanceToModel(MESH_MANAGER.ActiveMesh->AABB.getSize() * 1.5f);
+		ModelCamera->SetDistanceToModel(MESH_MANAGER.ActiveMesh->GetAABB().GetSize() * 1.5f);
 	}
 	else
 	{
-		CurrentCamera->SetPosition(glm::vec3(0.0f, 0.0f, MESH_MANAGER.ActiveMesh->AABB.getSize() * 1.5f));
+		CurrentCamera->SetPosition(glm::vec3(0.0f, 0.0f, MESH_MANAGER.ActiveMesh->GetAABB().GetSize() * 1.5f));
 		CurrentCamera->SetYaw(0.0f);
 		CurrentCamera->SetPitch(0.0f);
 		CurrentCamera->SetRoll(0.0f);
 
-		CurrentCamera->SetMovementSpeed(MESH_MANAGER.ActiveMesh->AABB.getSize() / 5.0f);
+		CurrentCamera->SetMovementSpeed(MESH_MANAGER.ActiveMesh->GetAABB().GetSize() / 5.0f);
 	}
 
 	bModelCamera = NewValue;
@@ -1291,7 +1287,8 @@ void UIManager::OnLayerChange()
 
 		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
-		MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+		// FIX ME
+		//MESH_MANAGER.ActiveMesh->HeatMapType = 5;
 		UI.HeatMapColorRange.SetColorRangeFunction(TurboColorMapValue);
 		UI.HeatMapColorRange.bRenderSlider = true;
 	
@@ -1301,7 +1298,8 @@ void UIManager::OnLayerChange()
 		if (CurrentLayer->GetType() == COMPARE)
 		{
 			UI.HeatMapColorRange.SetColorRangeFunction(CompareColormapValue);
-			MESH_MANAGER.ActiveMesh->HeatMapType = 6;
+			// FIX ME
+			//MESH_MANAGER.ActiveMesh->HeatMapType = 6;
 
 			UI.HeatMapColorRange.bRenderSlider = false;
 			UI.HeatMapColorRange.SetSliderValue(1.0f);
@@ -1322,7 +1320,8 @@ void UIManager::OnLayerChange()
 	}
 	else
 	{
-		MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+		// FIX ME
+		//MESH_MANAGER.ActiveMesh->HeatMapType = -1;
 	}
 
 	if (UI.GetDebugSDF() != nullptr)
@@ -1450,7 +1449,8 @@ void UIManager::RenderLayerSettingsTab()
 
 		ImGui::Text("Triangle count: ");
 		ImGui::SameLine();
-		ImGui::Text(std::to_string(MESH_MANAGER.ActiveMesh->getTriangleCount()).c_str());
+		// FIX ME
+		//ImGui::Text(std::to_string(MESH_MANAGER.ActiveMesh->GetTriangleCount()).c_str());
 
 		ImGui::Text((std::string("ID: ") + Layer->GetID()).c_str());
 		static char CurrentLayerCaption[1024];
@@ -1708,22 +1708,25 @@ void UIManager::RenderExportTab()
 	if (ImGui::RadioButton("None", &LayerSelectionMode, 0))
 	{
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
-		LINE_RENDERER.SyncWithGPU();
+		// FIX ME
+		//LINE_RENDERER.clearAll();
+		//LINE_RENDERER.SyncWithGPU();
 	}
 
 	if (ImGui::RadioButton("Triangles", &LayerSelectionMode, 1))
 	{
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
-		LINE_RENDERER.SyncWithGPU();
+		// FIX ME
+		//LINE_RENDERER.clearAll();
+		//LINE_RENDERER.SyncWithGPU();
 	}
 
 	if (ImGui::RadioButton("Area", &LayerSelectionMode, 2))
 	{
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
-		LINE_RENDERER.SyncWithGPU();
+		// FIX ME
+		//LINE_RENDERER.clearAll();
+		//LINE_RENDERER.SyncWithGPU();
 	}
 
 	if (LayerSelectionMode == 2)

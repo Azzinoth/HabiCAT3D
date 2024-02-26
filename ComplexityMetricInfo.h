@@ -1,8 +1,9 @@
 #pragma once
 
-#include "SubSystems/FEFileSystem.h"
-#include "SubSystems/FEGeometricTools.h"
-#include "SubSystems/FETransformComponent.h"
+#include "FECoreIncludes.h"
+//#include "SubSystems/FEFileSystem.h"
+//#include "SubSystems/FEGeometricTools.h"
+//#include "SubSystems/FETransformComponent.h"
 
 namespace FocalEngine
 {

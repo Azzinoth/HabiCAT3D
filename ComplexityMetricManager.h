@@ -2,7 +2,7 @@
 #include "ComplexityMetricInfo.h"
 using namespace FocalEngine;
 
-#include "SubSystems/FEObjLoader.h"
+#include "SubSystems/ObjLoader.h"
 
 #define APP_VERSION 0.62f
 

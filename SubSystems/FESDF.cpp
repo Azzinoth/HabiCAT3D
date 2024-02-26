@@ -1,8 +1,6 @@
 #include "FESDF.h"
 using namespace FocalEngine;
 
-FEBasicCamera* SDF::CurrentCamera = nullptr;
-
 glm::dvec3 mouseRay(double mouseX, double mouseY, FEBasicCamera* currentCamera)
 {
 	int W, H;
@@ -124,14 +122,14 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 {
 	TIME.BeginTimeStamp("SDF Generation");
 
-	const glm::vec3 center = AABB.getCenter();
+	const glm::vec3 center = AABB.GetCenter();
 
 	int AdditionalDimensions = 0;
 	Dimensions = 1;
 	if (ResolutionInM > 0)
 	{
 		AdditionalDimensions = 2;
-		const int MinDimensions = static_cast<int>(AABB.getSize() / ResolutionInM);
+		const int MinDimensions = static_cast<int>(AABB.GetSize() / ResolutionInM);
 		Dimensions = DimensionsToPOWDimensions(MinDimensions) + AdditionalDimensions;
 
 		if (Dimensions < 1 || Dimensions > 4096)
@@ -159,7 +157,7 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 	}
 	else
 	{
-		SDFAABB = FEAABB(center - glm::vec3(AABB.getSize() / 2.0f), center + glm::vec3(AABB.getSize() / 2.0f));
+		SDFAABB = FEAABB(center - glm::vec3(AABB.GetSize() / 2.0f), center + glm::vec3(AABB.GetSize() / 2.0f));
 	}
 
 	float CellSize;
@@ -169,10 +167,10 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 	}
 	else
 	{
-		CellSize = SDFAABB.getSize();
+		CellSize = SDFAABB.GetSize();
 	}
 
-	const glm::vec3 Start = SDFAABB.getMin();
+	const glm::vec3 Start = SDFAABB.GetMin();
 	for (size_t i = 0; i < Dimensions; i++)
 	{
 		for (size_t j = 0; j < Dimensions; j++)
@@ -193,9 +191,9 @@ void SDF::FillCellsWithTriangleInfo()
 {
 	TIME.BeginTimeStamp("Fill cells with triangle info");
 
-	const float CellSize = Data[0][0][0].AABB.getSize();
-	const glm::vec3 GridMin = Data[0][0][0].AABB.getMin();
-	const glm::vec3 GridMax = Data[Data.size() - 1][Data.size() - 1][Data.size() - 1].AABB.getMax();
+	const float CellSize = Data[0][0][0].AABB.GetSize();
+	const glm::vec3 GridMin = Data[0][0][0].AABB.GetMin();
+	const glm::vec3 GridMax = Data[Data.size() - 1][Data.size() - 1][Data.size() - 1].AABB.GetMax();
 
 	DebugTotalTrianglesInCells = 0;
 
@@ -205,12 +203,12 @@ void SDF::FillCellsWithTriangleInfo()
 
 		int XEnd = static_cast<int>(Data.size());
 
-		float distance = static_cast<float>(sqrt(pow(TriangleAABB.getMin().x - GridMin.x, 2.0)));
+		float distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().x - GridMin.x, 2.0)));
 		int XBegin = static_cast<int>(distance / CellSize) - 1;
 		if (XBegin < 0)
 			XBegin = 0;
 
-		distance = static_cast<float>(sqrt(pow(TriangleAABB.getMax().x - GridMax.x, 2.0)));
+		distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().x - GridMax.x, 2.0)));
 		XEnd -= static_cast<int>(distance / CellSize);
 		XEnd++;
 		if (XEnd > Data.size())
@@ -220,12 +218,12 @@ void SDF::FillCellsWithTriangleInfo()
 		{
 			int YEnd = static_cast<int>(Data.size());
 
-			distance = static_cast<float>(sqrt(pow(TriangleAABB.getMin().y - GridMin.y, 2.0)));
+			distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().y - GridMin.y, 2.0)));
 			int YBegin = static_cast<int>(distance / CellSize) - 1;
 			if (YBegin < 0)
 				YBegin = 0;
 
-			distance = static_cast<float>(sqrt(pow(TriangleAABB.getMax().y - GridMax.y, 2.0)));
+			distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().y - GridMax.y, 2.0)));
 			YEnd -= static_cast<int>(distance / CellSize);
 			YEnd++;
 			if (YEnd > Data.size())
@@ -235,12 +233,12 @@ void SDF::FillCellsWithTriangleInfo()
 			{
 				int ZEnd = static_cast<int>(Data.size());
 
-				distance = static_cast<float>(sqrt(pow(TriangleAABB.getMin().z - GridMin.z, 2.0)));
+				distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().z - GridMin.z, 2.0)));
 				int ZBegin = static_cast<int>(distance / CellSize) - 1;
 				if (ZBegin < 0)
 					ZBegin = 0;
 
-				distance = static_cast<float>(sqrt(pow(TriangleAABB.getMax().z - GridMax.z, 2.0)));
+				distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().z - GridMax.z, 2.0)));
 				ZEnd -= static_cast<int>(distance / CellSize);
 				ZEnd++;
 				if (ZEnd > Data.size())
@@ -263,9 +261,6 @@ void SDF::FillCellsWithTriangleInfo()
 
 void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 TransformMat)
 {
-	if (CurrentCamera == nullptr)
-		return;
-
 	SelectedCell = glm::vec3(-1.0);
 
 	for (size_t i = 0; i < Data.size(); i++)
@@ -291,8 +286,9 @@ void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 T
 				if (!Data[i][j][k].bWasRenderedLastFrame)
 					continue;
 
-				FEAABB FinalAABB = Data[i][j][k].AABB.transform(TransformMat).transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
-				if (FinalAABB.rayIntersect(CurrentCamera->GetPosition(), mouseRay(MouseX, MouseY, CurrentCamera), DistanceToCell))
+				// FIX ME
+				FEAABB FinalAABB = Data[i][j][k].AABB/*.Transform(TransformMat).Transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix())*/;
+				if (FinalAABB.RayIntersect(ENGINE.GetCamera()->GetPosition(), mouseRay(MouseX, MouseY, ENGINE.GetCamera()), DistanceToCell))
 				{
 					if (LastDistanceToCell > DistanceToCell)
 					{
@@ -363,7 +359,8 @@ void SDF::AddLinesOfSDF()
 					if (Data[i][j][k].bSelected)
 						color = glm::vec3(0.9f, 0.1f, 0.1f);
 
-					LINE_RENDERER.RenderAABB(Data[i][j][k].AABB.transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix()), color);
+					// FIX ME
+					//LINE_RENDERER.RenderAABB(Data[i][j][k].AABB.Transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix()), color);
 
 					Data[i][j][k].bWasRenderedLastFrame = true;
 
@@ -393,10 +390,12 @@ void SDF::AddLinesOfSDF()
 void SDF::UpdateRenderedLines()
 {
 #ifndef NEW_LINES
-	LINE_RENDERER.clearAll();
+	// FIX ME
+	//LINE_RENDERER.clearAll();
 	if (RenderingMode != 0)
 		AddLinesOfSDF();
-	LINE_RENDERER.SyncWithGPU();
+	// FIX ME
+	//LINE_RENDERER.SyncWithGPU();
 #endif
 }
 

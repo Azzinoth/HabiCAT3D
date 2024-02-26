@@ -7,7 +7,7 @@ set(CMAKE_CONFIGURATION_TYPES Debug Release)
 # set the project name
 project(RugosityCalculator LANGUAGES CXX)
 
-set(CMAKE_CXX_FLAGS_DEBUG "/MP /Zi /INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF /Od")
+set(CMAKE_CXX_FLAGS_DEBUG "/MP /Zi /MDd /INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF /Od")
 set(CMAKE_CXX_FLAGS_RELEASE "/MP")
 
 # Because of we are catching CGAL exceptions in the loop, we need to enable this flag
@@ -20,8 +20,12 @@ endif()
 # defined projects like INSTALL.vcproj and ZERO_CHECK.vcproj
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if(NOT TARGET FEBasicApplication)
-  add_subdirectory(SubSystems/FEBasicApplication)
+#if(NOT TARGET FEBasicApplication)
+#  add_subdirectory(SubSystems/FEBasicApplication)
+#endif()
+
+if(NOT TARGET FocalEngine)
+	add_subdirectory(SubSystems/FocalEngine)
 endif()
 
 # *************** THIRD_PARTY ***************
@@ -34,26 +38,14 @@ file(GLOB lodepng_SRC
 # *************** SUB_SYSTEM ***************
 
 file(GLOB SubSystems_SRC
-	"SubSystems/FEObjLoader.h"
-	"SubSystems/FEObjLoader.cpp"
-	"SubSystems/FEBasicCamera.h"
-	"SubSystems/FEBasicCamera.cpp"
-	"SubSystems/FEFreeCamera.h"
-	"SubSystems/FEFreeCamera.cpp"
-	"SubSystems/FEModelViewCamera.h"
-	"SubSystems/FEModelViewCamera.cpp"
-	"SubSystems/FEFileSystem.cpp"
-	"SubSystems/FEFileSystem.h"
-	"SubSystems/FETransformComponent.cpp"
-	"SubSystems/FETransformComponent.h"
+	"SubSystems/ObjLoader.h"
+	"SubSystems/ObjLoader.cpp"
 	"SubSystems/FECGALWrapper.cpp"
 	"SubSystems/FECGALWrapper.h"
 	"SubSystems/ExcelWrapper.cpp"
 	"SubSystems/ExcelWrapper.h"
-	"SubSystems/FEGeometricTools.cpp"
-	"SubSystems/FEGeometricTools.h"
-	"SubSystems/FELinesRenderer.cpp"
-	"SubSystems/FELinesRenderer.h"
+	#"SubSystems/FELinesRenderer.cpp"
+	#"SubSystems/FELinesRenderer.h"
 	"SubSystems/MeshManager.cpp"
 	"SubSystems/MeshManager.h"
 	"SubSystems/FESDF.cpp"
@@ -106,20 +98,20 @@ file(GLOB SubSystems_ConsoleJobs_SRC
 
 file(GLOB source_SRC
 	"FECoreIncludes.h"
-	"FEFileSystem.cpp"
-	"FEFileSystem.h"
-	"FEObject.cpp"
-	"FEObject.h"
-	"FEShader.cpp"
-	"FEShader.h"
-	"FETexture.cpp"
-	"FETexture.h"
+	#"FEFileSystem.cpp"
+	#"FEFileSystem.h"
+	#"FEObject.cpp"
+	#"FEObject.h"
+	#"FEShader.cpp"
+	#"FEShader.h"
+	#"FETexture.cpp"
+	#"FETexture.h"
 	"ComplexityMetricInfo.cpp"
 	"ComplexityMetricInfo.h"
 	"ComplexityMetricManager.cpp"
 	"ComplexityMetricManager.h"
-	"FEMesh.cpp"
-	"FEMesh.h"
+	#"FEMesh.cpp"
+	#"FEMesh.h"
 	"main.cpp"
 )
 
@@ -139,12 +131,13 @@ add_executable(RugosityCalculator WIN32
 								  ${imgui_SRC}
 )
 
-target_link_libraries(RugosityCalculator FEBasicApplication)
+#target_link_libraries(RugosityCalculator FEBasicApplication)
+target_link_libraries(RugosityCalculator PRIVATE FocalEngine)
 
-target_link_libraries(RugosityCalculator glew32s.lib)
-target_link_libraries(RugosityCalculator glfw3.lib)
-target_link_libraries(RugosityCalculator glfw3dll.lib)
-target_link_libraries(RugosityCalculator opengl32.lib)
+#target_link_libraries(RugosityCalculator glew32s.lib)
+#target_link_libraries(RugosityCalculator glfw3.lib)
+#target_link_libraries(RugosityCalculator glfw3dll.lib)
+#target_link_libraries(RugosityCalculator opengl32.lib)
 
 source_group("Source Files" FILES ${source_SRC})
 # *************** SUB_SYSTEM ***************
@@ -161,5 +154,8 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT R
 include_directories(
 	${GLEW_INCLUDE_DIR}
 	${BASICAPP_THIRDPARTY_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}/SubSystems/FocalEngine/SubSystems/FEBasicApplication/ThirdParty/imgui
+	${BASICAPP_DIR}
+	${FOCAL_ENGINE_THIRD_PARTY_DIR}
 	"ThirdParty/"
 )

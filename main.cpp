@@ -4,7 +4,6 @@ using namespace FocalEngine;
 #include <windows.h>
 #include <psapi.h>
 
-//glm::vec4 ClearColor = glm::vec4(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 1.0f);
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
 FEBasicCamera* CurrentCamera = nullptr;
 
@@ -14,12 +13,22 @@ void SwapCamera(bool bModelCamera)
 
 	if (bModelCamera)
 	{
+		FEModelViewCamera* NewCamera = new FEModelViewCamera("New ModelViewCamera");
+		NewCamera->SetAspectRatio(static_cast<float>(ENGINE.GetRenderTargetWidth()) / static_cast<float>(ENGINE.GetRenderTargetHeight()));
+
+		//glm::vec3 Position = MESH_MANAGER.ActiveEntity->Transform.GetPosition();
+		
+		NewCamera->SetTrackingObjectPosition(glm::vec3(0.0f)/*MESH_MANAGER.ActiveMesh->GetAABB().GetCenter() + Position*/);
+		ENGINE.SetCamera(NewCamera);
+
 		CurrentCamera = new FEModelViewCamera("mainCamera");
 	}
 	else
 	{
 		CurrentCamera = new FEFreeCamera("mainCamera");
 	}
+
+	ENGINE.GetCamera()->SetIsInputActive(false);
 	CurrentCamera->SetIsInputActive(false);
 
 	UI.SetCamera(CurrentCamera);
@@ -47,34 +56,6 @@ glm::dvec3 mouseRay(double mouseX, double mouseY)
 	return worldRay;
 }
 
-void renderTargetCenterForCamera()
-{
-	int centerX, centerY = 0;
-	int shiftX, shiftY = 0;
-
-	int xpos, ypos;
-	UI.MainWindow->GetPosition(&xpos, &ypos);
-	
-	int windowW, windowH = 0;
-	UI.MainWindow->GetSize(&windowW, &windowH);
-	centerX = xpos + (windowW / 2);
-	centerY = ypos + (windowH / 2);
-
-	shiftX = xpos;
-	shiftY = ypos;
-
-	if (!UI.GetIsModelCamera())
-	{
-		FEFreeCamera* FreeCamera = reinterpret_cast<FEFreeCamera*>(CurrentCamera);
-
-		FreeCamera->SetRenderTargetCenterX(centerX);
-		FreeCamera->SetRenderTargetCenterY(centerY);
-
-		FreeCamera->SetRenderTargetShiftX(shiftX);
-		FreeCamera->SetRenderTargetShiftY(shiftY);
-	}
-}
-
 void LoadMesh(std::string FileName);
 
 static void dropCallback(int count, const char** paths);
@@ -91,16 +72,40 @@ void ScrollCall(double Xoffset, double Yoffset)
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return;
 
-	if (UI.GetIsModelCamera() && !ImGui::GetIO().WantCaptureMouse)
-		reinterpret_cast<FEModelViewCamera*>(CurrentCamera)->SetDistanceToModel(reinterpret_cast<FEModelViewCamera*>(CurrentCamera)->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->AABB.getSize() * 0.05f);
+	FEBasicCamera* CurrentCamera = ENGINE.GetCamera();
+	if (CurrentCamera->GetCameraType() == 2)
+	{
+		FEModelViewCamera* ModelViewCamera = reinterpret_cast<FEModelViewCamera*>(CurrentCamera);
+		if (!ImGui::GetIO().WantCaptureMouse)
+			ModelViewCamera->SetDistanceToModel(ModelViewCamera->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->GetAABB().GetSize() * 0.05f);
+	}
 }
 
 void AfterMeshLoads()
 {
+	//FEMesh* LoadedMesh = RESOURCE_MANAGER.LoadFEMesh("Resources//Cardboard.model");
+
+	FEMaterial* NewMaterial = RESOURCE_MANAGER.CreateMaterial();
+	NewMaterial->Shader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
+	NewMaterial->SetBaseColor(glm::vec3(0.0f, 1.0f, 0.0f));
+
+
+	//NewMaterial->Shader = RESOURCE_MANAGER.GetShader("0800253C242B05321A332D09"/*"FEPBRShader"*/);
+	//NewMaterial->SetAlbedoMap(RESOURCE_MANAGER.NoTexture/*RESOURCE_MANAGER.LoadFETexture("Resources//Albedo.texture")*/);
+	//NewMaterial->SetNormalMap(RESOURCE_MANAGER.LoadFETexture("Resources//NormalMap.texture"));
+	//NewMaterial->SetAOMap(RESOURCE_MANAGER.LoadFETexture("Resources//AO.texture"));
+	//NewMaterial->SetRoughnessMap(RESOURCE_MANAGER.LoadFETexture("Resources//Roughness.texture"));
+
+	FEGameModel* NewGameModel = RESOURCE_MANAGER.CreateGameModel(MESH_MANAGER.ActiveMesh, NewMaterial);
+	FEPrefab* NewPrefab = RESOURCE_MANAGER.CreatePrefab(NewGameModel);
+
+	MESH_MANAGER.ActiveEntity = SCENE.AddEntity(NewPrefab);
+
+
 	if (!APPLICATION.HasConsoleWindow())
 	{
-		MESH_MANAGER.ActiveMesh->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->SetPosition(-MESH_MANAGER.ActiveMesh->AABB.getCenter());
+		MESH_MANAGER.ActiveEntity->Transform.SetPosition(-MESH_MANAGER.ActiveMesh->GetAABB().GetCenter());
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->SetPosition(-MESH_MANAGER.ActiveMesh->GetAABB().GetCenter());
 	}
 
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->UpdateAverageNormal();
@@ -108,7 +113,8 @@ void AfterMeshLoads()
 	if (!APPLICATION.HasConsoleWindow())
 	{
 		UI.SetIsModelCamera(true);
-		MESH_MANAGER.MeshShader->getParameter("lightDirection")->updateData(glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
+		// FIX ME
+		//MESH_MANAGER.MeshShader->GetParameter("lightDirection")->UpdateData(glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
 	}
 	
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
@@ -141,23 +147,27 @@ void keyButtonCallback(int key, int scancode, int action, int mods)
 
 void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 {
-	LINE_RENDERER.clearAll();
+	// FIX ME
+	//LINE_RENDERER.clearAll();
 
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() == 1)
 	{
 		std::vector<glm::vec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
 		for (size_t i = 0; i < TranformedTrianglePoints.size(); i++)
 		{
-			TranformedTrianglePoints[i] = Mesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
+			// FIX ME
+			//TranformedTrianglePoints[i] = Mesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
 		}
 
-		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+		// FIX ME
+		/*LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
 		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));*/
 
 		if (!COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals.empty())
 		{
-			glm::vec3 Point = TranformedTrianglePoints[0];
+			// FIX ME
+			/*glm::vec3 Point = TranformedTrianglePoints[0];
 			glm::vec3 Normal = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]][0];
 			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
@@ -167,24 +177,16 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 
 			Point = TranformedTrianglePoints[2];
 			Normal = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]][2];
-			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));*/
 		}
 
-		/*if (!mesh->originalTrianglesToSegments.empty() && !mesh->segmentsNormals.empty())
-		{
-			glm::vec3 Centroid = (TranformedTrianglePoints[0] +
-				TranformedTrianglePoints[1] +
-				TranformedTrianglePoints[2]) / 3.0f;
-
-			glm::vec3 Normal = mesh->segmentsNormals[mesh->originalTrianglesToSegments[mesh->TriangleSelected[0]]];
-			LINE_RENDERER.AddLineToBuffer(FELine(Centroid, Centroid + Normal, glm::vec3(1.0f, 0.0f, 0.0f)));
-		}*/
-
-		LINE_RENDERER.SyncWithGPU();
+		// FIX ME
+		//LINE_RENDERER.SyncWithGPU();
 	}
 	else if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() > 1)
 	{
-		for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size(); i++)
+		// FIX ME
+		/*for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size(); i++)
 		{
 			std::vector<glm::vec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[i]];
 			for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
@@ -197,7 +199,7 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 			LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 		}
 
-		LINE_RENDERER.SyncWithGPU();
+		LINE_RENDERER.SyncWithGPU();*/
 	}
 }
 
@@ -243,17 +245,20 @@ void mouseButtonCallback(int button, int action, int mods)
 {
 	if (ImGui::GetIO().WantCaptureMouse)
 	{
-		CurrentCamera->SetIsInputActive(false);
+		ENGINE.GetCamera()->SetIsInputActive(false);
+		//CurrentCamera->SetIsInputActive(false);
 		return;
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS)
 	{
-		CurrentCamera->SetIsInputActive(true);
+		ENGINE.GetCamera()->SetIsInputActive(true);
+		//CurrentCamera->SetIsInputActive(true);
 	}
 	else if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_RELEASE)
 	{
-		CurrentCamera->SetIsInputActive(false);
+		ENGINE.GetCamera()->SetIsInputActive(false);
+		//CurrentCamera->SetIsInputActive(false);
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
@@ -262,15 +267,16 @@ void mouseButtonCallback(int button, int action, int mods)
 		{
 			if (UI.GetLayerSelectionMode() == 1)
 			{
-				MESH_MANAGER.ActiveMesh->SelectTriangle(mouseRay(mouseX, mouseY), CurrentCamera);
+				// FIX ME
+				//MESH_MANAGER.ActiveMesh->SelectTriangle(mouseRay(mouseX, mouseY), CurrentCamera);
 			}
 			else if (UI.GetLayerSelectionMode() == 2)
 			{
-				if (MESH_MANAGER.ActiveMesh->SelectTrianglesInRadius(mouseRay(mouseX, mouseY), CurrentCamera, UI.GetRadiusOfAreaToMeasure()) &&
-					UI.GetOutputSelectionToFile())
+				// FIX ME
+				/*if (MESH_MANAGER.ActiveMesh->SelectTrianglesInRadius(mouseRay(mouseX, mouseY), CurrentCamera, UI.GetRadiusOfAreaToMeasure()) && UI.GetOutputSelectionToFile())
 				{
 					OutputSeletedAreaInfoToFile();
-				}
+				}*/
 			}
 
 			UpdateMeshSelectedTrianglesRendering(MESH_MANAGER.ActiveMesh);
@@ -548,14 +554,14 @@ bool AABBSideTriangleIntersection(FEAABB& box, std::vector<glm::vec3>& triangleV
 {
 	// Define the 8 corners of the AABB
 	std::vector<glm::vec3> corners;
-	corners.push_back(box.getMin());
-	corners.push_back(glm::vec3(box.getMin().x, box.getMin().y, box.getMax().z));
-	corners.push_back(glm::vec3(box.getMin().x, box.getMax().y, box.getMin().z));
-	corners.push_back(glm::vec3(box.getMin().x, box.getMax().y, box.getMax().z));
-	corners.push_back(glm::vec3(box.getMax().x, box.getMin().y, box.getMin().z));
-	corners.push_back(glm::vec3(box.getMax().x, box.getMin().y, box.getMax().z));
-	corners.push_back(glm::vec3(box.getMax().x, box.getMax().y, box.getMin().z));
-	corners.push_back(box.getMax());
+	corners.push_back(box.GetMin());
+	corners.push_back(glm::vec3(box.GetMin().x, box.GetMin().y, box.GetMax().z));
+	corners.push_back(glm::vec3(box.GetMin().x, box.GetMax().y, box.GetMin().z));
+	corners.push_back(glm::vec3(box.GetMin().x, box.GetMax().y, box.GetMax().z));
+	corners.push_back(glm::vec3(box.GetMax().x, box.GetMin().y, box.GetMin().z));
+	corners.push_back(glm::vec3(box.GetMax().x, box.GetMin().y, box.GetMax().z));
+	corners.push_back(glm::vec3(box.GetMax().x, box.GetMax().y, box.GetMin().z));
+	corners.push_back(box.GetMax());
 
 	std::vector<std::pair<glm::vec3, glm::vec3>> edgesRays = {
 		{corners[0], corners[1] - corners[0]},
@@ -587,7 +593,8 @@ bool AABBSideTriangleIntersection(FEAABB& box, std::vector<glm::vec3>& triangleV
 			// then the AABB and triangle intersect
 			if (glm::length(hitPoint - origin) <= glm::length(direction))
 			{
-				LINE_RENDERER.AddLineToBuffer(FELine(hitPoint, hitPoint + direction * glm::vec3(0.1f), glm::vec3(1.0f, 0.0f, 0.0f)));
+				// FIX ME
+				//LINE_RENDERER.AddLineToBuffer(FELine(hitPoint, hitPoint + direction * glm::vec3(0.1f), glm::vec3(1.0f, 0.0f, 0.0f)));
 				return true;
 			}
 		}
@@ -599,13 +606,14 @@ bool AABBSideTriangleIntersection(FEAABB& box, std::vector<glm::vec3>& triangleV
 void AddTriangleLines()
 {
 	std::vector<glm::vec3> TransformedTrianglePoints = TrianglePoints;
-	TransformedTrianglePoints[0] = TriangleTransform.getTransformMatrix() * glm::vec4(TransformedTrianglePoints[0], 1.0f);
-	TransformedTrianglePoints[1] = TriangleTransform.getTransformMatrix() * glm::vec4(TransformedTrianglePoints[1], 1.0f);
-	TransformedTrianglePoints[2] = TriangleTransform.getTransformMatrix() * glm::vec4(TransformedTrianglePoints[2], 1.0f);
+	TransformedTrianglePoints[0] = TriangleTransform.GetTransformMatrix() * glm::vec4(TransformedTrianglePoints[0], 1.0f);
+	TransformedTrianglePoints[1] = TriangleTransform.GetTransformMatrix() * glm::vec4(TransformedTrianglePoints[1], 1.0f);
+	TransformedTrianglePoints[2] = TriangleTransform.GetTransformMatrix() * glm::vec4(TransformedTrianglePoints[2], 1.0f);
 
-	LINE_RENDERER.AddLineToBuffer(FELine(TransformedTrianglePoints[0], TransformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+	// FIX ME
+	/*LINE_RENDERER.AddLineToBuffer(FELine(TransformedTrianglePoints[0], TransformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
 	LINE_RENDERER.AddLineToBuffer(FELine(TransformedTrianglePoints[0], TransformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-	LINE_RENDERER.AddLineToBuffer(FELine(TransformedTrianglePoints[1], TransformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+	LINE_RENDERER.AddLineToBuffer(FELine(TransformedTrianglePoints[1], TransformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));*/
 
 	//bAABBTriangleCollision = AABBbox.AABBIntersect(FEAABB(TransformedTrianglePoints));
 	//bAABBTriangleCollision = AABBbox.IntersectsTriangle(TransformedTrianglePoints[0], TransformedTrianglePoints[1], TransformedTrianglePoints[2]);
@@ -619,15 +627,17 @@ void AddTriangleLines()
 		bAABBTriangleCollision = AABBSideTriangleIntersection(AABBbox, TransformedTrianglePoints);
 	}*/
 
-	bAABBTriangleCollision = AABBbox.IntersectsTriangle(TransformedTrianglePoints);
+	// FIX ME
+	//bAABBTriangleCollision = AABBbox.IntersectsTriangle(TransformedTrianglePoints);
 }
 
 void ReRenderAll()
 {
-	LINE_RENDERER.clearAll();
+	// FIX ME
+	/*LINE_RENDERER.clearAll();
 	LINE_RENDERER.RenderAABB(AABBbox, bAABBTriangleCollision ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f));
 	AddTriangleLines();
-	LINE_RENDERER.SyncWithGPU();
+	LINE_RENDERER.SyncWithGPU();*/
 }
 
 void TestTriangleAndAABBboxIntersections()
@@ -686,7 +696,7 @@ void TestTriangleAndAABBboxIntersections()
 
 		ShowTransformConfiguration("Triangle transformations", &TriangleTransform);
 
-		glm::vec3 AABBCenter = AABBbox.getCenter();
+		glm::vec3 AABBCenter = AABBbox.GetCenter();
 		ImGui::Text("AABB box center: ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(50);
@@ -701,7 +711,7 @@ void TestTriangleAndAABBboxIntersections()
 		ImGui::DragFloat("##Center Z pos : ", &AABBCenter[2], 0.1f);
 
 
-		float AABBSize = AABBbox.getSize();
+		float AABBSize = AABBbox.GetSize();
 		ImGui::SetNextItemWidth(50);
 		ImGui::DragFloat("##AABBSize : ", &AABBSize, 0.1f);
 
@@ -773,7 +783,8 @@ void MainWindowRender()
 	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
 	static bool FirstFrame = true;
 
-	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+	// FIX ME ?
+	//FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
 	if (UI.ShouldTakeScreenshot())
 	{
@@ -785,48 +796,51 @@ void MainWindowRender()
 		return;
 	}
 
-	renderTargetCenterForCamera();
+	if (ENGINE.GetCamera()->GetCameraType() == 1)
+		ENGINE.RenderTargetCenterForCamera(reinterpret_cast<FEFreeCamera*>(ENGINE.GetCamera()));
+
 	CurrentCamera->Move(10);
 
 	//ImGui::ShowDemoWindow();
 	//TestTriangleAndAABBboxIntersections();
 
-	if (MESH_MANAGER.ActiveMesh != nullptr)
-	{
-		MESH_MANAGER.MeshShader->start();
+	// FIX ME
+	//if (MESH_MANAGER.ActiveMesh != nullptr)
+	//{
+	//	MESH_MANAGER.MeshShader->Start();
 
-		auto iterator = MESH_MANAGER.MeshShader->parameters.begin();
-		while (iterator != MESH_MANAGER.MeshShader->parameters.end())
-		{
-			if (iterator->second.nameHash == FEWorldMatrix_hash)
-				iterator->second.updateData(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
+	//	auto iterator = MESH_MANAGER.MeshShader->parameters.begin();
+	//	while (iterator != MESH_MANAGER.MeshShader->parameters.end())
+	//	{
+	//		if (iterator->second.nameHash == FEWorldMatrix_hash)
+	//			iterator->second.updateData(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
 
-			if (iterator->second.nameHash == FEViewMatrix_hash)
-				iterator->second.updateData(CurrentCamera->GetViewMatrix());
+	//		if (iterator->second.nameHash == FEViewMatrix_hash)
+	//			iterator->second.updateData(CurrentCamera->GetViewMatrix());
 
-			if (iterator->second.nameHash == FEProjectionMatrix_hash)
-				iterator->second.updateData(CurrentCamera->GetProjectionMatrix());
+	//		if (iterator->second.nameHash == FEProjectionMatrix_hash)
+	//			iterator->second.updateData(CurrentCamera->GetProjectionMatrix());
 
-			iterator++;
-		}
+	//		iterator++;
+	//	}
 
-		MESH_MANAGER.MeshShader->loadDataToGPU();
+	//	MESH_MANAGER.MeshShader->LoadDataToGPU();
 
-		if (UI.GetWireFrameMode())
-		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		}
-		else
-		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		}
+	//	if (UI.GetWireFrameMode())
+	//	{
+	//		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//	}
+	//	else
+	//	{
+	//		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//	}
 
-		MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
+	//	MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
 
-		MESH_MANAGER.MeshShader->stop();
-	}
+	//	MESH_MANAGER.MeshShader->Stop();
+	//}
 
-	LINE_RENDERER.Render(CurrentCamera);
+	//LINE_RENDERER.Render(CurrentCamera);
 
 	UI.Render();
 
@@ -884,8 +898,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 	else
 	{
+		ENGINE.InitWindow(1280, 720, "Rugosity Calculator");
+		ENGINE.ActivateSimplifiedRenderingMode();
 		// If I will directly assign result of APPLICATION.AddWindow to UI.MainWindow, then in Release build with full optimization app will crash, because of execution order.
-		FEWindow* MainWinodw = APPLICATION.AddWindow(1280, 720, "Rugosity Calculator");
+		//FEWindow* MainWinodw = APPLICATION.AddWindow(1280, 720, "Rugosity Calculator");
+		FEWindow* MainWinodw = APPLICATION.GetMainWindow();
+
 		UI.MainWindow = MainWinodw;
 		UI.MainWindow->SetRenderFunction(MainWindowRender);
 
@@ -896,8 +914,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		UI.MainWindow->AddOnResizeCallback(windowResizeCallback);
 		UI.MainWindow->AddOnScrollCallback(ScrollCall);
 
-		glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
-		FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
+		ENGINE.SetClearColor(glm::vec4(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w));
+		RENDERER.SetSkyEnabled(false);
+		//glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
+		//FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
 
 		CurrentCamera = new FEModelViewCamera("mainCamera");
 		CurrentCamera->SetIsInputActive(false);
@@ -910,21 +930,37 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		SCREENSHOT_MANAGER.Init();
 
-		while (APPLICATION.IsNotTerminated())
+		ENGINE.GetCamera()->SetIsInputActive(false);
+
+		while (ENGINE.IsNotTerminated())
 		{
-			if (ImGui::GetCurrentContext() != nullptr)
-				AddFontOnSecondFrame();
+			// FIX ME
+			//if (ImGui::GetCurrentContext() != nullptr)
+			//	AddFontOnSecondFrame();
 
-			APPLICATION.BeginFrame();
+			ENGINE.BeginFrame();
 
-			APPLICATION.RenderWindows();
+			ENGINE.Render();
+			//APPLICATION.RenderWindows();
 
-			APPLICATION.EndFrame();
-
-			/*auto ID = GetCurrentProcess();
-			auto test = RAMUsed();
-			int y = 0;*/
+			ENGINE.EndFrame();
 		}
+
+		//while (APPLICATION.IsNotTerminated())
+		//{
+		//	if (ImGui::GetCurrentContext() != nullptr)
+		//		AddFontOnSecondFrame();
+
+		//	APPLICATION.BeginFrame();
+
+		//	APPLICATION.RenderWindows();
+
+		//	APPLICATION.EndFrame();
+
+		//	/*auto ID = GetCurrentProcess();
+		//	auto test = RAMUsed();
+		//	int y = 0;*/
+		//}
 	}
 
 	return 0;

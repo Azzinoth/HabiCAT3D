@@ -39,7 +39,6 @@ namespace FocalEngine
 		int GetLayerSelectionMode();
 		void SetLayerSelectionMode(int NewValue);
 
-		bool GetIsModelCamera();
 		void SetIsModelCamera(bool NewValue);
 
 		static void(*SwapCameraImpl)(bool);

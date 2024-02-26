@@ -46,7 +46,7 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 		return;
 
 	// Generate a sequence of box sizes
-	double VozelSize = CurrentNode->AABB.getMax()[0] - CurrentNode->AABB.getMin()[0];
+	double VozelSize = CurrentNode->AABB.GetMax()[0] - CurrentNode->AABB.GetMin()[0];
 
 	std::vector<double> DivisionFactors = { 32.0, 16.0, 8.0, 4.0 };
 	std::vector<double> BoxSizes;
@@ -76,12 +76,12 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 
 			// Calculate the grid cells that the triangle intersects or is contained in
 			FEAABB TriangleBBox = FEAABB(CurrentTriangle);
-			int minGridX = static_cast<int>((TriangleBBox.getMin()[0] - CurrentNode->AABB.getMin()[0]) / boxSize);
-			int minGridY = static_cast<int>((TriangleBBox.getMin()[1] - CurrentNode->AABB.getMin()[1]) / boxSize);
-			int minGridZ = static_cast<int>((TriangleBBox.getMin()[2] - CurrentNode->AABB.getMin()[2]) / boxSize);
-			int maxGridX = static_cast<int>((TriangleBBox.getMax()[0] - CurrentNode->AABB.getMin()[0]) / boxSize);
-			int maxGridY = static_cast<int>((TriangleBBox.getMax()[1] - CurrentNode->AABB.getMin()[1]) / boxSize);
-			int maxGridZ = static_cast<int>((TriangleBBox.getMax()[2] - CurrentNode->AABB.getMin()[2]) / boxSize);
+			int minGridX = static_cast<int>((TriangleBBox.GetMin()[0] - CurrentNode->AABB.GetMin()[0]) / boxSize);
+			int minGridY = static_cast<int>((TriangleBBox.GetMin()[1] - CurrentNode->AABB.GetMin()[1]) / boxSize);
+			int minGridZ = static_cast<int>((TriangleBBox.GetMin()[2] - CurrentNode->AABB.GetMin()[2]) / boxSize);
+			int maxGridX = static_cast<int>((TriangleBBox.GetMax()[0] - CurrentNode->AABB.GetMin()[0]) / boxSize);
+			int maxGridY = static_cast<int>((TriangleBBox.GetMax()[1] - CurrentNode->AABB.GetMin()[1]) / boxSize);
+			int maxGridZ = static_cast<int>((TriangleBBox.GetMax()[2] - CurrentNode->AABB.GetMin()[2]) / boxSize);
 
 			for (int x = minGridX; x <= maxGridX; ++x)
 			{
@@ -93,15 +93,16 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 						{
 							if (!grid[x][y][z])
 							{
-								glm::vec3 boxMin(x * boxSize + CurrentNode->AABB.getMin()[0], y * boxSize + CurrentNode->AABB.getMin()[1], z * boxSize + CurrentNode->AABB.getMin()[2]);
-								glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.getMin()[0], (y + 1) * boxSize + CurrentNode->AABB.getMin()[1], (z + 1) * boxSize + CurrentNode->AABB.getMin()[2]);
+								glm::vec3 boxMin(x * boxSize + CurrentNode->AABB.GetMin()[0], y * boxSize + CurrentNode->AABB.GetMin()[1], z * boxSize + CurrentNode->AABB.GetMin()[2]);
+								glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.GetMin()[0], (y + 1) * boxSize + CurrentNode->AABB.GetMin()[1], (z + 1) * boxSize + CurrentNode->AABB.GetMin()[2]);
 								FEAABB box(boxMin, boxMax);
 
-								if (box.IntersectsTriangle(CurrentTriangle))
+								// FIX ME
+								/*if (box.IntersectsTriangle(CurrentTriangle))
 								{
 									grid[x][y][z] = true;
 									count++;
-								}
+								}*/
 							}
 						}
 					}
@@ -207,7 +208,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 		return;
 
 	// Generate a sequence of box sizes
-	double VozelSize = CurrentNode->AABB.getMax()[0] - CurrentNode->AABB.getMin()[0];
+	double VozelSize = CurrentNode->AABB.GetMax()[0] - CurrentNode->AABB.GetMin()[0];
 
 	std::vector<double> DivisionFactors = { 32.0, 16.0, 8.0, 4.0 };
 	std::vector<double> BoxSizes;
@@ -238,12 +239,12 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 
 			// Calculate the grid cells that the triangle intersects or is contained in
 			FEAABB TriangleBBox = FEAABB(CurrentTriangle);
-			int minGridX = static_cast<int>((TriangleBBox.getMin()[0] - CurrentNode->AABB.getMin()[0]) / boxSize);
-			int minGridY = static_cast<int>((TriangleBBox.getMin()[1] - CurrentNode->AABB.getMin()[1]) / boxSize);
-			int minGridZ = static_cast<int>((TriangleBBox.getMin()[2] - CurrentNode->AABB.getMin()[2]) / boxSize);
-			int maxGridX = static_cast<int>((TriangleBBox.getMax()[0] - CurrentNode->AABB.getMin()[0]) / boxSize);
-			int maxGridY = static_cast<int>((TriangleBBox.getMax()[1] - CurrentNode->AABB.getMin()[1]) / boxSize);
-			int maxGridZ = static_cast<int>((TriangleBBox.getMax()[2] - CurrentNode->AABB.getMin()[2]) / boxSize);
+			int minGridX = static_cast<int>((TriangleBBox.GetMin()[0] - CurrentNode->AABB.GetMin()[0]) / boxSize);
+			int minGridY = static_cast<int>((TriangleBBox.GetMin()[1] - CurrentNode->AABB.GetMin()[1]) / boxSize);
+			int minGridZ = static_cast<int>((TriangleBBox.GetMin()[2] - CurrentNode->AABB.GetMin()[2]) / boxSize);
+			int maxGridX = static_cast<int>((TriangleBBox.GetMax()[0] - CurrentNode->AABB.GetMin()[0]) / boxSize);
+			int maxGridY = static_cast<int>((TriangleBBox.GetMax()[1] - CurrentNode->AABB.GetMin()[1]) / boxSize);
+			int maxGridZ = static_cast<int>((TriangleBBox.GetMax()[2] - CurrentNode->AABB.GetMin()[2]) / boxSize);
 
 			for (int x = minGridX; x <= maxGridX; ++x)
 			{
@@ -255,22 +256,23 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 						{
 							if (!grid[x][y][z])
 							{
-								glm::vec3 boxMin(x * boxSize + CurrentNode->AABB.getMin()[0], y * boxSize + CurrentNode->AABB.getMin()[1], z * boxSize + CurrentNode->AABB.getMin()[2]);
-								glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.getMin()[0], (y + 1) * boxSize + CurrentNode->AABB.getMin()[1], (z + 1) * boxSize + CurrentNode->AABB.getMin()[2]);
+								glm::vec3 boxMin(x * boxSize + CurrentNode->AABB.GetMin()[0], y * boxSize + CurrentNode->AABB.GetMin()[1], z * boxSize + CurrentNode->AABB.GetMin()[2]);
+								glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.GetMin()[0], (y + 1) * boxSize + CurrentNode->AABB.GetMin()[1], (z + 1) * boxSize + CurrentNode->AABB.GetMin()[2]);
 								FEAABB box(boxMin, boxMax);
 
-								if (box.IntersectsTriangle(CurrentTriangle))
+								// FIX ME
+								/*if (box.IntersectsTriangle(CurrentTriangle))
 								{
 									grid[x][y][z] = true;
 									count++;
 
 									if (i == DebugBoxSizeIndex)
 									{
-										box = box.transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->getTransformMatrix());
+										box = box.Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix());
 										LINE_RENDERER.RenderAABB(box, glm::vec3(1.0, 0.0, 0.0));
 										DebugBoxCount++;
 									}
-								}
+								}*/
 							}
 						}
 					}
@@ -298,7 +300,8 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 	DebugLogCounts = logCounts;
 	DebugCounts = Counts;
 
-	LINE_RENDERER.SyncWithGPU();
+	// FIX ME
+	//LINE_RENDERER.SyncWithGPU();
 }
 
 void FractalDimensionLayerProducer::RenderDebugInfoWindow(SDF* Grid)

@@ -33,10 +33,13 @@ FEMesh* FECGALWrapper::surfaceMeshToFEMesh(Surface_mesh mesh)
 		FEVertices.push_back(float(extractedPoints[i][2]));
 	}
 
-	result = MESH_MANAGER.RawDataToMesh(FEVertices.data(), int(FEVertices.size()),
-		nullptr, 0, nullptr, 0, nullptr, 0, nullptr, 0,
-		FEIndices.data(), int(FEIndices.size()),
-		nullptr, 0, 0, "");
+	result = RESOURCE_MANAGER.RawDataToMesh(FEVertices.data(), int(FEVertices.size()),
+											nullptr, 0,
+											nullptr, 0,
+											nullptr, 0,
+											FEIndices.data(), int(FEIndices.size()),
+											nullptr, 0,
+											nullptr, 0, 0, "");
 
 	return result;
 }
@@ -45,12 +48,12 @@ Surface_mesh FECGALWrapper::FEMeshToSurfaceMesh(FEMesh* mesh)
 {
 	// Extracting data from FEMesh.
 	std::vector<float> FEVertices;
-	FEVertices.resize(mesh->getPositionsCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
+	FEVertices.resize(mesh->GetPositionsCount());
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->GetPositionsBufferID(), 0, sizeof(float) * FEVertices.size(), FEVertices.data()));
 
 	std::vector<int> FEIndices;
-	FEIndices.resize(mesh->getIndicesCount());
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
+	FEIndices.resize(mesh->GetIndicesCount());
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->GetIndicesBufferID(), 0, sizeof(int) * FEIndices.size(), FEIndices.data()));
 
 	// Formating data to CGAL format.
 	std::vector<Polygon_3> CGALFaces;
@@ -113,25 +116,25 @@ FEMesh* FECGALWrapper::SurfaceMeshSimplification(FEMesh* originalMesh, double ve
 
 void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrianglesToSegments, std::vector<glm::vec3> segmentsNormals)
 {
-	int posSize = mesh->getPositionsCount();
+	int posSize = mesh->GetPositionsCount();
 	float* positions = new float[posSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getPositionsBufferID(), 0, sizeof(float) * posSize, positions));
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->GetPositionsBufferID(), 0, sizeof(float) * posSize, positions));
 
-	int UVSize = mesh->getUVCount();
+	int UVSize = mesh->GetUVCount();
 	float* UV = new float[UVSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getUVBufferID(), 0, sizeof(float) * UVSize, UV));
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->GetUVBufferID(), 0, sizeof(float) * UVSize, UV));
 
-	int normSize = mesh->getNormalsCount();
+	int normSize = mesh->GetNormalsCount();
 	float* normalsFloat = new float[normSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getNormalsBufferID(), 0, sizeof(float) * normSize, normalsFloat));
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->GetNormalsBufferID(), 0, sizeof(float) * normSize, normalsFloat));
 
-	int tanSize = mesh->getTangentsCount();
+	int tanSize = mesh->GetTangentsCount();
 	float* tangents = new float[tanSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getTangentsBufferID(), 0, sizeof(float) * tanSize, tangents));
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->GetTangentsBufferID(), 0, sizeof(float) * tanSize, tangents));
 
-	int indexSize = mesh->getIndicesCount();
+	int indexSize = mesh->GetIndicesCount();
 	int* indices = new int[indexSize];
-	FE_GL_ERROR(glGetNamedBufferSubData(mesh->getIndicesBufferID(), 0, sizeof(int) * indexSize, indices));
+	FE_GL_ERROR(glGetNamedBufferSubData(mesh->GetIndicesBufferID(), 0, sizeof(int) * indexSize, indices));
 
 	std::vector<float> positionsVector;
 	for (size_t i = 0; i < posSize; i++)
@@ -325,8 +328,9 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 		}
 	}
 
-	mesh->addColorToVertices(colors, colorSize);
-	mesh->addSegmentsColorToVertices(segmentsColors, segmentsColorsSize);
+	// FIX ME
+	//mesh->addColorToVertices(colors, colorSize);
+	//mesh->addSegmentsColorToVertices(segmentsColors, segmentsColorsSize);
 
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->originalTrianglesToSegments = originalTrianglesToSegments;
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->segmentsNormals = segmentsNormals;
@@ -540,10 +544,13 @@ FEMesh* FECGALWrapper::surfaceMeshToFEMesh(Surface_mesh mesh, float* normals, in
 		FEVertices.push_back(float(extractedPoints[i][2]));
 	}
 
-	result = MESH_MANAGER.RawDataToMesh(FEVertices.data(), int(FEVertices.size()),
-		nullptr, 0, nullptr, 0, normals, normSize, nullptr, 0,
-		FEIndices.data(), int(FEIndices.size()),
-		nullptr, 0, 0, "");
+	result = RESOURCE_MANAGER.RawDataToMesh(FEVertices.data(), int(FEVertices.size()),
+											nullptr, 0,
+											normals, normSize,
+											nullptr, 0,
+											FEIndices.data(), int(FEIndices.size()),
+											nullptr, 0,
+											nullptr, 0, 0, "");
 
 	return result;
 }

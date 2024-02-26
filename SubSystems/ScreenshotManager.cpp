@@ -208,7 +208,8 @@ void ScreenshotManager::TakeScreenshot(FEBasicCamera* CurrentCamera)
 
 	if (MESH_MANAGER.ActiveMesh != nullptr)
 	{
-		MESH_MANAGER.MeshShader->start();
+		// FIX ME
+		/*MESH_MANAGER.MeshShader->start();
 
 		auto iterator = MESH_MANAGER.MeshShader->parameters.begin();
 		while (iterator != MESH_MANAGER.MeshShader->parameters.end())
@@ -238,7 +239,7 @@ void ScreenshotManager::TakeScreenshot(FEBasicCamera* CurrentCamera)
 
 		MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
 
-		MESH_MANAGER.MeshShader->stop();
+		MESH_MANAGER.MeshShader->stop();*/
 	}
 
 	UI.Render(true);
@@ -251,7 +252,8 @@ void ScreenshotManager::TakeScreenshot(FEBasicCamera* CurrentCamera)
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	size_t RawDataSize = 0;
+	// FIX ME
+	/*size_t RawDataSize = 0;
 	unsigned char* RawData = FETexture::GetTextureRawData(ColorBufferTexture, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight(), &RawDataSize);
 	FlipImageVertically(RawData, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight());
 
@@ -263,7 +265,7 @@ void ScreenshotManager::TakeScreenshot(FEBasicCamera* CurrentCamera)
 		ExportRawDataToPNG(FileName.c_str(), RawData, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight(), GL_RGBA);
 	}
 
-	delete[] RawData;
+	delete[] RawData;*/
 }
 
 void ScreenshotManager::RenderTargetWasResized()

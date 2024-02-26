@@ -1,9 +1,10 @@
 #pragma once
 
 #include "MeshManager.h"
-#include "FEFreeCamera.h"
-#include "FEModelViewCamera.h"
-#include "../SubSystems/FELinesRenderer.h"
+//#include "FEFreeCamera.h"
+//#include "FEModelViewCamera.h"
+//#include "../SubSystems/FELinesRenderer.h"
+#include "../ComplexityMetricManager.h"
 
 #include "CGAL/Surface_mesh.h"
 #include "CGAL/Surface_mesh_simplification/edge_collapse.h"
@@ -76,8 +77,6 @@ namespace FocalEngine
 
 	struct SDF
 	{
-		static FEBasicCamera* CurrentCamera;
-
 		std::vector<std::vector<std::vector<SDFNode>>> Data;
 		glm::vec3 AverageNormal = glm::vec3(0.0f);
 		glm::vec3 SelectedCell = glm::vec3(-1.0);
@@ -89,7 +88,7 @@ namespace FocalEngine
 		void FillCellsWithTriangleInfo();
 
 		void MouseClick(double MouseX, double MouseY, glm::mat4 TransformMat = glm::identity<glm::mat4>());
-
+		// FIX ME
 		static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
 
 		void FillMeshWithUserData();

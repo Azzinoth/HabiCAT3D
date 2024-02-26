@@ -1,5 +1,7 @@
 #pragma once
-#include "../FEMesh.h"
+//#include "../FEMesh.h"
+#include "../FECoreIncludes.h"
+#include "FESDF.h"
 using namespace FocalEngine;
 
 static const char* const sTestVS = R"(
@@ -365,6 +367,7 @@ namespace FocalEngine
 
 		FEMesh* LoadMesh(std::string FileName);
 		FEMesh* ActiveMesh = nullptr;
+		FEEntity* ActiveEntity = nullptr;
 
 		void AddLoadCallback(std::function<void()> Func);
 		void SaveRUGMesh(FEMesh* Mesh);
@@ -375,23 +378,23 @@ namespace FocalEngine
 	private:
 		SINGLETON_PRIVATE_PART(MeshManager)
 
-		FEMesh* RawDataToMesh(float* positions, int posSize,
-							  float* colors, int colorSize,
-							  float* UV, int UVSize,
-							  float* normals, int normSize,
-							  float* tangents, int tanSize,
-							  int* indices, int indexSize,
-							  float* matIndexs, int matIndexsSize, int matCount,
-							  std::string Name);
+		//FEMesh* RawDataToMesh(float* positions, int posSize,
+		//					  float* colors, int colorSize,
+		//					  float* UV, int UVSize,
+		//					  float* normals, int normSize,
+		//					  float* tangents, int tanSize,
+		//					  int* indices, int indexSize,
+		//					  float* matIndexs, int matIndexsSize, int matCount,
+		//					  std::string Name);
 
-		FEMesh* RawDataToMesh(double* positions, int posSize,
-							  float* colors, int colorSize,
-							  float* UV, int UVSize,
-							  float* normals, int normSize,
-							  float* tangents, int tanSize,
-							  int* indices, int indexSize,
-							  float* matIndexs, int matIndexsSize, int matCount,
-							  std::string Name);
+		//FEMesh* RawDataToMesh(double* positions, int posSize,
+		//					  float* colors, int colorSize,
+		//					  float* UV, int UVSize,
+		//					  float* normals, int normSize,
+		//					  float* tangents, int tanSize,
+		//					  int* indices, int indexSize,
+		//					  float* matIndexs, int matIndexsSize, int matCount,
+		//					  std::string Name);
 
 		FEMesh* ImportOBJ(const char* FileName, bool bForceOneMesh);
 		FEMesh* LoadRUGMesh(std::string FileName);
