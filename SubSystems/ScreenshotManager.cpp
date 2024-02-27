@@ -8,7 +8,7 @@ ScreenshotManager::~ScreenshotManager() {}
 
 void ScreenshotManager::CreateFB()
 {
-	glGenFramebuffers(1, &FrameBuffer);
+	/*glGenFramebuffers(1, &FrameBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
 
 	glGenTextures(1, &ColorBufferTexture);
@@ -23,14 +23,17 @@ void ScreenshotManager::CreateFB()
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight());
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DepthBufferTexture);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
+
+	FrameBufferObject = RESOURCE_MANAGER.CreateFramebuffer(FE_COLOR_ATTACHMENT | FE_DEPTH_ATTACHMENT, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight());
 }
 
 void ScreenshotManager::UpdateFB()
 {
-	glDeleteFramebuffers(1, &FrameBuffer);
+	/*glDeleteFramebuffers(1, &FrameBuffer);
 	glDeleteTextures(1, &ColorBufferTexture);
-	glDeleteRenderbuffers(1, &DepthBufferTexture);
+	glDeleteRenderbuffers(1, &DepthBufferTexture);*/
+	delete FrameBufferObject;
 
 	CreateFB();
 }
@@ -38,53 +41,6 @@ void ScreenshotManager::UpdateFB()
 void ScreenshotManager::Init()
 {
 	CreateFB();
-}
-
-void ScreenshotManager::FlipImageVertically(unsigned char* Data, size_t Width, size_t Height)
-{
-	const size_t BytesPerPixel = 4;
-	const size_t RowBytes = Width * BytesPerPixel;
-	unsigned char* RowBuffer = new unsigned char[RowBytes];
-
-	for (size_t y = 0; y < Height / 2; y++)
-	{
-		// Copy the top row to a buffer
-		std::memcpy(RowBuffer, Data + y * RowBytes, RowBytes);
-
-		// Copy the bottom row to the top
-		std::memcpy(Data + y * RowBytes, Data + (Height - 1 - y) * RowBytes, RowBytes);
-
-		// Copy the buffer contents (original top row) to the bottom
-		std::memcpy(Data + (Height - 1 - y) * RowBytes, RowBuffer, RowBytes);
-	}
-
-	delete[] RowBuffer;
-}
-
-bool ScreenshotManager::ExportRawDataToPNG(const char* FileName, const unsigned char* TextureData, const int Width, const int Height, const GLint Internalformat)
-{
-	if (Internalformat != GL_RGBA &&
-		Internalformat != GL_RED &&
-		Internalformat != GL_R16 &&
-		Internalformat != GL_COMPRESSED_RGBA_S3TC_DXT5_EXT &&
-		Internalformat != GL_COMPRESSED_RGBA_S3TC_DXT1_EXT)
-	{
-		LOG.Add("FEResourceManager::exportRawDataToPNG internalFormat is not supported", "FE_LOG_SAVING", FE_LOG_ERROR);
-		return false;
-	}
-
-	const std::string FilePath = FileName;
-	int Error = 0;
-	if (Internalformat == GL_R16)
-	{
-		Error = lodepng::encode(FilePath, TextureData, Width, Height, LCT_GREY, 16);
-	}
-	else
-	{
-		Error = lodepng::encode(FilePath, TextureData, Width, Height);
-	}
-
-	return Error == 0;
 }
 
 int ScreenshotManager::FindHigestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List)
@@ -188,27 +144,28 @@ std::string ScreenshotManager::SuitableNewFileName(std::string Base, std::string
 	return Result + Extension;
 }
 
-void ScreenshotManager::TakeScreenshot(FEBasicCamera* CurrentCamera)
+void ScreenshotManager::TakeScreenshot()
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (MESH_MANAGER.ActiveEntity == nullptr)
 	{
 		APPLICATION.EndFrame();
 		return;
 	}
 
-	static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
+	/*static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
 	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
-	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
+	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));*/
 
-	glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
+	FrameBufferObject->Bind();
 	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-	//renderTargetCenterForCamera();
-	CurrentCamera->Move(10);
+	ENGINE.GetCamera()->Move(10);
 
-	if (MESH_MANAGER.ActiveMesh != nullptr)
+	if (MESH_MANAGER.ActiveEntity != nullptr)
 	{
-		// FIX ME
+		RENDERER.RenderEntityForward(MESH_MANAGER.ActiveEntity, ENGINE.GetCamera());
+		
+		// FIX ME ?
 		/*MESH_MANAGER.MeshShader->start();
 
 		auto iterator = MESH_MANAGER.MeshShader->parameters.begin();
@@ -250,22 +207,10 @@ void ScreenshotManager::TakeScreenshot(FEBasicCamera* CurrentCamera)
 	APPLICATION.GetMainWindow()->EndFrame();
 	APPLICATION.GetMainWindow()->SetRenderFunction(TempRenderFunction);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	FrameBufferObject->UnBind();
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	// FIX ME
-	/*size_t RawDataSize = 0;
-	unsigned char* RawData = FETexture::GetTextureRawData(ColorBufferTexture, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight(), &RawDataSize);
-	FlipImageVertically(RawData, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight());
-
-	if (RawDataSize != 0)
-	{
-		std::string BaseFileName = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName;
-		std::string FileName = SuitableNewFileName(BaseFileName, ".png");
-
-		ExportRawDataToPNG(FileName.c_str(), RawData, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight(), GL_RGBA);
-	}
-
-	delete[] RawData;*/
+	RESOURCE_MANAGER.ExportFETextureToPNG(FrameBufferObject->GetColorAttachment(), SuitableNewFileName(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName, ".png").c_str());
 }
 
 void ScreenshotManager::RenderTargetWasResized()

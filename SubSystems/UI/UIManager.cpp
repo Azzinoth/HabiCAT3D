@@ -218,11 +218,6 @@ void UIManager::ShowCameraTransform()
 	}
 }
 
-void UIManager::SetCamera(FEBasicCamera* NewCamera)
-{
-	CurrentCamera = NewCamera;
-}
-
 bool UIManager::GetWireFrameMode()
 {
 	return bWireframeMode;
@@ -346,7 +341,7 @@ void UIManager::Render(bool bScreenshotMode)
 
 std::string UIManager::CameraPositionToStr()
 {
-	const glm::vec3 CameraPosition = CurrentCamera->GetPosition();
+	const glm::vec3 CameraPosition = ENGINE.GetCamera()->GetPosition();
 	return "( X:" + std::to_string(CameraPosition.x) + " Y:" + std::to_string(CameraPosition.y) + " Z:" + std::to_string(CameraPosition.z) + " )";
 }
 
@@ -409,12 +404,12 @@ void UIManager::StrToCameraPosition(std::string Text)
 
 	const float Z = float(atof(temp.c_str()));
 
-	CurrentCamera->SetPosition(glm::vec3(X, Y, Z));
+	ENGINE.GetCamera()->SetPosition(glm::vec3(X, Y, Z));
 }
 
 std::string UIManager::CameraRotationToStr()
 {
-	const glm::vec3 CameraRotation = glm::vec3(CurrentCamera->GetYaw(), CurrentCamera->GetPitch(), CurrentCamera->GetRoll());
+	const glm::vec3 CameraRotation = glm::vec3(ENGINE.GetCamera()->GetYaw(), ENGINE.GetCamera()->GetPitch(), ENGINE.GetCamera()->GetRoll());
 	return "( X:" + std::to_string(CameraRotation.x) + " Y:" + std::to_string(CameraRotation.y) + " Z:" + std::to_string(CameraRotation.z) + " )";
 }
 
@@ -477,9 +472,9 @@ void UIManager::StrToCameraRotation(std::string Text)
 
 	const float Z = float(atof(temp.c_str()));
 
-	CurrentCamera->SetYaw(X);
-	CurrentCamera->SetPitch(Y);
-	CurrentCamera->SetRoll(Z);
+	ENGINE.GetCamera()->SetYaw(X);
+	ENGINE.GetCamera()->SetPitch(Y);
+	ENGINE.GetCamera()->SetRoll(Z);
 }
 
 void UIManager::OnMeshUpdate()
@@ -918,6 +913,8 @@ void UIManager::RenderLayerChooseWindow()
 void UIManager::SetIsModelCamera(const bool NewValue)
 {
 	SwapCameraImpl(NewValue);
+
+	FEBasicCamera* CurrentCamera = ENGINE.GetCamera();
 
 	CurrentCamera->Reset();
 	CurrentCamera->SetFarPlane(MESH_MANAGER.ActiveMesh->GetAABB().GetSize() * 5.0f);

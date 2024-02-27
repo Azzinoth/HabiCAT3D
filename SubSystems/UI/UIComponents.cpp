@@ -489,7 +489,8 @@ void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 
 	if (bScreenshotMode)
 	{
-		ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+		// FIX ME
+		//ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
 	}
 	
@@ -498,7 +499,8 @@ void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 	if (bScreenshotMode)
 	{
 		ImGui::PopStyleColor();
-		ImGui::PopFont();
+		// FIX ME
+		//ImGui::PopFont();
 	}
 
 	int UpperUnusedStart = static_cast<int>(RangeSize.y * Slider.GetRangePosition());

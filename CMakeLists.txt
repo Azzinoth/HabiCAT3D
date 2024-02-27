@@ -20,20 +20,9 @@ endif()
 # defined projects like INSTALL.vcproj and ZERO_CHECK.vcproj
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-#if(NOT TARGET FEBasicApplication)
-#  add_subdirectory(SubSystems/FEBasicApplication)
-#endif()
-
 if(NOT TARGET FocalEngine)
 	add_subdirectory(SubSystems/FocalEngine)
 endif()
-
-# *************** THIRD_PARTY ***************
-
-file(GLOB lodepng_SRC
-	"ThirdParty/lodepng/lodepng.cpp"
-	"ThirdParty/lodepng/lodepng.h"
-)
 
 # *************** SUB_SYSTEM ***************
 
@@ -98,20 +87,10 @@ file(GLOB SubSystems_ConsoleJobs_SRC
 
 file(GLOB source_SRC
 	"FECoreIncludes.h"
-	#"FEFileSystem.cpp"
-	#"FEFileSystem.h"
-	#"FEObject.cpp"
-	#"FEObject.h"
-	#"FEShader.cpp"
-	#"FEShader.h"
-	#"FETexture.cpp"
-	#"FETexture.h"
 	"ComplexityMetricInfo.cpp"
 	"ComplexityMetricInfo.h"
 	"ComplexityMetricManager.cpp"
 	"ComplexityMetricManager.h"
-	#"FEMesh.cpp"
-	#"FEMesh.h"
 	"main.cpp"
 )
 
@@ -126,18 +105,9 @@ add_executable(RugosityCalculator WIN32
 								  ${SubSystems_Layers_SRC}
 								  ${SubSystems_UI_SRC}
 								  ${SubSystems_ConsoleJobs_SRC}
-								  # *************** THIRD_PARTY ***************
-								  ${lodepng_SRC}
-								  ${imgui_SRC}
 )
 
-#target_link_libraries(RugosityCalculator FEBasicApplication)
 target_link_libraries(RugosityCalculator PRIVATE FocalEngine)
-
-#target_link_libraries(RugosityCalculator glew32s.lib)
-#target_link_libraries(RugosityCalculator glfw3.lib)
-#target_link_libraries(RugosityCalculator glfw3dll.lib)
-#target_link_libraries(RugosityCalculator opengl32.lib)
 
 source_group("Source Files" FILES ${source_SRC})
 # *************** SUB_SYSTEM ***************
@@ -145,8 +115,6 @@ source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
 source_group("Source Files/SubSystems/Layers" FILES ${SubSystems_Layers_SRC})
 source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
 source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJobs_SRC})
-# *************** THIRD_PARTY ***************
-source_group("Source Files/ThirdParty/lodepng" FILES ${lodepng_SRC})
 
 # set as the startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT RugosityCalculator)

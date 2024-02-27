@@ -15,8 +15,6 @@ namespace FocalEngine
 		void ShowTransformConfiguration(std::string Name, FETransformComponent* Transform);
 		void ShowCameraTransform();
 
-		void SetCamera(FEBasicCamera* NewCamera);
-
 		void Render(bool bScreenshotMode = false);
 
 		bool GetWireFrameMode();
@@ -63,8 +61,6 @@ namespace FocalEngine
 		void SetUseTransparentBackground(bool NewValue);
 	private:
 		SINGLETON_PRIVATE_PART(UIManager)
-
-		FEBasicCamera* CurrentCamera = nullptr;
 
 		bool bWireframeMode = false;
 		float TimeTookToJitter = 0.0f;

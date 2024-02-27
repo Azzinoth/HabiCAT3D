@@ -5,33 +5,26 @@ using namespace FocalEngine;
 #include <psapi.h>
 
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
-FEBasicCamera* CurrentCamera = nullptr;
 
 void SwapCamera(bool bModelCamera)
 {
-	delete CurrentCamera;
-
 	if (bModelCamera)
 	{
 		FEModelViewCamera* NewCamera = new FEModelViewCamera("New ModelViewCamera");
 		NewCamera->SetAspectRatio(static_cast<float>(ENGINE.GetRenderTargetWidth()) / static_cast<float>(ENGINE.GetRenderTargetHeight()));
 
-		//glm::vec3 Position = MESH_MANAGER.ActiveEntity->Transform.GetPosition();
-		
-		NewCamera->SetTrackingObjectPosition(glm::vec3(0.0f)/*MESH_MANAGER.ActiveMesh->GetAABB().GetCenter() + Position*/);
+		NewCamera->SetTrackingObjectPosition(glm::vec3(0.0f));
 		ENGINE.SetCamera(NewCamera);
-
-		CurrentCamera = new FEModelViewCamera("mainCamera");
 	}
 	else
 	{
-		CurrentCamera = new FEFreeCamera("mainCamera");
+		FEFreeCamera* NewCamera = new FEFreeCamera("mainCamera");
+		NewCamera->SetAspectRatio(static_cast<float>(ENGINE.GetRenderTargetWidth()) / static_cast<float>(ENGINE.GetRenderTargetHeight()));
+
+		ENGINE.SetCamera(NewCamera);
 	}
 
 	ENGINE.GetCamera()->SetIsInputActive(false);
-	CurrentCamera->SetIsInputActive(false);
-
-	UI.SetCamera(CurrentCamera);
 }
 
 double mouseX;
@@ -47,10 +40,10 @@ glm::dvec3 mouseRay(double mouseX, double mouseY)
 	normalizedMouseCoords.y = 1.0f - (2.0f * (mouseY)) / H;
 
 	const glm::dvec4 clipCoords = glm::dvec4(normalizedMouseCoords.x, normalizedMouseCoords.y, -1.0, 1.0);
-	glm::dvec4 eyeCoords = glm::inverse(CurrentCamera->GetProjectionMatrix()) * clipCoords;
+	glm::dvec4 eyeCoords = glm::inverse(ENGINE.GetCamera()->GetProjectionMatrix()) * clipCoords;
 	eyeCoords.z = -1.0f;
 	eyeCoords.w = 0.0f;
-	glm::dvec3 worldRay = glm::inverse(CurrentCamera->GetViewMatrix()) * eyeCoords;
+	glm::dvec3 worldRay = glm::inverse(ENGINE.GetCamera()->GetViewMatrix()) * eyeCoords;
 	worldRay = glm::normalize(worldRay);
 
 	return worldRay;
@@ -88,7 +81,6 @@ void AfterMeshLoads()
 	FEMaterial* NewMaterial = RESOURCE_MANAGER.CreateMaterial();
 	NewMaterial->Shader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
 	NewMaterial->SetBaseColor(glm::vec3(0.0f, 1.0f, 0.0f));
-
 
 	//NewMaterial->Shader = RESOURCE_MANAGER.GetShader("0800253C242B05321A332D09"/*"FEPBRShader"*/);
 	//NewMaterial->SetAlbedoMap(RESOURCE_MANAGER.NoTexture/*RESOURCE_MANAGER.LoadFETexture("Resources//Albedo.texture")*/);
@@ -129,20 +121,6 @@ void LoadMesh(std::string FileName)
 		LOG.Add("Failed to load mesh with path: " + FileName);
 		return;
 	}
-}
-
-void mouseMoveCallback(double xpos, double ypos)
-{
-	if (CurrentCamera != nullptr)
-		CurrentCamera->MouseMoveInput(xpos, ypos);
-
-	mouseX = xpos;
-	mouseY = ypos;
-}
-
-void keyButtonCallback(int key, int scancode, int action, int mods)
-{
-	CurrentCamera->KeyboardInput(key, scancode, action, mods);
 }
 
 void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
@@ -246,19 +224,16 @@ void mouseButtonCallback(int button, int action, int mods)
 	if (ImGui::GetIO().WantCaptureMouse)
 	{
 		ENGINE.GetCamera()->SetIsInputActive(false);
-		//CurrentCamera->SetIsInputActive(false);
 		return;
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS)
 	{
 		ENGINE.GetCamera()->SetIsInputActive(true);
-		//CurrentCamera->SetIsInputActive(true);
 	}
 	else if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_RELEASE)
 	{
 		ENGINE.GetCamera()->SetIsInputActive(false);
-		//CurrentCamera->SetIsInputActive(false);
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
@@ -336,7 +311,6 @@ void windowResizeCallback(int width, int height)
 {
 	int W, H;
 	UI.MainWindow->GetSize(&W, &H);
-	CurrentCamera->SetAspectRatio(float(W) / float(H));
 
 	UI.ApplyStandardWindowsSizeAndPosition();
 	SCREENSHOT_MANAGER.RenderTargetWasResized();
@@ -792,14 +766,12 @@ void MainWindowRender()
 		glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
 
 		UI.SetShouldTakeScreenshot(false);
-		SCREENSHOT_MANAGER.TakeScreenshot(CurrentCamera);
+		SCREENSHOT_MANAGER.TakeScreenshot();
 		return;
 	}
 
 	if (ENGINE.GetCamera()->GetCameraType() == 1)
 		ENGINE.RenderTargetCenterForCamera(reinterpret_cast<FEFreeCamera*>(ENGINE.GetCamera()));
-
-	CurrentCamera->Move(10);
 
 	//ImGui::ShowDemoWindow();
 	//TestTriangleAndAABBboxIntersections();
@@ -908,8 +880,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		UI.MainWindow->SetRenderFunction(MainWindowRender);
 
 		UI.MainWindow->AddOnDropCallback(dropCallback);
-		UI.MainWindow->AddOnKeyCallback(keyButtonCallback);
-		UI.MainWindow->AddOnMouseMoveCallback(mouseMoveCallback);
 		UI.MainWindow->AddOnMouseButtonCallback(mouseButtonCallback);
 		UI.MainWindow->AddOnResizeCallback(windowResizeCallback);
 		UI.MainWindow->AddOnScrollCallback(ScrollCall);
@@ -919,11 +889,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		//glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
 		//FE_GL_ERROR(glEnable(GL_DEPTH_TEST));
 
-		CurrentCamera = new FEModelViewCamera("mainCamera");
-		CurrentCamera->SetIsInputActive(false);
-		CurrentCamera->SetAspectRatio(1280.0f / 720.0f);
 
-		UI.SetCamera(CurrentCamera);
 		UI.SwapCameraImpl = SwapCamera;
 
 		MESH_MANAGER.AddLoadCallback(AfterMeshLoads);
@@ -941,7 +907,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			ENGINE.BeginFrame();
 
 			ENGINE.Render();
-			//APPLICATION.RenderWindows();
 
 			ENGINE.EndFrame();
 		}
