@@ -76,19 +76,13 @@ void ScrollCall(double Xoffset, double Yoffset)
 
 void AfterMeshLoads()
 {
-	//FEMesh* LoadedMesh = RESOURCE_MANAGER.LoadFEMesh("Resources//Cardboard.model");
 
-	FEMaterial* NewMaterial = RESOURCE_MANAGER.CreateMaterial();
-	NewMaterial->Shader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
-	NewMaterial->SetBaseColor(glm::vec3(0.0f, 1.0f, 0.0f));
+	//FEMaterial* NewMaterial = RESOURCE_MANAGER.CreateMaterial();
+	//NewMaterial->Shader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
+	//NewMaterial->SetBaseColor(glm::vec3(0.0f, 1.0f, 0.0f));
 
-	//NewMaterial->Shader = RESOURCE_MANAGER.GetShader("0800253C242B05321A332D09"/*"FEPBRShader"*/);
-	//NewMaterial->SetAlbedoMap(RESOURCE_MANAGER.NoTexture/*RESOURCE_MANAGER.LoadFETexture("Resources//Albedo.texture")*/);
-	//NewMaterial->SetNormalMap(RESOURCE_MANAGER.LoadFETexture("Resources//NormalMap.texture"));
-	//NewMaterial->SetAOMap(RESOURCE_MANAGER.LoadFETexture("Resources//AO.texture"));
-	//NewMaterial->SetRoughnessMap(RESOURCE_MANAGER.LoadFETexture("Resources//Roughness.texture"));
 
-	FEGameModel* NewGameModel = RESOURCE_MANAGER.CreateGameModel(MESH_MANAGER.ActiveMesh, NewMaterial);
+	FEGameModel* NewGameModel = RESOURCE_MANAGER.CreateGameModel(MESH_MANAGER.ActiveMesh, MESH_MANAGER.CustomMaterial/*NewMaterial*/);
 	FEPrefab* NewPrefab = RESOURCE_MANAGER.CreatePrefab(NewGameModel);
 
 	MESH_MANAGER.ActiveEntity = SCENE.AddEntity(NewPrefab);
@@ -105,8 +99,7 @@ void AfterMeshLoads()
 	if (!APPLICATION.HasConsoleWindow())
 	{
 		UI.SetIsModelCamera(true);
-		// FIX ME
-		//MESH_MANAGER.MeshShader->GetParameter("lightDirection")->UpdateData(glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("lightDirection", glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
 	}
 	
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
@@ -133,8 +126,7 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 		std::vector<glm::vec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
 		for (size_t i = 0; i < TranformedTrianglePoints.size(); i++)
 		{
-			// FIX ME
-			//TranformedTrianglePoints[i] = Mesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
+			TranformedTrianglePoints[i] = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
 		}
 
 		// FIX ME
@@ -144,18 +136,20 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 
 		if (!COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals.empty())
 		{
-			// FIX ME
-			/*glm::vec3 Point = TranformedTrianglePoints[0];
+			glm::vec3 Point = TranformedTrianglePoints[0];
 			glm::vec3 Normal = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]][0];
-			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+			// FIX ME
+			//LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
 			Point = TranformedTrianglePoints[1];
 			Normal = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]][1];
-			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+			// FIX ME
+			//LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
 			Point = TranformedTrianglePoints[2];
 			Normal = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]][2];
-			LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));*/
+			// FIX ME
+			//LINE_RENDERER.AddLineToBuffer(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 		}
 
 		// FIX ME
@@ -777,8 +771,8 @@ void MainWindowRender()
 	//TestTriangleAndAABBboxIntersections();
 
 	// FIX ME
-	//if (MESH_MANAGER.ActiveMesh != nullptr)
-	//{
+	if (MESH_MANAGER.ActiveEntity != nullptr)
+	{
 	//	MESH_MANAGER.MeshShader->Start();
 
 	//	auto iterator = MESH_MANAGER.MeshShader->parameters.begin();
@@ -798,19 +792,19 @@ void MainWindowRender()
 
 	//	MESH_MANAGER.MeshShader->LoadDataToGPU();
 
-	//	if (UI.GetWireFrameMode())
-	//	{
-	//		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	//	}
-	//	else
-	//	{
-	//		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	//	}
+		if (UI.GetWireFrameMode())
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
 
-	//	MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
+		MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
 
 	//	MESH_MANAGER.MeshShader->Stop();
-	//}
+	}
 
 	//LINE_RENDERER.Render(CurrentCamera);
 
@@ -898,6 +892,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		ENGINE.GetCamera()->SetIsInputActive(false);
 
+
+		
+
 		while (ENGINE.IsNotTerminated())
 		{
 			// FIX ME
@@ -909,6 +906,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			ENGINE.Render();
 
 			ENGINE.EndFrame();
+
+			/*if (MESH_MANAGER.CustomMeshShader == nullptr)
+				MESH_MANAGER.CustomMeshShader = new FEShader("MainMeshShader", sTestVS, sTestFS);*/
 		}
 
 		//while (APPLICATION.IsNotTerminated())

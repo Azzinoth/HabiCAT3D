@@ -363,7 +363,8 @@ namespace FocalEngine
 	public:
 		SINGLETON_PUBLIC_PART(MeshManager)
 
-		FEShader* MeshShader = nullptr;
+		FEShader* CustomMeshShader = nullptr;
+		FEMaterial* CustomMaterial = nullptr;
 
 		FEMesh* LoadMesh(std::string FileName);
 		FEMesh* ActiveMesh = nullptr;
@@ -375,31 +376,24 @@ namespace FocalEngine
 		float saturationFactor = 0.3f;
 		float brightnessValue = 0.2f;
 
+		int GetHeatMapType();
+		void SetHeatMapType(int NewValue);
+
+		void ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex = 0);
+
+		GLuint GetFirstLayerBufferID();
+		GLuint GetSecondLayerBufferID();
 	private:
 		SINGLETON_PRIVATE_PART(MeshManager)
-
-		//FEMesh* RawDataToMesh(float* positions, int posSize,
-		//					  float* colors, int colorSize,
-		//					  float* UV, int UVSize,
-		//					  float* normals, int normSize,
-		//					  float* tangents, int tanSize,
-		//					  int* indices, int indexSize,
-		//					  float* matIndexs, int matIndexsSize, int matCount,
-		//					  std::string Name);
-
-		//FEMesh* RawDataToMesh(double* positions, int posSize,
-		//					  float* colors, int colorSize,
-		//					  float* UV, int UVSize,
-		//					  float* normals, int normSize,
-		//					  float* tangents, int tanSize,
-		//					  int* indices, int indexSize,
-		//					  float* matIndexs, int matIndexsSize, int matCount,
-		//					  std::string Name);
 
 		FEMesh* ImportOBJ(const char* FileName, bool bForceOneMesh);
 		FEMesh* LoadRUGMesh(std::string FileName);
 
 		std::vector<std::function<void()>> ClientLoadCallbacks;
+
+		int HeatMapType = 5;
+		GLuint FirstLayerBufferID = 0;
+		GLuint SecondLayerBufferID = 0;
 	};
 
 	#define MESH_MANAGER MeshManager::getInstance()

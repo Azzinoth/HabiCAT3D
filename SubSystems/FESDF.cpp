@@ -286,8 +286,7 @@ void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 T
 				if (!Data[i][j][k].bWasRenderedLastFrame)
 					continue;
 
-				// FIX ME
-				FEAABB FinalAABB = Data[i][j][k].AABB/*.Transform(TransformMat).Transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix())*/;
+				FEAABB FinalAABB = Data[i][j][k].AABB.Transform(TransformMat).Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix());
 				if (FinalAABB.RayIntersect(ENGINE.GetCamera()->GetPosition(), mouseRay(MouseX, MouseY, ENGINE.GetCamera()), DistanceToCell))
 				{
 					if (LastDistanceToCell > DistanceToCell)

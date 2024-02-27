@@ -88,8 +88,11 @@ void UIManager::ShowTransformConfiguration(const std::string Name, FETransformCo
 	Transform->SetRotation(rotation);
 
 	// ********************* SCALE *********************
-	// FIX ME
-	//ImGui::Checkbox("Uniform scaling", &Transform->uniformScaling);
+	bool bTemp = Transform->IsUniformScalingSet();
+	ImGui::Checkbox("Uniform scaling", &bTemp);
+	Transform->SetUniformScaling(bTemp);
+	Transform->IsUniformScalingSet();
+
 	glm::vec3 scale = Transform->GetScale();
 	ImGui::Text("Scale : ");
 	ImGui::SameLine();
@@ -1284,8 +1287,7 @@ void UIManager::OnLayerChange()
 
 		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
-		// FIX ME
-		//MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+		MESH_MANAGER.SetHeatMapType(5);
 		UI.HeatMapColorRange.SetColorRangeFunction(TurboColorMapValue);
 		UI.HeatMapColorRange.bRenderSlider = true;
 	
@@ -1295,8 +1297,7 @@ void UIManager::OnLayerChange()
 		if (CurrentLayer->GetType() == COMPARE)
 		{
 			UI.HeatMapColorRange.SetColorRangeFunction(CompareColormapValue);
-			// FIX ME
-			//MESH_MANAGER.ActiveMesh->HeatMapType = 6;
+			MESH_MANAGER.SetHeatMapType(6);
 
 			UI.HeatMapColorRange.bRenderSlider = false;
 			UI.HeatMapColorRange.SetSliderValue(1.0f);
@@ -1317,8 +1318,7 @@ void UIManager::OnLayerChange()
 	}
 	else
 	{
-		// FIX ME
-		//MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+		MESH_MANAGER.SetHeatMapType(-1);
 	}
 
 	if (UI.GetDebugSDF() != nullptr)
@@ -1446,8 +1446,7 @@ void UIManager::RenderLayerSettingsTab()
 
 		ImGui::Text("Triangle count: ");
 		ImGui::SameLine();
-		// FIX ME
-		//ImGui::Text(std::to_string(MESH_MANAGER.ActiveMesh->GetTriangleCount()).c_str());
+		ImGui::Text(std::to_string(MESH_MANAGER.ActiveMesh->GetVertexCount() / 3).c_str());
 
 		ImGui::Text((std::string("ID: ") + Layer->GetID()).c_str());
 		static char CurrentLayerCaption[1024];

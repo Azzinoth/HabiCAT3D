@@ -107,7 +107,6 @@ namespace FocalEngine
 		std::vector<float> RawData;
 		std::vector<float> TrianglesToData;
 
-		//void FillDataToGPU(int LayerIndex = 0);
 		std::vector<std::tuple<double, double, int>> ValueTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
 
 		LAYER_TYPE GetType();

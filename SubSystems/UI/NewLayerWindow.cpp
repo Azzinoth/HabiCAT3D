@@ -146,14 +146,12 @@ void NewLayerWindow::AddLayer()
 			if (bRunOnWholeModel)
 			{
 				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateOnWholeModel();
-				// FIX ME
-				//MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+				MESH_MANAGER.SetHeatMapType(-1);
 			}
 			else
 			{
 				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-				// FIX ME
-				//MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+				MESH_MANAGER.SetHeatMapType(5);
 			}
 
 			InternalClose();
@@ -164,14 +162,12 @@ void NewLayerWindow::AddLayer()
 			if (bRunOnWholeModel)
 			{
 				RUGOSITY_LAYER_PRODUCER.CalculateOnWholeModel();
-				// FIX ME
-				//MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+				MESH_MANAGER.SetHeatMapType(-1);
 			}
 			else
 			{
 				RUGOSITY_LAYER_PRODUCER.CalculateWithJitterAsync();
-				// FIX ME
-				//MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+				MESH_MANAGER.SetHeatMapType(5);
 			}
 
 			InternalClose();
@@ -182,14 +178,12 @@ void NewLayerWindow::AddLayer()
 			if (bRunOnWholeModel)
 			{
 				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateOnWholeModel();
-				// FIX ME
-				//MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+				MESH_MANAGER.SetHeatMapType(-1);
 			}
 			else
 			{
 				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-				// FIX ME
-				//MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+				MESH_MANAGER.SetHeatMapType(5);
 			}
 
 			InternalClose();
@@ -200,14 +194,12 @@ void NewLayerWindow::AddLayer()
 			if (bRunOnWholeModel)
 			{
 				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel();
-				// FIX ME
-				//MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+				MESH_MANAGER.SetHeatMapType(-1);
 			}
 			else
 			{
 				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-				// FIX ME
-				//MESH_MANAGER.ActiveMesh->HeatMapType = 5;
+				MESH_MANAGER.SetHeatMapType(5);
 			}
 
 			InternalClose();
@@ -217,8 +209,7 @@ void NewLayerWindow::AddLayer()
 		{
 			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
 			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
-			// FIX ME
-			//MESH_MANAGER.ActiveMesh->HeatMapType = 6;
+			MESH_MANAGER.SetHeatMapType(6);
 
 			InternalClose();
 			break;

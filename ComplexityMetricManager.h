@@ -34,9 +34,6 @@ namespace FocalEngine
 	private:
 		SINGLETON_PRIVATE_PART(ComplexityMetricManager)
 
-		//FEMesh* ImportOBJ(const char* FileName, bool bForceOneMesh);
-		//FEMesh* LoadRUGMesh(std::string FileName);
-
 		std::vector<std::function<void()>> ClientLoadCallbacks;
 	};
 

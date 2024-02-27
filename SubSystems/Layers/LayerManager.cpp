@@ -76,9 +76,8 @@ void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
 
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentLayerIndex = NewLayerIndex;
 
-	// FIX ME
-	/*if (NewLayerIndex != -1)
-		MESH_MANAGER.ActiveMesh->ComplexityMetricDataToGPU(NewLayerIndex);*/
+	if (NewLayerIndex != -1)
+		MESH_MANAGER.ComplexityMetricDataToGPU(NewLayerIndex);
 
 	for (size_t i = 0; i < ClientAfterActiveLayerChangedCallbacks.size(); i++)
 	{

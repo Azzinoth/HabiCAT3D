@@ -7,143 +7,17 @@ MeshManager::MeshManager()
 {
 	if (!APPLICATION.HasConsoleWindow())
 	{
-		// FIX ME
-		/*MeshShader = new FEShader("mainShader", sTestVS, sTestFS);
-		MeshShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));*/
+		// That causes strange error in imgui or NVIDIA driver.
+		//CustomMeshShader = new FEShader("MainMeshShader", sTestVS_simple, sTestFS_simple);
+		CustomMeshShader = RESOURCE_MANAGER.CreateShader("MainMeshShader", sTestVS, sTestFS);
+		CustomMeshShader->UpdateParameterData("lightDirection", glm::vec3(0.0, 1.0, 0.2));
+
+		CustomMaterial = RESOURCE_MANAGER.CreateMaterial("MainMeshMaterial");
+		CustomMaterial->Shader = CustomMeshShader;
 	}
 }
 
 MeshManager::~MeshManager() {}
-
-//FEMesh* MeshManager::RawDataToMesh(float* positions, int posSize,
-//	float* colors, int colorSize,
-//	float* UV, int UVSize,
-//	float* normals, int normSize,
-//	float* tangents, int tanSize,
-//	int* indices, int indexSize,
-//	float* matIndexs, int matIndexsSize, int matCount,
-//	std::string Name)
-//{
-//	int vertexType = FE_POSITION | FE_INDEX;
-//
-//	GLuint vaoID;
-//	FE_GL_ERROR(glGenVertexArrays(1, &vaoID));
-//	FE_GL_ERROR(glBindVertexArray(vaoID));
-//
-//	GLuint indicesBufferID;
-//	// index
-//	FE_GL_ERROR(glGenBuffers(1, &indicesBufferID));
-//	FE_GL_ERROR(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesBufferID));
-//	FE_GL_ERROR(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indexSize, indices, GL_STATIC_DRAW));
-//
-//	GLuint positionsBufferID;
-//	// verCoords
-//	FE_GL_ERROR(glGenBuffers(1, &positionsBufferID));
-//	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, positionsBufferID));
-//	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * posSize, positions, GL_STATIC_DRAW));
-//	FE_GL_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0));
-//	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-//
-//	GLuint colorsBufferID = 0;
-//	if (colors != nullptr)
-//	{
-//		vertexType |= FE_COLOR;
-//		// colors
-//		FE_GL_ERROR(glGenBuffers(1, &colorsBufferID));
-//		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, colorsBufferID));
-//		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * colorSize, colors, GL_STATIC_DRAW));
-//		FE_GL_ERROR(glVertexAttribPointer(1/*FE_COLOR*/, 3, GL_FLOAT, false, 0, 0));
-//		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-//	}
-//
-//	GLuint normalsBufferID = 0;
-//	if (normals != nullptr)
-//	{
-//		vertexType |= FE_NORMAL;
-//		// normals
-//		FE_GL_ERROR(glGenBuffers(1, &normalsBufferID));
-//		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, normalsBufferID));
-//		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * normSize, normals, GL_STATIC_DRAW));
-//		FE_GL_ERROR(glVertexAttribPointer(2/*FE_NORMAL*/, 3, GL_FLOAT, false, 0, 0));
-//		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-//	}
-//
-//	GLuint tangentsBufferID = 0;
-//	if (tangents != nullptr)
-//	{
-//		//vertexType |= FE_TANGENTS;
-//		//// tangents
-//		//FE_GL_ERROR(glGenBuffers(1, &tangentsBufferID));
-//		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, tangentsBufferID));
-//		//FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * tanSize, tangents, GL_STATIC_DRAW));
-//		//FE_GL_ERROR(glVertexAttribPointer(3/*FE_TANGENTS*/, 3, GL_FLOAT, false, 0, 0));
-//		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-//	}
-//
-//	GLuint UVBufferID = 0;
-//	if (UV != nullptr)
-//	{
-//		// UV
-//		//FE_GL_ERROR(glGenBuffers(1, &UVBufferID));
-//		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, UVBufferID));
-//		//FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * UVSize, UV, GL_STATIC_DRAW));
-//		//FE_GL_ERROR(glVertexAttribPointer(4/*FE_UV*/, 2, GL_FLOAT, false, 0, 0));
-//		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-//	}
-//
-//	FEMesh* newMesh = new FEMesh(vaoID, indexSize, vertexType, Name);
-//	newMesh->indicesCount = indexSize;
-//	newMesh->indicesBufferID = indicesBufferID;
-//
-//	newMesh->positionsCount = posSize;
-//	newMesh->positionsBufferID = positionsBufferID;
-//
-//	newMesh->colorCount = colorSize;
-//	newMesh->colorBufferID = colorsBufferID;
-//
-//	newMesh->normalsCount = normSize;
-//	newMesh->normalsBufferID = normalsBufferID;
-//
-//	newMesh->tangentsCount = tanSize;
-//	newMesh->tangentsBufferID = tangentsBufferID;
-//
-//	newMesh->UVCount = UVSize;
-//	newMesh->UVBufferID = UVBufferID;
-//
-//	newMesh->AABB = FEAABB(positions, posSize);
-//
-//	return newMesh;
-//}
-//
-//FEMesh* MeshManager::RawDataToMesh(double* positions, int posSize,
-//	float* colors, int colorSize,
-//	float* UV, int UVSize,
-//	float* normals, int normSize,
-//	float* tangents, int tanSize,
-//	int* indices, int indexSize,
-//	float* matIndexs, int matIndexsSize, int matCount,
-//	std::string Name)
-//{
-//	float* FloatPositions = new float[posSize];
-//
-//	for (size_t i = 0; i < posSize; i++)
-//	{
-//		FloatPositions[i] = float(positions[i]);
-//	}
-//
-//	FEMesh* result = RawDataToMesh(FloatPositions, posSize,
-//		colors, colorSize,
-//		UV, UVSize,
-//		normals, normSize,
-//		tangents, tanSize,
-//		indices, indexSize,
-//		matIndexs, matIndexsSize, matCount,
-//		Name);
-//
-//	delete[] FloatPositions;
-//
-//	return result;
-//}
 
 FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
@@ -358,6 +232,7 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 	delete[] TangBuffer;
 	delete[] IndexBuffer;
 
+	// FIX ME
 	if (NewMesh->GetAABB().GetMin() != MeshAABB.GetMin() ||
 		NewMesh->GetAABB().GetMax() != MeshAABB.GetMax())
 	{
@@ -425,4 +300,60 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 		return;
 
 	COMPLEXITY_METRIC_MANAGER.SaveToRUGFileAskForFilePath();
+}
+
+int MeshManager::GetHeatMapType()
+{
+	return HeatMapType;
+}
+
+void MeshManager::SetHeatMapType(int NewValue)
+{
+	HeatMapType = NewValue;
+}
+
+void MeshManager::ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex)
+{
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+		return;
+
+	if (ActiveMesh == nullptr)
+		return;
+
+	if (LayerIndex < 0 || LayerIndex >= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+		return;
+
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.empty())
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].FillRawData();
+
+	FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
+
+	if (GPULayerIndex == 0)
+	{
+		FirstLayerBufferID = 0;
+		FE_GL_ERROR(glGenBuffers(1, &FirstLayerBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, FirstLayerBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.size(), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(7, 3, GL_FLOAT, false, 0, nullptr));
+	}
+	else
+	{
+		SecondLayerBufferID = 0;
+		FE_GL_ERROR(glGenBuffers(1, &SecondLayerBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, SecondLayerBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.size(), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, nullptr));
+	}
+
+	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+}
+
+GLuint MeshManager::GetFirstLayerBufferID()
+{
+	return FirstLayerBufferID;
+}
+
+GLuint MeshManager::GetSecondLayerBufferID()
+{
+	return SecondLayerBufferID;
 }

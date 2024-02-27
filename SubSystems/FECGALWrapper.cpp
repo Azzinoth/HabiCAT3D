@@ -328,8 +328,8 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 		}
 	}
 
+	RESOURCE_MANAGER.AddColorToFEMeshVertices(mesh, colors, colorSize);
 	// FIX ME
-	//mesh->addColorToVertices(colors, colorSize);
 	//mesh->addSegmentsColorToVertices(segmentsColors, segmentsColorsSize);
 
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->originalTrianglesToSegments = originalTrianglesToSegments;

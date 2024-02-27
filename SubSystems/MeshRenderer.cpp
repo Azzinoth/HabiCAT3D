@@ -9,45 +9,52 @@ MeshRenderer::~MeshRenderer() {}
 void MeshRenderer::RenderFEMesh(FEMesh* Mesh)
 {
 	// FIX ME
-	/*MESH_MANAGER.MeshShader->getParameter("AmbientFactor")->updateData(UI.GetAmbientLightFactor());
-	MESH_MANAGER.MeshShader->getParameter("HaveColor")->updateData(Mesh->getColorCount() != 0);
-	MESH_MANAGER.MeshShader->getParameter("HeatMapType")->updateData(Mesh->HeatMapType);
-	MESH_MANAGER.MeshShader->getParameter("LayerIndex")->updateData(LAYER_MANAGER.GetActiveLayerIndex());
+	MESH_MANAGER.CustomMeshShader->UpdateParameterData("AmbientFactor", UI.GetAmbientLightFactor());
+	MESH_MANAGER.CustomMeshShader->UpdateParameterData("HaveColor", Mesh->GetColorCount() != 0);
+	MESH_MANAGER.CustomMeshShader->UpdateParameterData("HeatMapType", MESH_MANAGER.GetHeatMapType());
+	MESH_MANAGER.CustomMeshShader->UpdateParameterData("LayerIndex", LAYER_MANAGER.GetActiveLayerIndex());
 
-	MESH_MANAGER.MeshShader->getParameter("saturationFactor")->updateData(MESH_MANAGER.saturationFactor);
-	MESH_MANAGER.MeshShader->getParameter("brightnessValue")->updateData(MESH_MANAGER.brightnessValue);
+	MESH_MANAGER.CustomMeshShader->UpdateParameterData("saturationFactor", MESH_MANAGER.saturationFactor);
+	MESH_MANAGER.CustomMeshShader->UpdateParameterData("brightnessValue", MESH_MANAGER.brightnessValue);
 
 	if (LAYER_MANAGER.GetActiveLayer() != nullptr)
 	{
-		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMin")->updateData(LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMin());
-		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMax")->updateData(LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMax());
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("SelectedRangeMin", LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMin());
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("SelectedRangeMax", LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMax());
 	}
 	else
 	{
-		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMin")->updateData(0.0f);
-		MESH_MANAGER.MeshShader->getParameter("SelectedRangeMax")->updateData(0.0f);
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("SelectedRangeMin", 0.0f);
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("SelectedRangeMax", 0.0f);
 	}
 
 	if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
 	{
-		MESH_MANAGER.MeshShader->getParameter("LayerMin")->updateData(float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MinVisible));
-		MESH_MANAGER.MeshShader->getParameter("LayerMax")->updateData(float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MaxVisible));
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("LayerMin", float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MinVisible));
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("LayerMax", float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MaxVisible));
 
-		MESH_MANAGER.MeshShader->getParameter("LayerAbsoluteMin")->updateData(float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMin()));
-		MESH_MANAGER.MeshShader->getParameter("LayerAbsoluteMax")->updateData(float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMax()));
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("LayerAbsoluteMin", float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMin()));
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("LayerAbsoluteMax", float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMax()));
 	}
 
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
 	{
-		MESH_MANAGER.MeshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(Mesh->LastMeasuredRugosityAreaRadius);
-		MESH_MANAGER.MeshShader->getParameter("MeasuredRugosityAreaCenter")->updateData(Mesh->LastMeasuredRugosityAreaCenter);
+		//MESH_MANAGER.CustomMeshShader->UpdateParameterData("MeasuredRugosityAreaRadius", Mesh->LastMeasuredRugosityAreaRadius);
+		//MESH_MANAGER.CustomMeshShader->UpdateParameterData("MeasuredRugosityAreaCenter", Mesh->LastMeasuredRugosityAreaCenter);
 	}
 	else
 	{
-		MESH_MANAGER.MeshShader->getParameter("MeasuredRugosityAreaRadius")->updateData(-1.0f);
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("MeasuredRugosityAreaRadius", -1.0f);
 	}
 
-	FE_GL_ERROR(glBindVertexArray(Mesh->GetVaoID()));
+	MESH_MANAGER.ActiveEntity->SetVisibility(true);
+	FE_GL_ERROR(glBindVertexArray(MESH_MANAGER.ActiveMesh->GetVaoID()));
+	if (MESH_MANAGER.GetFirstLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(7));
+	if (MESH_MANAGER.GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
+	RENDERER.RenderEntityForward(MESH_MANAGER.ActiveEntity, ENGINE.GetCamera(), false);
+	MESH_MANAGER.ActiveEntity->SetVisibility(false);
+
+	/*FE_GL_ERROR(glBindVertexArray(Mesh->GetVaoID()));
 	if ((Mesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));
 	if ((Mesh->vertexAttributes & FE_COLOR) == FE_COLOR) FE_GL_ERROR(glEnableVertexAttribArray(1));
 	if ((Mesh->vertexAttributes & FE_NORMAL) == FE_NORMAL) FE_GL_ERROR(glEnableVertexAttribArray(2));
