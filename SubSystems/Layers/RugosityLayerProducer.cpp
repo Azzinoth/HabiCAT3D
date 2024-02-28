@@ -267,7 +267,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 				glm::vec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
 				glm::vec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
 
-				const double ProjectionArea = SDF::TriangleArea(AProjection, BProjection, CProjection);
+				const double ProjectionArea = GEOMETRY.CalculateTriangleArea(AProjection, BProjection, CProjection);
 				const double OriginalArea = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]];
 				Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
 
@@ -656,14 +656,12 @@ void RugosityLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 			TranformedTrianglePoints[j] = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
-		// FIX ME
-		/*LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-		LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));*/
+		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 	}
 
-	// FIX ME
-	//LINE_RENDERER.SyncWithGPU();
+	LINE_RENDERER.SyncWithGPU();
 }
 
 std::string RugosityLayerProducer::GetOrientationSetForMinRugosityName()

@@ -383,6 +383,14 @@ namespace FocalEngine
 
 		GLuint GetFirstLayerBufferID();
 		GLuint GetSecondLayerBufferID();
+
+		void GetMeasuredRugosityArea(float& Radius, glm::vec3& Center);
+		void ClearMeasuredRugosityArea();
+
+		bool SelectTriangle(glm::dvec3 MouseRay);
+		bool SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius);
+		glm::vec3 IntersectTriangle(glm::dvec3 MouseRay);
+
 	private:
 		SINGLETON_PRIVATE_PART(MeshManager)
 
@@ -394,6 +402,9 @@ namespace FocalEngine
 		int HeatMapType = 5;
 		GLuint FirstLayerBufferID = 0;
 		GLuint SecondLayerBufferID = 0;
+
+		float MeasuredRugosityAreaRadius = -1.0f;
+		glm::vec3 MeasuredRugosityAreaCenter = glm::vec3(0.0f);
 	};
 
 	#define MESH_MANAGER MeshManager::getInstance()

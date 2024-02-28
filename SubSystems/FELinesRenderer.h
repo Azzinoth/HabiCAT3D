@@ -1,5 +1,5 @@
 #pragma once
-#include "../FEMesh.h"
+#include "../FECoreIncludes.h"
 using namespace FocalEngine;
 
 static const char* const LineVS = R"(
@@ -33,21 +33,19 @@ void main(void)
 
 namespace FocalEngine
 {
-	#define FE_MAX_LINES 1000000
-
 	struct FELinePoint
 	{
 		glm::vec3 Position;
 		glm::vec3 Color;
 	};
 
-	struct FELine
+	struct FECustomLine
 	{
 		glm::vec3 A;
 		glm::vec3 B;
 		glm::vec3 Color;
 
-		FELine(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 Color = glm::vec3(0.0f));
+		FECustomLine(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 Color = glm::vec3(0.0f));
 	};
 	
 	class FELinesRenderer
@@ -55,8 +53,8 @@ namespace FocalEngine
 	public:
 		SINGLETON_PUBLIC_PART(FELinesRenderer)
 
-		void Render(FEBasicCamera* camera);
-		void AddLineToBuffer(FELine LineToAdd);
+		void Render();
+		void AddLineToBuffer(FECustomLine LineToAdd);
 		void SyncWithGPU();
 
 		void RenderAABB(FEAABB AABB, glm::vec3 color);

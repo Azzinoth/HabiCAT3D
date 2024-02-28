@@ -20,83 +20,6 @@ glm::dvec3 mouseRay(double mouseX, double mouseY, FEBasicCamera* currentCamera)
 	return worldRay;
 }
 
-double SDF::TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC)
-{
-	const double x1 = PointA.x;
-	const double x2 = PointB.x;
-	const double x3 = PointC.x;
-
-	const double y1 = PointA.y;
-	const double y2 = PointB.y;
-	const double y3 = PointC.y;
-
-	const double z1 = PointA.z;
-	const double z2 = PointB.z;
-	const double z3 = PointC.z;
-
-	return 0.5 * sqrt(pow(x2 * y1 - x3 * y1 - x1 * y2 + x3 * y2 + x1 * y3 - x2 * y3, 2.0) +
-					  pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
-					  pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
-}
-
-bool intersectWithTriangle(glm::vec3 RayOrigin, glm::vec3 RayDirection, std::vector<glm::vec3>& triangleVertices, float& distance)
-{
-	if (triangleVertices.size() != 3)
-		return false;
-
-	const float a = RayDirection[0];
-	const float b = triangleVertices[0][0] - triangleVertices[1][0];
-	const float c = triangleVertices[0][0] - triangleVertices[2][0];
-
-	const float d = RayDirection[1];
-	const float e = triangleVertices[0][1] - triangleVertices[1][1];
-	const float f = triangleVertices[0][1] - triangleVertices[2][1];
-
-	const float g = RayDirection[2];
-	const float h = triangleVertices[0][2] - triangleVertices[1][2];
-	const float j = triangleVertices[0][2] - triangleVertices[2][2];
-
-	const float k = triangleVertices[0][0] - RayOrigin[0];
-	const float l = triangleVertices[0][1] - RayOrigin[1];
-	const float m = triangleVertices[0][2] - RayOrigin[2];
-
-	const float determinant0 = glm::determinant(glm::mat3(a, b, c,
-	                                                      d, e, f,
-	                                                      g, h, j));
-
-	const float determinant1 = glm::determinant(glm::mat3(k, b, c,
-	                                                      l, e, f,
-	                                                      m, h, j));
-
-	const float t = determinant1 / determinant0;
-
-	const float determinant2 = glm::determinant(glm::mat3(a, k, c,
-	                                                      d, l, f,
-	                                                      g, m, j));
-	const float u = determinant2 / determinant0;
-
-	const float determinant3 = glm::determinant(glm::mat3(a, b, k,
-	                                                      d, e, l,
-	                                                      g, h, m));
-
-	const float v = determinant3 / determinant0;
-
-	if (t >= 0.00001 &&
-		u >= 0.00001 && v >= 0.00001 &&
-		u <= 1 && v <= 1 &&
-		u + v >= 0.00001 &&
-		u + v <= 1 && t > 0.00001)
-	{
-		//Point4 p = v1 + u * (v2 - v1) + v * (v3 - v1);
-		//hit = Hit(p, this->N, this, t);
-
-		distance = t;
-		return true;
-	}
-
-	return false;
-}
-
 SDF::SDF() {}
 
 SDF::~SDF()
@@ -354,32 +277,31 @@ void SDF::AddLinesOfSDF()
 
 				if (bNeedToRender)
 				{
-					glm::vec3 color = glm::vec3(0.1f, 0.6f, 0.1f);
+					glm::vec3 Color = glm::vec3(0.1f, 0.6f, 0.1f);
 					if (Data[i][j][k].bSelected)
-						color = glm::vec3(0.9f, 0.1f, 0.1f);
+						Color = glm::vec3(0.9f, 0.1f, 0.1f);
 
-					// FIX ME
-					//LINE_RENDERER.RenderAABB(Data[i][j][k].AABB.Transform(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix()), color);
+					LINE_RENDERER.RenderAABB(Data[i][j][k].AABB.Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), Color);
 
 					Data[i][j][k].bWasRenderedLastFrame = true;
 
-					/*if (bShowTrianglesInCells && Data[i][j][k].bSelected)
+					if (bShowTrianglesInCells && Data[i][j][k].bSelected)
 					{
 						for (size_t l = 0; l < Data[i][j][k].TrianglesInCell.size(); l++)
 						{
-							const auto CurrentTriangle = MESH_MANAGER.ActiveMesh->Triangles[Data[i][j][k].TrianglesInCell[l]];
+							const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[Data[i][j][k].TrianglesInCell[l]];
 
 							std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
 							for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 							{
-								TranformedTrianglePoints[j] = MESH_MANAGER.ActiveMesh->Position->getTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+								TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 							}
 
-							LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-							LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-							LINE_RENDERER.AddLineToBuffer(FELine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+							LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+							LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+							LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 						}
-					}*/
+					}
 				}
 			}
 		}
@@ -389,12 +311,10 @@ void SDF::AddLinesOfSDF()
 void SDF::UpdateRenderedLines()
 {
 #ifndef NEW_LINES
-	// FIX ME
-	//LINE_RENDERER.clearAll();
+	LINE_RENDERER.clearAll();
 	if (RenderingMode != 0)
 		AddLinesOfSDF();
-	// FIX ME
-	//LINE_RENDERER.SyncWithGPU();
+	LINE_RENDERER.SyncWithGPU();
 #endif
 }
 

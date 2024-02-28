@@ -29,9 +29,9 @@ FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 	if (objLoader.loadedObjects.size() > 0)
 	{
 		std::vector<float> FEVertices;
-		for (size_t i = 0; i < objLoader.loadedObjects[0]->fVerC.size(); i++)
+		for (int i = 0; i < objLoader.loadedObjects[0]->fVerC.size(); i++)
 		{
-			FEVertices.push_back(objLoader.loadedObjects[0]->fVerC[i]);
+			FEVertices.push_back(static_cast<float>(objLoader.loadedObjects[0]->fVerC[i]));
 		}
 
 		result = RESOURCE_MANAGER.RawDataToMesh(FEVertices.data(), int(FEVertices.size()),
@@ -356,4 +356,116 @@ GLuint MeshManager::GetFirstLayerBufferID()
 GLuint MeshManager::GetSecondLayerBufferID()
 {
 	return SecondLayerBufferID;
+}
+
+void MeshManager::GetMeasuredRugosityArea(float& Radius, glm::vec3& Center)
+{
+	Radius = MeasuredRugosityAreaRadius;
+	Center = MeasuredRugosityAreaCenter;
+}
+
+void MeshManager::ClearMeasuredRugosityArea()
+{
+	MeasuredRugosityAreaRadius = -1.0f;
+	MeasuredRugosityAreaCenter = glm::vec3(0.0f);
+}
+
+bool MeshManager::SelectTriangle(glm::dvec3 MouseRay)
+{
+	if (ActiveMesh == nullptr || ActiveEntity == nullptr)
+		return false;
+
+	float CurrentDistance = 0.0f;
+	float LastDistance = 9999.0f;
+
+	int TriangeIndex = -1;
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
+
+	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	{
+		std::vector<glm::vec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
+		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+		{
+			TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+		}
+
+		const bool bHit = GEOMETRY.IsRayIntersectingTriangle(ENGINE.GetCamera()->GetPosition(), MouseRay, TranformedTrianglePoints, CurrentDistance);
+
+		if (bHit && CurrentDistance < LastDistance)
+		{
+			LastDistance = CurrentDistance;
+			TriangeIndex = i;
+		}
+	}
+
+	if (TriangeIndex != -1)
+	{
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.push_back(TriangeIndex);
+		return true;
+	}
+
+	return false;
+}
+
+glm::vec3 MeshManager::IntersectTriangle(glm::dvec3 MouseRay)
+{
+	if (ActiveMesh == nullptr || ActiveEntity == nullptr)
+		return glm::vec3(0.0f);
+
+	float CurrentDistance = 0.0f;
+	float LastDistance = 9999.0f;
+
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	{
+		std::vector<glm::vec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
+		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+		{
+			TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+		}
+
+		glm::vec3 HitPosition;
+		const bool bHit = GEOMETRY.IsRayIntersectingTriangle(ENGINE.GetCamera()->GetPosition(), MouseRay, TranformedTrianglePoints, CurrentDistance, &HitPosition);
+
+		if (bHit && CurrentDistance < LastDistance)
+		{
+			LastDistance = CurrentDistance;
+
+			const glm::mat4 Inverse = glm::inverse(ActiveEntity->Transform.GetTransformMatrix());
+			return Inverse * glm::vec4(HitPosition, 1.0f);
+		}
+	}
+
+	return glm::vec3(0.0f);
+}
+
+bool MeshManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
+{
+	bool Result = false;
+
+	if (ActiveMesh == nullptr || ActiveEntity == nullptr)
+		return Result;
+	
+	SelectTriangle(MouseRay);
+
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() == 0)
+		return Result;
+
+	MeasuredRugosityAreaRadius = Radius;
+	MeasuredRugosityAreaCenter = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]], 1.0f);
+
+	const glm::vec3 FirstSelectedTriangleCentroid = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
+
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	{
+		if (i == COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0])
+			continue;
+
+		if (glm::distance(FirstSelectedTriangleCentroid, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[i]) <= Radius)
+		{
+			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.push_back(static_cast<int>(i));
+			Result = true;
+		}
+	}
+
+	return Result;
 }

@@ -97,12 +97,11 @@ void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
 								glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.GetMin()[0], (y + 1) * boxSize + CurrentNode->AABB.GetMin()[1], (z + 1) * boxSize + CurrentNode->AABB.GetMin()[2]);
 								FEAABB box(boxMin, boxMax);
 
-								// FIX ME
-								/*if (box.IntersectsTriangle(CurrentTriangle))
+								if (GEOMETRY.IsAABBIntersectTriangle(box, CurrentTriangle))
 								{
 									grid[x][y][z] = true;
 									count++;
-								}*/
+								}
 							}
 						}
 					}
@@ -260,8 +259,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 								glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.GetMin()[0], (y + 1) * boxSize + CurrentNode->AABB.GetMin()[1], (z + 1) * boxSize + CurrentNode->AABB.GetMin()[2]);
 								FEAABB box(boxMin, boxMax);
 
-								// FIX ME
-								/*if (box.IntersectsTriangle(CurrentTriangle))
+								if (GEOMETRY.IsAABBIntersectTriangle(box, CurrentTriangle))
 								{
 									grid[x][y][z] = true;
 									count++;
@@ -272,7 +270,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 										LINE_RENDERER.RenderAABB(box, glm::vec3(1.0, 0.0, 0.0));
 										DebugBoxCount++;
 									}
-								}*/
+								}
 							}
 						}
 					}
@@ -300,8 +298,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 	DebugLogCounts = logCounts;
 	DebugCounts = Counts;
 
-	// FIX ME
-	//LINE_RENDERER.SyncWithGPU();
+	LINE_RENDERER.SyncWithGPU();
 }
 
 void FractalDimensionLayerProducer::RenderDebugInfoWindow(SDF* Grid)

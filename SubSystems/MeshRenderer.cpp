@@ -8,7 +8,6 @@ MeshRenderer::~MeshRenderer() {}
 
 void MeshRenderer::RenderFEMesh(FEMesh* Mesh)
 {
-	// FIX ME
 	MESH_MANAGER.CustomMeshShader->UpdateParameterData("AmbientFactor", UI.GetAmbientLightFactor());
 	MESH_MANAGER.CustomMeshShader->UpdateParameterData("HaveColor", Mesh->GetColorCount() != 0);
 	MESH_MANAGER.CustomMeshShader->UpdateParameterData("HeatMapType", MESH_MANAGER.GetHeatMapType());
@@ -39,8 +38,11 @@ void MeshRenderer::RenderFEMesh(FEMesh* Mesh)
 
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
 	{
-		//MESH_MANAGER.CustomMeshShader->UpdateParameterData("MeasuredRugosityAreaRadius", Mesh->LastMeasuredRugosityAreaRadius);
-		//MESH_MANAGER.CustomMeshShader->UpdateParameterData("MeasuredRugosityAreaCenter", Mesh->LastMeasuredRugosityAreaCenter);
+		float TempMeasuredRugosityAreaRadius = 0.0f;
+		glm::vec3 TempMeasuredRugosityAreaCenter = glm::vec3(0.0f);
+		MESH_MANAGER.GetMeasuredRugosityArea(TempMeasuredRugosityAreaRadius, TempMeasuredRugosityAreaCenter);
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("MeasuredRugosityAreaRadius", TempMeasuredRugosityAreaRadius);
+		MESH_MANAGER.CustomMeshShader->UpdateParameterData("MeasuredRugosityAreaCenter", TempMeasuredRugosityAreaCenter);
 	}
 	else
 	{
@@ -53,21 +55,4 @@ void MeshRenderer::RenderFEMesh(FEMesh* Mesh)
 	if (MESH_MANAGER.GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
 	RENDERER.RenderEntityForward(MESH_MANAGER.ActiveEntity, ENGINE.GetCamera(), false);
 	MESH_MANAGER.ActiveEntity->SetVisibility(false);
-
-	/*FE_GL_ERROR(glBindVertexArray(Mesh->GetVaoID()));
-	if ((Mesh->vertexAttributes & FE_POSITION) == FE_POSITION) FE_GL_ERROR(glEnableVertexAttribArray(0));
-	if ((Mesh->vertexAttributes & FE_COLOR) == FE_COLOR) FE_GL_ERROR(glEnableVertexAttribArray(1));
-	if ((Mesh->vertexAttributes & FE_NORMAL) == FE_NORMAL) FE_GL_ERROR(glEnableVertexAttribArray(2));
-	if ((Mesh->vertexAttributes & FE_TANGENTS) == FE_TANGENTS) FE_GL_ERROR(glEnableVertexAttribArray(3));
-	if ((Mesh->vertexAttributes & FE_UV) == FE_UV) FE_GL_ERROR(glEnableVertexAttribArray(4));
-
-	if ((Mesh->vertexAttributes & FE_RUGOSITY_FIRST) == FE_RUGOSITY_FIRST) FE_GL_ERROR(glEnableVertexAttribArray(7));
-	if ((Mesh->vertexAttributes & FE_RUGOSITY_SECOND) == FE_RUGOSITY_SECOND) FE_GL_ERROR(glEnableVertexAttribArray(8));
-
-	if ((Mesh->vertexAttributes & FE_INDEX) == FE_INDEX)
-		FE_GL_ERROR(glDrawElements(GL_TRIANGLES, Mesh->getVertexCount(), GL_UNSIGNED_INT, 0));
-	if ((Mesh->vertexAttributes & FE_INDEX) != FE_INDEX)
-		FE_GL_ERROR(glDrawArrays(GL_TRIANGLES, 0, Mesh->getVertexCount()));
-
-	glBindVertexArray(0);*/
 }

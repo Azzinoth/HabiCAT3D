@@ -152,10 +152,6 @@ void ScreenshotManager::TakeScreenshot()
 		return;
 	}
 
-	/*static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
-	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
-	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));*/
-
 	FrameBufferObject->Bind();
 	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
@@ -164,39 +160,6 @@ void ScreenshotManager::TakeScreenshot()
 	if (MESH_MANAGER.ActiveEntity != nullptr)
 	{
 		RENDERER.RenderEntityForward(MESH_MANAGER.ActiveEntity, ENGINE.GetCamera());
-		
-		// FIX ME ?
-		/*MESH_MANAGER.MeshShader->start();
-
-		auto iterator = MESH_MANAGER.MeshShader->parameters.begin();
-		while (iterator != MESH_MANAGER.MeshShader->parameters.end())
-		{
-			if (iterator->second.nameHash == FEWorldMatrix_hash)
-				iterator->second.updateData(MESH_MANAGER.ActiveMesh->Position->getTransformMatrix());
-
-			if (iterator->second.nameHash == FEViewMatrix_hash)
-				iterator->second.updateData(CurrentCamera->GetViewMatrix());
-
-			if (iterator->second.nameHash == FEProjectionMatrix_hash)
-				iterator->second.updateData(CurrentCamera->GetProjectionMatrix());
-
-			iterator++;
-		}
-
-		MESH_MANAGER.MeshShader->loadDataToGPU();
-
-		if (UI.GetWireFrameMode())
-		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		}
-		else
-		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		}
-
-		MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
-
-		MESH_MANAGER.MeshShader->stop();*/
 	}
 
 	UI.Render(true);
@@ -208,7 +171,6 @@ void ScreenshotManager::TakeScreenshot()
 	APPLICATION.GetMainWindow()->SetRenderFunction(TempRenderFunction);
 
 	FrameBufferObject->UnBind();
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	RESOURCE_MANAGER.ExportFETextureToPNG(FrameBufferObject->GetColorAttachment(), SuitableNewFileName(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName, ".png").c_str());
 }

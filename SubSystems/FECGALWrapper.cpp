@@ -258,7 +258,7 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 		glm::vec3 a = glm::vec3(positionsVector[points[0] * 3], positionsVector[points[0] * 3 + 1], positionsVector[points[0] * 3 + 2]);
 		glm::vec3 b = glm::vec3(positionsVector[points[1] * 3], positionsVector[points[1] * 3 + 1], positionsVector[points[1] * 3 + 2]);
 		glm::vec3 c = glm::vec3(positionsVector[points[2] * 3], positionsVector[points[2] * 3 + 1], positionsVector[points[2] * 3 + 2]);
-		double originalArea = SDF::TriangleArea(a, b, c);
+		double originalArea = GEOMETRY.CalculateTriangleArea(a, b, c);
 		totalArea += originalArea;
 
 		FEPlane currentPlane = FEPlane(a, segmentNormal);
@@ -267,7 +267,7 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 		glm::vec3 bProjection = currentPlane.ProjectPoint(b);
 		glm::vec3 cProjection = currentPlane.ProjectPoint(c);
 
-		double projectionArea = SDF::TriangleArea(aProjection, bProjection, cProjection);
+		double projectionArea = GEOMETRY.CalculateTriangleArea(aProjection, bProjection, cProjection);
 
 		double rugosity = originalArea / projectionArea;
 
@@ -329,7 +329,7 @@ void FECGALWrapper::addRugosityInfo(FEMesh* mesh, std::vector<int> originalTrian
 	}
 
 	RESOURCE_MANAGER.AddColorToFEMeshVertices(mesh, colors, colorSize);
-	// FIX ME
+	// This functionality was deleted from the engine.
 	//mesh->addSegmentsColorToVertices(segmentsColors, segmentsColorsSize);
 
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->originalTrianglesToSegments = originalTrianglesToSegments;
