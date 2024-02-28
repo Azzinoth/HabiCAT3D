@@ -271,7 +271,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(SDFNode* CurrentNode)
 				const double OriginalArea = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]];
 				Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
 
-				if (OriginalArea == 0.0 || ProjectionArea == 0.0)
+				if (OriginalArea == 0.0 || ProjectionArea == 0.0 || OriginalArea < FLT_EPSILON || ProjectionArea < FLT_EPSILON)
 					Rugosities.back() = 1.0f;
 
 				if (Rugosities.back() > 100.0f)

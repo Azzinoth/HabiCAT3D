@@ -437,7 +437,7 @@ void ObjLoader::processRawData(RawOBJData* data)
 
 	if (haveTextureCoord && haveNormalCoord)
 	{
-#ifdef FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
+#ifdef DOUBLE_VERTEX_ON_SEAMS
 		std::vector<ObjLoader::vertexThatNeedDoubling> vertexList;
 		std::unordered_map<int, int> indexesMap;
 
@@ -499,7 +499,7 @@ void ObjLoader::processRawData(RawOBJData* data)
 				}
 			}
 		}
-#endif // FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
+#endif // DOUBLE_VERTEX_ON_SEAMS
 
 		data->fVerC.resize(data->rawVertexCoordinates.size() * 3);
 		data->fTexC.resize(data->rawVertexCoordinates.size() * 2);
@@ -541,12 +541,12 @@ void ObjLoader::processRawData(RawOBJData* data)
 			data->fInd.push_back(vIndex);
 		}
 
-#ifdef FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
+#ifdef DOUBLE_VERTEX_ON_SEAMS
 		for (size_t j = 0; j < doubledVertexMatIndecies.size(); j++)
 		{
 			data->matIDs[doubledVertexMatIndecies[j].first - 1] = doubledVertexMatIndecies[j].second;
 		}
-#endif // FE_OBJ_DOUBLE_VERTEX_ON_SEAMS
+#endif // DOUBLE_VERTEX_ON_SEAMS
 
 		calculateTangents(data);
 	}

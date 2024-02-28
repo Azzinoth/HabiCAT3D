@@ -13,8 +13,8 @@ void MeshRenderer::RenderFEMesh(FEMesh* Mesh)
 	MESH_MANAGER.CustomMeshShader->UpdateParameterData("HeatMapType", MESH_MANAGER.GetHeatMapType());
 	MESH_MANAGER.CustomMeshShader->UpdateParameterData("LayerIndex", LAYER_MANAGER.GetActiveLayerIndex());
 
-	MESH_MANAGER.CustomMeshShader->UpdateParameterData("saturationFactor", MESH_MANAGER.saturationFactor);
-	MESH_MANAGER.CustomMeshShader->UpdateParameterData("brightnessValue", MESH_MANAGER.brightnessValue);
+	MESH_MANAGER.CustomMeshShader->UpdateParameterData("UnselectedAreaSaturationFactor", MESH_MANAGER.GetUnselectedAreaSaturationFactor());
+	MESH_MANAGER.CustomMeshShader->UpdateParameterData("UnselectedAreaBrightnessFactor", MESH_MANAGER.GetUnselectedAreaBrightnessFactor());
 
 	if (LAYER_MANAGER.GetActiveLayer() != nullptr)
 	{

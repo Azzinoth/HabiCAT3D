@@ -9,7 +9,7 @@ MeshManager::MeshManager()
 	{
 		// That causes strange error in imgui or NVIDIA driver.
 		//CustomMeshShader = new FEShader("MainMeshShader", sTestVS_simple, sTestFS_simple);
-		CustomMeshShader = RESOURCE_MANAGER.CreateShader("MainMeshShader", sTestVS, sTestFS);
+		CustomMeshShader = RESOURCE_MANAGER.CreateShader("MainMeshShader", CustomMesh_VS, CustomMesh_FS);
 		CustomMeshShader->UpdateParameterData("lightDirection", glm::vec3(0.0, 1.0, 0.2));
 
 		CustomMaterial = RESOURCE_MANAGER.CreateMaterial("MainMeshMaterial");
@@ -468,4 +468,30 @@ bool MeshManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
 	}
 
 	return Result;
+}
+
+float MeshManager::GetUnselectedAreaSaturationFactor()
+{
+	return UnselectedAreaSaturationFactor;
+}
+
+void MeshManager::SetUnselectedAreaSaturationFactor(float NewValue)
+{
+	if (NewValue < 0.0f)
+		NewValue = 0.0f;
+
+	UnselectedAreaSaturationFactor = NewValue;
+}
+
+float MeshManager::GetUnselectedAreaBrightnessFactor()
+{
+	return UnselectedAreaBrightnessFactor;
+}
+
+void MeshManager::SetUnselectedAreaBrightnessFactor(float NewValue)
+{
+	if (NewValue < 0.0f)
+		NewValue = 0.0f;
+
+	UnselectedAreaBrightnessFactor = NewValue;
 }

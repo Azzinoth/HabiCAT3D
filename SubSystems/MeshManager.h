@@ -1,10 +1,9 @@
 #pragma once
-//#include "../FEMesh.h"
 #include "../FECoreIncludes.h"
 #include "FESDF.h"
 using namespace FocalEngine;
 
-static const char* const sTestVS = R"(
+static const char* const CustomMesh_VS = R"(
 @In_Position@
 @In_Normal@
 
@@ -54,7 +53,7 @@ void main(void)
 }
 )";
 
-static const char* const sTestFS = R"(
+static const char* const CustomMesh_FS = R"(
 in VS_OUT
 {
 	vec2 UV;
@@ -91,8 +90,8 @@ uniform float LayerAbsoluteMax;
 uniform float SelectedRangeMin;
 uniform float SelectedRangeMax;
 
-uniform float saturationFactor;  // A factor between 0.0 and 1.0
-uniform float brightnessValue;   // A value to add/subtract for brightness. Can be positive or negative.
+uniform float UnselectedAreaSaturationFactor;  // A factor between 0.0 and 1.0
+uniform float UnselectedAreaBrightnessFactor;   // A value to add/subtract for brightness. Can be positive or negative.
 
 layout (location = 0) out vec4 out_Color;
 
@@ -338,8 +337,8 @@ void main(void)
 			vec3 hsv = rgb2hsv(finalBaseColor.rgb);
 
 			// Adjust saturation and brightness (value)
-			hsv.y *= saturationFactor;
-			hsv.z *= brightnessValue;
+			hsv.y *= UnselectedAreaSaturationFactor;
+			hsv.z *= UnselectedAreaBrightnessFactor;
 
 			// Clamp the saturation and brightness components
 			hsv.y = clamp(hsv.y, 0.0, 1.0);
@@ -373,8 +372,10 @@ namespace FocalEngine
 		void AddLoadCallback(std::function<void()> Func);
 		void SaveRUGMesh(FEMesh* Mesh);
 
-		float saturationFactor = 0.3f;
-		float brightnessValue = 0.2f;
+		float GetUnselectedAreaSaturationFactor();
+		void SetUnselectedAreaSaturationFactor(float NewValue);
+		float GetUnselectedAreaBrightnessFactor();
+		void SetUnselectedAreaBrightnessFactor(float NewValue);
 
 		int GetHeatMapType();
 		void SetHeatMapType(int NewValue);
@@ -402,6 +403,9 @@ namespace FocalEngine
 		int HeatMapType = 5;
 		GLuint FirstLayerBufferID = 0;
 		GLuint SecondLayerBufferID = 0;
+
+		float UnselectedAreaSaturationFactor = 0.3f;
+		float UnselectedAreaBrightnessFactor = 0.2f;
 
 		float MeasuredRugosityAreaRadius = -1.0f;
 		glm::vec3 MeasuredRugosityAreaCenter = glm::vec3(0.0f);
