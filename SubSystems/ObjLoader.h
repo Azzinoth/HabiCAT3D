@@ -62,14 +62,35 @@ class ObjLoader
 	friend FEResourceManager;
 public:
 	SINGLETON_PUBLIC_PART(ObjLoader)
-//private:
+
+	void ForceOneMesh(bool bForce);
+	bool IsForcingOneMesh();
+
+	void ForcePositionNormalization(bool bForce);
+	bool IsForcingPositionNormalization();
+
+	void ReadFile(const char* FileName);
+
+	// Use to get raw data from the loaded file.
+	// Recommenede only if you know what you are doing.
+	std::vector<RawOBJData*>* GetLoadedObjects();
+private:
 	SINGLETON_PRIVATE_PART(ObjLoader)
 		
 	std::vector<RawOBJData*> LoadedObjects;
-	bool bForceOneMesh = false;
-	std::string CurrentFilePath = "";
 
-	void ReadFile(const char* FileName);
+	bool bForceOneMesh = false;
+	bool bForcePositionNormalization = false;
+	bool bHaveColors = false;
+	bool bHaveTextureCoord = false;
+	bool bHaveNormalCoord = false;
+
+	std::string CurrentFilePath = "";
+	std::string MaterialFileName = "";
+	RawOBJData* CurrentMaterialObject = nullptr;
+	void ReadMaterialFile(const char* OriginalOBJFile);
+	void ReadMaterialLine(std::stringstream& lineStream);
+	bool CheckCurrentMaterialObject();
 
 	void ReadLine(std::stringstream& lineStream, RawOBJData* data);
 	void ProcessRawData(RawOBJData* Data);
@@ -77,18 +98,8 @@ public:
 	glm::vec3 CalculateNormal(glm::dvec3 V0, glm::dvec3 V1, glm::dvec3 V2);
 	void CalculateNormals(RawOBJData* Data);
 
-	glm::vec3 CalculateTangent(glm::vec3 V0, glm::vec3 V1, glm::vec3 V2, std::vector<glm::vec2>&& Textures);
+	glm::vec3 CalculateTangent(const glm::vec3 V0, const glm::vec3 V1, const glm::vec3 V2, std::vector<glm::vec2>&& Textures);
 	void CalculateTangents(RawOBJData* Data);
-
-	std::string MaterialFileName = "";
-	void ReadMaterialFile(const char* originalOBJFile);
-	void ReadMaterialLine(std::stringstream& lineStream);
-	RawOBJData* CurrentMaterialObject = nullptr;
-	bool CheckCurrentMaterialObject();
-
-	bool bHaveColors = false;
-	bool bHaveTextureCoord = false;
-	bool bHaveNormalCoord = false;
 
 	void NormalizeVertexPositions(RawOBJData* data);
 

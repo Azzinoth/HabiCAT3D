@@ -109,7 +109,7 @@ void ObjLoader::ReadLine(std::stringstream& LineStream, RawOBJData* Data)
 				else
 				{
 					// Texture coordinates are optional.
-					if (iterations == 1)
+					if (bHaveTextureCoord && iterations == 1)
 					{
 						// It is not proper fix!
 						Data->RawIndices.push_back(1);
@@ -318,7 +318,7 @@ void ObjLoader::CalculateNormals(RawOBJData* Data)
 	}
 }
 
-glm::vec3 ObjLoader::CalculateTangent(glm::vec3 V0, glm::vec3 V1, glm::vec3 V2, std::vector<glm::vec2>&& Textures)
+glm::vec3 ObjLoader::CalculateTangent(const glm::vec3 V0, const glm::vec3 V1, const glm::vec3 V2, std::vector<glm::vec2>&& Textures)
 {
 	const glm::vec3 Q1 = V1 - V0;
 	const glm::vec3 Q2 = V2 - V0;
@@ -433,7 +433,8 @@ void ObjLoader::NormalizeVertexPositions(RawOBJData* Data)
 
 void ObjLoader::ProcessRawData(RawOBJData* Data)
 {
-	NormalizeVertexPositions(Data);
+	if (bForcePositionNormalization)
+		NormalizeVertexPositions(Data);
 
 	if (bHaveTextureCoord && bHaveNormalCoord)
 	{
@@ -458,7 +459,7 @@ void ObjLoader::ProcessRawData(RawOBJData* Data)
 				if (Data->RawIndices[i] == Data->RawIndices[j] && (TexD || NormD))
 				{
 					// we do not need to add first appearance of vertex that we need to double
-					ObjLoader::VertexThatNeedDoubling NewVertex = ObjLoader::VertexThatNeedDoubling(int(j), Data->RawIndices[j], Data->RawIndices[j + 1], Data->RawIndices[j + 2]);
+					ObjLoader::VertexThatNeedDoubling NewVertex = ObjLoader::VertexThatNeedDoubling(static_cast<int>(j), Data->RawIndices[j], Data->RawIndices[j + 1], Data->RawIndices[j + 2]);
 					if (std::find(VertexList.begin(), VertexList.end(), NewVertex) == VertexList.end())
 					{
 						VertexList.push_back(NewVertex);
@@ -562,7 +563,7 @@ void ObjLoader::ProcessRawData(RawOBJData* Data)
 		if (bHaveColors)
 			Data->fColorsC.resize(Data->RawVertexCoordinates.size() * 3);
 
-		for (size_t i = 0; i < Data->RawIndices.size(); i += 2)
+		for (size_t i = 0; i < Data->RawIndices.size(); i+=2)
 		{
 			// faces index in OBJ file begins from 1 not 0.
 			int VIndex = Data->RawIndices[i] - 1;
@@ -613,22 +614,12 @@ void ObjLoader::ProcessRawData(RawOBJData* Data)
 		{
 			// faces index in OBJ file begins from 1 not 0.
 			int VIndex = Data->RawIndices[i] - 1;
-			//int tIndex = Data->RawIndices[i + 1] - 1;
-			//int nIndex = Data->RawIndices[i + 2] - 1;
 
 			int ShiftInVerArr = VIndex * 3;
-			//int shiftInTexArr = vIndex * 2;
 
 			Data->FVerC[ShiftInVerArr] = Data->RawVertexCoordinates[VIndex][0];
 			Data->FVerC[ShiftInVerArr + 1] = Data->RawVertexCoordinates[VIndex][1];
 			Data->FVerC[ShiftInVerArr + 2] = Data->RawVertexCoordinates[VIndex][2];
-
-			//Data->fTexC[shiftInTexArr] = Data->rawTextureCoordinates[tIndex][0];
-			//Data->fTexC[shiftInTexArr + 1] = 1 - Data->rawTextureCoordinates[tIndex][1];
-
-			//Data->fNorC[shiftInVerArr] = Data->rawNormalCoordinates[nIndex][0];
-			//Data->fNorC[shiftInVerArr + 1] = Data->rawNormalCoordinates[nIndex][1];
-			//Data->fNorC[shiftInVerArr + 2] = Data->rawNormalCoordinates[nIndex][2];
 
 			Data->FInd.push_back(VIndex);
 		}
@@ -638,12 +629,12 @@ void ObjLoader::ProcessRawData(RawOBJData* Data)
 	}
 }
 
-void ObjLoader::ReadMaterialFile(const char* OriginalObjFile)
+void ObjLoader::ReadMaterialFile(const char* OriginalOBJFile)
 {
-	if (MaterialFileName.empty() || OriginalObjFile == "")
+	if (MaterialFileName.empty() || OriginalOBJFile == "")
 		return;
 
-	std::string MaterialFileFullPath = FILE_SYSTEM.GetDirectoryPath(OriginalObjFile);
+	std::string MaterialFileFullPath = FILE_SYSTEM.GetDirectoryPath(OriginalOBJFile);
 	MaterialFileFullPath += MaterialFileName;
 	if (!FILE_SYSTEM.CheckFile(MaterialFileFullPath.c_str()))
 	{
@@ -870,4 +861,29 @@ void ObjLoader::ReadMaterialLine(std::stringstream& LineStream)
 		if (!FILE_SYSTEM.CheckFile(StringEdited->c_str()))
 			LookForFile(*StringEdited);
 	}
+}
+
+void ObjLoader::ForceOneMesh(bool bForce)
+{
+	bForceOneMesh = bForce;
+}
+
+bool ObjLoader::IsForcingOneMesh()
+{
+	return bForceOneMesh;
+}
+
+void ObjLoader::ForcePositionNormalization(bool bForce)
+{
+	bForcePositionNormalization = bForce;
+}
+
+bool ObjLoader::IsForcingPositionNormalization()
+{
+	return bForcePositionNormalization;
+}
+
+std::vector<RawOBJData*>* ObjLoader::GetLoadedObjects()
+{
+	return &LoadedObjects;
 }
