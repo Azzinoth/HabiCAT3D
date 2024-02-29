@@ -23,26 +23,26 @@ FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
 	FEMesh* result = nullptr;
 	ObjLoader& objLoader = ObjLoader::getInstance();
-	objLoader.forceOneMesh = bForceOneMesh;
-	objLoader.readFile(FileName);
+	objLoader.bForceOneMesh = bForceOneMesh;
+	objLoader.ReadFile(FileName);
 
-	if (objLoader.loadedObjects.size() > 0)
+	if (objLoader.LoadedObjects.size() > 0)
 	{
 		std::vector<float> FEVertices;
-		for (int i = 0; i < objLoader.loadedObjects[0]->fVerC.size(); i++)
+		for (int i = 0; i < objLoader.LoadedObjects[0]->FVerC.size(); i++)
 		{
-			FEVertices.push_back(static_cast<float>(objLoader.loadedObjects[0]->fVerC[i]));
+			FEVertices.push_back(static_cast<float>(objLoader.LoadedObjects[0]->FVerC[i]));
 		}
 
 		result = RESOURCE_MANAGER.RawDataToMesh(FEVertices.data(), int(FEVertices.size()),
-												objLoader.loadedObjects[0]->fTexC.data(), int(objLoader.loadedObjects[0]->fTexC.size()),
-												objLoader.loadedObjects[0]->fNorC.data(), int(objLoader.loadedObjects[0]->fNorC.size()),
-												objLoader.loadedObjects[0]->fTanC.data(), int(objLoader.loadedObjects[0]->fTanC.size()),
-												objLoader.loadedObjects[0]->fInd.data(), int(objLoader.loadedObjects[0]->fInd.size()),
-												objLoader.loadedObjects[0]->fColorsC.data(), int(objLoader.loadedObjects[0]->fColorsC.size()),
-												objLoader.loadedObjects[0]->matIDs.data(), int(objLoader.loadedObjects[0]->matIDs.size()), int(objLoader.loadedObjects[0]->materialRecords.size()), "");
+												objLoader.LoadedObjects[0]->FTexC.data(), int(objLoader.LoadedObjects[0]->FTexC.size()),
+												objLoader.LoadedObjects[0]->FNorC.data(), int(objLoader.LoadedObjects[0]->FNorC.size()),
+												objLoader.LoadedObjects[0]->FTanC.data(), int(objLoader.LoadedObjects[0]->FTanC.size()),
+												objLoader.LoadedObjects[0]->FInd.data(), int(objLoader.LoadedObjects[0]->FInd.size()),
+												objLoader.LoadedObjects[0]->fColorsC.data(), int(objLoader.LoadedObjects[0]->fColorsC.size()),
+												objLoader.LoadedObjects[0]->MatIDs.data(), int(objLoader.LoadedObjects[0]->MatIDs.size()), int(objLoader.LoadedObjects[0]->MaterialRecords.size()), "");
 	
-		COMPLEXITY_METRIC_MANAGER.Init(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fColorsC, objLoader.loadedObjects[0]->fTexC, objLoader.loadedObjects[0]->fTanC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
+		COMPLEXITY_METRIC_MANAGER.Init(objLoader.LoadedObjects[0]->FVerC, objLoader.LoadedObjects[0]->fColorsC, objLoader.LoadedObjects[0]->FTexC, objLoader.LoadedObjects[0]->FTanC, objLoader.LoadedObjects[0]->FInd, objLoader.LoadedObjects[0]->FNorC);
 	}
 	
 	return result;

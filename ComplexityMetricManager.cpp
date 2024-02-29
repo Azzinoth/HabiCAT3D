@@ -23,12 +23,12 @@ void ComplexityMetricManager::AddLoadCallback(std::function<void()> Func)
 void ComplexityMetricManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
 	ObjLoader& objLoader = ObjLoader::getInstance();
-	objLoader.forceOneMesh = bForceOneMesh;
-	objLoader.readFile(FileName);
+	objLoader.bForceOneMesh = bForceOneMesh;
+	objLoader.ReadFile(FileName);
 
-	if (objLoader.loadedObjects.size() > 0)
+	if (objLoader.LoadedObjects.size() > 0)
 	{
-		COMPLEXITY_METRIC_MANAGER.Init(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fColorsC, objLoader.loadedObjects[0]->fTexC, objLoader.loadedObjects[0]->fTanC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
+		COMPLEXITY_METRIC_MANAGER.Init(objLoader.LoadedObjects[0]->FVerC, objLoader.LoadedObjects[0]->fColorsC, objLoader.LoadedObjects[0]->FTexC, objLoader.LoadedObjects[0]->FTanC, objLoader.LoadedObjects[0]->FInd, objLoader.LoadedObjects[0]->FNorC);
 	}
 
 	for (size_t i = 0; i < ClientLoadCallbacks.size(); i++)

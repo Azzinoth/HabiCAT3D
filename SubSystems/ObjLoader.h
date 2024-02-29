@@ -6,53 +6,55 @@ using namespace FocalEngine;
 
 struct materialRecord
 {
-	std::string name = "";
+	std::string Name = "";
 
-	std::string albedoMapFile = "";
-	std::string specularMapFile = "";
-	std::string specularHighlightMapFile = "";
-	std::string alphaMapFile = "";
-	std::string normalMapFile = "";
-	std::string bumpMapFile = "";
-	std::string displacementMapFile = "";
-	std::string stencilDecalMapFile = "";
+	std::string AlbedoMapFile = "";
+	std::string SpecularMapFile = "";
+	std::string SpecularHighlightMapFile = "";
+	std::string AlphaMapFile = "";
+	std::string NormalMapFile = "";
+	std::string BumpMapFile = "";
+	std::string DisplacementMapFile = "";
+	std::string StencilDecalMapFile = "";
 
-	unsigned int minVertexIndex = INT_MAX;
-	unsigned int maxVertexIndex = 0;
+	unsigned int MinVertexIndex = INT_MAX;
+	unsigned int MaxVertexIndex = 0;
 
-	unsigned int minTextureIndex = INT_MAX;
-	unsigned int maxTextureIndex = 0;
+	unsigned int MinTextureIndex = INT_MAX;
+	unsigned int MaxTextureIndex = 0;
 
-	unsigned int minNormalIndex = INT_MAX;
-	unsigned int maxNormalIndex = 0;
+	unsigned int MinNormalIndex = INT_MAX;
+	unsigned int MaxNormalIndex = 0;
 
-	unsigned int facesSeenBefore = 0;
-	unsigned int faceCount = 0;
+	unsigned int FacesSeenBefore = 0;
+	unsigned int FaceCount = 0;
 };
+
+#define DOUBLE_VERTEX_ON_SEAMS
 
 struct RawOBJData
 {
-	std::vector<glm::dvec3> rawVertexCoordinates;
-	std::vector<glm::vec3> rawVertexColors;
-	std::vector<glm::vec2> rawTextureCoordinates;
-	std::vector<glm::vec3> rawNormalCoordinates;
-	std::vector<int> rawIndices;
+	std::vector<glm::dvec3> RawVertexCoordinates;
+	std::vector<glm::vec3> RawVertexColors;
+	std::vector<glm::vec2> RawTextureCoordinates;
+	std::vector<glm::vec3> RawNormalCoordinates;
+	std::vector<int> RawIndices;
 
 	// final vertex coordinates
-	std::vector<double> fVerC;
+	std::vector<double> FVerC;
 	// final colors
 	std::vector<float> fColorsC;
 	// final texture coordinates
-	std::vector<float> fTexC;
+	std::vector<float> FTexC;
 	// final normal coordinates
-	std::vector<float> fNorC;
+	std::vector<float> FNorC;
 	// final tangent coordinates
-	std::vector<float> fTanC;
+	std::vector<float> FTanC;
 	// final indices
-	std::vector<int> fInd;
+	std::vector<int> FInd;
 	// material records
-	std::vector<materialRecord> materialRecords;
-	std::vector<float> matIDs;
+	std::vector<materialRecord> MaterialRecords;
+	std::vector<float> MatIDs;
 };
 
 class ObjLoader
@@ -63,48 +65,48 @@ public:
 //private:
 	SINGLETON_PRIVATE_PART(ObjLoader)
 		
-	std::vector<RawOBJData*> loadedObjects;
-	bool forceOneMesh = false;
-	std::string currentFilePath = "";
+	std::vector<RawOBJData*> LoadedObjects;
+	bool bForceOneMesh = false;
+	std::string CurrentFilePath = "";
 
-	void readFile(const char* fileName);
+	void ReadFile(const char* FileName);
 
-	void readLine(std::stringstream& lineStream, RawOBJData* data);
-	void processRawData(RawOBJData* data);
+	void ReadLine(std::stringstream& lineStream, RawOBJData* data);
+	void ProcessRawData(RawOBJData* Data);
 
-	glm::vec3 calculateNormal(glm::dvec3 v0, glm::dvec3 v1, glm::dvec3 v2);
-	void calculateNormals(RawOBJData* data);
+	glm::vec3 CalculateNormal(glm::dvec3 V0, glm::dvec3 V1, glm::dvec3 V2);
+	void CalculateNormals(RawOBJData* Data);
 
-	glm::vec3 calculateTangent(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, std::vector<glm::vec2>&& textures);
-	void calculateTangents(RawOBJData* data);
+	glm::vec3 CalculateTangent(glm::vec3 V0, glm::vec3 V1, glm::vec3 V2, std::vector<glm::vec2>&& Textures);
+	void CalculateTangents(RawOBJData* Data);
 
-	std::string materialFileName = "";
-	void readMaterialFile(const char* originalOBJFile);
-	void readMaterialLine(std::stringstream& lineStream);
-	RawOBJData* currentMaterialObject = nullptr;
-	bool checkCurrentMaterialObject();
+	std::string MaterialFileName = "";
+	void ReadMaterialFile(const char* originalOBJFile);
+	void ReadMaterialLine(std::stringstream& lineStream);
+	RawOBJData* CurrentMaterialObject = nullptr;
+	bool CheckCurrentMaterialObject();
 
-	bool haveColors = false;
-	bool haveTextureCoord = false;
-	bool haveNormalCoord = false;
+	bool bHaveColors = false;
+	bool bHaveTextureCoord = false;
+	bool bHaveNormalCoord = false;
 
-	void NormilizeVertexPositions(RawOBJData* data);
+	void NormalizeVertexPositions(RawOBJData* data);
 
 #ifdef DOUBLE_VERTEX_ON_SEAMS
-	struct vertexThatNeedDoubling
+	struct VertexThatNeedDoubling
 	{
-		vertexThatNeedDoubling(int IndexInArray, int AcctualIndex, int TexIndex, int NormIndex) : indexInArray(IndexInArray),
-			acctualIndex(AcctualIndex), texIndex(TexIndex), normIndex(NormIndex), wasDone(false) {};
+		VertexThatNeedDoubling(int IndexInArray, int AcctualIndex, int TexIndex, int NormIndex) : IndexInArray(IndexInArray),
+			AcctualIndex(AcctualIndex), TexIndex(TexIndex), NormIndex(NormIndex), bWasDone(false) {};
 
-		int indexInArray;
-		int acctualIndex;
-		int texIndex;
-		int normIndex;
-		bool wasDone;
+		int IndexInArray;
+		int AcctualIndex;
+		int TexIndex;
+		int NormIndex;
+		bool bWasDone;
 
-		friend bool operator==(const vertexThatNeedDoubling& lhs, const vertexThatNeedDoubling& rhs)
+		friend bool operator==(const VertexThatNeedDoubling& lhs, const VertexThatNeedDoubling& rhs)
 		{
-			return lhs.acctualIndex == rhs.acctualIndex && lhs.indexInArray == rhs.indexInArray && lhs.texIndex == rhs.texIndex && lhs.normIndex == rhs.normIndex;
+			return lhs.AcctualIndex == rhs.AcctualIndex && lhs.IndexInArray == rhs.IndexInArray && lhs.TexIndex == rhs.TexIndex && lhs.NormIndex == rhs.NormIndex;
 		}
 	};
 #endif // DOUBLE_VERTEX_ON_SEAMS
