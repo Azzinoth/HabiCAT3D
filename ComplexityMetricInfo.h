@@ -161,7 +161,7 @@ namespace FocalEngine
 		std::vector<float> rugosityDataAdditional;
 		std::vector<float> TrianglesRugosityAdditional;
 
-		void fillTrianglesData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
+		void fillTrianglesData(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
 
 		glm::vec3 AverageNormal = glm::vec3();
 		glm::vec3 GetAverageNormal();

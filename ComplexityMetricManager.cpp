@@ -6,7 +6,7 @@ ComplexityMetricManager* ComplexityMetricManager::Instance = nullptr;
 ComplexityMetricManager::ComplexityMetricManager() {}
 ComplexityMetricManager::~ComplexityMetricManager() {}
 
-void ComplexityMetricManager::Init(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
+void ComplexityMetricManager::Init(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
 {
 	if (ActiveComplexityMetricInfo != nullptr)
 		delete ActiveComplexityMetricInfo;
@@ -22,13 +22,15 @@ void ComplexityMetricManager::AddLoadCallback(std::function<void()> Func)
 
 void ComplexityMetricManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
-	ObjLoader& objLoader = ObjLoader::getInstance();
+	FEObjLoader& objLoader = FEObjLoader::getInstance();
 	objLoader.ForceOneMesh(bForceOneMesh);
 	objLoader.ForcePositionNormalization(true);
+	objLoader.UseDoublePrecisionForReadingCoordinates(true);
+	objLoader.DoubleVertexOnSeams(false);
 	objLoader.ReadFile(FileName);
 
-	std::vector<RawOBJData*>* LoadedObjects = objLoader.GetLoadedObjects();
-	RawOBJData* FirstObject = LoadedObjects->size() > 0 ? LoadedObjects->at(0) : nullptr;
+	std::vector<FERawOBJData*>* LoadedObjects = objLoader.GetLoadedObjects();
+	FERawOBJData* FirstObject = LoadedObjects->size() > 0 ? LoadedObjects->at(0) : nullptr;
 
 	if (FirstObject != nullptr)
 	{

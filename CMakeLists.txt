@@ -27,8 +27,6 @@ endif()
 # *************** SUB_SYSTEM ***************
 
 file(GLOB SubSystems_SRC
-	"SubSystems/ObjLoader.h"
-	"SubSystems/ObjLoader.cpp"
 	"SubSystems/FECGALWrapper.cpp"
 	"SubSystems/FECGALWrapper.h"
 	"SubSystems/ExcelWrapper.cpp"

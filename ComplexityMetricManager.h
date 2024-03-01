@@ -2,7 +2,7 @@
 #include "ComplexityMetricInfo.h"
 using namespace FocalEngine;
 
-#include "SubSystems/ObjLoader.h"
+#include "../FECoreIncludes.h"
 
 #define APP_VERSION 0.62f
 
@@ -25,7 +25,7 @@ namespace FocalEngine
 
 		ComplexityMetricInfo* ActiveComplexityMetricInfo = nullptr;
 
-		void Init(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
+		void Init(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
 		void ImportOBJ(const char* FileName, bool bForceOneMesh);
 
 		void AddLoadCallback(std::function<void()> Func);

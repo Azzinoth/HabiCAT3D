@@ -1,6 +1,7 @@
 #include "FESDF.h"
 using namespace FocalEngine;
 
+// FIX ME
 glm::dvec3 mouseRay(double mouseX, double mouseY, FEBasicCamera* currentCamera)
 {
 	int W, H;
@@ -27,20 +28,6 @@ SDF::~SDF()
 	Data.clear();
 }
 
-int DimensionsToPOWDimensions(const int Dimensions)
-{
-	for (size_t i = 0; i < 12; i++)
-	{
-		if (Dimensions > pow(2.0, i))
-			continue;
-
-		if (Dimensions <= pow(2.0, i))
-			return static_cast<int>(pow(2.0, i));
-	}
-
-	return 0;
-}
-
 void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 {
 	TIME.BeginTimeStamp("SDF Generation");
@@ -53,15 +40,11 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 	{
 		AdditionalDimensions = 2;
 		const int MinDimensions = static_cast<int>(AABB.GetSize() / ResolutionInM);
-		Dimensions = DimensionsToPOWDimensions(MinDimensions) + AdditionalDimensions;
+		Dimensions = MinDimensions + AdditionalDimensions;
 
 		if (Dimensions < 1 || Dimensions > 4096)
 			return;
 	}
-
-	// If dimensions is not power of 2, we can't continue.
-	/*if (log2(Dimensions) != static_cast<int>(log2(Dimensions)))
-		return;*/
 
 	Data.resize(Dimensions);
 	for (size_t i = 0; i < Dimensions; i++)
@@ -102,7 +85,6 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 			{
 				glm::vec3 CurrentAABBMin = Start + glm::vec3(CellSize * i, CellSize * j, CellSize * k);
 				Data[i][j][k].AABB = FEAABB(CurrentAABBMin, CurrentAABBMin + glm::vec3(CellSize));
-				//float SignedDistance = GetSignedDistanceForNode(&Data[i][j][k]);
 			}
 		}
 	}

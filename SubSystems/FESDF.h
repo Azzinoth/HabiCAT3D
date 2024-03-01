@@ -37,7 +37,6 @@ namespace FocalEngine
         SDF();
         ~SDF();
 
-        // Methods
         void Init(int Dimensions, FEAABB AABB, float ResolutionInM = 0.0f);
         void FillCellsWithTriangleInfo();
         void MouseClick(double MouseX, double MouseY, glm::mat4 TransformMat = glm::identity<glm::mat4>());

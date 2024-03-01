@@ -3,16 +3,9 @@ using namespace FocalEngine;
 
 ComplexityMetricInfo::ComplexityMetricInfo() {}
 
-void ComplexityMetricInfo::fillTrianglesData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
+void ComplexityMetricInfo::fillTrianglesData(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
 {
-	std::vector<float> FloatVertices;
-	FloatVertices.resize(Vertices.size());
-	for (size_t i = 0; i < Vertices.size(); i++)
-	{
-		FloatVertices[i] = float(Vertices[i]);
-	}
-
-	MeshData.Vertices = FloatVertices;
+	MeshData.Vertices = Vertices;
 	MeshData.Colors = Colors;
 	MeshData.UVs = UVs;
 	MeshData.Tangents = Tangents;
@@ -60,7 +53,7 @@ void ComplexityMetricInfo::fillTrianglesData(std::vector<double>& Vertices, std:
 		}
 	}
 
-	MeshData.AABB = FEAABB(FloatVertices.data(), static_cast<int>(Vertices.size()));
+	MeshData.AABB = FEAABB(Vertices.data(), static_cast<int>(Vertices.size()));
 }
 
 void ComplexityMetricInfo::UpdateAverageNormal()

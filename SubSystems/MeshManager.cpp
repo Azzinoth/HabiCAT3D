@@ -22,23 +22,19 @@ MeshManager::~MeshManager() {}
 FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
 	FEMesh* result = nullptr;
-	ObjLoader& objLoader = ObjLoader::getInstance();
+	FEObjLoader& objLoader = FEObjLoader::getInstance();
 	objLoader.ForceOneMesh(bForceOneMesh);
 	objLoader.ForcePositionNormalization(true);
+	objLoader.UseDoublePrecisionForReadingCoordinates(true);
+	objLoader.DoubleVertexOnSeams(false);
 	objLoader.ReadFile(FileName);
 
-	std::vector<RawOBJData*>* LoadedObjects = objLoader.GetLoadedObjects();
-	RawOBJData* FirstObject = LoadedObjects->size() > 0 ? LoadedObjects->at(0) : nullptr;
+	std::vector<FERawOBJData*>* LoadedObjects = objLoader.GetLoadedObjects();
+	FERawOBJData* FirstObject = LoadedObjects->size() > 0 ? LoadedObjects->at(0) : nullptr;
 
 	if (FirstObject != nullptr)
 	{
-		std::vector<float> FEVertices;
-		for (int i = 0; i < FirstObject->FVerC.size(); i++)
-		{
-			FEVertices.push_back(static_cast<float>(FirstObject->FVerC[i]));
-		}
-
-		result = RESOURCE_MANAGER.RawDataToMesh(FEVertices.data(), int(FEVertices.size()),
+		result = RESOURCE_MANAGER.RawDataToMesh(FirstObject->FVerC.data(), int(FirstObject->FVerC.size()),
 												FirstObject->FTexC.data(), int(FirstObject->FTexC.size()),
 												FirstObject->FNorC.data(), int(FirstObject->FNorC.size()),
 												FirstObject->FTanC.data(), int(FirstObject->FTanC.size()),
@@ -185,7 +181,7 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 													 (float*)ColorBuffer, ColorCount,
 													 nullptr, 0, 0, "");
 
-	std::vector<double> FEVertices;
+	std::vector<float> FEVertices;
 	FEVertices.resize(VertexCount);
 	for (size_t i = 0; i < VertexCount; i++)
 	{
