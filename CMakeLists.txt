@@ -29,8 +29,6 @@ endif()
 file(GLOB SubSystems_SRC
 	"SubSystems/FECGALWrapper.cpp"
 	"SubSystems/FECGALWrapper.h"
-	"SubSystems/ExcelWrapper.cpp"
-	"SubSystems/ExcelWrapper.h"
 	"SubSystems/FELinesRenderer.cpp"
 	"SubSystems/FELinesRenderer.h"
 	"SubSystems/MeshManager.cpp"
