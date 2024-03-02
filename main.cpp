@@ -36,25 +36,6 @@ void mouseMoveCallback(double xpos, double ypos)
 	mouseY = ypos;
 }
 
-glm::dvec3 mouseRay(double mouseX, double mouseY)
-{
-	int W, H;
-	UI.MainWindow->GetSize(&W, &H);
-
-	glm::dvec2 normalizedMouseCoords;
-	normalizedMouseCoords.x = (2.0f * mouseX) / W - 1;
-	normalizedMouseCoords.y = 1.0f - (2.0f * (mouseY)) / H;
-
-	const glm::dvec4 clipCoords = glm::dvec4(normalizedMouseCoords.x, normalizedMouseCoords.y, -1.0, 1.0);
-	glm::dvec4 eyeCoords = glm::inverse(ENGINE.GetCamera()->GetProjectionMatrix()) * clipCoords;
-	eyeCoords.z = -1.0f;
-	eyeCoords.w = 0.0f;
-	glm::dvec3 worldRay = glm::inverse(ENGINE.GetCamera()->GetViewMatrix()) * eyeCoords;
-	worldRay = glm::normalize(worldRay);
-
-	return worldRay;
-}
-
 void LoadMesh(std::string FileName);
 
 static void dropCallback(int count, const char** paths);
@@ -82,7 +63,7 @@ void ScrollCall(double Xoffset, double Yoffset)
 
 void AfterMeshLoads()
 {
-	FEGameModel* NewGameModel = RESOURCE_MANAGER.CreateGameModel(MESH_MANAGER.ActiveMesh, MESH_MANAGER.CustomMaterial/*NewMaterial*/);
+	FEGameModel* NewGameModel = RESOURCE_MANAGER.CreateGameModel(MESH_MANAGER.ActiveMesh, MESH_MANAGER.CustomMaterial);
 	FEPrefab* NewPrefab = RESOURCE_MANAGER.CreatePrefab(NewGameModel);
 
 	MESH_MANAGER.ActiveEntity = SCENE.AddEntity(NewPrefab);
@@ -228,11 +209,11 @@ void mouseButtonCallback(int button, int action, int mods)
 		{
 			if (UI.GetLayerSelectionMode() == 1)
 			{
-				MESH_MANAGER.SelectTriangle(mouseRay(mouseX, mouseY));
+				MESH_MANAGER.SelectTriangle(ENGINE.ConstructMouseRay());
 			}
 			else if (UI.GetLayerSelectionMode() == 2)
 			{
-				if (MESH_MANAGER.SelectTrianglesInRadius(mouseRay(mouseX, mouseY), UI.GetRadiusOfAreaToMeasure()) && UI.GetOutputSelectionToFile())
+				if (MESH_MANAGER.SelectTrianglesInRadius(ENGINE.ConstructMouseRay(), UI.GetRadiusOfAreaToMeasure()) && UI.GetOutputSelectionToFile())
 				{
 					OutputSeletedAreaInfoToFile();
 				}
@@ -241,13 +222,12 @@ void mouseButtonCallback(int button, int action, int mods)
 			UpdateMeshSelectedTrianglesRendering(MESH_MANAGER.ActiveMesh);
 		}
 
-		if (MESH_MANAGER.ActiveMesh != nullptr && UI.GetDebugSDF() != nullptr)
+		if (MESH_MANAGER.ActiveMesh != nullptr && UI.GetDebugGrid() != nullptr)
 		{
-			if (UI.GetDebugSDF()->RenderingMode != 0)
+			if (UI.GetDebugGrid()->RenderingMode != 0)
 			{
-				UI.GetDebugSDF()->MouseClick(mouseX, mouseY);
-				UI.UpdateRenderingMode(UI.GetDebugSDF(), UI.GetDebugSDF()->RenderingMode);
-				//UI.GetDebugSDF()->UpdateRenderedLines();
+				UI.GetDebugGrid()->MouseClick(mouseX, mouseY);
+				UI.UpdateRenderingMode(UI.GetDebugGrid(), UI.GetDebugGrid()->RenderingMode);
 			}
 		}
 	}
@@ -262,101 +242,23 @@ void windowResizeCallback(int width, int height)
 	SCREENSHOT_MANAGER.RenderTargetWasResized();
 }
 
-float RAMUsed()
-{
-	//PDH_STATUS status;
-	//PDH_HQUERY query;
-	//PDH_HCOUNTER counter;
-	//PDH_FMT_COUNTERVALUE value;
-
-	//// Open a query object
-	//status = PdhOpenQuery(NULL, NULL, &query);
-	//if (status != ERROR_SUCCESS) {
-	//	std::cerr << "Error opening query: " << status << std::endl;
-	//	return 1;
-	//}
-
-	//// Get the current process ID
-	//DWORD process_id = GetCurrentProcessId();
-
-	//// Add the "Private Bytes" performance counter for the current process
-	//char counter_path[MAX_PATH];
-	//sprintf_s(counter_path, sizeof(counter_path), "\\Process(*)\\Private Bytes");
-	//status = PdhAddEnglishCounter(query, counter_path, process_id, &counter);
-	//if (status != ERROR_SUCCESS) {
-	//	std::cerr << "Error adding counter: " << status << std::endl;
-	//	return 1;
-	//}
-
-	//// Collect the performance data
-	//status = PdhCollectQueryData(query);
-	//if (status != ERROR_SUCCESS) {
-	//	std::cerr << "Error collecting data: " << status << std::endl;
-	//	return 1;
-	//}
-
-	//// Get the counter value
-	//status = PdhGetFormattedCounterValue(counter, PDH_FMT_DOUBLE, NULL, &value);
-	//if (status != ERROR_SUCCESS) {
-	//	std::cerr << "Error getting counter value: " << status << std::endl;
-	//	return 1;
-	//}
-
-
-	//// Print the memory usage
-	//std::cout << "Private Bytes: " << value.doubleValue << " bytes" << std::endl;
-
-	//MEMORYSTATUSEX memInfo;
-	//memInfo.dwLength = sizeof(MEMORYSTATUSEX);
-
-	//if (GlobalMemoryStatusEx(&memInfo)) {
-	//	DWORDLONG totalPhysicalMemory = memInfo.ullTotalPhys;
-	//	DWORDLONG freePhysicalMemory = memInfo.ullAvailPhys;
-	//	DWORDLONG usedPhysicalMemory = totalPhysicalMemory - freePhysicalMemory;
-
-	//	double totalPhysicalMemoryInMB = totalPhysicalMemory / 1024.0 / 1024.0;
-	//	double usedPhysicalMemoryInMB = usedPhysicalMemory / 1024.0 / 1024.0;
-	//	double freePhysicalMemoryInMB = freePhysicalMemory / 1024.0 / 1024.0;
-
-	//	double freeRAMPercent = freePhysicalMemoryInMB / totalPhysicalMemoryInMB * 100.0;
-
-	//	std::cout << "Total Physical Memory: " << totalPhysicalMemory << " bytes" << std::endl;
-	//	std::cout << "Free Physical Memory: " << freePhysicalMemory << " bytes" << std::endl;
-	//	std::cout << "Used Physical Memory: " << usedPhysicalMemory << " bytes" << std::endl;
-	//}
-	//else {
-	//	std::cerr << "Error getting memory information" << std::endl;
-	//	return 1;
-	//}
-
-	PROCESS_MEMORY_COUNTERS_EX pmc;
-	GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
-	SIZE_T MemCommited = pmc.PrivateUsage;
-	SIZE_T MemWorkingSet = pmc.WorkingSetSize;
-
-	float MemCommitedInKB = float(MemCommited) / 1024.0f;
-	float MemWorkingSetInKB = float(MemWorkingSet) / 1024.0f;
-
-	float MemCommitedInMB = MemCommitedInKB/ 1024.0f;
-	float MemWorkingSetInMB = MemWorkingSetInKB / 1024.0f;
-
-	return MemCommitedInMB;
-}
-
 void AddFontOnSecondFrame()
 {
 	static bool bFirstTime = true;
+	static bool bFontCreated = false;
+
 	if (bFirstTime)
 	{
 		bFirstTime = false;
 	}
 	else
 	{
-		glfwMakeContextCurrent(APPLICATION.GetMainWindow()->GetGlfwWindow());
-		ImGui::SetCurrentContext(APPLICATION.GetMainWindow()->GetImGuiContext());
-		
-		if (ImGui::GetIO().Fonts->Fonts.Size == 1)
+		if (!bFontCreated)
 		{
+			glfwMakeContextCurrent(APPLICATION.GetMainWindow()->GetGlfwWindow());
+			ImGui::SetCurrentContext(APPLICATION.GetMainWindow()->GetImGuiContext());
+		
+			bFontCreated = true;
 			ImGui::GetIO().Fonts->AddFontFromFileTTF("Resources/Cousine-Regular.ttf", 32);
 			ImGui::GetIO().Fonts->Build();
 			ImGui_ImplOpenGL3_CreateFontsTexture();
@@ -442,7 +344,7 @@ void MainWindowRender()
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	LOG.SetFileOutput(true);
+	//LOG.SetFileOutput(true);
 
 	const auto processor_count = THREAD_POOL.GetLogicalCoreCount();
 	const unsigned int HowManyToUse = processor_count > 4 ? processor_count - 2 : 1;
@@ -514,19 +416,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		while (ENGINE.IsNotTerminated())
 		{
-			// FIX ME
-			//if (ImGui::GetCurrentContext() != nullptr)
-			//	AddFontOnSecondFrame();
+			AddFontOnSecondFrame();
 
 			ENGINE.BeginFrame();
 
 			ENGINE.Render();
 
 			ENGINE.EndFrame();
-
-			/*auto ID = GetCurrentProcess();
-			auto test = RAMUsed();
-			int y = 0;*/
 		}
 	}
 

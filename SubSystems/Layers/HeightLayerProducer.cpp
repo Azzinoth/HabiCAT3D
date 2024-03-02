@@ -24,7 +24,7 @@ MeshLayer HeightLayerProducer::Calculate()
 		double AverageTriangleHeight = 0.0;
 		for (size_t j = 0; j < 3; j++)
 		{
-			double CurrentHeight = glm::dot(glm::vec3(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][j], 1.0)), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AverageNormal);
+			double CurrentHeight = glm::dot(glm::vec3(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][j], 1.0)), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal());
 			AverageTriangleHeight += CurrentHeight;
 		}
 

@@ -11,7 +11,7 @@ public:
 
 	void CalculateWithJitterAsync(bool bSmootherResult);
 	void CalculateOnWholeModel();
-	void RenderDebugInfoForSelectedNode(SDF* Grid);
+	void RenderDebugInfoForSelectedNode(MeasurementGrid* Grid);
 
 	void SetOnCalculationsEndCallback(void(*Func)(MeshLayer));
 	bool bCalculateStandardDeviation = false;
@@ -20,7 +20,7 @@ private:
 
 	static void OnJitterCalculationsEnd(MeshLayer NewLayer);
 	bool bWaitForJitterResult = false;
-	static void WorkOnNode(SDFNode* CurrentNode);
+	static void WorkOnNode(GridNode* CurrentNode);
 
 	static void(*OnCalculationsEndCallbackImpl)(MeshLayer);
 };

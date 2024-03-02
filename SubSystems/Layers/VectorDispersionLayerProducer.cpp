@@ -11,7 +11,7 @@ VectorDispersionLayerProducer::VectorDispersionLayerProducer()
 
 VectorDispersionLayerProducer::~VectorDispersionLayerProducer() {}
 
-void VectorDispersionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
+void VectorDispersionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 {
 	if (CurrentNode->TrianglesInCell.empty())
 		return;
@@ -66,7 +66,7 @@ void VectorDispersionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 	bWaitForJitterResult = true;
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	JITTER_MANAGER.CalculateWithSDFJitterAsync(WorkOnNode, bSmootherResult);
+	JITTER_MANAGER.CalculateWithGridJitterAsync(WorkOnNode, bSmootherResult);
 }
 
 void VectorDispersionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
@@ -104,14 +104,14 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		OnCalculationsEndCallbackImpl(NewLayer);
 }
 
-void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
+void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid)
 {
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
 
 	Grid->UpdateRenderedLines();
 
-	SDFNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
+	GridNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
 	for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
 	{
 		const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];

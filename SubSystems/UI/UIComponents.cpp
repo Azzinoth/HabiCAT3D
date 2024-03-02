@@ -487,20 +487,18 @@ void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 	Legend.SetPosition(RangePosition + ImVec2(15, -10));
 	Legend.SetSize(RangeSize);
 
-	if (bScreenshotMode)
+	if (bScreenshotMode && ImGui::GetIO().Fonts->Fonts.Size > 0)
 	{
-		// FIX ME
-		//ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+		ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
 	}
 	
 	Legend.Render();
 
-	if (bScreenshotMode)
+	if (bScreenshotMode && ImGui::GetIO().Fonts->Fonts.Size > 0)
 	{
 		ImGui::PopStyleColor();
-		// FIX ME
-		//ImGui::PopFont();
+		ImGui::PopFont();
 	}
 
 	int UpperUnusedStart = static_cast<int>(RangeSize.y * Slider.GetRangePosition());

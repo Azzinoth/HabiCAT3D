@@ -7,8 +7,6 @@ MeshManager::MeshManager()
 {
 	if (!APPLICATION.HasConsoleWindow())
 	{
-		// That causes strange error in imgui or NVIDIA driver.
-		//CustomMeshShader = new FEShader("MainMeshShader", sTestVS_simple, sTestFS_simple);
 		CustomMeshShader = RESOURCE_MANAGER.CreateShader("MainMeshShader", CustomMesh_VS, CustomMesh_FS);
 		CustomMeshShader->UpdateParameterData("lightDirection", glm::vec3(0.0, 1.0, 0.2));
 
@@ -231,15 +229,6 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 	delete[] NormBuffer;
 	delete[] TangBuffer;
 	delete[] IndexBuffer;
-
-	// FIX ME
-	if (NewMesh->GetAABB().GetMin() != MeshAABB.GetMin() ||
-		NewMesh->GetAABB().GetMax() != MeshAABB.GetMax())
-	{
-		int y = 0;
-		y++;
-		//NewMesh->AABB = MeshAABB;
-	}
 
 	for (size_t i = 0; i < Layers.size(); i++)
 	{

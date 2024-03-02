@@ -328,15 +328,16 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
 	if (ImGui::BeginCombo("##ChooseRugosityAlgorithm", (RUGOSITY_LAYER_PRODUCER.GetUsedRugosityAlgorithmName()).c_str(), ImGuiWindowFlags_None))
 	{
-		for (size_t i = 0; i < RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList.size(); i++)
+		std::vector<std::string> AlgorithmList = RUGOSITY_LAYER_PRODUCER.GetRugosityAlgorithmList();
+		for (size_t i = 0; i < AlgorithmList.size(); i++)
 		{
-			bool is_selected = (RUGOSITY_LAYER_PRODUCER.GetUsedRugosityAlgorithmName() == RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[i]);
-			if (ImGui::Selectable(RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[i].c_str(), is_selected))
+			bool is_selected = (RUGOSITY_LAYER_PRODUCER.GetUsedRugosityAlgorithmName() == AlgorithmList[i]);
+			if (ImGui::Selectable(AlgorithmList[i].c_str(), is_selected))
 			{
-				RUGOSITY_LAYER_PRODUCER.SetUsedRugosityAlgorithmName(RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[i]);
-				RUGOSITY_LAYER_PRODUCER.bDeleteOutliers = true;
+				RUGOSITY_LAYER_PRODUCER.SetUsedRugosityAlgorithmName(AlgorithmList[i]);
+				RUGOSITY_LAYER_PRODUCER.SetDeleteOutliers(true);
 				if (i != 0)
-					RUGOSITY_LAYER_PRODUCER.bDeleteOutliers = false;
+					RUGOSITY_LAYER_PRODUCER.SetDeleteOutliers(false);
 			}
 
 			if (is_selected)
@@ -353,12 +354,13 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
 		if (ImGui::BeginCombo("##OrientationSet", (RUGOSITY_LAYER_PRODUCER.GetOrientationSetForMinRugosityName()).c_str(), ImGuiWindowFlags_None))
 		{
-			for (size_t i = 0; i < RUGOSITY_LAYER_PRODUCER.OrientationSetNamesForMinRugosityList.size(); i++)
+			std::vector<std::string> OrientationSetNames = RUGOSITY_LAYER_PRODUCER.GetOrientationSetNamesForMinRugosityList();
+			for (size_t i = 0; i < OrientationSetNames.size(); i++)
 			{
-				bool is_selected = (RUGOSITY_LAYER_PRODUCER.GetOrientationSetForMinRugosityName() == RUGOSITY_LAYER_PRODUCER.OrientationSetNamesForMinRugosityList[i]);
-				if (ImGui::Selectable(RUGOSITY_LAYER_PRODUCER.OrientationSetNamesForMinRugosityList[i].c_str(), is_selected))
+				bool is_selected = (RUGOSITY_LAYER_PRODUCER.GetOrientationSetForMinRugosityName() == OrientationSetNames[i]);
+				if (ImGui::Selectable(OrientationSetNames[i].c_str(), is_selected))
 				{
-					RUGOSITY_LAYER_PRODUCER.SetOrientationSetForMinRugosityName(RUGOSITY_LAYER_PRODUCER.OrientationSetNamesForMinRugosityList[i]);
+					RUGOSITY_LAYER_PRODUCER.SetOrientationSetForMinRugosityName(OrientationSetNames[i]);
 				}
 
 				if (is_selected)
@@ -369,13 +371,20 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 	}
 
 	if (!bRunOnWholeModel)
-		ImGui::Checkbox("Delete outliers", &RUGOSITY_LAYER_PRODUCER.bDeleteOutliers);
+	{
+		bool bTempBool = RUGOSITY_LAYER_PRODUCER.ShouldDeletedOutlier();
+		ImGui::Checkbox("Delete outliers", &bTempBool);
+		RUGOSITY_LAYER_PRODUCER.SetDeleteOutliers(bTempBool);
+	}
+		
 
 	bool TempBool = RUGOSITY_LAYER_PRODUCER.GetIsUsingUniqueProjectedArea();
 	ImGui::Checkbox("Unique projected area (very slow).", &TempBool);
 	RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedArea(TempBool);
 
-	ImGui::Checkbox("Add standard deviation layer.", &RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation);
+	TempBool = RUGOSITY_LAYER_PRODUCER.ShouldCalculateStandardDeviation();
+	ImGui::Checkbox("Add standard deviation layer.", &TempBool);
+	RUGOSITY_LAYER_PRODUCER.SetCalculateStandardDeviation(TempBool);
 
 	RenderCellSizeSettings();
 }
@@ -517,33 +526,26 @@ void NewLayerWindow::OnModeChanged(int OldMode)
 	{
 		case 0:
 		{
-			//RenderHeightLayerSettings();
 			break;
 		}
 		case 1:
 		{
-			//RenderAreaLayerSettings();
 			break;
 		}
 		case 2:
 		{
-			//RenderTrianglesEdgesLayerSettings();
 			break;
 		}
 		case 3:
 		{
-			//RenderTriangleDensityLayerSettings();
 			break;
 		}
 		case 4:
 		{
-			//RenderRugosityLayerSettings();
 			break;
 		}
-
 		case 5:
 		{
-			//RenderVectorDispersionSettings();
 			break;
 		}
 		case 6:
@@ -556,7 +558,6 @@ void NewLayerWindow::OnModeChanged(int OldMode)
 		}
 		case 7:
 		{
-			//RenderCompareLayerSettings();
 			break;
 		}
 	}

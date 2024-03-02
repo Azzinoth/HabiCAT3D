@@ -200,20 +200,6 @@ void UIManager::ShowCameraTransform()
 	}
 	else
 	{
-		/*float tempFloat = currentCamera->CurrentPolarAngle;
-		ImGui::Text("CurrentPolarAngle : ");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##CurrentPolarAngle", &tempFloat, 0.1f);
-		currentCamera->CurrentPolarAngle = tempFloat;
-
-		tempFloat = currentCamera->CurrentAzimutAngle;
-		ImGui::Text("CurrentAzimutAngle : ");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##CurrentAzimutAngle", &tempFloat, 0.1f);
-		currentCamera->CurrentAzimutAngle = tempFloat;*/
-
 		if (bDeveloperMode)
 		{
 			ImGui::Text(("Thread count: " + std::to_string(THREAD_POOL.GetThreadCount())).c_str());
@@ -1062,7 +1048,7 @@ void UIManager::RenderHistogramWindow()
 
 			glm::vec2 MinValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
 			glm::vec2 MaxValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
-			float PercentageOfAreaSelected = (MaxValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TotalArea * 100.0f) - (MinValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TotalArea * 100.0f);
+			float PercentageOfAreaSelected = (MaxValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f) - (MinValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f);
 
 			ImGui::SetCursorPos(ImVec2(200.0f, 33.0f));
 			std::string CurrentText = "Selected area: " + TruncateAfterDot(std::to_string(PercentageOfAreaSelected), 3) + " %%";
@@ -1320,23 +1306,23 @@ void UIManager::OnLayerChange()
 		MESH_MANAGER.SetHeatMapType(-1);
 	}
 
-	if (UI.GetDebugSDF() != nullptr)
+	if (UI.GetDebugGrid() != nullptr)
 	{
-		UI.InitDebugSDF(UI.CurrentJitterStepIndexVisualize);
-		UI.UpdateRenderingMode(UI.GetDebugSDF(), UI.GetDebugSDF()->RenderingMode);
+		UI.InitDebugGrid(UI.CurrentJitterStepIndexVisualize);
+		UI.UpdateRenderingMode(UI.GetDebugGrid(), UI.GetDebugGrid()->RenderingMode);
 	}	
 }
 
-std::vector<SDFInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugInfo* DebugInfo)
+std::vector<GridInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugInfo* DebugInfo)
 {
-	std::vector<SDFInitData_Jitter> Result;
+	std::vector<GridInitData_Jitter> Result;
 
 	if (DebugInfo == nullptr)
 		return Result;
 
 	std::istringstream iss(DebugInfo->ToString());
 	std::string Line;
-	SDFInitData_Jitter CurrentData;
+	GridInitData_Jitter CurrentData;
 	bool bNewData = true;
 
 	while (std::getline(iss, Line))
@@ -1361,7 +1347,7 @@ std::vector<SDFInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugIn
 			CurrentData.GridScale = std::stof(Line.substr(Line.find(":") + 1));
 			Result.push_back(CurrentData);
 			bNewData = true;
-			CurrentData = SDFInitData_Jitter();
+			CurrentData = GridInitData_Jitter();
 		}
 		else if (bNewData)
 		{
@@ -1373,12 +1359,12 @@ std::vector<SDFInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugIn
 	return Result;
 }
 
-void UIManager::InitDebugSDF(size_t JitterIndex)
+void UIManager::InitDebugGrid(size_t JitterIndex)
 {
 	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
 		return;
 
-	std::vector<SDFInitData_Jitter> UsedSettings;
+	std::vector<GridInitData_Jitter> UsedSettings;
 	UsedSettings = ReadJitterSettingsFromDebugInfo(LAYER_MANAGER.GetActiveLayer()->DebugInfo);
 
 	if (JitterIndex >= UsedSettings.size())
@@ -1408,15 +1394,15 @@ void UIManager::InitDebugSDF(size_t JitterIndex)
 	if (CurrentLayerResolutionInM <= 0.0f && CurrentLayerResolutionInM != -1.0f)
 		return;
 
-	delete DebugSDF;
-	DebugSDF = new SDF();
+	delete DebugGrid;
+	DebugGrid = new MeasurementGrid();
 
-	SDFInitData_Jitter* CurrentSettings = &UsedSettings[JitterIndex];
-	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredSDF(CurrentSettings, CurrentLayerResolutionInM);
+	GridInitData_Jitter* CurrentSettings = &UsedSettings[JitterIndex];
+	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(CurrentSettings, CurrentLayerResolutionInM);
 
-	DebugSDF->Init(0, FinalAABB, CurrentLayerResolutionInM);
-	DebugSDF->FillCellsWithTriangleInfo();
-	DebugSDF->bFullyLoaded = true;
+	DebugGrid->Init(0, FinalAABB, CurrentLayerResolutionInM);
+	DebugGrid->FillCellsWithTriangleInfo();
+	DebugGrid->bFullyLoaded = true;
 }
 
 void UIManager::RenderLayerSettingsTab()
@@ -1535,8 +1521,8 @@ void UIManager::RenderLayerSettingsTab()
 
 		if (CurrentDistribution != glm::vec2())
 		{
-			ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TotalArea * 100.0f) + " %%").c_str());
-			ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.y / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TotalArea * 100.0f) + " %%").c_str());
+			ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f) + " %%").c_str());
+			ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.y / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f) + " %%").c_str());
 		}
 	}
 }
@@ -1570,8 +1556,8 @@ void UIManager::RenderGeneralSettingsTab()
 
 	if (!IsInDeveloperMode())
 	{
-		if (DebugSDF != nullptr && DebugSDF->RenderingMode != 0)
-			UpdateRenderingMode(DebugSDF, 0);
+		if (DebugGrid != nullptr && DebugGrid->RenderingMode != 0)
+			UpdateRenderingMode(DebugGrid, 0);
 	}
 	
 	/*if (IsInDeveloperMode())
@@ -1585,12 +1571,12 @@ void UIManager::RenderGeneralSettingsTab()
 
 	if (IsInDeveloperMode() && LAYER_MANAGER.GetActiveLayerIndex() != -1)
 	{
-		if (DebugSDF == nullptr)
-			UI.InitDebugSDF(JITTER_MANAGER.GetJitterToDoCount() - 1);
+		if (DebugGrid == nullptr)
+			UI.InitDebugGrid(JITTER_MANAGER.GetJitterToDoCount() - 1);
 
-		if (DebugSDF != nullptr)
+		if (DebugGrid != nullptr)
 		{
-			std::vector<SDFInitData_Jitter> UsedSettings;
+			std::vector<GridInitData_Jitter> UsedSettings;
 			UsedSettings = ReadJitterSettingsFromDebugInfo(LAYER_MANAGER.GetActiveLayer()->DebugInfo);
 
 			if (UsedSettings.size() > 0)
@@ -1610,14 +1596,14 @@ void UIManager::RenderGeneralSettingsTab()
 						if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
 						{
 							CurrentJitterStepIndexVisualize = static_cast<int>(i);
-							int LastSDFRendetingMode = DebugSDF->RenderingMode;
+							int LastGridRendetingMode = DebugGrid->RenderingMode;
 
-							InitDebugSDF(CurrentJitterStepIndexVisualize);
+							InitDebugGrid(CurrentJitterStepIndexVisualize);
 
-							DebugSDF->RenderingMode = LastSDFRendetingMode;
-							if (DebugSDF->RenderingMode == 1)
+							DebugGrid->RenderingMode = LastGridRendetingMode;
+							if (DebugGrid->RenderingMode == 1)
 							{
-								UpdateRenderingMode(DebugSDF, 1);
+								UpdateRenderingMode(DebugGrid, 1);
 							}
 						}
 
@@ -1634,34 +1620,34 @@ void UIManager::RenderGeneralSettingsTab()
 				ImGui::Text(JitterInfo.c_str());
 			}
 
-			ImGui::Text("Visualization of SDF:");
+			ImGui::Text("Visualization of Grid:");
 
-			if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
+			if (ImGui::RadioButton("Do not draw", &DebugGrid->RenderingMode, 0))
 			{
-				UpdateRenderingMode(DebugSDF, 0);
+				UpdateRenderingMode(DebugGrid, 0);
 			}
 
-			if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
+			if (ImGui::RadioButton("Show cells with triangles", &DebugGrid->RenderingMode, 1))
 			{
 #ifdef NEW_LINES
-				InitDebugSDF(CurrentJitterStepIndexVisualize);
+				InitDebugGrid(CurrentJitterStepIndexVisualize);
 #endif
-				UpdateRenderingMode(DebugSDF, 1);
+				UpdateRenderingMode(DebugGrid, 1);
 			}
 
-			if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
+			if (ImGui::RadioButton("Show all cells", &DebugGrid->RenderingMode, 2))
 			{
-				UpdateRenderingMode(DebugSDF, 2);
+				UpdateRenderingMode(DebugGrid, 2);
 			}
 
 #ifdef NEW_LINES
-			if (DebugSDF->RenderingMode == 1)
+			if (DebugGrid->RenderingMode == 1)
 			{
-				DebugSDF->AddLinesOfSDF();
+				DebugGrid->AddLinesOfGrid();
 			}
 #endif
 
-			if (DebugSDF->RenderingMode == 1)
+			if (DebugGrid->RenderingMode == 1)
 			{
 				MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
 				if (CurrentLayer == nullptr)
@@ -1671,19 +1657,19 @@ void UIManager::RenderGeneralSettingsTab()
 				{
 				case LAYER_TYPE::RUGOSITY:
 				{
-					//RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(DebugSDF);
+					//RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(DebugGrid);
 					break;
 				}
 
 				case LAYER_TYPE::VECTOR_DISPERSION:
 				{
-					//VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugSDF);
+					//VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugGrid);
 					break;
 				}
 
 				case LAYER_TYPE::FRACTAL_DIMENSION:
 				{
-					FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoWindow(DebugSDF);
+					FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoWindow(DebugGrid);
 					break;
 				}
 
@@ -1876,18 +1862,18 @@ void UIManager::SetAmbientLightFactor(float NewValue)
 	AmbientLightFactor = NewValue;
 }
 
-SDF* UIManager::GetDebugSDF()
+MeasurementGrid* UIManager::GetDebugGrid()
 {
-	return DebugSDF;
+	return DebugGrid;
 }
 
-void UIManager::UpdateRenderingMode(SDF* SDF, int NewRenderingMode)
+void UIManager::UpdateRenderingMode(MeasurementGrid* Grid, int NewRenderingMode)
 {
 	if (NewRenderingMode < 0)
 		return;
 
-	SDF->RenderingMode = NewRenderingMode;
-	SDF->UpdateRenderedLines();
+	Grid->RenderingMode = NewRenderingMode;
+	Grid->UpdateRenderedLines();
 
 	if (NewRenderingMode == 0)
 		return;
@@ -1903,19 +1889,19 @@ void UIManager::UpdateRenderingMode(SDF* SDF, int NewRenderingMode)
 	{
 		case LAYER_TYPE::RUGOSITY:
 		{
-			RUGOSITY_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(SDF);
+			RUGOSITY_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
 			break;
 		}
 
 		case LAYER_TYPE::VECTOR_DISPERSION:
 		{
-			VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(SDF);
+			VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
 			break;
 		}
 		
 		case LAYER_TYPE::FRACTAL_DIMENSION:
 		{
-			FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(SDF);
+			FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
 			break;
 		}
 

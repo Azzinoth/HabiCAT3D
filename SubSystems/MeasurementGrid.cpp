@@ -1,36 +1,16 @@
-#include "FESDF.h"
+#include "MeasurementGrid.h"
 using namespace FocalEngine;
 
-// FIX ME
-glm::dvec3 mouseRay(double mouseX, double mouseY, FEBasicCamera* currentCamera)
-{
-	int W, H;
-	APPLICATION.GetMainWindow()->GetSize(&W, &H);
+MeasurementGrid::MeasurementGrid() {}
 
-	glm::dvec2 normalizedMouseCoords;
-	normalizedMouseCoords.x = (2.0f * mouseX) / W - 1;
-	normalizedMouseCoords.y = 1.0f - (2.0f * (mouseY)) / H;
-
-	const glm::dvec4 clipCoords = glm::dvec4(normalizedMouseCoords.x, normalizedMouseCoords.y, -1.0, 1.0);
-	glm::dvec4 eyeCoords = glm::inverse(currentCamera->GetProjectionMatrix()) * clipCoords;
-	eyeCoords.z = -1.0f;
-	eyeCoords.w = 0.0f;
-	glm::dvec3 worldRay = glm::inverse(currentCamera->GetViewMatrix()) * eyeCoords;
-	worldRay = glm::normalize(worldRay);
-
-	return worldRay;
-}
-
-SDF::SDF() {}
-
-SDF::~SDF()
+MeasurementGrid::~MeasurementGrid()
 {
 	Data.clear();
 }
 
-void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
+void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 {
-	TIME.BeginTimeStamp("SDF Generation");
+	TIME.BeginTimeStamp("Measurement grid Generation");
 
 	const glm::vec3 center = AABB.GetCenter();
 
@@ -56,14 +36,14 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 		}
 	}
 
-	FEAABB SDFAABB;
+	FEAABB GridAABB;
 	if (ResolutionInM > 0.0f)
 	{
-		SDFAABB = FEAABB(center - glm::vec3(ResolutionInM * Dimensions / 2.0f), center + glm::vec3(ResolutionInM * Dimensions / 2.0f));
+		GridAABB = FEAABB(center - glm::vec3(ResolutionInM * Dimensions / 2.0f), center + glm::vec3(ResolutionInM * Dimensions / 2.0f));
 	}
 	else
 	{
-		SDFAABB = FEAABB(center - glm::vec3(AABB.GetSize() / 2.0f), center + glm::vec3(AABB.GetSize() / 2.0f));
+		GridAABB = FEAABB(center - glm::vec3(AABB.GetSize() / 2.0f), center + glm::vec3(AABB.GetSize() / 2.0f));
 	}
 
 	float CellSize;
@@ -73,10 +53,10 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 	}
 	else
 	{
-		CellSize = SDFAABB.GetSize();
+		CellSize = GridAABB.GetSize();
 	}
 
-	const glm::vec3 Start = SDFAABB.GetMin();
+	const glm::vec3 Start = GridAABB.GetMin();
 	for (size_t i = 0; i < Dimensions; i++)
 	{
 		for (size_t j = 0; j < Dimensions; j++)
@@ -89,10 +69,10 @@ void SDF::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
 		}
 	}
 
-	TimeTakenToGenerateInMS = static_cast<float>(TIME.EndTimeStamp("SDF Generation"));
+	TimeTakenToGenerateInMS = static_cast<float>(TIME.EndTimeStamp("Measurement grid Generation"));
 }
 
-void SDF::FillCellsWithTriangleInfo()
+void MeasurementGrid::FillCellsWithTriangleInfo()
 {
 	TIME.BeginTimeStamp("Fill cells with triangle info");
 
@@ -164,7 +144,7 @@ void SDF::FillCellsWithTriangleInfo()
 	TimeTakenFillCellsWithTriangleInfo = static_cast<float>(TIME.EndTimeStamp("Fill cells with triangle info"));
 }
 
-void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 TransformMat)
+void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const glm::mat4 TransformMat)
 {
 	SelectedCell = glm::vec3(-1.0);
 
@@ -192,7 +172,7 @@ void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 T
 					continue;
 
 				FEAABB FinalAABB = Data[i][j][k].AABB.Transform(TransformMat).Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix());
-				if (FinalAABB.RayIntersect(ENGINE.GetCamera()->GetPosition(), mouseRay(MouseX, MouseY, ENGINE.GetCamera()), DistanceToCell))
+				if (FinalAABB.RayIntersect(ENGINE.GetCamera()->GetPosition(), ENGINE.ConstructMouseRay(), DistanceToCell))
 				{
 					if (LastDistanceToCell > DistanceToCell)
 					{
@@ -208,7 +188,7 @@ void SDF::MouseClick(const double MouseX, const double MouseY, const glm::mat4 T
 		Data[static_cast<int>(SelectedCell.x)][static_cast<int>(SelectedCell.y)][static_cast<int>(SelectedCell.z)].bSelected = true;
 }
 
-void SDF::FillMeshWithUserData()
+void MeasurementGrid::FillMeshWithUserData()
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
@@ -243,7 +223,7 @@ void SDF::FillMeshWithUserData()
 	TimeTakenToFillMeshWithUserData = static_cast<float>(TIME.EndTimeStamp("FillMeshWithUserData"));
 }
 
-void SDF::AddLinesOfSDF()
+void MeasurementGrid::AddLinesOfGrid()
 {
 	for (size_t i = 0; i < Data.size(); i++)
 	{
@@ -290,17 +270,17 @@ void SDF::AddLinesOfSDF()
 	}
 }
 
-void SDF::UpdateRenderedLines()
+void MeasurementGrid::UpdateRenderedLines()
 {
 #ifndef NEW_LINES
 	LINE_RENDERER.clearAll();
 	if (RenderingMode != 0)
-		AddLinesOfSDF();
+		AddLinesOfGrid();
 	LINE_RENDERER.SyncWithGPU();
 #endif
 }
 
-void SDF::RunOnAllNodes(std::function<void(SDFNode* currentNode)> Func)
+void MeasurementGrid::RunOnAllNodes(std::function<void(GridNode* currentNode)> Func)
 {
 	if (Func == nullptr)
 		return;

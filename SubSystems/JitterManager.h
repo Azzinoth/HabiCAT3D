@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FESDF.h"
+#include "MeasurementGrid.h"
 using namespace FocalEngine;
 
 namespace FocalEngine
@@ -401,7 +401,7 @@ namespace FocalEngine
 		0.1040f, -0.4891f, -0.0000f, 1.380000f,
 	};
 
-	struct SDFInitData_Jitter
+	struct GridInitData_Jitter
 	{
 		float ShiftX = 0.0f;
 		float ShiftY = 0.0f;
@@ -419,8 +419,8 @@ namespace FocalEngine
 
 		static void OnMeshUpdate();
 
-		void CalculateWithSDFJitterAsync(std::function<void(SDFNode* currentNode)> funcf, bool bSmootherResult = false);
-		void CalculateOnWholeModel(std::function<void(SDFNode* currentNode)> func);
+		void CalculateWithGridJitterAsync(std::function<void(GridNode* currentNode)> funcf, bool bSmootherResult = false);
+		void CalculateOnWholeModel(std::function<void(GridNode* currentNode)> func);
 		void SetOnCalculationsStartCallback(std::function<void()> func);
 		void SetOnCalculationsEndCallback(std::function<void(MeshLayer CurrentMeshLayer)> func);
 
@@ -435,8 +435,8 @@ namespace FocalEngine
 
 		std::vector<std::vector<float>> GetPerJitterResult();
 
-		SDF* GetLastUsedSDF();
-		std::vector<SDFInitData_Jitter> GetLastUsedJitterSettings();
+		MeasurementGrid* GetLastUsedGrid();
+		std::vector<GridInitData_Jitter> GetLastUsedJitterSettings();
 
 		/**
 		* @brief Sets the function that determines whether a calculated value should be ignored.
@@ -473,13 +473,13 @@ namespace FocalEngine
 		// Produces a data layer of standard deviation values for all jitters from last run.
 		std::vector<float> ProduceStandardDeviationData();
 
-		FEAABB GetAABBForJitteredSDF(SDFInitData_Jitter* Settings, float CurrentResolutionInM);
+		FEAABB GetAABBForJitteredGrid(GridInitData_Jitter* Settings, float CurrentResolutionInM);
 	private:
 		SINGLETON_PRIVATE_PART(JitterManager)
 
-		SDF* LastUsedSDF = nullptr;
-		std::vector<SDFInitData_Jitter> LastUsedJitterSettings;
-		std::function<void(SDFNode* currentNode)> CurrentFunc;
+		MeasurementGrid* LastUsedGrid = nullptr;
+		std::vector<GridInitData_Jitter> LastUsedJitterSettings;
+		std::function<void(GridNode* currentNode)> CurrentFunc;
 		
 		int JitterDoneCount = 0;
 		int JitterToDoCount = 4;
@@ -505,11 +505,11 @@ namespace FocalEngine
 		float FallbackValue = 1.0f;
 		std::function<bool(float Value)> IgnoreValueFunc = nullptr;
 
-		void RunCreationOfSDFAsync();
-		static void RunCalculationOnSDFAsync(void* InputDataf, void* OutputData);
-		static void AfterCalculationFinishSDFCallback(void* OutputData);
-		void MoveResultDataFromSDF(SDF* SDF);
-		void RunCalculationOnWholeModel(SDF* ResultSDF);
+		void RunCreationOfGridAsync();
+		static void RunCalculationOnGridAsync(void* InputDataf, void* OutputData);
+		static void AfterCalculationFinishGridCallback(void* OutputData);
+		void MoveResultDataFromGrid(MeasurementGrid* Grid);
+		void RunCalculationOnWholeModel(MeasurementGrid* ResultGrid);
 
 		static void OnCalculationsStart();
 		static void OnCalculationsEnd();

@@ -383,7 +383,7 @@ ConsoleJobManager::ConsoleJobManager()
 	CurrentSettingInfo.Description = "Specifies the quality of the rugosity calculation. Relevant only for 'RUGOSITY' complexity type and when the rugosity_algorithm is set to 'MIN'.";
 	CurrentSettingInfo.bIsOptional = true;
 	CurrentSettingInfo.DefaultValue = "91";
-	CurrentSettingInfo.PossibleValues = RUGOSITY_LAYER_PRODUCER.OrientationSetNamesForMinRugosityList;
+	CurrentSettingInfo.PossibleValues = RUGOSITY_LAYER_PRODUCER.GetOrientationSetNamesForMinRugosityList();
 	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
 	
 	CurrentSettingInfo = ConsoleJobSettingsInfo();
@@ -681,8 +681,8 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 			std::cout << "Initiating Rugosity Layer calculation." << std::endl;
 
 			SetRugosityAlgorithm(CurrentComplexityJob);
-			RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation = CurrentComplexityJob->Settings.IsStandardDeviationNeeded();
-			RUGOSITY_LAYER_PRODUCER.bDeleteOutliers = CurrentComplexityJob->Settings.IsRugosity_DeleteOutliers();
+			RUGOSITY_LAYER_PRODUCER.SetCalculateStandardDeviation(CurrentComplexityJob->Settings.IsStandardDeviationNeeded());
+			RUGOSITY_LAYER_PRODUCER.SetDeleteOutliers(CurrentComplexityJob->Settings.IsRugosity_DeleteOutliers());
 
 			RUGOSITY_LAYER_PRODUCER.SetOrientationSetForMinRugosityName(CurrentComplexityJob->Settings.GetRugosity_MinAlgorithm_Quality());
 			RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedArea(CurrentComplexityJob->Settings.GetRugosity_IsUsingUniqueProjectedArea());

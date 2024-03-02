@@ -1,9 +1,6 @@
 #pragma once
 
 #include "FECoreIncludes.h"
-//#include "SubSystems/FEFileSystem.h"
-//#include "SubSystems/FEGeometricTools.h"
-//#include "SubSystems/FETransformComponent.h"
 
 namespace FocalEngine
 {
@@ -141,8 +138,13 @@ namespace FocalEngine
 		friend LayerManager;
 
 		int CurrentLayerIndex = -1;
+
+		float TotalArea = 0.0f;
+		glm::vec3 AverageNormal = glm::vec3();
 	public:
 		ComplexityMetricInfo();
+
+		float GetTotalArea();
 
 		std::vector<int> TriangleSelected;
 
@@ -150,20 +152,13 @@ namespace FocalEngine
 
 		std::vector<std::vector<glm::vec3>> Triangles;
 		std::vector<double> TrianglesArea;
-		float TotalArea = 0.0f;
+		
 		std::vector<std::vector<glm::vec3>> TrianglesNormals;
 		std::vector<glm::vec3> TrianglesCentroids;
 
-		std::vector<int> originalTrianglesToSegments;
-		std::vector<glm::vec3> segmentsNormals;
+		void FillTrianglesData(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
 
-		//std::vector<float> TrianglesRugosity;
-		std::vector<float> rugosityDataAdditional;
-		std::vector<float> TrianglesRugosityAdditional;
-
-		void fillTrianglesData(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
-
-		glm::vec3 AverageNormal = glm::vec3();
+		
 		glm::vec3 GetAverageNormal();
 		void UpdateAverageNormal();
 

@@ -3,7 +3,12 @@ using namespace FocalEngine;
 
 ComplexityMetricInfo::ComplexityMetricInfo() {}
 
-void ComplexityMetricInfo::fillTrianglesData(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
+float ComplexityMetricInfo::GetTotalArea()
+{
+	return TotalArea;
+}
+
+void ComplexityMetricInfo::FillTrianglesData(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
 {
 	MeshData.Vertices = Vertices;
 	MeshData.Colors = Colors;
@@ -18,38 +23,38 @@ void ComplexityMetricInfo::fillTrianglesData(std::vector<float>& Vertices, std::
 	TrianglesCentroids.clear();
 	TotalArea = 0;
 
-	std::vector<glm::vec3> triangle;
-	triangle.resize(3);
+	std::vector<glm::vec3> Triangle;
+	Triangle.resize(3);
 
 	for (size_t i = 0; i < Indices.size(); i += 3)
 	{
-		int vertexPosition = Indices[i] * 3;
-		triangle[0] = glm::vec3(Vertices[vertexPosition], Vertices[vertexPosition + 1], Vertices[vertexPosition + 2]);
+		int VertexPosition = Indices[i] * 3;
+		Triangle[0] = glm::vec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
 
-		vertexPosition = Indices[i + 1] * 3;
-		triangle[1] = glm::vec3(Vertices[vertexPosition], Vertices[vertexPosition + 1], Vertices[vertexPosition + 2]);
+		VertexPosition = Indices[i + 1] * 3;
+		Triangle[1] = glm::vec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
 
-		vertexPosition = Indices[i + 2] * 3;
-		triangle[2] = glm::vec3(Vertices[vertexPosition], Vertices[vertexPosition + 1], Vertices[vertexPosition + 2]);
+		VertexPosition = Indices[i + 2] * 3;
+		Triangle[2] = glm::vec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
 
-		Triangles.push_back(triangle);
-		TrianglesArea.push_back(TriangleArea(triangle[0], triangle[1], triangle[2]));
+		Triangles.push_back(Triangle);
+		TrianglesArea.push_back(TriangleArea(Triangle[0], Triangle[1], Triangle[2]));
 		TotalArea += static_cast<float>(TrianglesArea.back());
 
-		TrianglesCentroids.push_back((triangle[0] + triangle[1] + triangle[2]) / 3.0f);
+		TrianglesCentroids.push_back((Triangle[0] + Triangle[1] + Triangle[2]) / 3.0f);
 
 		if (!Normals.empty())
 		{
-			vertexPosition = Indices[i] * 3;
-			triangle[0] = glm::vec3(Normals[vertexPosition], Normals[vertexPosition + 1], Normals[vertexPosition + 2]);
+			VertexPosition = Indices[i] * 3;
+			Triangle[0] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
 
-			vertexPosition = Indices[i + 1] * 3;
-			triangle[1] = glm::vec3(Normals[vertexPosition], Normals[vertexPosition + 1], Normals[vertexPosition + 2]);
+			VertexPosition = Indices[i + 1] * 3;
+			Triangle[1] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
 
-			vertexPosition = Indices[i + 2] * 3;
-			triangle[2] = glm::vec3(Normals[vertexPosition], Normals[vertexPosition + 1], Normals[vertexPosition + 2]);
+			VertexPosition = Indices[i + 2] * 3;
+			Triangle[2] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
 
-			TrianglesNormals.push_back(triangle);
+			TrianglesNormals.push_back(Triangle);
 		}
 	}
 
@@ -60,19 +65,19 @@ void ComplexityMetricInfo::UpdateAverageNormal()
 {
 	AverageNormal = glm::vec3();
 
-	std::vector<float> originalAreas;
-	float totalArea = 0.0f;
+	std::vector<float> OriginalAreas;
+	float TotalArea = 0.0f;
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
 		const double originalArea = TriangleArea(Triangles[i][0], Triangles[i][1], Triangles[i][2]);
-		originalAreas.push_back(static_cast<float>(originalArea));
-		totalArea += static_cast<float>(originalArea);
+		OriginalAreas.push_back(static_cast<float>(originalArea));
+		TotalArea += static_cast<float>(originalArea);
 	}
 
 	// ******* Geting average normal *******
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
-		const float currentTriangleCoef = originalAreas[i] / totalArea;
+		const float currentTriangleCoef = OriginalAreas[i] / TotalArea;
 
 		AverageNormal += TrianglesNormals[i][0] * currentTriangleCoef;
 		AverageNormal += TrianglesNormals[i][1] * currentTriangleCoef;

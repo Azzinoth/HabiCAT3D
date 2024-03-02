@@ -18,14 +18,14 @@ void TriangleCountLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 	bWaitForJitterResult = true;
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	auto WorkOnNode = [&](SDFNode* CurrentNode) {
+	auto WorkOnNode = [&](GridNode* CurrentNode) {
 		if (CurrentNode->TrianglesInCell.empty())
 			return;
 
 		CurrentNode->UserData = static_cast<double>(CurrentNode->TrianglesInCell.size());
 	};
 
-	JITTER_MANAGER.CalculateWithSDFJitterAsync(WorkOnNode, bSmootherResult);
+	JITTER_MANAGER.CalculateWithGridJitterAsync(WorkOnNode, bSmootherResult);
 }
 
 void TriangleCountLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
@@ -53,7 +53,7 @@ void TriangleCountLayerProducer::CalculateOnWholeModel()
 	bWaitForJitterResult = true;
 	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	auto WorkOnNode = [&](SDFNode* CurrentNode) {
+	auto WorkOnNode = [&](GridNode* CurrentNode) {
 		if (CurrentNode->TrianglesInCell.empty())
 			return;
 

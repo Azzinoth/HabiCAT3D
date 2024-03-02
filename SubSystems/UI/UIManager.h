@@ -51,8 +51,8 @@ namespace FocalEngine
 		float GetAmbientLightFactor();
 		void SetAmbientLightFactor(float NewValue);
 
-		SDF* GetDebugSDF();
-		void UpdateRenderingMode(SDF* SDF, int NewRenderingMode);
+		MeasurementGrid* GetDebugGrid();
+		void UpdateRenderingMode(MeasurementGrid* Grid, int NewRenderingMode);
 
 		bool ShouldTakeScreenshot();
 		void SetShouldTakeScreenshot(bool NewValue);
@@ -113,8 +113,8 @@ namespace FocalEngine
 
 		float AmbientLightFactor = 2.2f;
 		int CurrentJitterStepIndexVisualize = 0;
-		SDF* DebugSDF = nullptr;
-		void InitDebugSDF(size_t JitterIndex);
+		MeasurementGrid* DebugGrid = nullptr;
+		void InitDebugGrid(size_t JitterIndex);
 
 		bool bNextFrameForScreenshot = false;
 		bool bUseTransparentBackground = false;

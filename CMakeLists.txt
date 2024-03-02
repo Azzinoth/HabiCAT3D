@@ -27,14 +27,12 @@ endif()
 # *************** SUB_SYSTEM ***************
 
 file(GLOB SubSystems_SRC
-	"SubSystems/FECGALWrapper.cpp"
-	"SubSystems/FECGALWrapper.h"
 	"SubSystems/FELinesRenderer.cpp"
 	"SubSystems/FELinesRenderer.h"
 	"SubSystems/MeshManager.cpp"
 	"SubSystems/MeshManager.h"
-	"SubSystems/FESDF.cpp"
-	"SubSystems/FESDF.h"
+	"SubSystems/MeasurementGrid.cpp"
+	"SubSystems/MeasurementGrid.h"
 	"SubSystems/JitterManager.cpp"
 	"SubSystems/JitterManager.h"
 	"SubSystems/SphereVectors.h"

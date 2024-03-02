@@ -40,7 +40,7 @@ std::vector<double> generateBoxSizes(double minSize, double maxSize, double fact
 	return sizes;
 }
 
-void FractalDimensionLayerProducer::WorkOnNode(SDFNode* CurrentNode)
+void FractalDimensionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 {
 	if (CurrentNode->TrianglesInCell.empty())
 		return;
@@ -154,7 +154,7 @@ void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 	}
 		
 	JITTER_MANAGER.SetFallbackValue(2.0f);
-	JITTER_MANAGER.CalculateWithSDFJitterAsync(WorkOnNode, bSmootherResult);
+	JITTER_MANAGER.CalculateWithGridJitterAsync(WorkOnNode, bSmootherResult);
 }
 
 void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
@@ -195,14 +195,14 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		OnCalculationsEndCallbackImpl(NewLayer);
 }
 
-void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
+void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid)
 {
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
 
 	Grid->UpdateRenderedLines();
 
-	SDFNode* CurrentNode = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
+	GridNode* CurrentNode = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
 	if (CurrentNode->TrianglesInCell.empty())
 		return;
 
@@ -301,7 +301,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(SDF* Grid)
 	LINE_RENDERER.SyncWithGPU();
 }
 
-void FractalDimensionLayerProducer::RenderDebugInfoWindow(SDF* Grid)
+void FractalDimensionLayerProducer::RenderDebugInfoWindow(MeasurementGrid* Grid)
 {
 	if (ImGui::GetCurrentContext()->WithinFrameScope)
 	{

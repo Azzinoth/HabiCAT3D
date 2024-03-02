@@ -36,8 +36,8 @@ void JitterManager::OnMeshUpdate()
 
 	JITTER_MANAGER.ResolutonInM = JITTER_MANAGER.LowestPossibleResolution;
 
-	delete JITTER_MANAGER.LastUsedSDF;
-	JITTER_MANAGER.LastUsedSDF = nullptr;
+	delete JITTER_MANAGER.LastUsedGrid;
+	JITTER_MANAGER.LastUsedGrid = nullptr;
 }
 
 float JitterManager::GetResolutonInM()
@@ -75,7 +75,7 @@ int JitterManager::GetJitterToDoCount()
 	return JitterToDoCount;
 }
 
-void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* currentNode)> Func, bool bSmootherResult)
+void JitterManager::CalculateWithGridJitterAsync(std::function<void(GridNode* currentNode)> Func, bool bSmootherResult)
 {
 	if (Func == nullptr)
 		return;
@@ -122,31 +122,31 @@ void JitterManager::CalculateWithSDFJitterAsync(std::function<void(SDFNode* curr
 		LastUsedJitterSettings[i].ShiftZ = ShiftZ;
 		LastUsedJitterSettings[i].GridScale = GridScale;
 
-		RunCreationOfSDFAsync();
+		RunCreationOfGridAsync();
 	}
 }
 
-void JitterManager::RunCreationOfSDFAsync()
+void JitterManager::RunCreationOfGridAsync()
 {
-	SDFInitData_Jitter* InputData = new SDFInitData_Jitter();
+	GridInitData_Jitter* InputData = new GridInitData_Jitter();
 
 	InputData->ShiftX = ShiftX;
 	InputData->ShiftY = ShiftY;
 	InputData->ShiftZ = ShiftZ;
 	InputData->GridScale = GridScale;
 
-	SDF* OutputData = new SDF();
-	LastUsedSDF = OutputData;
+	MeasurementGrid* OutputData = new MeasurementGrid();
+	LastUsedGrid = OutputData;
 
-	THREAD_POOL.Execute(RunCalculationOnSDFAsync, InputData, OutputData, AfterCalculationFinishSDFCallback);
+	THREAD_POOL.Execute(RunCalculationOnGridAsync, InputData, OutputData, AfterCalculationFinishGridCallback);
 }
 
-void JitterManager::RunCalculationOnSDFAsync(void* InputData, void* OutputData)
+void JitterManager::RunCalculationOnGridAsync(void* InputData, void* OutputData)
 {
-	SDFInitData_Jitter* Input = reinterpret_cast<SDFInitData_Jitter*>(InputData);
-	SDF* Output = reinterpret_cast<SDF*>(OutputData);
+	GridInitData_Jitter* Input = reinterpret_cast<GridInitData_Jitter*>(InputData);
+	MeasurementGrid* Output = reinterpret_cast<MeasurementGrid*>(OutputData);
 
-	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredSDF(Input, JITTER_MANAGER.ResolutonInM);
+	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(Input, JITTER_MANAGER.ResolutonInM);
 	Output->Init(0, FinalAABB, JITTER_MANAGER.ResolutonInM);
 
 	Output->FillCellsWithTriangleInfo();
@@ -154,23 +154,23 @@ void JitterManager::RunCalculationOnSDFAsync(void* InputData, void* OutputData)
 	Output->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
 	Output->TimeTakenToCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
 
-	//JITTER_MANAGER.ExtractDataFromSDF(Output);
+	//JITTER_MANAGER.ExtractDataFromGrid(Output);
 	Output->FillMeshWithUserData();
 	Output->bFullyLoaded = true;
 }
 
-void JitterManager::AfterCalculationFinishSDFCallback(void* OutputData)
+void JitterManager::AfterCalculationFinishGridCallback(void* OutputData)
 {
-	SDF* Input = reinterpret_cast<SDF*>(OutputData);
+	MeasurementGrid* Input = reinterpret_cast<MeasurementGrid*>(OutputData);
 
-	JITTER_MANAGER.LastUsedSDF = Input;
+	JITTER_MANAGER.LastUsedGrid = Input;
 	JITTER_MANAGER.JitterDoneCount++;
 
-	JITTER_MANAGER.MoveResultDataFromSDF(JITTER_MANAGER.LastUsedSDF);
+	JITTER_MANAGER.MoveResultDataFromGrid(JITTER_MANAGER.LastUsedGrid);
 	if (JITTER_MANAGER.JitterDoneCount != JITTER_MANAGER.JitterToDoCount)
 	{
-		delete JITTER_MANAGER.LastUsedSDF;
-		JITTER_MANAGER.LastUsedSDF = nullptr;
+		delete JITTER_MANAGER.LastUsedGrid;
+		JITTER_MANAGER.LastUsedGrid = nullptr;
 	}
 	else
 	{
@@ -178,39 +178,39 @@ void JitterManager::AfterCalculationFinishSDFCallback(void* OutputData)
 	}
 }
 
-void JitterManager::MoveResultDataFromSDF(SDF* SDF)
+void JitterManager::MoveResultDataFromGrid(MeasurementGrid* Grid)
 {
-	if (SDF == nullptr || SDF->TrianglesUserData.empty())
+	if (Grid == nullptr || Grid->TrianglesUserData.empty())
 		return;
 
 	PerJitterResult.resize(PerJitterResult.size() + 1);
 
-	if (Result.size() != SDF->TrianglesUserData.size())
-		Result.resize(SDF->TrianglesUserData.size());
+	if (Result.size() != Grid->TrianglesUserData.size())
+		Result.resize(Grid->TrianglesUserData.size());
 
 	if (CorrectValuesCounters.empty())
 	{
-		CorrectValuesCounters.resize(SDF->TrianglesUserData.size());
+		CorrectValuesCounters.resize(Grid->TrianglesUserData.size());
 		std::fill(CorrectValuesCounters.begin(), CorrectValuesCounters.end(), 0);
 	}
 
 	for (size_t i = 0; i < Result.size(); i++)
 	{
 		// We will save all results. Even if they are not correct.
-		PerJitterResult.back().push_back(SDF->TrianglesUserData[i]);
+		PerJitterResult.back().push_back(Grid->TrianglesUserData[i]);
 
 		// And if user defined function is not nullptr, we will check if we should ignore this value.
 		if (IgnoreValueFunc != nullptr)
 		{
-			if (!IgnoreValueFunc(SDF->TrianglesUserData[i]))
+			if (!IgnoreValueFunc(Grid->TrianglesUserData[i]))
 			{
-				Result[i] += SDF->TrianglesUserData[i];
+				Result[i] += Grid->TrianglesUserData[i];
 				CorrectValuesCounters[i]++;
 			}
 		}
 		else
 		{
-			Result[i] += SDF->TrianglesUserData[i];
+			Result[i] += Grid->TrianglesUserData[i];
 			CorrectValuesCounters[i]++;
 		}
 		
@@ -301,12 +301,12 @@ std::vector<std::vector<float>> JitterManager::GetPerJitterResult()
 	return JITTER_MANAGER.PerJitterResult;
 }
 
-SDF* JitterManager::GetLastUsedSDF()
+MeasurementGrid* JitterManager::GetLastUsedGrid()
 {
-	return LastUsedSDF;
+	return LastUsedGrid;
 }
 
-std::vector<SDFInitData_Jitter> JitterManager::GetLastUsedJitterSettings()
+std::vector<GridInitData_Jitter> JitterManager::GetLastUsedJitterSettings()
 {
 	return LastUsedJitterSettings;
 }
@@ -339,7 +339,7 @@ void JitterManager::SetFallbackValue(float NewValue)
 	FallbackValue = NewValue;
 }
 
-void JitterManager::CalculateOnWholeModel(std::function<void(SDFNode* currentNode)> Func)
+void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* currentNode)> Func)
 {
 	if (Func == nullptr)
 		return;
@@ -363,39 +363,39 @@ void JitterManager::CalculateOnWholeModel(std::function<void(SDFNode* currentNod
 	LastUsedJitterSettings[0].ShiftZ = ShiftZ;
 	LastUsedJitterSettings[0].GridScale = GridScale;
 
-	SDFInitData_Jitter* InputData = new SDFInitData_Jitter();
+	GridInitData_Jitter* InputData = new GridInitData_Jitter();
 
 	InputData->ShiftX = ShiftX;
 	InputData->ShiftY = ShiftY;
 	InputData->ShiftZ = ShiftZ;
 	InputData->GridScale = GridScale;
 
-	SDF* OutputData = new SDF();
-	LastUsedSDF = OutputData;
+	MeasurementGrid* OutputData = new MeasurementGrid();
+	LastUsedGrid = OutputData;
 
 	RunCalculationOnWholeModel(OutputData);
-	AfterCalculationFinishSDFCallback(OutputData);
+	AfterCalculationFinishGridCallback(OutputData);
 
 	ResolutonInM = JITTER_MANAGER.GetLowestPossibleResolution();
 }
 
-void JitterManager::RunCalculationOnWholeModel(SDF* ResultSDF)
+void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)
 {
 	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
 
 	const glm::vec3 Center = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.GetCenter() ;
-	const FEAABB SDFAABB = FEAABB(Center - glm::vec3(MeshAABB.GetSize() / 2.0f), Center + glm::vec3(MeshAABB.GetSize() / 2.0f));
-	MeshAABB = SDFAABB;
+	const FEAABB GridAABB = FEAABB(Center - glm::vec3(MeshAABB.GetSize() / 2.0f), Center + glm::vec3(MeshAABB.GetSize() / 2.0f));
+	MeshAABB = GridAABB;
 
-	ResultSDF->Init(0, MeshAABB, -1);
+	ResultGrid->Init(0, MeshAABB, -1);
 
-	ResultSDF->FillCellsWithTriangleInfo();
+	ResultGrid->FillCellsWithTriangleInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");
-	ResultSDF->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
-	ResultSDF->TimeTakenToCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
+	ResultGrid->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
+	ResultGrid->TimeTakenToCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
 
-	ResultSDF->FillMeshWithUserData();
-	ResultSDF->bFullyLoaded = true;
+	ResultGrid->FillMeshWithUserData();
+	ResultGrid->bFullyLoaded = true;
 }
 
 std::string JitterManager::GetCurrentJitterVectorSetName()
@@ -492,7 +492,7 @@ std::vector<float> JitterManager::ProduceStandardDeviationData()
 	return Result;
 }
 
-FEAABB JitterManager::GetAABBForJitteredSDF(SDFInitData_Jitter* Settings, float CurrentResolutionInM)
+FEAABB JitterManager::GetAABBForJitteredGrid(GridInitData_Jitter* Settings, float CurrentResolutionInM)
 {
 	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
 	FEAABB FinalAABB = MeshAABB;
@@ -503,8 +503,8 @@ FEAABB JitterManager::GetAABBForJitteredSDF(SDFInitData_Jitter* Settings, float 
 	FinalAABB = FinalAABB.Transform(TransformMatrix);
 
 	const glm::vec3 Center = MeshAABB.GetCenter() + glm::vec3(Settings->ShiftX, Settings->ShiftY, Settings->ShiftZ) * CurrentResolutionInM;
-	const FEAABB SDFAABB = FEAABB(Center - glm::vec3(FinalAABB.GetSize() / 2.0f), Center + glm::vec3(FinalAABB.GetSize() / 2.0f));
-	FinalAABB = SDFAABB;
+	const FEAABB GridAABB = FEAABB(Center - glm::vec3(FinalAABB.GetSize() / 2.0f), Center + glm::vec3(FinalAABB.GetSize() / 2.0f));
+	FinalAABB = GridAABB;
 
 	return FinalAABB;
 }
