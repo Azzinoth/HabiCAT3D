@@ -31,10 +31,6 @@ file(GLOB SubSystems_SRC
 	"SubSystems/FELinesRenderer.h"
 	"SubSystems/MeshManager.cpp"
 	"SubSystems/MeshManager.h"
-	"SubSystems/MeasurementGrid.cpp"
-	"SubSystems/MeasurementGrid.h"
-	"SubSystems/JitterManager.cpp"
-	"SubSystems/JitterManager.h"
 	"SubSystems/SphereVectors.h"
 	"SubSystems/MeshRenderer.cpp"
 	"SubSystems/MeshRenderer.h"
@@ -43,24 +39,35 @@ file(GLOB SubSystems_SRC
 )
 
 file(GLOB SubSystems_Layers_SRC
-	"SubSystems/Layers/HeightLayerProducer.cpp"
-	"SubSystems/Layers/HeightLayerProducer.h"
-	"SubSystems/Layers/AreaLayerProducer.cpp"
-	"SubSystems/Layers/AreaLayerProducer.h"
-	"SubSystems/Layers/TriangleEdgeLayerProducer.cpp"
-	"SubSystems/Layers/TriangleEdgeLayerProducer.h"
-	"SubSystems/Layers/CompareLayerProducer.cpp"
-	"SubSystems/Layers/CompareLayerProducer.h"
-	"SubSystems/Layers/RugosityLayerProducer.cpp" 
-	"SubSystems/Layers/RugosityLayerProducer.h"
-	"SubSystems/Layers/VectorDispersionLayerProducer.cpp"
-	"SubSystems/Layers/VectorDispersionLayerProducer.h"
-	"SubSystems/Layers/FractalDimensionLayerProducer.cpp"
-	"SubSystems/Layers/FractalDimensionLayerProducer.h"
-	"SubSystems/Layers/TriangleCountLayerProducer.cpp"
-	"SubSystems/Layers/TriangleCountLayerProducer.h"
-	"SubSystems/Layers/LayerManager.cpp"
-	"SubSystems/Layers/LayerManager.h"
+	"SubSystems/ComplexityCore/Layers/HeightLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/HeightLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/AreaLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/AreaLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/TriangleEdgeLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/TriangleEdgeLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/CompareLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/CompareLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/RugosityLayerProducer.cpp" 
+	"SubSystems/ComplexityCore/Layers/RugosityLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/VectorDispersionLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/VectorDispersionLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/FractalDimensionLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/FractalDimensionLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/TriangleCountLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/TriangleCountLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/LayerManager.cpp"
+	"SubSystems/ComplexityCore/Layers/LayerManager.h"
+)
+
+file(GLOB SubSystems_ComplexityCore_SRC
+	"SubSystems/ComplexityCore/MeasurementGrid.cpp"
+	"SubSystems/ComplexityCore/MeasurementGrid.h"
+	"SubSystems/ComplexityCore/ComplexityMetricInfo.cpp"
+	"SubSystems/ComplexityCore/ComplexityMetricInfo.h"
+	"SubSystems/ComplexityCore/ComplexityMetricManager.cpp"
+	"SubSystems/ComplexityCore/ComplexityMetricManager.h"
+	"SubSystems/ComplexityCore/JitterManager.cpp"
+	"SubSystems/ComplexityCore/JitterManager.h"
 )
 
 file(GLOB SubSystems_UI_SRC
@@ -81,10 +88,6 @@ file(GLOB SubSystems_ConsoleJobs_SRC
 
 file(GLOB source_SRC
 	"FECoreIncludes.h"
-	"ComplexityMetricInfo.cpp"
-	"ComplexityMetricInfo.h"
-	"ComplexityMetricManager.cpp"
-	"ComplexityMetricManager.h"
 	"main.cpp"
 )
 
@@ -99,6 +102,7 @@ add_executable(RugosityCalculator WIN32
 								  ${SubSystems_Layers_SRC}
 								  ${SubSystems_UI_SRC}
 								  ${SubSystems_ConsoleJobs_SRC}
+								  ${SubSystems_ComplexityCore_SRC}
 )
 
 target_link_libraries(RugosityCalculator PRIVATE FocalEngine)
@@ -106,7 +110,8 @@ target_link_libraries(RugosityCalculator PRIVATE FocalEngine)
 source_group("Source Files" FILES ${source_SRC})
 # *************** SUB_SYSTEM ***************
 source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
-source_group("Source Files/SubSystems/Layers" FILES ${SubSystems_Layers_SRC})
+source_group("Source Files/SubSystems/ComplexityCore" FILES ${SubSystems_ComplexityCore_SRC})
+source_group("Source Files/SubSystems/ComplexityCore/Layers" FILES ${SubSystems_Layers_SRC})
 source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
 source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJobs_SRC})
 

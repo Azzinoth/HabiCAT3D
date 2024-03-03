@@ -88,13 +88,13 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 
 		int XEnd = static_cast<int>(Data.size());
 
-		float distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().x - GridMin.x, 2.0)));
-		int XBegin = static_cast<int>(distance / CellSize) - 1;
+		float Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().x - GridMin.x, 2.0)));
+		int XBegin = static_cast<int>(Distance / CellSize) - 1;
 		if (XBegin < 0)
 			XBegin = 0;
 
-		distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().x - GridMax.x, 2.0)));
-		XEnd -= static_cast<int>(distance / CellSize);
+		Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().x - GridMax.x, 2.0)));
+		XEnd -= static_cast<int>(Distance / CellSize);
 		XEnd++;
 		if (XEnd > Data.size())
 			XEnd = static_cast<int>(Data.size());
@@ -103,13 +103,13 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 		{
 			int YEnd = static_cast<int>(Data.size());
 
-			distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().y - GridMin.y, 2.0)));
-			int YBegin = static_cast<int>(distance / CellSize) - 1;
+			Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().y - GridMin.y, 2.0)));
+			int YBegin = static_cast<int>(Distance / CellSize) - 1;
 			if (YBegin < 0)
 				YBegin = 0;
 
-			distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().y - GridMax.y, 2.0)));
-			YEnd -= static_cast<int>(distance / CellSize);
+			Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().y - GridMax.y, 2.0)));
+			YEnd -= static_cast<int>(Distance / CellSize);
 			YEnd++;
 			if (YEnd > Data.size())
 				YEnd = static_cast<int>(Data.size());
@@ -118,13 +118,13 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 			{
 				int ZEnd = static_cast<int>(Data.size());
 
-				distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().z - GridMin.z, 2.0)));
-				int ZBegin = static_cast<int>(distance / CellSize) - 1;
+				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().z - GridMin.z, 2.0)));
+				int ZBegin = static_cast<int>(Distance / CellSize) - 1;
 				if (ZBegin < 0)
 					ZBegin = 0;
 
-				distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().z - GridMax.z, 2.0)));
-				ZEnd -= static_cast<int>(distance / CellSize);
+				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().z - GridMax.z, 2.0)));
+				ZEnd -= static_cast<int>(Distance / CellSize);
 				ZEnd++;
 				if (ZEnd > Data.size())
 					ZEnd = static_cast<int>(Data.size());

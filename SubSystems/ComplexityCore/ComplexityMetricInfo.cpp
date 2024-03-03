@@ -348,7 +348,7 @@ std::string MeshLayer::GetID()
 	return ID;
 }
 
-void FocalEngine::MeshLayer::ForceID(std::string ID)
+void MeshLayer::ForceID(std::string ID)
 {
 	this->ID = ID;
 }

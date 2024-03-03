@@ -1,6 +1,6 @@
 #pragma once
 #include "../FECoreIncludes.h"
-#include "MeasurementGrid.h"
+#include "ComplexityCore/MeasurementGrid.h"
 using namespace FocalEngine;
 
 static const char* const CustomMesh_VS = R"(
@@ -353,63 +353,60 @@ void main(void)
 }
 )";
 
-namespace FocalEngine
+class FECGALWrapper;
+class MeshManager
 {
-	class FECGALWrapper;
-	class MeshManager
-	{
-		friend FECGALWrapper;
-	public:
-		SINGLETON_PUBLIC_PART(MeshManager)
+	friend FECGALWrapper;
+public:
+	SINGLETON_PUBLIC_PART(MeshManager)
 
-		FEShader* CustomMeshShader = nullptr;
-		FEMaterial* CustomMaterial = nullptr;
+	FEShader* CustomMeshShader = nullptr;
+	FEMaterial* CustomMaterial = nullptr;
 
-		FEMesh* LoadMesh(std::string FileName);
-		FEMesh* ActiveMesh = nullptr;
-		FEEntity* ActiveEntity = nullptr;
+	FEMesh* LoadMesh(std::string FileName);
+	FEMesh* ActiveMesh = nullptr;
+	FEEntity* ActiveEntity = nullptr;
 
-		void AddLoadCallback(std::function<void()> Func);
-		void SaveRUGMesh(FEMesh* Mesh);
+	void AddLoadCallback(std::function<void()> Func);
+	void SaveRUGMesh(FEMesh* Mesh);
 
-		float GetUnselectedAreaSaturationFactor();
-		void SetUnselectedAreaSaturationFactor(float NewValue);
-		float GetUnselectedAreaBrightnessFactor();
-		void SetUnselectedAreaBrightnessFactor(float NewValue);
+	float GetUnselectedAreaSaturationFactor();
+	void SetUnselectedAreaSaturationFactor(float NewValue);
+	float GetUnselectedAreaBrightnessFactor();
+	void SetUnselectedAreaBrightnessFactor(float NewValue);
 
-		int GetHeatMapType();
-		void SetHeatMapType(int NewValue);
+	int GetHeatMapType();
+	void SetHeatMapType(int NewValue);
 
-		void ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex = 0);
+	void ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex = 0);
 
-		GLuint GetFirstLayerBufferID();
-		GLuint GetSecondLayerBufferID();
+	GLuint GetFirstLayerBufferID();
+	GLuint GetSecondLayerBufferID();
 
-		void GetMeasuredRugosityArea(float& Radius, glm::vec3& Center);
-		void ClearMeasuredRugosityArea();
+	void GetMeasuredRugosityArea(float& Radius, glm::vec3& Center);
+	void ClearMeasuredRugosityArea();
 
-		bool SelectTriangle(glm::dvec3 MouseRay);
-		bool SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius);
-		glm::vec3 IntersectTriangle(glm::dvec3 MouseRay);
+	bool SelectTriangle(glm::dvec3 MouseRay);
+	bool SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius);
+	glm::vec3 IntersectTriangle(glm::dvec3 MouseRay);
 
-	private:
-		SINGLETON_PRIVATE_PART(MeshManager)
+private:
+	SINGLETON_PRIVATE_PART(MeshManager)
 
-		FEMesh* ImportOBJ(const char* FileName, bool bForceOneMesh);
-		FEMesh* LoadRUGMesh(std::string FileName);
+	FEMesh* ImportOBJ(const char* FileName, bool bForceOneMesh);
+	FEMesh* LoadRUGMesh(std::string FileName);
 
-		std::vector<std::function<void()>> ClientLoadCallbacks;
+	std::vector<std::function<void()>> ClientLoadCallbacks;
 
-		int HeatMapType = 5;
-		GLuint FirstLayerBufferID = 0;
-		GLuint SecondLayerBufferID = 0;
+	int HeatMapType = 5;
+	GLuint FirstLayerBufferID = 0;
+	GLuint SecondLayerBufferID = 0;
 
-		float UnselectedAreaSaturationFactor = 0.3f;
-		float UnselectedAreaBrightnessFactor = 0.2f;
+	float UnselectedAreaSaturationFactor = 0.3f;
+	float UnselectedAreaBrightnessFactor = 0.2f;
 
-		float MeasuredRugosityAreaRadius = -1.0f;
-		glm::vec3 MeasuredRugosityAreaCenter = glm::vec3(0.0f);
-	};
+	float MeasuredRugosityAreaRadius = -1.0f;
+	glm::vec3 MeasuredRugosityAreaCenter = glm::vec3(0.0f);
+};
 
-	#define MESH_MANAGER MeshManager::getInstance()
-}
+#define MESH_MANAGER MeshManager::getInstance()

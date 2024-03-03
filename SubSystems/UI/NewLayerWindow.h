@@ -1,12 +1,12 @@
 #include "UIWeightedHistogram.h"
 
-#include "../Layers/HeightLayerProducer.h"
-#include "../Layers/AreaLayerProducer.h"
-#include "../Layers/TriangleEdgeLayerProducer.h"
-#include "../Layers/CompareLayerProducer.h"
-#include "../Layers/VectorDispersionLayerProducer.h"
-#include "../Layers/FractalDimensionLayerProducer.h"
-#include "../Layers/TriangleCountLayerProducer.h"
+#include "../ComplexityCore/Layers/HeightLayerProducer.h"
+#include "../ComplexityCore/Layers/AreaLayerProducer.h"
+#include "../ComplexityCore/Layers/TriangleEdgeLayerProducer.h"
+#include "../ComplexityCore/Layers/CompareLayerProducer.h"
+#include "../ComplexityCore/Layers/VectorDispersionLayerProducer.h"
+#include "../ComplexityCore/Layers/FractalDimensionLayerProducer.h"
+#include "../ComplexityCore/Layers/TriangleCountLayerProducer.h"
 
 class NewLayerWindow
 {

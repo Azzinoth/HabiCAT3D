@@ -1,4 +1,5 @@
 #include "JitterManager.h"
+using namespace FocalEngine;
 
 JitterManager* JitterManager::Instance = nullptr;
 JitterManager::JitterManager()

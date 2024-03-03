@@ -1,9 +1,6 @@
 #include "SubSystems/ConsoleJobs/ConsoleJobManager.h"
 using namespace FocalEngine;
 
-#include <windows.h>
-#include <psapi.h>
-
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
 
 void SwapCamera(bool bModelCamera)
@@ -27,23 +24,23 @@ void SwapCamera(bool bModelCamera)
 	ENGINE.GetCamera()->SetIsInputActive(false);
 }
 
-double mouseX;
-double mouseY;
+double MouseX;
+double MouseY;
 
-void mouseMoveCallback(double xpos, double ypos)
+void MouseMoveCallback(double XPos, double YPos)
 {
-	mouseX = xpos;
-	mouseY = ypos;
+	MouseX = XPos;
+	MouseY = YPos;
 }
 
 void LoadMesh(std::string FileName);
 
-static void dropCallback(int count, const char** paths);
-void dropCallback(int count, const char** paths)
+static void DropCallback(int Count, const char** Paths);
+void DropCallback(int Count, const char** Paths)
 {
-	for (size_t i = 0; i < size_t(count); i++)
+	for (size_t i = 0; i < size_t(Count); i++)
 	{
-		LoadMesh(paths[i]);
+		LoadMesh(Paths[i]);
 	}
 }
 
@@ -226,7 +223,7 @@ void mouseButtonCallback(int button, int action, int mods)
 		{
 			if (UI.GetDebugGrid()->RenderingMode != 0)
 			{
-				UI.GetDebugGrid()->MouseClick(mouseX, mouseY);
+				UI.GetDebugGrid()->MouseClick(MouseX, MouseY);
 				UI.UpdateRenderingMode(UI.GetDebugGrid(), UI.GetDebugGrid()->RenderingMode);
 			}
 		}
@@ -363,7 +360,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		bIsConsoleModeRequested = true;
 		ParsedCommandActions.erase(ParsedCommandActions.begin());
 	}
-	
+
 	if (bIsConsoleModeRequested)
 	{
 		FEConsoleWindow* Console = APPLICATION.CreateConsoleWindow(ConsoleThreadCode);
@@ -397,8 +394,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		UI.MainWindow = MainWinodw;
 		UI.MainWindow->SetRenderFunction(MainWindowRender);
 
-		UI.MainWindow->AddOnDropCallback(dropCallback);
-		UI.MainWindow->AddOnMouseMoveCallback(mouseMoveCallback);
+		UI.MainWindow->AddOnDropCallback(DropCallback);
+		UI.MainWindow->AddOnMouseMoveCallback(MouseMoveCallback);
 		UI.MainWindow->AddOnMouseButtonCallback(mouseButtonCallback);
 		UI.MainWindow->AddOnResizeCallback(windowResizeCallback);
 		UI.MainWindow->AddOnScrollCallback(ScrollCall);
