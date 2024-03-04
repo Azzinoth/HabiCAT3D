@@ -1,5 +1,5 @@
 #pragma once
-#include "../FECoreIncludes.h"
+#include "../EngineInclude.h"
 using namespace FocalEngine;
 
 static const char* const LineVS = R"(
@@ -55,9 +55,9 @@ public:
 	void AddLineToBuffer(FECustomLine LineToAdd);
 	void SyncWithGPU();
 
-	void RenderAABB(FEAABB AABB, glm::vec3 color);
+	void RenderAABB(FEAABB AABB, glm::vec3 Color);
 
-	void clearAll();
+	void ClearAll();
 private:
 	SINGLETON_PRIVATE_PART(FELinesRenderer)
 

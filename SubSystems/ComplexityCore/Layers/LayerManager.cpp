@@ -6,7 +6,7 @@ LayerManager* LayerManager::Instance = nullptr;
 LayerManager::LayerManager() {}
 LayerManager::~LayerManager() {}
 
-int LayerManager::FindHigestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List)
+int LayerManager::FindHighestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List)
 {
 	int Result = 0;
 	std::transform(Prefix.begin(), Prefix.end(), Prefix.begin(), [](const unsigned char C) { return std::tolower(C); });
@@ -44,7 +44,7 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 		CaptionList.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption());
 	}
 
-	int IndexToAdd = FindHigestIntPostfix(Base, "_", CaptionList);
+	int IndexToAdd = FindHighestIntPostfix(Base, "_", CaptionList);
 	IndexToAdd++;
 	if (IndexToAdd < 2)
 	{
@@ -65,7 +65,6 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 	if (IndexToAdd > 1)
 		Result += "_" + std::to_string(IndexToAdd);
 
-	return Result;
 	return Result;
 }
 

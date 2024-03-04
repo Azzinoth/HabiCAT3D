@@ -32,21 +32,21 @@ void VectorDispersionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 		}
 	}
 
-	double meanX = std::accumulate(NormalX.begin(), NormalX.end(), 0.0) / NormalX.size();
-	double meanY = std::accumulate(NormalY.begin(), NormalY.end(), 0.0) / NormalY.size();
-	double meanZ = std::accumulate(NormalZ.begin(), NormalZ.end(), 0.0) / NormalZ.size();
+	double MeanX = std::accumulate(NormalX.begin(), NormalX.end(), 0.0) / NormalX.size();
+	double MeanY = std::accumulate(NormalY.begin(), NormalY.end(), 0.0) / NormalY.size();
+	double MeanZ = std::accumulate(NormalZ.begin(), NormalZ.end(), 0.0) / NormalZ.size();
 
-	double sumX = std::inner_product(NormalX.begin(), NormalX.end(), NormalX.begin(), 0.0);
-	double sumY = std::inner_product(NormalY.begin(), NormalY.end(), NormalY.begin(), 0.0);
-	double sumZ = std::inner_product(NormalZ.begin(), NormalZ.end(), NormalZ.begin(), 0.0);
+	double SumX = std::inner_product(NormalX.begin(), NormalX.end(), NormalX.begin(), 0.0);
+	double SumY = std::inner_product(NormalY.begin(), NormalY.end(), NormalY.begin(), 0.0);
+	double SumZ = std::inner_product(NormalZ.begin(), NormalZ.end(), NormalZ.begin(), 0.0);
 
-	double XPortionOfResult = sumX / NormalX.size() - meanX * meanX;
+	double XPortionOfResult = SumX / NormalX.size() - MeanX * MeanX;
 	if (isnan(XPortionOfResult))
 		XPortionOfResult = 0.0;
-	double YPortionOfResult = sumY / NormalY.size() - meanY * meanY;
+	double YPortionOfResult = SumY / NormalY.size() - MeanY * MeanY;
 	if (isnan(YPortionOfResult))
 		YPortionOfResult = 0.0;
-	double ZPortionOfResult = sumZ / NormalZ.size() - meanZ * meanZ;
+	double ZPortionOfResult = SumZ / NormalZ.size() - MeanZ * MeanZ;
 	if (isnan(ZPortionOfResult))
 		ZPortionOfResult = 0.0;
 
@@ -64,7 +64,7 @@ void VectorDispersionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 		return;
 
 	bWaitForJitterResult = true;
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	JITTER_MANAGER.CalculateWithGridJitterAsync(WorkOnNode, bSmootherResult);
 }
@@ -86,7 +86,7 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 
 	if (VECTOR_DISPERSION_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{
-		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+		uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
@@ -94,7 +94,7 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
 		MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
 		DebugInfo->Type = "VectorDispersionDeviationLayerDebugInfo";
-		DebugInfo->AddEntry("Start time", StarTime);
+		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
 		DebugInfo->AddEntry("Source layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
@@ -136,7 +136,7 @@ void VectorDispersionLayerProducer::CalculateOnWholeModel()
 		return;
 
 	bWaitForJitterResult = true;
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
 }
@@ -144,4 +144,13 @@ void VectorDispersionLayerProducer::CalculateOnWholeModel()
 void VectorDispersionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(MeshLayer))
 {
 	OnCalculationsEndCallbackImpl = Func;
+}
+
+bool VectorDispersionLayerProducer::GetShouldCalculateStandardDeviation()
+{
+	return bCalculateStandardDeviation;
+}
+void VectorDispersionLayerProducer::SetShouldCalculateStandardDeviation(bool NewValue)
+{
+	bCalculateStandardDeviation = NewValue;
 }

@@ -11,118 +11,40 @@ FractalDimensionLayerProducer::FractalDimensionLayerProducer()
 
 FractalDimensionLayerProducer::~FractalDimensionLayerProducer() {}
 
-// Custom linear regression function
-std::pair<double, double> linearRegression(const std::vector<double>& x, const std::vector<double>& y)
+std::pair<double, double> LinearRegression(const std::vector<double>& XValues, const std::vector<double>& YValues)
 {
-	double n = static_cast<double>(x.size());
-	double sumX = 0.0, sumY = 0.0, sumXY = 0.0, sumX2 = 0.0;
+	double NumPoints = static_cast<double>(XValues.size());
+	double SumX = 0.0, SumY = 0.0, sumXY = 0.0, SumXSquared = 0.0;
 
-	for (size_t i = 0; i < n; ++i)
+	for (size_t i = 0; i < NumPoints; i++)
 	{
-		sumX += x[i];
-		sumY += y[i];
-		sumXY += x[i] * y[i];
-		sumX2 += x[i] * x[i];
+		SumX += XValues[i];
+		SumY += YValues[i];
+		sumXY += XValues[i] * YValues[i];
+		SumXSquared += XValues[i] * XValues[i];
 	}
 
-	double slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-	double intercept = (sumY - slope * sumX) / n;
+	double Slope = (NumPoints * sumXY - SumX * SumY) / (NumPoints * SumXSquared - SumX * SumX);
+	double Intercept = (SumY - Slope * SumX) / NumPoints;
 
-	return std::make_pair(slope, intercept);
+	return std::make_pair(Slope, Intercept);
 }
 
-std::vector<double> generateBoxSizes(double minSize, double maxSize, double factor)
+std::vector<double> GenerateBoxSizes(double MinSize, double MaxSize, double Factor)
 {
-	std::vector<double> sizes;
-	for (double size = maxSize; size >= minSize; size /= factor)
-		sizes.push_back(size);
+	std::vector<double> Sizes;
+	for (double Size = MaxSize; Size >= MinSize; Size /= Factor)
+		Sizes.push_back(Size);
 	
-	return sizes;
+	return Sizes;
 }
 
 void FractalDimensionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 {
-	if (CurrentNode->TrianglesInCell.empty())
-		return;
-
-	// Generate a sequence of box sizes
-	double VozelSize = CurrentNode->AABB.GetMax()[0] - CurrentNode->AABB.GetMin()[0];
-
-	std::vector<double> DivisionFactors = { 32.0, 16.0, 8.0, 4.0 };
-	std::vector<double> BoxSizes;
-	for (size_t i = 0; i < DivisionFactors.size(); i++)
-		BoxSizes.push_back(VozelSize / DivisionFactors[i]);
-
-	std::vector<double> logInverseSizes;
-	std::vector<double> logCounts;
-	std::vector<int> Counts;
-
-	for (size_t i = 0; i < BoxSizes.size(); i++)
-	{
-		double boxSize = BoxSizes[i];
-
-		// Create a 3D grid that covers the entire bounding box
-		int gridX = static_cast<int>(DivisionFactors[i]);
-		int gridY = static_cast<int>(DivisionFactors[i]);
-		int gridZ = static_cast<int>(DivisionFactors[i]);
-
-		int count = 0;
-		std::vector<std::vector<std::vector<bool>>> grid(gridX, std::vector<std::vector<bool>>(gridY, std::vector<bool>(gridZ, false)));
-
-		// Iterate through all the triangles
-		for (size_t j = 0; j < CurrentNode->TrianglesInCell.size(); j++)
-		{
-			std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[j]];
-
-			// Calculate the grid cells that the triangle intersects or is contained in
-			FEAABB TriangleBBox = FEAABB(CurrentTriangle);
-			int minGridX = static_cast<int>((TriangleBBox.GetMin()[0] - CurrentNode->AABB.GetMin()[0]) / boxSize);
-			int minGridY = static_cast<int>((TriangleBBox.GetMin()[1] - CurrentNode->AABB.GetMin()[1]) / boxSize);
-			int minGridZ = static_cast<int>((TriangleBBox.GetMin()[2] - CurrentNode->AABB.GetMin()[2]) / boxSize);
-			int maxGridX = static_cast<int>((TriangleBBox.GetMax()[0] - CurrentNode->AABB.GetMin()[0]) / boxSize);
-			int maxGridY = static_cast<int>((TriangleBBox.GetMax()[1] - CurrentNode->AABB.GetMin()[1]) / boxSize);
-			int maxGridZ = static_cast<int>((TriangleBBox.GetMax()[2] - CurrentNode->AABB.GetMin()[2]) / boxSize);
-
-			for (int x = minGridX; x <= maxGridX; ++x)
-			{
-				for (int y = minGridY; y <= maxGridY; ++y)
-				{
-					for (int z = minGridZ; z <= maxGridZ; ++z)
-					{
-						if (x >= 0 && x < gridX && y >= 0 && y < gridY && z >= 0 && z < gridZ)
-						{
-							if (!grid[x][y][z])
-							{
-								glm::vec3 boxMin(x * boxSize + CurrentNode->AABB.GetMin()[0], y * boxSize + CurrentNode->AABB.GetMin()[1], z * boxSize + CurrentNode->AABB.GetMin()[2]);
-								glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.GetMin()[0], (y + 1) * boxSize + CurrentNode->AABB.GetMin()[1], (z + 1) * boxSize + CurrentNode->AABB.GetMin()[2]);
-								FEAABB box(boxMin, boxMax);
-
-								if (GEOMETRY.IsAABBIntersectTriangle(box, CurrentTriangle))
-								{
-									grid[x][y][z] = true;
-									count++;
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// Store the logarithm values for linear regression
-		logInverseSizes.push_back(std::log10(1.0 / boxSize));
-		Counts.push_back(count);
-		logCounts.push_back(std::log10(static_cast<double>(count)));
-	}
-
-	// Perform linear regression to estimate the fractal dimension
-	std::pair<double, double> coefficients = linearRegression(logInverseSizes, logCounts);
-	double FractalDimension = coefficients.first;
+	double FractalDimension = FRACTAL_DIMENSION_LAYER_PRODUCER.RunOnAllInternalNodesWithTriangles(CurrentNode);
 
 	if (isnan(FractalDimension))
-	{
 		FractalDimension = 0;
-	}
 	
 	// I did not encounter any fractal dimension values greater than 3.0, but I am limiting it to 3.0 just in case.
 	if (FractalDimension > 3.0)
@@ -137,7 +59,7 @@ void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 		return;
 
 	bWaitForJitterResult = true;
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	// Before each run, we set the IgnoreValueFunction relevant to the fractal dimension calculation.
 	if (bFilterFractalDimensionValues)
@@ -177,7 +99,7 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 
 	if (FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{
-		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+		uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
@@ -185,7 +107,7 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
 		MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
 		DebugInfo->Type = "FractalDimensionDeviationLayerDebugInfo";
-		DebugInfo->AddEntry("Start time", StarTime);
+		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
 		DebugInfo->AddEntry("Source layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
@@ -203,100 +125,23 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	Grid->UpdateRenderedLines();
 
 	GridNode* CurrentNode = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
-	if (CurrentNode->TrianglesInCell.empty())
-		return;
 
-	// Generate a sequence of box sizes
-	double VozelSize = CurrentNode->AABB.GetMax()[0] - CurrentNode->AABB.GetMin()[0];
-
-	std::vector<double> DivisionFactors = { 32.0, 16.0, 8.0, 4.0 };
-	std::vector<double> BoxSizes;
-	for (size_t i = 0; i < DivisionFactors.size(); i++)
-		BoxSizes.push_back(VozelSize / DivisionFactors[i]);
-
-	std::vector<double> logInverseSizes;
-	std::vector<double> logCounts;
-	std::vector<int> Counts;
-
-	DebugBoxCount = 0;
-	for (size_t i = 0; i < BoxSizes.size(); i++)
-	{
-		double boxSize = BoxSizes[i];
-
-		// Create a 3D grid that covers the entire bounding box
-		int gridX = static_cast<int>(DivisionFactors[i]);
-		int gridY = static_cast<int>(DivisionFactors[i]);
-		int gridZ = static_cast<int>(DivisionFactors[i]);
-
-		int count = 0;
-		std::vector<std::vector<std::vector<bool>>> grid(gridX, std::vector<std::vector<bool>>(gridY, std::vector<bool>(gridZ, false)));
-
-		// Iterate through all the triangles
-		for (size_t j = 0; j < CurrentNode->TrianglesInCell.size(); j++)
+	double FractalDimension = RunOnAllInternalNodesWithTriangles(CurrentNode, [&](int BoxSizeIndex, FEAABB BoxAABB) {
+		if (BoxSizeIndex == DebugBoxSizeIndex)
 		{
-			std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[j]];
-
-			// Calculate the grid cells that the triangle intersects or is contained in
-			FEAABB TriangleBBox = FEAABB(CurrentTriangle);
-			int minGridX = static_cast<int>((TriangleBBox.GetMin()[0] - CurrentNode->AABB.GetMin()[0]) / boxSize);
-			int minGridY = static_cast<int>((TriangleBBox.GetMin()[1] - CurrentNode->AABB.GetMin()[1]) / boxSize);
-			int minGridZ = static_cast<int>((TriangleBBox.GetMin()[2] - CurrentNode->AABB.GetMin()[2]) / boxSize);
-			int maxGridX = static_cast<int>((TriangleBBox.GetMax()[0] - CurrentNode->AABB.GetMin()[0]) / boxSize);
-			int maxGridY = static_cast<int>((TriangleBBox.GetMax()[1] - CurrentNode->AABB.GetMin()[1]) / boxSize);
-			int maxGridZ = static_cast<int>((TriangleBBox.GetMax()[2] - CurrentNode->AABB.GetMin()[2]) / boxSize);
-
-			for (int x = minGridX; x <= maxGridX; ++x)
-			{
-				for (int y = minGridY; y <= maxGridY; ++y)
-				{
-					for (int z = minGridZ; z <= maxGridZ; ++z)
-					{
-						if (x >= 0 && x < gridX && y >= 0 && y < gridY && z >= 0 && z < gridZ)
-						{
-							if (!grid[x][y][z])
-							{
-								glm::vec3 boxMin(x * boxSize + CurrentNode->AABB.GetMin()[0], y * boxSize + CurrentNode->AABB.GetMin()[1], z * boxSize + CurrentNode->AABB.GetMin()[2]);
-								glm::vec3 boxMax((x + 1) * boxSize + CurrentNode->AABB.GetMin()[0], (y + 1) * boxSize + CurrentNode->AABB.GetMin()[1], (z + 1) * boxSize + CurrentNode->AABB.GetMin()[2]);
-								FEAABB box(boxMin, boxMax);
-
-								if (GEOMETRY.IsAABBIntersectTriangle(box, CurrentTriangle))
-								{
-									grid[x][y][z] = true;
-									count++;
-
-									if (i == DebugBoxSizeIndex)
-									{
-										box = box.Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix());
-										LINE_RENDERER.RenderAABB(box, glm::vec3(1.0, 0.0, 0.0));
-										DebugBoxCount++;
-									}
-								}
-							}
-						}
-					}
-				}
-			}
+			FEAABB TransformedBox = BoxAABB.Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix());
+			LINE_RENDERER.RenderAABB(TransformedBox, glm::vec3(1.0, 0.0, 0.0));
+			DebugBoxCount++;
 		}
-
-		// Store the logarithm values for linear regression
-		logInverseSizes.push_back(std::log10(1.0 / boxSize));
-		Counts.push_back(count);
-		logCounts.push_back(std::log10(static_cast<double>(count)));
-	}
-
-	// Perform linear regression to estimate the fractal dimension
-	std::pair<double, double> coefficients = linearRegression(logInverseSizes, logCounts);
-	double FractalDimension = coefficients.first;
+	});
 
 	if (isnan(FractalDimension))
-	{
 		FractalDimension = 0;
-	}
 
 	DebugFractalDimension = FractalDimension;
-	DebugLogInverseSizes = logInverseSizes;
-	DebugLogCounts = logCounts;
-	DebugCounts = Counts;
+	/*DebugLogInverseSizes = LogInverseSizes;
+	DebugLogCounts = LogCounts;
+	DebugCounts = Counts;*/
 
 	LINE_RENDERER.SyncWithGPU();
 }
@@ -307,15 +152,15 @@ void FractalDimensionLayerProducer::RenderDebugInfoWindow(MeasurementGrid* Grid)
 	{
 		if (ImGui::Begin("Fractal dimension debug settings"))
 		{
-			std::vector<std::string> boxSizeStrs = { "0", "1", "2", "3" };
+			std::vector<std::string> BoxSizeStrings = { "0", "1", "2", "3" };
 
-			if (ImGui::BeginCombo("Box sizes depth", boxSizeStrs[DebugBoxSizeIndex].c_str()))
+			if (ImGui::BeginCombo("Box sizes depth", BoxSizeStrings[DebugBoxSizeIndex].c_str()))
 			{
 				for (int n = 0; n < 4; n++)
 				{
 					bool isSelected = (DebugBoxSizeIndex == n);
 
-					if (ImGui::Selectable(boxSizeStrs[n].c_str(), isSelected))
+					if (ImGui::Selectable(BoxSizeStrings[n].c_str(), isSelected))
 					{
 						DebugBoxSizeIndex = n;
 						FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
@@ -360,7 +205,7 @@ void FractalDimensionLayerProducer::CalculateOnWholeModel()
 		return;
 
 	bWaitForJitterResult = true;
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	// Before each run, we set the IgnoreValueFunction relevant to the fractal dimension calculation.
 	JITTER_MANAGER.SetIgnoreValueFunction([](float Value) -> bool {
@@ -384,4 +229,103 @@ bool FractalDimensionLayerProducer::GetShouldFilterFractalDimensionValues()
 void FractalDimensionLayerProducer::SetShouldFilterFractalDimensionValues(bool NewValue)
 {
 	bFilterFractalDimensionValues = NewValue;
+}
+
+bool FractalDimensionLayerProducer::GetShouldCalculateStandardDeviation()
+{
+	return bCalculateStandardDeviation;
+}
+
+void FractalDimensionLayerProducer::SetShouldCalculateStandardDeviation(bool NewValue)
+{
+	bCalculateStandardDeviation = NewValue;
+}
+
+double FractalDimensionLayerProducer::RunOnAllInternalNodesWithTriangles(GridNode* OuterNode, std::function<void(int BoxSizeIndex, FEAABB BoxAABB)> FunctionWithAdditionalCode)
+{
+	if (OuterNode->TrianglesInCell.empty())
+		return 0.0;
+
+	// Generate a sequence of box sizes
+	double VozelSize = OuterNode->AABB.GetMax()[0] - OuterNode->AABB.GetMin()[0];
+
+	std::vector<double> DivisionFactors = { 32.0, 16.0, 8.0, 4.0 };
+	std::vector<double> BoxSizes;
+	for (size_t i = 0; i < DivisionFactors.size(); i++)
+		BoxSizes.push_back(VozelSize / DivisionFactors[i]);
+
+	std::vector<double> LogInverseSizes;
+	std::vector<double> LogCounts;
+	std::vector<int> Counts;
+
+	for (size_t i = 0; i < BoxSizes.size(); i++)
+	{
+		double BoxSize = BoxSizes[i];
+
+		// Create a 3D grid that covers the entire bounding box
+		int GridX = static_cast<int>(DivisionFactors[i]);
+		int GridY = static_cast<int>(DivisionFactors[i]);
+		int GridZ = static_cast<int>(DivisionFactors[i]);
+
+		int Count = 0;
+		std::vector<std::vector<std::vector<bool>>> Grid(GridX, std::vector<std::vector<bool>>(GridY, std::vector<bool>(GridZ, false)));
+
+		// Iterate through all the triangles
+		for (size_t j = 0; j < OuterNode->TrianglesInCell.size(); j++)
+		{
+			std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[OuterNode->TrianglesInCell[j]];
+
+			// Calculate the grid cells that the triangle intersects or is contained in
+			FEAABB TriangleBBox = FEAABB(CurrentTriangle);
+			int MinGridX = static_cast<int>((TriangleBBox.GetMin()[0] - OuterNode->AABB.GetMin()[0]) / BoxSize);
+			int MinGridY = static_cast<int>((TriangleBBox.GetMin()[1] - OuterNode->AABB.GetMin()[1]) / BoxSize);
+			int MinGridZ = static_cast<int>((TriangleBBox.GetMin()[2] - OuterNode->AABB.GetMin()[2]) / BoxSize);
+			int MaxGridX = static_cast<int>((TriangleBBox.GetMax()[0] - OuterNode->AABB.GetMin()[0]) / BoxSize);
+			int MaxGridY = static_cast<int>((TriangleBBox.GetMax()[1] - OuterNode->AABB.GetMin()[1]) / BoxSize);
+			int MaxGridZ = static_cast<int>((TriangleBBox.GetMax()[2] - OuterNode->AABB.GetMin()[2]) / BoxSize);
+
+			for (int x = MinGridX; x <= MaxGridX; ++x)
+			{
+				for (int y = MinGridY; y <= MaxGridY; ++y)
+				{
+					for (int z = MinGridZ; z <= MaxGridZ; ++z)
+					{
+						if (x >= 0 && x < GridX && y >= 0 && y < GridY && z >= 0 && z < GridZ)
+						{
+							if (!Grid[x][y][z])
+							{
+								glm::vec3 BoxMin(x * BoxSize + OuterNode->AABB.GetMin()[0], y * BoxSize + OuterNode->AABB.GetMin()[1], z * BoxSize + OuterNode->AABB.GetMin()[2]);
+								glm::vec3 BoxMax((x + 1) * BoxSize + OuterNode->AABB.GetMin()[0], (y + 1) * BoxSize + OuterNode->AABB.GetMin()[1], (z + 1) * BoxSize + OuterNode->AABB.GetMin()[2]);
+								FEAABB Box(BoxMin, BoxMax);
+
+								if (GEOMETRY.IsAABBIntersectTriangle(Box, CurrentTriangle))
+								{
+									Grid[x][y][z] = true;
+									Count++;
+
+									if (FunctionWithAdditionalCode != nullptr)
+									{
+										// If the user has provided a function to run on each box, we run it here.
+										// This is useful for debugging purposes.
+										FunctionWithAdditionalCode(static_cast<int>(i), Box);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Store the logarithm values for linear regression
+		LogInverseSizes.push_back(std::log10(1.0 / BoxSize));
+		Counts.push_back(Count);
+		LogCounts.push_back(std::log10(static_cast<double>(Count)));
+	}
+
+	// Perform linear regression to estimate the fractal dimension
+	std::pair<double, double> Coefficients = LinearRegression(LogInverseSizes, LogCounts);
+	double FractalDimension = Coefficients.first;
+
+	return FractalDimension;
 }

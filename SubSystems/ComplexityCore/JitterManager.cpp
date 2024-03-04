@@ -41,12 +41,12 @@ void JitterManager::OnMeshUpdate()
 	JITTER_MANAGER.LastUsedGrid = nullptr;
 }
 
-float JitterManager::GetResolutonInM()
+float JitterManager::GetResolutionInM()
 {
 	return ResolutonInM;
 }
 
-void JitterManager::SetResolutonInM(float NewResolutonInM)
+void JitterManager::SetResolutionInM(float NewResolutonInM)
 {
 	if (NewResolutonInM < LowestPossibleResolution)
 		NewResolutonInM = LowestPossibleResolution;
@@ -76,7 +76,7 @@ int JitterManager::GetJitterToDoCount()
 	return JitterToDoCount;
 }
 
-void JitterManager::CalculateWithGridJitterAsync(std::function<void(GridNode* currentNode)> Func, bool bSmootherResult)
+void JitterManager::CalculateWithGridJitterAsync(std::function<void(GridNode* CurrentNode)> Func, bool bSmootherResult)
 {
 	if (Func == nullptr)
 		return;
@@ -340,7 +340,7 @@ void JitterManager::SetFallbackValue(float NewValue)
 	FallbackValue = NewValue;
 }
 
-void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* currentNode)> Func)
+void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* CurrentNode)> Func)
 {
 	if (Func == nullptr)
 		return;
@@ -404,9 +404,9 @@ std::string JitterManager::GetCurrentJitterVectorSetName()
 	return CurrentJitterVectorSetName;
 }
 
-void JitterManager::SetCurrentJitterVectorSetName(std::string name)
+void JitterManager::SetCurrentJitterVectorSetName(std::string Name)
 {
-	CurrentJitterVectorSetName = name;
+	CurrentJitterVectorSetName = Name;
 }
 
 std::vector<std::string> JitterManager::GetJitterVectorSetNames()

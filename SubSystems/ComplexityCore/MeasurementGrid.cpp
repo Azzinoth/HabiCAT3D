@@ -12,7 +12,7 @@ void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionIn
 {
 	TIME.BeginTimeStamp("Measurement grid Generation");
 
-	const glm::vec3 center = AABB.GetCenter();
+	const glm::vec3 Center = AABB.GetCenter();
 
 	int AdditionalDimensions = 0;
 	Dimensions = 1;
@@ -39,11 +39,11 @@ void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionIn
 	FEAABB GridAABB;
 	if (ResolutionInM > 0.0f)
 	{
-		GridAABB = FEAABB(center - glm::vec3(ResolutionInM * Dimensions / 2.0f), center + glm::vec3(ResolutionInM * Dimensions / 2.0f));
+		GridAABB = FEAABB(Center - glm::vec3(ResolutionInM * Dimensions / 2.0f), Center + glm::vec3(ResolutionInM * Dimensions / 2.0f));
 	}
 	else
 	{
-		GridAABB = FEAABB(center - glm::vec3(AABB.GetSize() / 2.0f), center + glm::vec3(AABB.GetSize() / 2.0f));
+		GridAABB = FEAABB(Center - glm::vec3(AABB.GetSize() / 2.0f), Center + glm::vec3(AABB.GetSize() / 2.0f));
 	}
 
 	float CellSize;
@@ -273,7 +273,7 @@ void MeasurementGrid::AddLinesOfGrid()
 void MeasurementGrid::UpdateRenderedLines()
 {
 #ifndef NEW_LINES
-	LINE_RENDERER.clearAll();
+	LINE_RENDERER.ClearAll();
 	if (RenderingMode != 0)
 		AddLinesOfGrid();
 	LINE_RENDERER.SyncWithGPU();

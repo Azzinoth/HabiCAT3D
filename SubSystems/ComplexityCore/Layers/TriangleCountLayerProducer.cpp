@@ -16,7 +16,7 @@ void TriangleCountLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 		return;
 
 	bWaitForJitterResult = true;
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	auto WorkOnNode = [&](GridNode* CurrentNode) {
 		if (CurrentNode->TrianglesInCell.empty())
@@ -51,7 +51,7 @@ void TriangleCountLayerProducer::CalculateOnWholeModel()
 		return;
 
 	bWaitForJitterResult = true;
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	auto WorkOnNode = [&](GridNode* CurrentNode) {
 		if (CurrentNode->TrianglesInCell.empty())

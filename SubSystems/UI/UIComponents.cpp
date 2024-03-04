@@ -38,7 +38,6 @@ void FEArrowScroller::Clear()
 
 	AvailableRange = FLT_MAX;
 	RangePosition = 0.0f;
-	//RangeBottomLimit = 1.0f;
 }
 
 ImVec2 FEArrowScroller::GetPixelPosition() const
@@ -123,7 +122,7 @@ void FEArrowScroller::Render()
 	if (IsSelected())
 	{
 		LastFrameDelta = bHorizontal ? MouseXWindows - LastFrameMouseX : MouseYWindows - LastFrameMouseY;
-		float BottomLimitInPixels = AvailableRange * 0.0f/** (1.0f - RangeBottomLimit)*/;
+		float BottomLimitInPixels = AvailableRange * 0.0f;
 
 		if (bHorizontal)
 		{
@@ -255,23 +254,6 @@ void FEArrowScroller::SetRangePosition(float NewValue)
 		NewValue = 1.0f;
 
 	RangePosition = NewValue;
-}
-
-float FEArrowScroller::GetRangeBottomLimit()
-{
-	return 0.0f;
-	//return RangeBottomLimit;
-}
-
-void FEArrowScroller::SetRangeBottomLimit(float NewValue)
-{
-	if (NewValue < 0.0f)
-		NewValue = 0.0f;
-
-	if (NewValue > 1.0f)
-		NewValue = 1.0f;
-
-	//RangeBottomLimit = NewValue;
 }
 
 ImVec2 Legend::GetPosition()
@@ -425,22 +407,6 @@ void FEColorRangeAdjuster::SetSliderValue(float NewValue)
 
 	Slider.SetRangePosition(1.0f - NewValue);
 	Slider.SetPixelPosition(ImVec2(Slider.GetPixelPosition().x, Slider.GetRangePosition() * Slider.GetAvailableRange()));
-}
-
-float FEColorRangeAdjuster::GetRangeBottomLimit()
-{
-	return 1.0f - Slider.GetRangeBottomLimit();
-}
-
-void FEColorRangeAdjuster::SetRangeBottomLimit(float NewValue)
-{
-	if (NewValue < 0.0f)
-		NewValue = 0.0f;
-
-	if (NewValue > 1.0f)
-		NewValue = 1.0f;
-
-	Slider.SetRangeBottomLimit(1.0f - NewValue);
 }
 
 void FEColorRangeAdjuster::Clear()
@@ -776,15 +742,6 @@ void FEGraphRender::Render()
 	RenderBottomLegend();
 
 	bCacheIsDirty = false;
-
-	//ImGuiWindow* CurrentWindow = ImGui::GetCurrentWindow();
-	//if (CurrentWindow != nullptr)
-	//{
-	//	// Debug functionality
-	//	ImGui::GetWindowDrawList()->AddRectFilled(CurrentWindow->Pos + Position + GraphCanvasPosition,
-	//											  CurrentWindow->Pos + Position + Size,
-	//											  ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f, 45.0f / 255.0f));
-	//}
 }
 
 void FEGraphRender::InputUpdate()

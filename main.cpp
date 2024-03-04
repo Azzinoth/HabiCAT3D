@@ -95,7 +95,7 @@ void LoadMesh(std::string FileName)
 
 void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 {
-	LINE_RENDERER.clearAll();
+	LINE_RENDERER.ClearAll();
 
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() == 1)
 	{
@@ -145,7 +145,7 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 	}
 }
 
-void OutputSeletedAreaInfoToFile()
+void OutputSelectedAreaInfoToFile()
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
@@ -212,7 +212,7 @@ void mouseButtonCallback(int button, int action, int mods)
 			{
 				if (MESH_MANAGER.SelectTrianglesInRadius(ENGINE.ConstructMouseRay(), UI.GetRadiusOfAreaToMeasure()) && UI.GetOutputSelectionToFile())
 				{
-					OutputSeletedAreaInfoToFile();
+					OutputSelectedAreaInfoToFile();
 				}
 			}
 
@@ -230,7 +230,7 @@ void mouseButtonCallback(int button, int action, int mods)
 	}
 }
 
-void windowResizeCallback(int width, int height)
+void WindowResizeCallback(int Width, int Height)
 {
 	int W, H;
 	UI.MainWindow->GetSize(&W, &H);
@@ -343,8 +343,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
 	//LOG.SetFileOutput(true);
 
-	const auto processor_count = THREAD_POOL.GetLogicalCoreCount();
-	const unsigned int HowManyToUse = processor_count > 4 ? processor_count - 2 : 1;
+	const auto ProcessorCount = THREAD_POOL.GetLogicalCoreCount();
+	const unsigned int HowManyToUse = ProcessorCount > 4 ? ProcessorCount - 2 : 1;
 
 	THREAD_POOL.SetConcurrentThreadCount(HowManyToUse);
 
@@ -397,7 +397,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		UI.MainWindow->AddOnDropCallback(DropCallback);
 		UI.MainWindow->AddOnMouseMoveCallback(MouseMoveCallback);
 		UI.MainWindow->AddOnMouseButtonCallback(mouseButtonCallback);
-		UI.MainWindow->AddOnResizeCallback(windowResizeCallback);
+		UI.MainWindow->AddOnResizeCallback(WindowResizeCallback);
 		UI.MainWindow->AddOnScrollCallback(ScrollCall);
 
 		ENGINE.SetClearColor(glm::vec4(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w));

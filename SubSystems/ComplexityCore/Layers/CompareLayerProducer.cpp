@@ -22,27 +22,6 @@ void CompareLayerProducer::SetShouldNormalize(bool NewValue)
 	bNormalize = NewValue;
 }
 
-//std::vector<float> CompareLayerProducer::Normalize(std::vector<float> Original)
-//{
-//	std::vector<float> Result;
-//
-//	float Min = FLT_MAX;
-//	float Max = -FLT_MAX;
-//	for (size_t i = 0; i < Original.size(); i++)
-//	{
-//		Min = std::min(Min, Original[i]);
-//		Max = std::max(Max, Original[i]);
-//	}
-//
-//	Result.resize(Original.size());
-//	for (size_t i = 0; i < Original.size(); i++)
-//	{
-//		Result[i] = ((Original[i] - Min) / (Max - Min)) * 2.0f - 1.0f;
-//	}
-//
-//	return Result;
-//}
-
 std::vector<float> CompareLayerProducer::Normalize(std::vector<float> Original)
 {
 	std::vector<float> Result;
@@ -95,7 +74,7 @@ MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr || FirstLayer == -1 || SecondLayer == -1)
 		return Result;
 
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	MeshLayer* First = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[FirstLayer];
 	MeshLayer* Second = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[SecondLayer];
@@ -135,7 +114,7 @@ MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 
 	Result.DebugInfo = new MeshLayerDebugInfo();
 	Result.DebugInfo->Type = "CompareMeshLayerDebugInfo";
-	Result.DebugInfo->AddEntry("Start time", StarTime);
+	Result.DebugInfo->AddEntry("Start time", StartTime);
 	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 
 	std::string TempString = bNormalize ? "Yes" : "No";

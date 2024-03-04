@@ -14,7 +14,7 @@ MeshLayer AreaLayerProducer::Calculate()
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return Result;
 
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
 	{
 		Result.TrianglesToData.push_back(static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[i]));
@@ -23,7 +23,7 @@ MeshLayer AreaLayerProducer::Calculate()
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle area"));
 	Result.DebugInfo = new MeshLayerDebugInfo();
 
-	Result.DebugInfo->AddEntry("Start time", StarTime);
+	Result.DebugInfo->AddEntry("Start time", StartTime);
 	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 
 	return Result;

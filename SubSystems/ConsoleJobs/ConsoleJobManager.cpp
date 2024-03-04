@@ -468,19 +468,19 @@ void ConsoleJobManager::AddJob(ConsoleJob* Job)
 
 void ConsoleJobManager::SetGridResolution(ComplexityJob* Job)
 {
-	JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
+	JITTER_MANAGER.SetResolutionInM(JITTER_MANAGER.GetLowestPossibleResolution());
 
 	if (Job->Settings.ResolutionInM != 0.0f &&
 		Job->Settings.ResolutionInM >= JITTER_MANAGER.GetLowestPossibleResolution() &&
 		Job->Settings.ResolutionInM <= JITTER_MANAGER.GetHigestPossibleResolution())
 	{
-		JITTER_MANAGER.SetResolutonInM(Job->Settings.ResolutionInM);
+		JITTER_MANAGER.SetResolutionInM(Job->Settings.ResolutionInM);
 	}
 
 	if (Job->Settings.ResolutionInM == 0.0f && Job->Settings.RelativeResolution != 0.0f)
 	{
 		float Range = JITTER_MANAGER.GetHigestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution();
-		JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution() + Range * Job->Settings.RelativeResolution);
+		JITTER_MANAGER.SetResolutionInM(JITTER_MANAGER.GetLowestPossibleResolution() + Range * Job->Settings.RelativeResolution);
 	}
 }
 
@@ -706,7 +706,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		{
 			std::cout << "Initiating Vector Dispersion calculation." << std::endl;
 			
-			VECTOR_DISPERSION_LAYER_PRODUCER.bCalculateStandardDeviation = CurrentComplexityJob->Settings.IsStandardDeviationNeeded();
+			VECTOR_DISPERSION_LAYER_PRODUCER.SetShouldCalculateStandardDeviation(CurrentComplexityJob->Settings.IsStandardDeviationNeeded());
 
 			if (CurrentComplexityJob->Settings.IsRunOnWholeModel())
 			{
@@ -727,7 +727,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		{
 			std::cout << "Initiating Fractal Dimension Layer calculation." << std::endl;
 
-			FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation = CurrentComplexityJob->Settings.IsStandardDeviationNeeded();
+			FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldCalculateStandardDeviation(CurrentComplexityJob->Settings.IsStandardDeviationNeeded());
 			FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldFilterFractalDimensionValues(CurrentComplexityJob->Settings.GetFractalDimension_ShouldFilterValues());
 
 			if (CurrentComplexityJob->Settings.IsRunOnWholeModel())

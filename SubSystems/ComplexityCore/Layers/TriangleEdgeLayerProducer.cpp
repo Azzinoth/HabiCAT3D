@@ -14,7 +14,7 @@ MeshLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return Result;
 
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
 	{
 		float Edge0Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][0], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][1]);
@@ -42,7 +42,7 @@ MeshLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle edge"));
 	Result.DebugInfo = new MeshLayerDebugInfo();
 
-	Result.DebugInfo->AddEntry("Start time", StarTime);
+	Result.DebugInfo->AddEntry("Start time", StartTime);
 	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 
 	std::string ModeUsed = "Unknown.";

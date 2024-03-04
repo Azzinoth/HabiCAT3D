@@ -403,7 +403,7 @@ void RugosityLayerProducer::CalculateWithJitterAsync()
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = true;
 	JITTER_MANAGER.CalculateWithGridJitterAsync(CalculateOneNodeRugosity);
@@ -414,7 +414,7 @@ void RugosityLayerProducer::CalculateOnWholeModel()
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = true;
 	JITTER_MANAGER.CalculateOnWholeModel(CalculateOneNodeRugosity);
@@ -554,7 +554,7 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 
 	if (RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{
-		uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+		uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
@@ -562,7 +562,7 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
 		MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
 		DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
-		DebugInfo->AddEntry("Start time", StarTime);
+		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
 		DebugInfo->AddEntry("Source layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());

@@ -24,7 +24,6 @@ class FEArrowScroller
 
 	float AvailableRange;
 	float RangePosition = 0.0f;
-	//float RangeBottomLimit = 1.0f;
 public:
 	FEArrowScroller(bool Horizontal = true);
 
@@ -55,9 +54,6 @@ public:
 
 	float GetRangePosition();
 	void SetRangePosition(float NewValue);
-
-	float GetRangeBottomLimit();
-	void SetRangeBottomLimit(float NewValue);
 
 	ImVec2 GetPixelPosition() const;
 	void SetPixelPosition(ImVec2 NewPosition);
@@ -123,9 +119,6 @@ public:
 
 	float GetSliderValue();
 	void SetSliderValue(float NewValue);
-
-	float GetRangeBottomLimit();
-	void SetRangeBottomLimit(float NewValue);
 
 	void Render(bool bScreenshotMode);
 	void Clear();

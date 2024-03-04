@@ -14,8 +14,7 @@ MeshLayer HeightLayerProducer::Calculate()
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return Result;
 
-	uint64_t StarTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-
+	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 	auto& ComplexityMetric = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo;
 
 	double Min = DBL_MAX;
@@ -41,7 +40,7 @@ MeshLayer HeightLayerProducer::Calculate()
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Height"));
 	Result.DebugInfo = new MeshLayerDebugInfo();
 
-	Result.DebugInfo->AddEntry("Start time", StarTime);
+	Result.DebugInfo->AddEntry("Start time", StartTime);
 	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 
 	return Result;

@@ -19,9 +19,8 @@ public:
 private:
 	SINGLETON_PRIVATE_PART(LayerManager)
 
-	int FindHigestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List);
+	int FindHighestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List);
 
-	//std::vector<std::function<void()>> ClientAfterNewLayerAddedCallbacks;
 	std::vector<std::function<void()>> ClientAfterActiveLayerChangedCallbacks;
 };
 

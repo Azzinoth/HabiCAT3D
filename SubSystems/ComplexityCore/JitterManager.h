@@ -416,13 +416,13 @@ public:
 
 	static void OnMeshUpdate();
 
-	void CalculateWithGridJitterAsync(std::function<void(GridNode* currentNode)> funcf, bool bSmootherResult = false);
-	void CalculateOnWholeModel(std::function<void(GridNode* currentNode)> func);
-	void SetOnCalculationsStartCallback(std::function<void()> func);
-	void SetOnCalculationsEndCallback(std::function<void(MeshLayer CurrentMeshLayer)> func);
+	void CalculateWithGridJitterAsync(std::function<void(GridNode* CurrentNode)> Func, bool bSmootherResult = false);
+	void CalculateOnWholeModel(std::function<void(GridNode* CurrentNode)> Func);
+	void SetOnCalculationsStartCallback(std::function<void()> Func);
+	void SetOnCalculationsEndCallback(std::function<void(MeshLayer CurrentMeshLayer)> Func);
 
-	float GetResolutonInM();
-	void SetResolutonInM(float NewResolutonInM);
+	float GetResolutionInM();
+	void SetResolutionInM(float NewResolutonInM);
 
 	float GetLowestPossibleResolution();
 	float GetHigestPossibleResolution();
@@ -445,7 +445,7 @@ public:
 	*
 	* @param func The desired function.
 	*/
-	void SetIgnoreValueFunction(std::function<bool(float Value)> func);
+	void SetIgnoreValueFunction(std::function<bool(float Value)> Func);
 
 	/**
 	* @brief Sets the fallback value for the result array.
@@ -462,7 +462,7 @@ public:
 	void SetFallbackValue(float NewValue);
 
 	std::string GetCurrentJitterVectorSetName();
-	void SetCurrentJitterVectorSetName(std::string name);
+	void SetCurrentJitterVectorSetName(std::string Name);
 	std::vector<std::string> GetJitterVectorSetNames();
 
 	void AdjustOutliers(std::vector<float>& Dataf, float LowerPercentilef, float UpperPercentile);

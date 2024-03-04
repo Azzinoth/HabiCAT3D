@@ -468,7 +468,7 @@ void UIManager::StrToCameraRotation(std::string Text)
 
 void UIManager::OnMeshUpdate()
 {
-	LINE_RENDERER.clearAll();
+	LINE_RENDERER.ClearAll();
 	LINE_RENDERER.SyncWithGPU();
 
 	UI.Histogram.Clear();
@@ -1303,8 +1303,6 @@ void UIManager::OnLayerChange()
 
 			NormalizedPosition += PositionStep;
 		}
-
-		UI.HeatMapColorRange.SetRangeBottomLimit(CurrentLayer->GetMin() / CurrentLayer->GetMax());
 	}
 	else
 	{
@@ -1694,21 +1692,21 @@ void UIManager::RenderExportTab()
 	if (ImGui::RadioButton("None", &LayerSelectionMode, 0))
 	{
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
+		LINE_RENDERER.ClearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
 
 	if (ImGui::RadioButton("Triangles", &LayerSelectionMode, 1))
 	{
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
+		LINE_RENDERER.ClearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
 
 	if (ImGui::RadioButton("Area", &LayerSelectionMode, 2))
 	{
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
+		LINE_RENDERER.ClearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
 

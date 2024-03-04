@@ -231,11 +231,11 @@ void NewLayerWindow::RenderCellSizeSettings()
 
 		if (FeaturesSizeSelectionMode == 0)
 		{
-			JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetLowestPossibleResolution());
+			JITTER_MANAGER.SetResolutionInM(JITTER_MANAGER.GetLowestPossibleResolution());
 		}
 		else if (FeaturesSizeSelectionMode == 1)
 		{
-			JITTER_MANAGER.SetResolutonInM(JITTER_MANAGER.GetHigestPossibleResolution());
+			JITTER_MANAGER.SetResolutionInM(JITTER_MANAGER.GetHigestPossibleResolution());
 		}
 		else
 		{
@@ -245,13 +245,12 @@ void NewLayerWindow::RenderCellSizeSettings()
 				+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
 
 			ImGui::SetNextItemWidth(128);
-			float TempResoluton = JITTER_MANAGER.GetResolutonInM();
+			float TempResoluton = JITTER_MANAGER.GetResolutionInM();
 			ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
-			JITTER_MANAGER.SetResolutonInM(TempResoluton);
+			JITTER_MANAGER.SetResolutionInM(TempResoluton);
 		}
 
 		ImGui::Text("Jitter quality(higher quality, slower calculations): ");
-		//ImGui::SameLine();
 		ImGui::SetNextItemWidth(70);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
 		auto JitterList = JITTER_MANAGER.GetJitterVectorSetNames();
@@ -376,8 +375,7 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 		ImGui::Checkbox("Delete outliers", &bTempBool);
 		RUGOSITY_LAYER_PRODUCER.SetDeleteOutliers(bTempBool);
 	}
-		
-
+	
 	bool TempBool = RUGOSITY_LAYER_PRODUCER.GetIsUsingUniqueProjectedArea();
 	ImGui::Checkbox("Unique projected area (very slow).", &TempBool);
 	RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedArea(TempBool);
@@ -391,7 +389,10 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 
 void NewLayerWindow::RenderVectorDispersionSettings()
 {
-	ImGui::Checkbox("Add standard deviation layer.", &VECTOR_DISPERSION_LAYER_PRODUCER.bCalculateStandardDeviation);
+	bool TempBool = VECTOR_DISPERSION_LAYER_PRODUCER.GetShouldCalculateStandardDeviation();
+	ImGui::Checkbox("Add standard deviation layer.", &TempBool);
+	VECTOR_DISPERSION_LAYER_PRODUCER.SetShouldCalculateStandardDeviation(TempBool);
+
 	RenderCellSizeSettings();
 }
 
@@ -401,7 +402,10 @@ void NewLayerWindow::RenderFractalDimentionSettings()
 	ImGui::Checkbox("Filter FD outliers", &TempBool);
 	FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldFilterFractalDimensionValues(TempBool);
 
-	ImGui::Checkbox("Add standard deviation layer.", &FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation);
+	TempBool = FRACTAL_DIMENSION_LAYER_PRODUCER.GetShouldCalculateStandardDeviation();
+	ImGui::Checkbox("Add standard deviation layer.", &TempBool);
+	FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldCalculateStandardDeviation(TempBool);
+
 	RenderCellSizeSettings();
 }
 
@@ -552,7 +556,7 @@ void NewLayerWindow::OnModeChanged(int OldMode)
 		{
 			FeaturesSizeSelectionMode = 3;
 			double StartingResolution = JITTER_MANAGER.GetLowestPossibleResolution() + (JITTER_MANAGER.GetHigestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution()) / 2.0f;
-			JITTER_MANAGER.SetResolutonInM(static_cast<float>(StartingResolution));
+			JITTER_MANAGER.SetResolutionInM(static_cast<float>(StartingResolution));
 
 			break;
 		}
