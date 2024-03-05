@@ -402,44 +402,51 @@ glm::vec3 ConvertToClosestAxis(const glm::vec3& Vector)
 	}
 }
 
-void ExportCurrentLayerAsMap()
+struct GridUpdateTask
 {
-	MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
-	if (CurrentLayer == nullptr)
-		return;
+	int FirstIndex = -1;
+	int SecondIndex = -1;
+	int TriangleIndexToAdd = -1;
 
-	static bool bFirstTime = true;
-
-	if (!bFirstTime)
+	GridUpdateTask::GridUpdateTask(int FirstIndex, int SecondIndex, int TriangleIndexToAdd)
+		: FirstIndex(FirstIndex), SecondIndex(SecondIndex), TriangleIndexToAdd(TriangleIndexToAdd)
 	{
-		return;
 	}
+};
 
-	bFirstTime = false;
+struct GridRasterizationThreadData
+{
+	std::vector<std::vector<GridCell>>* Grid;
+	glm::vec3 UpAxis;
+	int Resolution;
+	int FirstIndexInTriangleArray;
+	int LastIndexInTriangleArray;
+};
 
-	glm::vec3 UpAxis = ConvertToClosestAxis(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal());
-	int Resolution = 2048;
+void GridRasterizationThread(void* InputData, void* OutputData)
+{
+	GridRasterizationThreadData* Input = reinterpret_cast<GridRasterizationThreadData*>(InputData);
+	std::vector<GridUpdateTask>* Output = reinterpret_cast<std::vector<GridUpdateTask>*>(OutputData);
 
-	std::vector<std::vector<GridCell>> Grid = GenerateGridProjection(MESH_MANAGER.ActiveMesh->GetAABB(), UpAxis, Resolution);
-	//for (auto& Cell : Grid)
-	//{
-		//LINE_RENDERER.RenderAABB(Cell.AABB.Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), glm::vec3(1.0f, 0.0f, 0.0f));
-	//}
-
+	std::vector<std::vector<GridCell>>& Grid = *Input->Grid;
+	const glm::vec3 UpAxis = Input->UpAxis;
+	const int Resolution = Input->Resolution;
+	const int FirstIndexInTriangleArray = Input->FirstIndexInTriangleArray;
+	const int LastIndexInTriangleArray = Input->LastIndexInTriangleArray;
 
 	glm::vec3 CellSize = Grid[0][0].AABB.GetSize();
 	const glm::vec3 GridMin = Grid[0][0].AABB.GetMin();
 	const glm::vec3 GridMax = Grid[Resolution - 1][Resolution - 1].AABB.GetMax();
 
-	double TotalTime = 0.0;
-	double TimeTakenFillCellsWithTriangleInfo = 0.0;
+	//double TotalTime = 0.0;
+	//double TimeTakenFillCellsWithTriangleInfo = 0.0;
 
-	TIME.BeginTimeStamp("Total time");
+	//TIME.BeginTimeStamp("Total time");
 
 
 	if (UpAxis.y > 0.0)
 	{
-		for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); l++)
+		for (int l = FirstIndexInTriangleArray; l < LastIndexInTriangleArray; l++)
 		{
 			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
@@ -473,17 +480,8 @@ void ExportCurrentLayerAsMap()
 
 				for (size_t j = ZBegin; j < ZEnd; j++)
 				{
-					TIME.BeginTimeStamp("Fill cells with triangle info");
-
 					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
-						Grid[i][j].TrianglesInCell.push_back(l);
-
-					/*if (Grid[i][j].AABB.AABBIntersect(TriangleAABB))
-					{
-						Grid[i][j].TrianglesInCell.push_back(l);
-					}*/
-
-					TimeTakenFillCellsWithTriangleInfo += TIME.EndTimeStamp("Fill cells with triangle info");
+						Output->push_back(GridUpdateTask( i, j, l )); //Grid[i][j].TrianglesInCell.push_back(l);
 				}
 			}
 		}
@@ -491,7 +489,7 @@ void ExportCurrentLayerAsMap()
 	}
 	else if (UpAxis.z > 0.0)
 	{
-		for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); l++)
+		for (int l = FirstIndexInTriangleArray; l < LastIndexInTriangleArray; l++)
 		{
 			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
@@ -525,70 +523,29 @@ void ExportCurrentLayerAsMap()
 
 				for (size_t j = YBegin; j < YEnd; j++)
 				{
-					TIME.BeginTimeStamp("Fill cells with triangle info");
-
 					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
-						Grid[i][j].TrianglesInCell.push_back(l);
-
-					/*if (Grid[i][j].AABB.AABBIntersect(TriangleAABB))
-					{
-						Grid[i][j].TrianglesInCell.push_back(l);
-					}*/
-
-					TimeTakenFillCellsWithTriangleInfo += TIME.EndTimeStamp("Fill cells with triangle info");
+						Output->push_back(GridUpdateTask(i, j, l)); //Grid[i][j].TrianglesInCell.push_back(l);
 				}
 			}
 		}
 	}
+}
 
+std::vector<GridUpdateTask> MainThreadGridUpdateTasks;
+std::vector<std::vector<GridCell>> Grid;
+int GatherGridRasterizationThreadCount = 0;
+MeshLayer* CurrentLayer = nullptr;
+int CurrentResolution = 0;
+int GridRasterizationMode = 0;
 
+void AfterAllGridRasterizationThreadFinished()
+{
+	//MessageBoxA(NULL, "GatherGridRasterizationThreadWork!", "Mouse Position", MB_OK);
 
-	TotalTime = TIME.EndTimeStamp("Total time");
-
-
-
-	MessageBoxA(NULL, ("Time for IsAABBIntersectTriangle: " + std::to_string(TimeTakenFillCellsWithTriangleInfo)).c_str(), "Mouse Position", MB_OK);
-	MessageBoxA(NULL, ("Total Time: " + std::to_string(TotalTime)).c_str(), "Mouse Position", MB_OK);
-
-	double PercentageFromTotalTime = (TimeTakenFillCellsWithTriangleInfo / TotalTime) * 100.0;
-
-
-	MessageBoxA(NULL, ("PercentageFromTotalTime: " + std::to_string(PercentageFromTotalTime)).c_str(), "Mouse Position", MB_OK);
-
-
-
-
-	/*for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	for (int i = 0; i < MainThreadGridUpdateTasks.size(); i++)
 	{
-		FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i]);
-		for (int j = 0; j < Grid.size(); j++)
-		{
-			for (int k = 0; k < Grid[j].size(); k++)
-			{
-				if (TriangleAABB.AABBIntersect(Grid[j][k].AABB))
-				{
-					Grid[j][k].TrianglesInCell.push_back(i);
-				}
-			}
-		}
-	}*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+		Grid[MainThreadGridUpdateTasks[i].FirstIndex][MainThreadGridUpdateTasks[i].SecondIndex].TrianglesInCell.push_back(MainThreadGridUpdateTasks[i].TriangleIndexToAdd);
+	}
 
 	for (int i = 0; i < Grid.size(); i++)
 	{
@@ -603,22 +560,62 @@ void ExportCurrentLayerAsMap()
 				}
 
 				float FinalResult = 0.0f;
-				for (int k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
+
+				if (GridRasterizationMode == 0)
 				{
-					float CurrentTriangleCoef = static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[Grid[i][j].TrianglesInCell[k]] / CurrentCellTotalArea);
-					//float CurrentTriangleCoef = 1.0f;
-					//float CurrentTriangleCoef = Grid[i][j].TriangleAABBOverlaps[k];
-					FinalResult += CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]] * CurrentTriangleCoef;
+					
+					float MinValue = FLT_MAX;
+
+					for (int k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
+					{
+						float CurrentValue = CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]];
+						if (CurrentValue < MinValue)
+							MinValue = CurrentValue;
+					}
+
+					FinalResult = MinValue;
+				}
+				else if (GridRasterizationMode == 1)
+				{
+
+					float MaxValue = -FLT_MAX;
+
+					for (int k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
+					{
+						float CurrentValue = CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]];
+						if (CurrentValue > MaxValue)
+							MaxValue = CurrentValue;
+					}
+
+					FinalResult = MaxValue;
+					
+				}
+				else if (GridRasterizationMode == 2)
+				{
+					for (int k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
+					{
+						float CurrentTriangleCoef = static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[Grid[i][j].TrianglesInCell[k]] / CurrentCellTotalArea);
+						//float CurrentTriangleCoef = 1.0f;
+						//float CurrentTriangleCoef = Grid[i][j].TriangleAABBOverlaps[k];
+						FinalResult += CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]] * CurrentTriangleCoef;
+					}
+
+					//FinalResult /= static_cast<float>(Grid[i][j].TrianglesInCell.size());
+					
 				}
 
-				//FinalResult /= static_cast<float>(Grid[i][j].TrianglesInCell.size());
+
+
+
+
+
 				Grid[i][j].Value = FinalResult;
 			}
 		}
 	}
 
 	std::vector<unsigned char> ImageRawData;
-	ImageRawData.reserve(Resolution * Resolution * 4);
+	ImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
 	for (int i = 0; i < Grid.size(); i++)
 	{
 		for (int j = 0; j < Grid[i].size(); j++)
@@ -652,19 +649,267 @@ void ExportCurrentLayerAsMap()
 		}
 	}
 
-	lodepng::encode("test.png", ImageRawData, Resolution, Resolution);
+	lodepng::encode("test.png", ImageRawData, CurrentResolution, CurrentResolution);
 
-	int y = 0;
-	y++;
+	Grid.clear();
+	MainThreadGridUpdateTasks.clear();
+	GatherGridRasterizationThreadCount = 0;
+	CurrentLayer = nullptr;
+	CurrentResolution = 0;
+}
 
+void GatherGridRasterizationThreadWork(void* OutputData)
+{
+	std::vector<GridUpdateTask>* Result = reinterpret_cast<std::vector<GridUpdateTask>*>(OutputData);
+
+	MainThreadGridUpdateTasks.insert(MainThreadGridUpdateTasks.end(), Result->begin(), Result->end());
+	GatherGridRasterizationThreadCount++;
+	delete Result;
+
+	if (GatherGridRasterizationThreadCount == 10)
+		AfterAllGridRasterizationThreadFinished();
+}
+
+void ExportCurrentLayerAsMap()
+{
+	CurrentLayer = LAYER_MANAGER.GetActiveLayer();
+	if (CurrentLayer == nullptr)
+		return;
+
+	glm::vec3 UpAxis = ConvertToClosestAxis(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal());
+	CurrentResolution = 2048;
+
+	Grid = GenerateGridProjection(MESH_MANAGER.ActiveMesh->GetAABB(), UpAxis, CurrentResolution);
+	//for (auto& Cell : Grid)
+	//{
+		//LINE_RENDERER.RenderAABB(Cell.AABB.Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), glm::vec3(1.0f, 0.0f, 0.0f));
+	//}
+	bool bOneThread = false;
+
+	if (bOneThread)
+	{
+		glm::vec3 CellSize = Grid[0][0].AABB.GetSize();
+		const glm::vec3 GridMin = Grid[0][0].AABB.GetMin();
+		const glm::vec3 GridMax = Grid[CurrentResolution - 1][CurrentResolution - 1].AABB.GetMax();
+
+		double TotalTime = 0.0;
+		double TimeTakenFillCellsWithTriangleInfo = 0.0;
+
+		TIME.BeginTimeStamp("Total time");
+
+
+		if (UpAxis.y > 0.0)
+		{
+			for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); l++)
+			{
+				FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
+
+				int XEnd = CurrentResolution;
+
+				float Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().x - GridMin.x, 2.0)));
+				int XBegin = static_cast<int>(Distance / CellSize.x) - 1;
+				if (XBegin < 0)
+					XBegin = 0;
+
+				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().x - GridMax.x, 2.0)));
+				XEnd -= static_cast<int>(Distance / CellSize.x);
+				XEnd++;
+				if (XEnd >= CurrentResolution)
+					XEnd = CurrentResolution;
+
+				for (size_t i = XBegin; i < XEnd; i++)
+				{
+					int ZEnd = CurrentResolution;
+
+					Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().z - GridMin.z, 2.0)));
+					int ZBegin = static_cast<int>(Distance / CellSize.z) - 1;
+					if (ZBegin < 0)
+						ZBegin = 0;
+
+					Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().z - GridMax.z, 2.0)));
+					ZEnd -= static_cast<int>(Distance / CellSize.z);
+					ZEnd++;
+					if (ZEnd >= CurrentResolution)
+						ZEnd = CurrentResolution;
+
+					for (size_t j = ZBegin; j < ZEnd; j++)
+					{
+						TIME.BeginTimeStamp("Fill cells with triangle info");
+
+						if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
+							Grid[i][j].TrianglesInCell.push_back(l);
+
+						/*if (Grid[i][j].AABB.AABBIntersect(TriangleAABB))
+						{
+							Grid[i][j].TrianglesInCell.push_back(l);
+						}*/
+
+						TimeTakenFillCellsWithTriangleInfo += TIME.EndTimeStamp("Fill cells with triangle info");
+					}
+				}
+			}
+
+		}
+		else if (UpAxis.z > 0.0)
+		{
+			for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); l++)
+			{
+				FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
+
+				int XEnd = CurrentResolution;
+
+				float Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().x - GridMin.x, 2.0)));
+				int XBegin = static_cast<int>(Distance / CellSize.x) - 1;
+				if (XBegin < 0)
+					XBegin = 0;
+
+				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().x - GridMax.x, 2.0)));
+				XEnd -= static_cast<int>(Distance / CellSize.x);
+				XEnd++;
+				if (XEnd >= CurrentResolution)
+					XEnd = CurrentResolution;
+
+				for (size_t i = XBegin; i < XEnd; i++)
+				{
+					int YEnd = static_cast<int>(CurrentResolution);
+
+					Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().y - GridMin.y, 2.0)));
+					int YBegin = static_cast<int>(Distance / CellSize.y) - 1;
+					if (YBegin < 0)
+						YBegin = 0;
+
+					Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().y - GridMax.y, 2.0)));
+					YEnd -= static_cast<int>(Distance / CellSize.y);
+					YEnd++;
+					if (YEnd >= CurrentResolution)
+						YEnd = CurrentResolution;
+
+					for (size_t j = YBegin; j < YEnd; j++)
+					{
+						TIME.BeginTimeStamp("Fill cells with triangle info");
+
+						if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
+							Grid[i][j].TrianglesInCell.push_back(l);
+
+						/*if (Grid[i][j].AABB.AABBIntersect(TriangleAABB))
+						{
+							Grid[i][j].TrianglesInCell.push_back(l);
+						}*/
+
+						TimeTakenFillCellsWithTriangleInfo += TIME.EndTimeStamp("Fill cells with triangle info");
+					}
+				}
+			}
+		}
+
+		TotalTime = TIME.EndTimeStamp("Total time");
+		MessageBoxA(NULL, ("Time for IsAABBIntersectTriangle: " + std::to_string(TimeTakenFillCellsWithTriangleInfo)).c_str(), "Mouse Position", MB_OK);
+		MessageBoxA(NULL, ("Total Time: " + std::to_string(TotalTime)).c_str(), "Mouse Position", MB_OK);
+
+		double PercentageFromTotalTime = (TimeTakenFillCellsWithTriangleInfo / TotalTime) * 100.0;
+		MessageBoxA(NULL, ("PercentageFromTotalTime: " + std::to_string(PercentageFromTotalTime)).c_str(), "Mouse Position", MB_OK);
+
+		for (int i = 0; i < Grid.size(); i++)
+		{
+			for (int j = 0; j < Grid[i].size(); j++)
+			{
+				if (!Grid[i][j].TrianglesInCell.empty())
+				{
+					float CurrentCellTotalArea = 0.0f;
+					for (size_t k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
+					{
+						CurrentCellTotalArea += static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[Grid[i][j].TrianglesInCell[k]]);
+					}
+
+					float FinalResult = 0.0f;
+					for (int k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
+					{
+						float CurrentTriangleCoef = static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[Grid[i][j].TrianglesInCell[k]] / CurrentCellTotalArea);
+						//float CurrentTriangleCoef = 1.0f;
+						//float CurrentTriangleCoef = Grid[i][j].TriangleAABBOverlaps[k];
+						FinalResult += CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]] * CurrentTriangleCoef;
+					}
+
+					//FinalResult /= static_cast<float>(Grid[i][j].TrianglesInCell.size());
+					Grid[i][j].Value = FinalResult;
+				}
+			}
+		}
+
+		std::vector<unsigned char> ImageRawData;
+		ImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
+		for (int i = 0; i < Grid.size(); i++)
+		{
+			for (int j = 0; j < Grid[i].size(); j++)
+			{
+				if (Grid[i][j].TrianglesInCell.empty())
+				{
+					ImageRawData.push_back(static_cast<unsigned char>(0));
+					ImageRawData.push_back(static_cast<unsigned char>(0));
+					ImageRawData.push_back(static_cast<unsigned char>(0));
+					ImageRawData.push_back(static_cast<unsigned char>(0));
+				}
+				else
+				{
+					// Normalize the value to the range [0, 1] (0 = min, 1 = max)
+					float NormalizedValue = (Grid[i][j].Value - CurrentLayer->MinVisible) / (CurrentLayer->MaxVisible - CurrentLayer->MinVisible);
+
+					// It could be more than 1 because I am using user set max value.
+					if (NormalizedValue > 1.0f)
+						NormalizedValue = 1.0f;
+
+					glm::vec3 Color = MESH_RENDERER.GetTurboColorMapValue(NormalizedValue);
+
+					unsigned char R = static_cast<unsigned char>(Color.x);
+					ImageRawData.push_back(R);
+					unsigned char G = static_cast<unsigned char>(Color.y);
+					ImageRawData.push_back(G);
+					unsigned char B = static_cast<unsigned char>(Color.z);
+					ImageRawData.push_back(B);
+					ImageRawData.push_back(static_cast<unsigned char>(255));
+				}
+			}
+		}
+
+		lodepng::encode("test.png", ImageRawData, CurrentResolution, CurrentResolution);
+	}
+	else
+	{
+		int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() / 10);
+
+		std::vector<GridRasterizationThreadData*> ThreadData;
+		for (int i = 0; i < 10; i++)
+		{
+			GridRasterizationThreadData* NewThreadData = new GridRasterizationThreadData();
+			NewThreadData->Grid = &Grid;
+			NewThreadData->UpAxis = UpAxis;
+			NewThreadData->Resolution = CurrentResolution;
+			NewThreadData->FirstIndexInTriangleArray = i * NumberOfTrianglesPerThread;
+
+			if (i == 9)
+				NewThreadData->LastIndexInTriangleArray = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() - 1;
+			else
+				NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
+
+			std::vector<GridUpdateTask>* OutputTasks = new std::vector<GridUpdateTask>();
+			ThreadData.push_back(NewThreadData);
+
+			THREAD_POOL.Execute(GridRasterizationThread, NewThreadData, OutputTasks, GatherGridRasterizationThreadWork);
+		}
+	}
 }
 
 void MainWindowRender()
 {
-	static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
-	static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
-	static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
+	//static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
+	//static int FEViewMatrix_hash = int(std::hash<std::string>{}("FEViewMatrix"));
+	//static int FEProjectionMatrix_hash = int(std::hash<std::string>{}("FEProjectionMatrix"));
 	static bool FirstFrame = true;
+
+	if (ImGui::Button("ExportCurrentLayerAsMap"))
+	{
+		ExportCurrentLayerAsMap();
+	}
 
 	if (UI.ShouldTakeScreenshot())
 	{
@@ -692,16 +937,16 @@ void MainWindowRender()
 
 		MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
 
-		static bool bNeedToRenderAABB = true;
-		if (bNeedToRenderAABB)
-		{
-			//bNeedToRenderAABB = false;
-			//LINE_RENDERER.RenderAABB(MESH_MANAGER.ActiveMesh->GetAABB().Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), glm::vec3(0.0f, 0.0f, 1.0f));
+		//static bool bNeedToRenderAABB = true;
+		//if (bNeedToRenderAABB)
+		//{
+		//	//bNeedToRenderAABB = false;
+		//	//LINE_RENDERER.RenderAABB(MESH_MANAGER.ActiveMesh->GetAABB().Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), glm::vec3(0.0f, 0.0f, 1.0f));
 
-			ExportCurrentLayerAsMap();
+		//	ExportCurrentLayerAsMap();
 
-			//LINE_RENDERER.SyncWithGPU();
-		}
+		//	//LINE_RENDERER.SyncWithGPU();
+		//}
 	}
 
 	LINE_RENDERER.Render();
