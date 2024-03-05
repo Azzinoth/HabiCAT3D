@@ -30,7 +30,7 @@ void JitterManager::OnMeshUpdate()
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
 	FEAABB FinalAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.Transform(TransformMatrix);
 
-	const float MaxMeshAABBSize = FinalAABB.GetSize();
+	const float MaxMeshAABBSize = FinalAABB.GetLongestAxisLength();
 
 	JITTER_MANAGER.LowestPossibleResolution = MaxMeshAABBSize / 120;
 	JITTER_MANAGER.HigestPossibleResolution = MaxMeshAABBSize / 9;
@@ -385,7 +385,7 @@ void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)
 	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
 
 	const glm::vec3 Center = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.GetCenter() ;
-	const FEAABB GridAABB = FEAABB(Center - glm::vec3(MeshAABB.GetSize() / 2.0f), Center + glm::vec3(MeshAABB.GetSize() / 2.0f));
+	const FEAABB GridAABB = FEAABB(Center - glm::vec3(MeshAABB.GetLongestAxisLength() / 2.0f), Center + glm::vec3(MeshAABB.GetLongestAxisLength() / 2.0f));
 	MeshAABB = GridAABB;
 
 	ResultGrid->Init(0, MeshAABB, -1);
@@ -504,7 +504,7 @@ FEAABB JitterManager::GetAABBForJitteredGrid(GridInitData_Jitter* Settings, floa
 	FinalAABB = FinalAABB.Transform(TransformMatrix);
 
 	const glm::vec3 Center = MeshAABB.GetCenter() + glm::vec3(Settings->ShiftX, Settings->ShiftY, Settings->ShiftZ) * CurrentResolutionInM;
-	const FEAABB GridAABB = FEAABB(Center - glm::vec3(FinalAABB.GetSize() / 2.0f), Center + glm::vec3(FinalAABB.GetSize() / 2.0f));
+	const FEAABB GridAABB = FEAABB(Center - glm::vec3(FinalAABB.GetLongestAxisLength() / 2.0f), Center + glm::vec3(FinalAABB.GetLongestAxisLength() / 2.0f));
 	FinalAABB = GridAABB;
 
 	return FinalAABB;

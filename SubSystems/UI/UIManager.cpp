@@ -910,7 +910,7 @@ void UIManager::SetIsModelCamera(const bool NewValue)
 	FEBasicCamera* CurrentCamera = ENGINE.GetCamera();
 
 	CurrentCamera->Reset();
-	CurrentCamera->SetFarPlane(MESH_MANAGER.ActiveMesh->GetAABB().GetSize() * 5.0f);
+	CurrentCamera->SetFarPlane(MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 5.0f);
 
 	int MainWindowW = 0;
 	int MainWindowH = 0;
@@ -920,16 +920,16 @@ void UIManager::SetIsModelCamera(const bool NewValue)
 	if (NewValue)
 	{
 		FEModelViewCamera* ModelCamera = reinterpret_cast<FEModelViewCamera*>(CurrentCamera);
-		ModelCamera->SetDistanceToModel(MESH_MANAGER.ActiveMesh->GetAABB().GetSize() * 1.5f);
+		ModelCamera->SetDistanceToModel(MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f);
 	}
 	else
 	{
-		CurrentCamera->SetPosition(glm::vec3(0.0f, 0.0f, MESH_MANAGER.ActiveMesh->GetAABB().GetSize() * 1.5f));
+		CurrentCamera->SetPosition(glm::vec3(0.0f, 0.0f, MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f));
 		CurrentCamera->SetYaw(0.0f);
 		CurrentCamera->SetPitch(0.0f);
 		CurrentCamera->SetRoll(0.0f);
 
-		CurrentCamera->SetMovementSpeed(MESH_MANAGER.ActiveMesh->GetAABB().GetSize() / 5.0f);
+		CurrentCamera->SetMovementSpeed(MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() / 5.0f);
 	}
 
 	bModelCamera = NewValue;

@@ -19,7 +19,7 @@ void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionIn
 	if (ResolutionInM > 0)
 	{
 		AdditionalDimensions = 2;
-		const int MinDimensions = static_cast<int>(AABB.GetSize() / ResolutionInM);
+		const int MinDimensions = static_cast<int>(AABB.GetLongestAxisLength() / ResolutionInM);
 		Dimensions = MinDimensions + AdditionalDimensions;
 
 		if (Dimensions < 1 || Dimensions > 4096)
@@ -43,7 +43,7 @@ void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionIn
 	}
 	else
 	{
-		GridAABB = FEAABB(Center - glm::vec3(AABB.GetSize() / 2.0f), Center + glm::vec3(AABB.GetSize() / 2.0f));
+		GridAABB = FEAABB(Center - glm::vec3(AABB.GetLongestAxisLength() / 2.0f), Center + glm::vec3(AABB.GetLongestAxisLength() / 2.0f));
 	}
 
 	float CellSize;
@@ -53,7 +53,7 @@ void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionIn
 	}
 	else
 	{
-		CellSize = GridAABB.GetSize();
+		CellSize = GridAABB.GetLongestAxisLength();
 	}
 
 	const glm::vec3 Start = GridAABB.GetMin();
@@ -76,7 +76,7 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 {
 	TIME.BeginTimeStamp("Fill cells with triangle info");
 
-	const float CellSize = Data[0][0][0].AABB.GetSize();
+	const float CellSize = Data[0][0][0].AABB.GetLongestAxisLength();
 	const glm::vec3 GridMin = Data[0][0][0].AABB.GetMin();
 	const glm::vec3 GridMax = Data[Data.size() - 1][Data.size() - 1][Data.size() - 1].AABB.GetMax();
 

@@ -54,7 +54,7 @@ void ScrollCall(double Xoffset, double Yoffset)
 	{
 		FEModelViewCamera* ModelViewCamera = reinterpret_cast<FEModelViewCamera*>(CurrentCamera);
 		if (!ImGui::GetIO().WantCaptureMouse)
-			ModelViewCamera->SetDistanceToModel(ModelViewCamera->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->GetAABB().GetSize() * 0.05f);
+			ModelViewCamera->SetDistanceToModel(ModelViewCamera->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 0.05f);
 	}
 }
 
@@ -294,6 +294,371 @@ void ConsoleThreadCode(void* InputData)
 	}
 }
 
+struct GridCell
+{
+	FEAABB AABB;
+	//float AABBVolume = 0.0f;
+	std::vector<int> TrianglesInCell;
+	float Value = 0.0f;
+	//std::vector<float> TriangleAABBOverlaps;
+};
+
+std::vector<std::vector<GridCell>> GenerateGridProjection(FEAABB& OriginalAABB, const glm::vec3& Axis, int Resolution)
+{
+	std::vector<std::vector<GridCell>> Grid;
+
+	if (Axis.x + Axis.y + Axis.z != 1.0f)
+		return Grid;
+
+	Grid.resize(Resolution);
+	for (int i = 0; i < Resolution; i++)
+	{
+		Grid[i].resize(Resolution);
+	}
+
+	// Get the original AABB min and max vectors
+	glm::vec3 Min = OriginalAABB.GetMin();
+	glm::vec3 Max = OriginalAABB.GetMax();
+
+	// Determine the number of divisions along each axis
+	glm::vec3 Size = Max - Min;
+	glm::vec3 DivisionSize = Size / static_cast<float>(Resolution);
+
+	// Fix the division size for the specified axis to cover the full length of the original AABB
+	if (Axis.x > 0.0) DivisionSize.x = Size.x;
+	if (Axis.y > 0.0) DivisionSize.y = Size.y;
+	if (Axis.z > 0.0) DivisionSize.z = Size.z;
+
+	// Loop through each division to create the grid
+	for (int i = 0; i < Resolution; i++)
+	{
+		for (int j = 0; j < Resolution; j++)
+		{
+			// Calculate min and max for the current cell
+			glm::vec3 CellMin = Min;
+			glm::vec3 CellMax = Min + DivisionSize;
+
+			if (Axis.x > 0.0f)
+			{
+				CellMin.y += DivisionSize.y * i;
+				CellMax.y += DivisionSize.y * i;
+
+				CellMin.z += DivisionSize.z * j;
+				CellMax.z += DivisionSize.z * j;
+			}
+			else if (Axis.y > 0.0f)
+			{
+				CellMin.x += DivisionSize.x * i;
+				CellMax.x += DivisionSize.x * i;
+
+				CellMin.z += DivisionSize.z * j;
+				CellMax.z += DivisionSize.z * j;
+			}
+			else if (Axis.z > 0.0f)
+			{
+				CellMin.x += DivisionSize.x * i;
+				CellMax.x += DivisionSize.x * i;
+
+				CellMin.y += DivisionSize.y * j;
+				CellMax.y += DivisionSize.y * j;
+			}
+
+			// Ensure we don't exceed original bounds due to floating point arithmetic
+			CellMax = glm::min(CellMax, Max);
+
+			// Create a new AABB for the grid cell
+			GridCell NewCell;
+			NewCell.AABB = FEAABB(CellMin, CellMax);
+			//NewCell.AABBVolume = NewCell.AABB.GetVolume();
+			Grid[i][j] = NewCell;
+		}
+	}
+
+	return Grid;
+}
+
+glm::vec3 ConvertToClosestAxis(const glm::vec3& Vector)
+{
+	// Calculate the absolute values of the vector components
+	float absX = glm::abs(Vector.x);
+	float absY = glm::abs(Vector.y);
+	float absZ = glm::abs(Vector.z);
+
+	// Determine the largest component
+	if (absX > absY && absX > absZ)
+	{
+		// X component is largest, so vector is closest to the X axis
+		return glm::vec3(1.0f, 0.0f, 0.0f);
+	}
+	else if (absY > absX && absY > absZ)
+	{
+		// Y component is largest, so vector is closest to the Y axis
+		return glm::vec3(0.0f, 1.0f, 0.0f);
+	}
+	else
+	{
+		// Z component is largest (or it's a tie, in which case we default to Z), so vector is closest to the Z axis
+		return glm::vec3(0.0f, 0.0f, 1.0f);
+	}
+}
+
+void ExportCurrentLayerAsMap()
+{
+	MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
+	if (CurrentLayer == nullptr)
+		return;
+
+	static bool bFirstTime = true;
+
+	if (!bFirstTime)
+	{
+		return;
+	}
+
+	bFirstTime = false;
+
+	glm::vec3 UpAxis = ConvertToClosestAxis(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal());
+	int Resolution = 2048;
+
+	std::vector<std::vector<GridCell>> Grid = GenerateGridProjection(MESH_MANAGER.ActiveMesh->GetAABB(), UpAxis, Resolution);
+	//for (auto& Cell : Grid)
+	//{
+		//LINE_RENDERER.RenderAABB(Cell.AABB.Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), glm::vec3(1.0f, 0.0f, 0.0f));
+	//}
+
+
+	glm::vec3 CellSize = Grid[0][0].AABB.GetSize();
+	const glm::vec3 GridMin = Grid[0][0].AABB.GetMin();
+	const glm::vec3 GridMax = Grid[Resolution - 1][Resolution - 1].AABB.GetMax();
+
+	double TotalTime = 0.0;
+	double TimeTakenFillCellsWithTriangleInfo = 0.0;
+
+	TIME.BeginTimeStamp("Total time");
+
+
+	if (UpAxis.y > 0.0)
+	{
+		for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); l++)
+		{
+			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
+
+			int XEnd = Resolution;
+
+			float Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().x - GridMin.x, 2.0)));
+			int XBegin = static_cast<int>(Distance / CellSize.x) - 1;
+			if (XBegin < 0)
+				XBegin = 0;
+
+			Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().x - GridMax.x, 2.0)));
+			XEnd -= static_cast<int>(Distance / CellSize.x);
+			XEnd++;
+			if (XEnd >= Resolution)
+				XEnd = Resolution;
+
+			for (size_t i = XBegin; i < XEnd; i++)
+			{
+				int ZEnd = Resolution;
+
+				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().z - GridMin.z, 2.0)));
+				int ZBegin = static_cast<int>(Distance / CellSize.z) - 1;
+				if (ZBegin < 0)
+					ZBegin = 0;
+
+				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().z - GridMax.z, 2.0)));
+				ZEnd -= static_cast<int>(Distance / CellSize.z);
+				ZEnd++;
+				if (ZEnd >= Resolution)
+					ZEnd = Resolution;
+
+				for (size_t j = ZBegin; j < ZEnd; j++)
+				{
+					TIME.BeginTimeStamp("Fill cells with triangle info");
+
+					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
+						Grid[i][j].TrianglesInCell.push_back(l);
+
+					/*if (Grid[i][j].AABB.AABBIntersect(TriangleAABB))
+					{
+						Grid[i][j].TrianglesInCell.push_back(l);
+					}*/
+
+					TimeTakenFillCellsWithTriangleInfo += TIME.EndTimeStamp("Fill cells with triangle info");
+				}
+			}
+		}
+
+	}
+	else if (UpAxis.z > 0.0)
+	{
+		for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); l++)
+		{
+			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
+
+			int XEnd = Resolution;
+
+			float Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().x - GridMin.x, 2.0)));
+			int XBegin = static_cast<int>(Distance / CellSize.x) - 1;
+			if (XBegin < 0)
+				XBegin = 0;
+
+			Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().x - GridMax.x, 2.0)));
+			XEnd -= static_cast<int>(Distance / CellSize.x);
+			XEnd++;
+			if (XEnd >= Resolution)
+				XEnd = Resolution;
+
+			for (size_t i = XBegin; i < XEnd; i++)
+			{
+				int YEnd = static_cast<int>(Resolution);
+
+				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().y - GridMin.y, 2.0)));
+				int YBegin = static_cast<int>(Distance / CellSize.y) - 1;
+				if (YBegin < 0)
+					YBegin = 0;
+
+				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().y - GridMax.y, 2.0)));
+				YEnd -= static_cast<int>(Distance / CellSize.y);
+				YEnd++;
+				if (YEnd >= Resolution)
+					YEnd = Resolution;
+
+				for (size_t j = YBegin; j < YEnd; j++)
+				{
+					TIME.BeginTimeStamp("Fill cells with triangle info");
+
+					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
+						Grid[i][j].TrianglesInCell.push_back(l);
+
+					/*if (Grid[i][j].AABB.AABBIntersect(TriangleAABB))
+					{
+						Grid[i][j].TrianglesInCell.push_back(l);
+					}*/
+
+					TimeTakenFillCellsWithTriangleInfo += TIME.EndTimeStamp("Fill cells with triangle info");
+				}
+			}
+		}
+	}
+
+
+
+	TotalTime = TIME.EndTimeStamp("Total time");
+
+
+
+	MessageBoxA(NULL, ("Time for IsAABBIntersectTriangle: " + std::to_string(TimeTakenFillCellsWithTriangleInfo)).c_str(), "Mouse Position", MB_OK);
+	MessageBoxA(NULL, ("Total Time: " + std::to_string(TotalTime)).c_str(), "Mouse Position", MB_OK);
+
+	double PercentageFromTotalTime = (TimeTakenFillCellsWithTriangleInfo / TotalTime) * 100.0;
+
+
+	MessageBoxA(NULL, ("PercentageFromTotalTime: " + std::to_string(PercentageFromTotalTime)).c_str(), "Mouse Position", MB_OK);
+
+
+
+
+	/*for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	{
+		FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i]);
+		for (int j = 0; j < Grid.size(); j++)
+		{
+			for (int k = 0; k < Grid[j].size(); k++)
+			{
+				if (TriangleAABB.AABBIntersect(Grid[j][k].AABB))
+				{
+					Grid[j][k].TrianglesInCell.push_back(i);
+				}
+			}
+		}
+	}*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	for (int i = 0; i < Grid.size(); i++)
+	{
+		for (int j = 0; j < Grid[i].size(); j++)
+		{
+			if (!Grid[i][j].TrianglesInCell.empty())
+			{
+				float CurrentCellTotalArea = 0.0f;
+				for (size_t k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
+				{
+					CurrentCellTotalArea += static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[Grid[i][j].TrianglesInCell[k]]);
+				}
+
+				float FinalResult = 0.0f;
+				for (int k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
+				{
+					float CurrentTriangleCoef = static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[Grid[i][j].TrianglesInCell[k]] / CurrentCellTotalArea);
+					//float CurrentTriangleCoef = 1.0f;
+					//float CurrentTriangleCoef = Grid[i][j].TriangleAABBOverlaps[k];
+					FinalResult += CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]] * CurrentTriangleCoef;
+				}
+
+				//FinalResult /= static_cast<float>(Grid[i][j].TrianglesInCell.size());
+				Grid[i][j].Value = FinalResult;
+			}
+		}
+	}
+
+	std::vector<unsigned char> ImageRawData;
+	ImageRawData.reserve(Resolution * Resolution * 4);
+	for (int i = 0; i < Grid.size(); i++)
+	{
+		for (int j = 0; j < Grid[i].size(); j++)
+		{
+			if (Grid[i][j].TrianglesInCell.empty())
+			{
+				ImageRawData.push_back(static_cast<unsigned char>(0));
+				ImageRawData.push_back(static_cast<unsigned char>(0));
+				ImageRawData.push_back(static_cast<unsigned char>(0));
+				ImageRawData.push_back(static_cast<unsigned char>(0));
+			}
+			else
+			{
+				// Normalize the value to the range [0, 1] (0 = min, 1 = max)
+				float NormalizedValue = (Grid[i][j].Value - CurrentLayer->MinVisible) / (CurrentLayer->MaxVisible - CurrentLayer->MinVisible);
+
+				// It could be more than 1 because I am using user set max value.
+				if (NormalizedValue > 1.0f)
+					NormalizedValue = 1.0f;
+
+				glm::vec3 Color = MESH_RENDERER.GetTurboColorMapValue(NormalizedValue);
+
+				unsigned char R = static_cast<unsigned char>(Color.x);
+				ImageRawData.push_back(R);
+				unsigned char G = static_cast<unsigned char>(Color.y);
+				ImageRawData.push_back(G);
+				unsigned char B = static_cast<unsigned char>(Color.z);
+				ImageRawData.push_back(B);
+				ImageRawData.push_back(static_cast<unsigned char>(255));
+			}
+		}
+	}
+
+	lodepng::encode("test.png", ImageRawData, Resolution, Resolution);
+
+	int y = 0;
+	y++;
+
+}
+
 void MainWindowRender()
 {
 	static int FEWorldMatrix_hash = int(std::hash<std::string>{}("FEWorldMatrix"));
@@ -326,6 +691,17 @@ void MainWindowRender()
 		}
 
 		MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
+
+		static bool bNeedToRenderAABB = true;
+		if (bNeedToRenderAABB)
+		{
+			//bNeedToRenderAABB = false;
+			//LINE_RENDERER.RenderAABB(MESH_MANAGER.ActiveMesh->GetAABB().Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), glm::vec3(0.0f, 0.0f, 1.0f));
+
+			ExportCurrentLayerAsMap();
+
+			//LINE_RENDERER.SyncWithGPU();
+		}
 	}
 
 	LINE_RENDERER.Render();
