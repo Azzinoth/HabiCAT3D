@@ -2,6 +2,7 @@
 
 #include "NewLayerWindow.h"
 #include "../ComplexityCore/Layers/LayerManager.h"
+#include "../LayerRasterizationManager.h"
 
 class UIManager
 {

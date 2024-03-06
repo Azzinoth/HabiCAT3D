@@ -42,6 +42,8 @@ file(GLOB SubSystems_SRC
 	"SubSystems/SphereVectors.h"
 	"SubSystems/MeshRenderer.cpp"
 	"SubSystems/MeshRenderer.h"
+	"SubSystems/LayerRasterizationManager.cpp"
+	"SubSystems/LayerRasterizationManager.h"
 	"SubSystems/ScreenshotManager.cpp"
 	"SubSystems/ScreenshotManager.h"
 )

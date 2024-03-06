@@ -103,7 +103,7 @@ class FEColorRangeAdjuster
 	ImVec2 RangeSize;
 	ImVec2 RangePosition;
 
-	std::function<ImColor(float)> ColorRangeFunction;
+	std::function<glm::vec3(float)> ColorRangeFunction;
 	static ImVec2 LegendCaptionsPosition(ImVec2 Position, ImVec2 Size, float NormalizedPosition, std::string Caption);
 public:
 	Legend Legend;
@@ -114,8 +114,8 @@ public:
 	ImVec2 GetPosition() const;
 	void SetPosition(ImVec2 NewPosition);
 
-	std::function<ImColor(float)> GetColorRangeFunction();
-	void SetColorRangeFunction(std::function<ImColor(float)> UserFunc);
+	std::function<glm::vec3(float)> GetColorRangeFunction();
+	void SetColorRangeFunction(std::function<glm::vec3(float)> UserFunc);
 
 	float GetSliderValue();
 	void SetSliderValue(float NewValue);

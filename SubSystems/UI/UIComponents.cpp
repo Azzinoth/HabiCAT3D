@@ -382,12 +382,12 @@ void FEColorRangeAdjuster::SetPosition(const ImVec2 NewPosition)
 	Position = NewPosition;
 }
 
-std::function<ImColor(float)> FEColorRangeAdjuster::GetColorRangeFunction()
+std::function<glm::vec3(float)> FEColorRangeAdjuster::GetColorRangeFunction()
 {
 	return ColorRangeFunction;
 }
 
-void FEColorRangeAdjuster::SetColorRangeFunction(std::function<ImColor(float)> UserFunc)
+void FEColorRangeAdjuster::SetColorRangeFunction(std::function<glm::vec3(float)> UserFunc)
 {
 	ColorRangeFunction = UserFunc;
 }
@@ -446,7 +446,8 @@ void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 	// Take max color from range and desaturate it.
 	if (ColorRangeFunction != nullptr)
 	{
-		CurrentColor = ColorRangeFunction(1.0f);
+		glm::vec3 ColorGiven = ColorRangeFunction(1.0f);
+		CurrentColor = ImColor(int(ColorGiven.x * 255), int(ColorGiven.y * 255), int(ColorGiven.z * 255), 255);
 		CurrentColor = ImColor(CurrentColor.Value.x * 0.5f + 0.15f, CurrentColor.Value.y * 0.5f + 0.15f, CurrentColor.Value.z * 0.5f + 0.15f);
 	}
 
@@ -480,7 +481,10 @@ void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 		float factor = i / float(RangeSize.y - UpperUnusedStart);
 
 		if (ColorRangeFunction != nullptr)
-			CurrentColor = ColorRangeFunction(factor);
+		{
+			glm::vec3 ColorGiven = ColorRangeFunction(factor);
+			CurrentColor = ImColor(int(ColorGiven.x * 255), int(ColorGiven.y * 255), int(ColorGiven.z * 255), 255);
+		}
 			
 		ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY + RangeSize.y - i + 1) + RangePosition,
 			ImVec2(WindowX + RangeSize.x, WindowY + RangeSize.y - i) + RangePosition,
