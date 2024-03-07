@@ -125,49 +125,89 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 
 	//TIME.BeginTimeStamp("Total time");
 
+	if (UpAxis.x > 0.0)
+	{
+		for (int l = FirstIndexInTriangleArray; l < LastIndexInTriangleArray; l++)
+		{
+			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
+			int FirstAxisEndIndex = Resolution;
+
+			float Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().y - GridMin.y, 2.0)));
+			int FirstAxisStartIndex = static_cast<int>(Distance / CellSize.y) - 1;
+			if (FirstAxisStartIndex < 0)
+				FirstAxisStartIndex = 0;
+
+			Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().y - GridMax.y, 2.0)));
+			FirstAxisEndIndex -= static_cast<int>(Distance / CellSize.y);
+			FirstAxisEndIndex++;
+			if (FirstAxisEndIndex >= Resolution)
+				FirstAxisEndIndex = Resolution;
+
+			for (size_t i = FirstAxisStartIndex; i < FirstAxisEndIndex; i++)
+			{
+				int SecondAxisEndIndex = Resolution;
+
+				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().z - GridMin.z, 2.0)));
+				int SecondAxisStartIndex = static_cast<int>(Distance / CellSize.z) - 1;
+				if (SecondAxisStartIndex < 0)
+					SecondAxisStartIndex = 0;
+
+				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().z - GridMax.z, 2.0)));
+				SecondAxisEndIndex -= static_cast<int>(Distance / CellSize.z);
+				SecondAxisEndIndex++;
+				if (SecondAxisEndIndex >= Resolution)
+					SecondAxisEndIndex = Resolution;
+
+				for (size_t j = SecondAxisStartIndex; j < SecondAxisEndIndex; j++)
+				{
+					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
+						Output->push_back(GridUpdateTask(i, j, l));
+				}
+			}
+		}
+	}
 	if (UpAxis.y > 0.0)
 	{
 		for (int l = FirstIndexInTriangleArray; l < LastIndexInTriangleArray; l++)
 		{
 			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
-			int XEnd = Resolution;
+			int FirstAxisEndIndex = Resolution;
 
 			float Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().x - GridMin.x, 2.0)));
-			int XBegin = static_cast<int>(Distance / CellSize.x) - 1;
-			if (XBegin < 0)
-				XBegin = 0;
+			int FirstAxisStartIndex = static_cast<int>(Distance / CellSize.x) - 1;
+			if (FirstAxisStartIndex < 0)
+				FirstAxisStartIndex = 0;
 
 			Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().x - GridMax.x, 2.0)));
-			XEnd -= static_cast<int>(Distance / CellSize.x);
-			XEnd++;
-			if (XEnd >= Resolution)
-				XEnd = Resolution;
+			FirstAxisEndIndex -= static_cast<int>(Distance / CellSize.x);
+			FirstAxisEndIndex++;
+			if (FirstAxisEndIndex >= Resolution)
+				FirstAxisEndIndex = Resolution;
 
-			for (size_t i = XBegin; i < XEnd; i++)
+			for (size_t i = FirstAxisStartIndex; i < FirstAxisEndIndex; i++)
 			{
-				int ZEnd = Resolution;
+				int SecondAxisEndIndex = Resolution;
 
 				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().z - GridMin.z, 2.0)));
-				int ZBegin = static_cast<int>(Distance / CellSize.z) - 1;
-				if (ZBegin < 0)
-					ZBegin = 0;
+				int SecondAxisStartIndex = static_cast<int>(Distance / CellSize.z) - 1;
+				if (SecondAxisStartIndex < 0)
+					SecondAxisStartIndex = 0;
 
 				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().z - GridMax.z, 2.0)));
-				ZEnd -= static_cast<int>(Distance / CellSize.z);
-				ZEnd++;
-				if (ZEnd >= Resolution)
-					ZEnd = Resolution;
+				SecondAxisEndIndex -= static_cast<int>(Distance / CellSize.z);
+				SecondAxisEndIndex++;
+				if (SecondAxisEndIndex >= Resolution)
+					SecondAxisEndIndex = Resolution;
 
-				for (size_t j = ZBegin; j < ZEnd; j++)
+				for (size_t j = SecondAxisStartIndex; j < SecondAxisEndIndex; j++)
 				{
 					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
-						Output->push_back(GridUpdateTask(i, j, l)); //Grid[i][j].TrianglesInCell.push_back(l);
+						Output->push_back(GridUpdateTask(i, j, l));
 				}
 			}
 		}
-
 	}
 	else if (UpAxis.z > 0.0)
 	{
@@ -175,38 +215,38 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 		{
 			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
-			int XEnd = Resolution;
+			int FirstAxisEndIndex = Resolution;
 
 			float Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().x - GridMin.x, 2.0)));
-			int XBegin = static_cast<int>(Distance / CellSize.x) - 1;
-			if (XBegin < 0)
-				XBegin = 0;
+			int FirstAxisStartIndex = static_cast<int>(Distance / CellSize.x) - 1;
+			if (FirstAxisStartIndex < 0)
+				FirstAxisStartIndex = 0;
 
 			Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().x - GridMax.x, 2.0)));
-			XEnd -= static_cast<int>(Distance / CellSize.x);
-			XEnd++;
-			if (XEnd >= Resolution)
-				XEnd = Resolution;
+			FirstAxisEndIndex -= static_cast<int>(Distance / CellSize.x);
+			FirstAxisEndIndex++;
+			if (FirstAxisEndIndex >= Resolution)
+				FirstAxisEndIndex = Resolution;
 
-			for (size_t i = XBegin; i < XEnd; i++)
+			for (size_t i = FirstAxisStartIndex; i < FirstAxisEndIndex; i++)
 			{
-				int YEnd = static_cast<int>(Resolution);
+				int SecondAxisEndIndex = static_cast<int>(Resolution);
 
 				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMin().y - GridMin.y, 2.0)));
-				int YBegin = static_cast<int>(Distance / CellSize.y) - 1;
-				if (YBegin < 0)
-					YBegin = 0;
+				int SecondAxisStartIndex = static_cast<int>(Distance / CellSize.y) - 1;
+				if (SecondAxisStartIndex < 0)
+					SecondAxisStartIndex = 0;
 
 				Distance = static_cast<float>(sqrt(pow(TriangleAABB.GetMax().y - GridMax.y, 2.0)));
-				YEnd -= static_cast<int>(Distance / CellSize.y);
-				YEnd++;
-				if (YEnd >= Resolution)
-					YEnd = Resolution;
+				SecondAxisEndIndex -= static_cast<int>(Distance / CellSize.y);
+				SecondAxisEndIndex++;
+				if (SecondAxisEndIndex >= Resolution)
+					SecondAxisEndIndex = Resolution;
 
-				for (size_t j = YBegin; j < YEnd; j++)
+				for (size_t j = SecondAxisStartIndex; j < SecondAxisEndIndex; j++)
 				{
 					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
-						Output->push_back(GridUpdateTask(i, j, l)); //Grid[i][j].TrianglesInCell.push_back(l);
+						Output->push_back(GridUpdateTask(i, j, l));
 				}
 			}
 		}
@@ -214,7 +254,63 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 }
 
 
-
+//// Function to clip a line segment against an AABB
+//std::vector<glm::vec3> clipLineSegment(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& min, const glm::vec3& max) {
+//	std::vector<glm::vec3> clippedPoints;
+//
+//	float tEnter = 0.0f;
+//	float tLeave = 1.0f;
+//
+//	for (int i = 0; i < 3; i++) {
+//		if (p1[i] < min[i] && p2[i] < min[i]) return clippedPoints;
+//		if (p1[i] > max[i] && p2[i] > max[i]) return clippedPoints;
+//
+//		float tEnterPlane = (min[i] - p1[i]) / (p2[i] - p1[i]);
+//		float tLeavePlane = (max[i] - p1[i]) / (p2[i] - p1[i]);
+//
+//		if (tEnterPlane > tEnter) tEnter = tEnterPlane;
+//		if (tLeavePlane < tLeave) tLeave = tLeavePlane;
+//	}
+//
+//	if (tEnter <= tLeave) {
+//		clippedPoints.push_back(p1 + tEnter * (p2 - p1));
+//		clippedPoints.push_back(p1 + tLeave * (p2 - p1));
+//	}
+//
+//	return clippedPoints;
+//}
+//
+//// Function to clip a triangle against an AABB
+//std::vector<glm::vec3> clipTriangle(const std::vector<glm::vec3>& triangle, const glm::vec3& min, const glm::vec3& max) {
+//	std::vector<glm::vec3> clippedPolygon;
+//
+//	clippedPolygon = clipLineSegment(triangle[0], triangle[1], min, max);
+//	std::vector<glm::vec3> tempPolygon = clipLineSegment(triangle[1], triangle[2], min, max);
+//	clippedPolygon.insert(clippedPolygon.end(), tempPolygon.begin(), tempPolygon.end());
+//	tempPolygon = clipLineSegment(triangle[2], triangle[0], min, max);
+//	clippedPolygon.insert(clippedPolygon.end(), tempPolygon.begin(), tempPolygon.end());
+//
+//	return clippedPolygon;
+//}
+//
+//// Function to calculate the area of a polygon
+//float calculatePolygonArea(const std::vector<glm::vec3>& polygon) {
+//	float area = 0.0f;
+//
+//	for (size_t i = 0; i < polygon.size(); i++) {
+//		const glm::vec3& p1 = polygon[i];
+//		const glm::vec3& p2 = polygon[(i + 1) % polygon.size()];
+//		area += p1.x * p2.y - p2.x * p1.y;
+//	}
+//
+//	return std::abs(area) * 0.5f;
+//}
+//
+//// Function to calculate the area of a triangle inside an AABB
+//float calculateTriangleAreaInsideAABB(const std::vector<glm::vec3>& triangle, const glm::vec3& min, const glm::vec3& max) {
+//	std::vector<glm::vec3> clippedPolygon = clipTriangle(triangle, min, max);
+//	return calculatePolygonArea(clippedPolygon);
+//}
 
 void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 {
@@ -390,6 +486,10 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 		}
 	}
 
+	if (CurrentUpAxis.x > 0.0)
+	{
+		lodepng::encode("test.png", ImageRawData, CurrentResolution, CurrentResolution);
+	}
 	if (CurrentUpAxis.y > 0.0)
 	{
 		lodepng::encode("test.png", ImageRawData, CurrentResolution, CurrentResolution);
@@ -420,4 +520,92 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 	GatherGridRasterizationThreadCount = 0;
 	CurrentLayer = nullptr;
 	CurrentUpAxis = glm::vec3(0.0f);
+}
+
+void LayerRasterizationManager::GatherGridRasterizationThreadWork(void* OutputData)
+{
+	std::vector<GridUpdateTask>* Result = reinterpret_cast<std::vector<GridUpdateTask>*>(OutputData);
+
+	LAYER_RASTERIZATION_MANAGER.MainThreadGridUpdateTasks.insert(LAYER_RASTERIZATION_MANAGER.MainThreadGridUpdateTasks.end(), Result->begin(), Result->end());
+	LAYER_RASTERIZATION_MANAGER.GatherGridRasterizationThreadCount++;
+	delete Result;
+
+	if (LAYER_RASTERIZATION_MANAGER.GatherGridRasterizationThreadCount == 10)
+		LAYER_RASTERIZATION_MANAGER.AfterAllGridRasterizationThreadFinished();
+}
+
+void LayerRasterizationManager::ExportCurrentLayerAsMap(MeshLayer* LayerToExport)
+{
+	CurrentLayer = LayerToExport;
+	if (CurrentLayer == nullptr)
+		return;
+
+	CurrentUpAxis = ConvertToClosestAxis(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal());
+
+	Grid = GenerateGridProjection(MESH_MANAGER.ActiveMesh->GetAABB(), CurrentUpAxis, CurrentResolution);
+	//for (auto& Cell : Grid)
+	//{
+		//LINE_RENDERER.RenderAABB(Cell.AABB.Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), glm::vec3(1.0f, 0.0f, 0.0f));
+	//}
+
+	int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() / 10);
+
+	std::vector<GridRasterizationThreadData*> ThreadData;
+	for (int i = 0; i < 10; i++)
+	{
+		GridRasterizationThreadData* NewThreadData = new GridRasterizationThreadData();
+		NewThreadData->Grid = &Grid;
+		NewThreadData->UpAxis = CurrentUpAxis;
+		NewThreadData->Resolution = CurrentResolution;
+		NewThreadData->FirstIndexInTriangleArray = i * NumberOfTrianglesPerThread;
+
+		if (i == 9)
+			NewThreadData->LastIndexInTriangleArray = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() - 1;
+		else
+			NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
+
+		std::vector<GridUpdateTask>* OutputTasks = new std::vector<GridUpdateTask>();
+		ThreadData.push_back(NewThreadData);
+
+		THREAD_POOL.Execute(GridRasterizationThread, NewThreadData, OutputTasks, GatherGridRasterizationThreadWork);
+	}
+}
+
+int LayerRasterizationManager::GetGridRasterizationMode()
+{
+	return GridRasterizationMode;
+}
+
+void LayerRasterizationManager::SetGridRasterizationMode(int NewValue)
+{
+	if (NewValue < 0 || NewValue > 3)
+		return;
+
+	GridRasterizationMode = NewValue;
+}
+
+int LayerRasterizationManager::GetGridResolution()
+{
+	return CurrentResolution;
+}
+
+void LayerRasterizationManager::SetGridResolution(int NewValue)
+{
+	if (NewValue < 2 || NewValue > 4096)
+		return;
+
+	CurrentResolution = NewValue;
+}
+
+int LayerRasterizationManager::GetCumulativeOutliers()
+{
+	return CumulativeOutliers;
+}
+
+void LayerRasterizationManager::SetCumulativeOutliers(int NewValue)
+{
+	if (NewValue < 0 || NewValue > 99)
+		return;
+
+	CumulativeOutliers = NewValue;
 }

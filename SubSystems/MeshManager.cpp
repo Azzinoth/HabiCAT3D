@@ -484,3 +484,15 @@ void MeshManager::SetUnselectedAreaBrightnessFactor(float NewValue)
 
 	UnselectedAreaBrightnessFactor = NewValue;
 }
+
+void MeshManager::ClearBuffers()
+{
+	if (FirstLayerBufferID > 0)
+		glDeleteBuffers(1, &FirstLayerBufferID);
+
+	if (SecondLayerBufferID > 0)
+		glDeleteBuffers(1, &SecondLayerBufferID);
+
+	FirstLayerBufferID = 0;
+	SecondLayerBufferID = 0;
+}

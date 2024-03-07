@@ -390,6 +390,7 @@ public:
 	bool SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius);
 	glm::vec3 IntersectTriangle(glm::dvec3 MouseRay);
 
+	void ClearBuffers();
 private:
 	SINGLETON_PRIVATE_PART(MeshManager)
 

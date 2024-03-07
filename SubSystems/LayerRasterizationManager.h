@@ -8,6 +8,16 @@ class LayerRasterizationManager
 public:
 	SINGLETON_PUBLIC_PART(LayerRasterizationManager)
 
+	void ExportCurrentLayerAsMap(MeshLayer* LayerToExport);
+
+	int GetGridRasterizationMode();
+	void SetGridRasterizationMode(int NewValue);
+
+	int GetGridResolution();
+	void SetGridResolution(int NewValue);
+
+	int GetCumulativeOutliers();
+	void SetCumulativeOutliers(int NewValue);
 	
 private:
 	SINGLETON_PRIVATE_PART(LayerRasterizationManager)
@@ -42,7 +52,8 @@ private:
 
 	glm::vec3 ConvertToClosestAxis(const glm::vec3& Vector);
 	std::vector<std::vector<GridCell>> GenerateGridProjection(FEAABB& OriginalAABB, const glm::vec3& Axis, int Resolution);
-	void GridRasterizationThread(void* InputData, void* OutputData);
+	static void GridRasterizationThread(void* InputData, void* OutputData);
+	static void GatherGridRasterizationThreadWork(void* OutputData);
 
 	void AfterAllGridRasterizationThreadFinished();
 
