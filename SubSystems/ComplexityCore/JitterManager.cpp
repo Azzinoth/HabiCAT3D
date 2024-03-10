@@ -423,25 +423,34 @@ void JitterManager::AdjustOutliers(std::vector<float>& Data, float LowerPercenti
 	std::sort(SortedData.begin(), SortedData.end());
 
 	// Calculate positions for lower and upper outliers
-	int lowerOutlierPosition = static_cast<int>(SortedData.size() * LowerPercentile);
-	int upperOutlierPosition = static_cast<int>(SortedData.size() * UpperPercentile);
+	int LowerOutlierPosition = static_cast<int>(SortedData.size() * LowerPercentile);
+	int UpperOutlierPosition = static_cast<int>(SortedData.size() * UpperPercentile);
+
+	if (LowerOutlierPosition == UpperOutlierPosition)
+		return;
+
+	if (LowerOutlierPosition < 0 || LowerOutlierPosition > Data.size())
+		return;
+
+	if (UpperOutlierPosition < 0 || UpperOutlierPosition > Data.size())
+		return;
 
 	// Get the values for outlier thresholds
-	float lowerOutlierValue = SortedData[lowerOutlierPosition];
-	float upperOutlierValue = SortedData[upperOutlierPosition];
+	float LowerOutlierValue = SortedData[LowerOutlierPosition];
+	float UpperOutlierValue = SortedData[UpperOutlierPosition];
 
 	// Get the new min and max values (just inside the outlier thresholds)
-	float NewMin = SortedData[lowerOutlierPosition + 1];
-	float NewMax = SortedData[upperOutlierPosition - 1];
+	float NewMin = SortedData[LowerOutlierPosition + 1];
+	float NewMax = SortedData[UpperOutlierPosition - 1];
 
 	// Adjust the data
 	for (int i = 0; i < Data.size(); i++)
 	{
-		if (Data[i] <= lowerOutlierValue && LowerPercentile > 0.0f)
+		if (Data[i] <= LowerOutlierValue && LowerPercentile > 0.0f)
 		{
 			Data[i] = NewMin;
 		}
-		else if (Data[i] >= upperOutlierValue)
+		else if (Data[i] >= UpperOutlierValue)
 		{
 			Data[i] = NewMax;
 		}

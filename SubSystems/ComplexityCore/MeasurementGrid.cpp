@@ -133,8 +133,11 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 				{
 					if (Data[i][j][k].AABB.AABBIntersect(TriangleAABB))
 					{
-						Data[i][j][k].TrianglesInCell.push_back(l);
-						DebugTotalTrianglesInCells++;
+						if (GEOMETRY.IsAABBIntersectTriangle(Data[i][j][k].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
+						{
+							Data[i][j][k].TrianglesInCell.push_back(l);
+							DebugTotalTrianglesInCells++;
+						}
 					}
 				}
 			}

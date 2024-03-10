@@ -19,7 +19,7 @@ public:
 	int GetCumulativeOutliers();
 	void SetCumulativeOutliers(int NewValue);
 	
-private:
+//private:
 	SINGLETON_PRIVATE_PART(LayerRasterizationManager)
 
 	struct GridCell
@@ -68,7 +68,21 @@ private:
 	const int GridRasterizationModeMax = 1;
 	const int GridRasterizationModeMean = 2;
 	const int GridRasterizationModeCumulative = 3;
-	int CumulativeOutliers = 1;
+	float CumulativeOutliersUpper = 99.0f;
+	float CumulativeOutliersLower = 0.5f;
+
+	double GetArea(std::vector<glm::dvec3>& points);
+	double Debug_ResultRawMin = 0.0;
+	double Debug_ResultRawMax = 0.0;
+	double Debug_ResultRawMean = 0.0;
+	double Debug_ResultRawStandardDeviation = 0.0;
+
+	double Debug_ResultRawSkewness = 0.0;
+	double Debug_ResultRawKurtosis = 0.0;
+
+	void UpdateGridDebugDistributionInfo();
+
+	double Debug_TotalAreaUsed = 0.0;
 };
 
 #define LAYER_RASTERIZATION_MANAGER LayerRasterizationManager::getInstance()
