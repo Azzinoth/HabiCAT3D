@@ -22,6 +22,9 @@ UIManager::UIManager()
 	MESH_MANAGER.AddLoadCallback(UIManager::OnMeshUpdate);
 	LAYER_MANAGER.AddActiveLayerChangedCallback(UIManager::OnLayerChange);
 
+	LAYER_RASTERIZATION_MANAGER.SetOnCalculationsStartCallback(OnLayerRasterizationCalculationsStart);
+	LAYER_RASTERIZATION_MANAGER.SetOnCalculationsEndCallback(OnLayerRasterizationCalculationsEnd);
+
 	AddNewLayerIcon = RESOURCE_MANAGER.LoadPNGTexture("Resources/AddNewLayer.png");
 }
 
@@ -315,8 +318,8 @@ void UIManager::Render(bool bScreenshotMode)
 		MainWindow->GetSize(&WindowW, &WindowH);
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
-		float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
-		std::string ProgressText = "Progress: " + std::to_string(Progress * 100.0f);
+		UpdateProgressModalPopupCurrentValue();
+		std::string ProgressText = "Progress: " + std::to_string(ProgressModalPopupCurrentValue * 100.0f);
 		ProgressText += " %";
 		ImGui::SetCursorPosX(90);
 		ImGui::Text(ProgressText.c_str());
@@ -497,6 +500,7 @@ void UIManager::SetLayerSelectionMode(const int NewValue)
 
 void UIManager::OnJitterCalculationsStart()
 {
+	UI.bJitterCalculationsInProgress = true;
 	UI.bShouldCloseProgressPopup = false;
 	UI.bShouldOpenProgressPopup = true;
 }
@@ -505,6 +509,7 @@ void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 {
 	UI.bShouldCloseProgressPopup = true;
 	UI.CurrentJitterStepIndexVisualize = static_cast<int>(JITTER_MANAGER.GetLastUsedJitterSettings().size() - 1);
+	UI.bJitterCalculationsInProgress = false;
 }
 
 static auto CompareColormapValue = [](float Value) {
@@ -1921,4 +1926,29 @@ bool UIManager::ShouldUseTransparentBackground()
 bool UIManager::MeshAndCurrentLayerIsValid()
 {
 	return MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1 && COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() > LAYER_MANAGER.GetActiveLayerIndex();
+}
+
+void UIManager::UpdateProgressModalPopupCurrentValue()
+{
+	if (bJitterCalculationsInProgress)
+	{
+		ProgressModalPopupCurrentValue = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
+	}
+	else if (bLayerRasterizationCalculationsInProgress)
+	{
+		ProgressModalPopupCurrentValue = LAYER_RASTERIZATION_MANAGER.GetProgress();
+	}
+}
+
+void UIManager::OnLayerRasterizationCalculationsStart()
+{
+	UI.bLayerRasterizationCalculationsInProgress = true;
+	UI.bShouldCloseProgressPopup = false;
+	UI.bShouldOpenProgressPopup = true;
+}
+
+void UIManager::OnLayerRasterizationCalculationsEnd()
+{
+	UI.bShouldCloseProgressPopup = true;
+	UI.bLayerRasterizationCalculationsInProgress = false;
 }

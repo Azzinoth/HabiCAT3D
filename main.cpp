@@ -629,11 +629,6 @@ void CreateGrid(MeshLayer* LayerToExport)
 	{
 		for (int l = 0; l < TriangleCount; l++)
 		{
-			if (l == 1046)
-			{
-				int y = 0;
-				y++;
-			}
 			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
 			int FirstAxisEndIndex = Resolution;
@@ -1049,6 +1044,8 @@ void MainWindowRender()
 
 	ImGui::SliderFloat("Cumulative_Outliers_Upper", &LAYER_RASTERIZATION_MANAGER.CumulativeOutliersUpper, 0.1f, 100.0f);
 	ImGui::SliderFloat("Cumulative_Outliers_Lower", &LAYER_RASTERIZATION_MANAGER.CumulativeOutliersLower, 0.0f, 99.9f);
+
+	ImGui::Checkbox("Use CGAL", &LAYER_RASTERIZATION_MANAGER.bUsingCGAL);
 
 	if (ImGui::Button("ExportCurrentLayerAsMap"))
 	{

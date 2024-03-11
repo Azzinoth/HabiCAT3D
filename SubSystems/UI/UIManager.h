@@ -86,6 +86,7 @@ private:
 	void UpdateHistogramData(MeshLayer* FromLayer, int NewBinCount);
 	void RenderHistogramWindow();
 		
+	bool bJitterCalculationsInProgress = false;
 	static void OnJitterCalculationsStart();
 	static void OnJitterCalculationsEnd(MeshLayer NewLayer);
 
@@ -119,6 +120,14 @@ private:
 	bool bUseTransparentBackground = false;
 
 	bool MeshAndCurrentLayerIsValid();
+
+	
+	float ProgressModalPopupCurrentValue = 0.0f;
+	void UpdateProgressModalPopupCurrentValue();
+
+	bool bLayerRasterizationCalculationsInProgress = false;
+	static void OnLayerRasterizationCalculationsStart();
+	static void OnLayerRasterizationCalculationsEnd();
 };
 
 #define UI UIManager::getInstance()

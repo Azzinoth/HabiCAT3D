@@ -18,7 +18,11 @@ public:
 
 	int GetCumulativeOutliers();
 	void SetCumulativeOutliers(int NewValue);
+
+	void SetOnCalculationsStartCallback(std::function<void()> Func);
+	void SetOnCalculationsEndCallback(std::function<void()> Func);
 	
+	float GetProgress();
 //private:
 	SINGLETON_PRIVATE_PART(LayerRasterizationManager)
 
@@ -26,6 +30,7 @@ public:
 	{
 		FEAABB AABB;
 		std::vector<int> TrianglesInCell;
+		std::vector<double> TrianglesInCellArea;
 		float Value = 0.0f;
 	};
 
@@ -34,11 +39,10 @@ public:
 		int FirstIndex = -1;
 		int SecondIndex = -1;
 		int TriangleIndexToAdd = -1;
+		double TriangleArea = -1.0;
 
-		GridUpdateTask::GridUpdateTask(int FirstIndex, int SecondIndex, int TriangleIndexToAdd)
-			: FirstIndex(FirstIndex), SecondIndex(SecondIndex), TriangleIndexToAdd(TriangleIndexToAdd)
-		{
-		}
+		GridUpdateTask::GridUpdateTask(int FirstIndex, int SecondIndex, int TriangleIndexToAdd, double TriangleArea = -1.0)
+			: FirstIndex(FirstIndex), SecondIndex(SecondIndex), TriangleIndexToAdd(TriangleIndexToAdd), TriangleArea(TriangleArea) {}
 	};
 
 	struct GridRasterizationThreadData
@@ -49,6 +53,8 @@ public:
 		int FirstIndexInTriangleArray;
 		int LastIndexInTriangleArray;
 	};
+
+	int THREAD_COUNT = 10;
 
 	glm::vec3 ConvertToClosestAxis(const glm::vec3& Vector);
 	std::vector<std::vector<GridCell>> GenerateGridProjection(FEAABB& OriginalAABB, const glm::vec3& Axis, int Resolution);
@@ -71,7 +77,12 @@ public:
 	float CumulativeOutliersUpper = 99.0f;
 	float CumulativeOutliersLower = 0.5f;
 
+	void SaveGridRasterizationToFile(const std::string FilePath);
+	bool b16BitsExport = false;
+	bool bUsingCGAL = false;
+
 	double GetArea(std::vector<glm::dvec3>& points);
+	double GetTriangleIntersectionArea(int GridX, int GridY, int TriangleIndex);
 	double Debug_ResultRawMin = 0.0;
 	double Debug_ResultRawMax = 0.0;
 	double Debug_ResultRawMean = 0.0;
@@ -83,6 +94,13 @@ public:
 	void UpdateGridDebugDistributionInfo();
 
 	double Debug_TotalAreaUsed = 0.0;
+
+	float Progress = 0.0f;
+	static void OnCalculationsStart();
+	static void OnCalculationsEnd();
+
+	std::vector <std::function<void()>> OnCalculationsStartCallbacks;
+	std::vector<std::function<void()>> OnCalculationsEndCallbacks;
 };
 
 #define LAYER_RASTERIZATION_MANAGER LayerRasterizationManager::getInstance()
