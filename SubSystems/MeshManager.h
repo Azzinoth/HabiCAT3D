@@ -30,8 +30,8 @@ out VS_OUT
 
 	vec3 color;
 
-	flat float FirstLayer;
-	flat float AdditionalLayer;
+	float FirstLayer;
+	float AdditionalLayer;
 } vs_out;
 
 void main(void)
@@ -65,8 +65,8 @@ in VS_OUT
 
 	vec3 color;
 
-	flat float FirstLayer;
-	flat float AdditionalLayer;
+	float FirstLayer;
+	float AdditionalLayer;
 } FS_IN;
 
 @ViewMatrix@
