@@ -97,7 +97,6 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 			// Create a new AABB for the grid cell
 			GridCell NewCell;
 			NewCell.AABB = FEAABB(CellMin, CellMax);
-			//NewCell.AABBVolume = NewCell.AABB.GetVolume();
 			Grid[i][j] = NewCell;
 		}
 	}
@@ -495,31 +494,26 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 
 	UpdateGridDebugDistributionInfo();
 
-	SaveGridRasterizationToFile("test.png");
+	PrepareRawImageData();
+	//SaveToFile("test.png");
 	OnCalculationsEnd();
 }
 
-void LayerRasterizationManager::SaveGridRasterizationToFile(const std::string FilePath)
+void LayerRasterizationManager::PrepareRawImageData()
 {
-	if (b16BitsExport)
+	std::vector<std::vector<float>> RawDataCopy;
+	RawDataCopy.resize(Grid.size());
+	for (int i = 0; i < Grid.size(); i++)
 	{
-		std::vector<unsigned char> ImageRawData;
-		ImageRawData.resize(Grid.size() * Grid[0].size() * 2);
-		
-		for (int i = 0; i < Grid.size(); i++)
+		RawDataCopy[i].resize(Grid[i].size());
+	}
+
+	for (int i = 0; i < Grid.size(); i++)
+	{
+		for (int j = 0; j < Grid[i].size(); j++)
 		{
-			for (int j = 0; j < Grid[i].size(); j++)
-			{
-				float NormalizedValue = (Grid[i][j].Value - Debug_ResultRawMin) / (Debug_ResultRawMax - Debug_ResultRawMin);
-
-				unsigned short Value = static_cast<unsigned short>(NormalizedValue * 65535.0f);
-				ImageRawData[(i * Grid[i].size() + j) * 2 + 0] = static_cast<unsigned char>(Value & 0x00FF);
-				ImageRawData[(i * Grid[i].size() + j) * 2 + 1] = static_cast<unsigned char>((Value & 0xFF00) >> 8);
-			}
+			RawDataCopy[i][j] = Grid[i][j].Value;
 		}
-
-		lodepng::encode(FilePath, ImageRawData, Grid.size(), Grid[0].size(), LCT_GREY, 16);
-		return;
 	}
 
 	float MinForColorMap = CurrentLayer->MinVisible;
@@ -533,19 +527,18 @@ void LayerRasterizationManager::SaveGridRasterizationToFile(const std::string Fi
 		{
 			for (int j = 0; j < Grid[i].size(); j++)
 			{
-				FlattenGrid.push_back(Grid[i][j].Value);
+				FlattenGrid.push_back(RawDataCopy[i][j]);
 			}
 		}
 
 		JITTER_MANAGER.AdjustOutliers(FlattenGrid, CumulativeOutliersLower / 100.0f, CumulativeOutliersUpper / 100.0f);
 
-		// Updated the grid values
 		int Index = 0;
 		for (int i = 0; i < Grid.size(); i++)
 		{
 			for (int j = 0; j < Grid[i].size(); j++)
 			{
-				Grid[i][j].Value = FlattenGrid[Index];
+				RawDataCopy[i][j] = FlattenGrid[Index];
 				Index++;
 			}
 		}
@@ -553,14 +546,14 @@ void LayerRasterizationManager::SaveGridRasterizationToFile(const std::string Fi
 		float MaxValue = -FLT_MAX;
 		float MinValue = FLT_MAX;
 
-		for (int i = 0; i < Grid.size(); i++)
+		for (int i = 0; i < RawDataCopy.size(); i++)
 		{
-			for (int j = 0; j < Grid[i].size(); j++)
+			for (int j = 0; j < RawDataCopy[i].size(); j++)
 			{
-				if (Grid[i][j].Value > MaxValue)
-					MaxValue = Grid[i][j].Value;
-				if (Grid[i][j].Value < MinValue)
-					MinValue = Grid[i][j].Value;
+				if (RawDataCopy[i][j] > MaxValue)
+					MaxValue = RawDataCopy[i][j];
+				if (RawDataCopy[i][j] < MinValue)
+					MinValue = RawDataCopy[i][j];
 			}
 		}
 
@@ -568,21 +561,20 @@ void LayerRasterizationManager::SaveGridRasterizationToFile(const std::string Fi
 		MaxForColorMap = MaxValue;
 
 		if (MinForColorMap == MaxForColorMap)
-		{
 			MaxForColorMap += FLT_EPSILON * 4;
-		}
 	}
 
-	UpdateGridDebugDistributionInfo();
-
 	std::vector<unsigned char> ImageRawData;
+	std::vector<unsigned char> FinalImageRawData;
 	ImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
-	for (int i = 0; i < Grid.size(); i++)
+	FinalImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
+
+	for (int i = 0; i < RawDataCopy.size(); i++)
 	{
-		for (int j = 0; j < Grid[i].size(); j++)
+		for (int j = 0; j < RawDataCopy[i].size(); j++)
 		{
-			// Using Grid[j][i] instead of Grid[i][j] to rotate the image by 90 degrees
-			if (Grid[j][i].TrianglesInCell.empty() || Grid[j][i].Value == 0.0f)
+			// Using RawDataCopy[j][i] instead of RawDataCopy[i][j] to rotate the image by 90 degrees
+			if (Grid[j][i].TrianglesInCell.empty() || RawDataCopy[j][i] == 0.0f)
 			{
 				ImageRawData.push_back(static_cast<unsigned char>(0));
 				ImageRawData.push_back(static_cast<unsigned char>(0));
@@ -592,7 +584,7 @@ void LayerRasterizationManager::SaveGridRasterizationToFile(const std::string Fi
 			else
 			{
 				// Normalize the value to the range [0, 1] (0 = min, 1 = max)
-				float NormalizedValue = (Grid[j][i].Value - MinForColorMap) / (MaxForColorMap - MinForColorMap);
+				float NormalizedValue = (RawDataCopy[j][i] - MinForColorMap) / (MaxForColorMap - MinForColorMap);
 
 				// It could be more than 1 because I am using user set max value.
 				if (NormalizedValue > 1.0f)
@@ -629,11 +621,11 @@ void LayerRasterizationManager::SaveGridRasterizationToFile(const std::string Fi
 			}
 		}
 
-		lodepng::encode("test.png", FlippedImageRawData, CurrentResolution, CurrentResolution);
+		FinalImageRawData = FlippedImageRawData;
 	}
 	if (CurrentUpAxis.y > 0.0)
 	{
-		lodepng::encode("test.png", ImageRawData, CurrentResolution, CurrentResolution);
+		FinalImageRawData = ImageRawData;
 	}
 	if (CurrentUpAxis.z > 0.0)
 	{
@@ -653,8 +645,221 @@ void LayerRasterizationManager::SaveGridRasterizationToFile(const std::string Fi
 			}
 		}
 
-		lodepng::encode("test.png", FlippedImageRawData, CurrentResolution, CurrentResolution);
+		FinalImageRawData = FlippedImageRawData;
 	}
+
+	ResultPreview = RESOURCE_MANAGER.RawDataToFETexture(FinalImageRawData.data(), CurrentResolution, CurrentResolution);
+}
+
+void LayerRasterizationManager::SaveToFile(const std::string FilePath)
+{
+	if (b32BitsExport)
+	{
+		GDALAllRegister(); // Initialize GDAL
+
+		const char* filename = "output.tif";
+		int xSize = CurrentResolution; // Width of the dataset
+		int ySize = CurrentResolution; // Height of the dataset
+		int nBands = 1; // Number of bands
+		GDALDataType type = GDT_Float32; // Data type of the bands
+
+		// Get the GeoTIFF driver
+		GDALDriver* driver = GetGDALDriverManager()->GetDriverByName("GTiff");
+		if (driver == nullptr) {
+			std::cerr << "GTiff driver not available." << std::endl;
+			exit(1);
+		}
+
+		// Create a new GeoTIFF file
+		GDALDataset* dataset = driver->Create(filename, xSize, ySize, nBands, type, nullptr);
+		if (dataset == nullptr) {
+			std::cerr << "Creation of output file failed." << std::endl;
+			exit(1);
+		}
+
+		// Set geotransform and projection if necessary
+		double geotransform[6] = { 0, 1, 0, 0, 0, -1 }; // Example values
+		dataset->SetGeoTransform(geotransform); // Set the affine transformation coefficients
+		dataset->SetProjection("WGS84"); // Set the projection
+
+		// Allocate data buffer for a single band
+		float* pData = (float*)CPLMalloc(sizeof(float) * xSize * ySize);
+
+
+		for (size_t i = 0; i < xSize; i++)
+		{
+			for (size_t j = 0; j < ySize; j++)
+			{
+				pData[i * xSize + j] = Grid[j][i].Value;
+			}
+		}
+
+		// Write data to the first band
+		GDALRasterBand* band = dataset->GetRasterBand(1);
+		CPLErr err = band->RasterIO(GF_Write, 0, 0, xSize, ySize, pData, xSize, ySize, type, 0, 0);
+		if (err != CE_None) {
+			std::cerr << "Error writing data to file." << std::endl;
+			CPLFree(pData);
+			GDALClose(dataset);
+			exit(1);
+		}
+
+		// Cleanup
+		CPLFree(pData);
+		GDALClose(dataset);
+
+		return;
+	}
+
+	std::vector<std::vector<float>> RawDataCopy;
+	RawDataCopy.resize(Grid.size());
+	for (int i = 0; i < Grid.size(); i++)
+	{
+		RawDataCopy[i].resize(Grid[i].size());
+	}
+
+	for (int i = 0; i < Grid.size(); i++)
+	{
+		for (int j = 0; j < Grid[i].size(); j++)
+		{
+			RawDataCopy[i][j] = Grid[i][j].Value;
+		}
+	}
+
+	float MinForColorMap = CurrentLayer->MinVisible;
+	float MaxForColorMap = CurrentLayer->MaxVisible;
+	if (GridRasterizationMode == GridRasterizationModeCumulative)
+	{
+		std::vector<float> FlattenGrid;
+		FlattenGrid.reserve(Grid.size() * Grid[0].size());
+
+		for (int i = 0; i < Grid.size(); i++)
+		{
+			for (int j = 0; j < Grid[i].size(); j++)
+			{
+				FlattenGrid.push_back(RawDataCopy[i][j]);
+			}
+		}
+
+		JITTER_MANAGER.AdjustOutliers(FlattenGrid, CumulativeOutliersLower / 100.0f, CumulativeOutliersUpper / 100.0f);
+
+		int Index = 0;
+		for (int i = 0; i < Grid.size(); i++)
+		{
+			for (int j = 0; j < Grid[i].size(); j++)
+			{
+				RawDataCopy[i][j] = FlattenGrid[Index];
+				Index++;
+			}
+		}
+
+		float MaxValue = -FLT_MAX;
+		float MinValue = FLT_MAX;
+
+		for (int i = 0; i < RawDataCopy.size(); i++)
+		{
+			for (int j = 0; j < RawDataCopy[i].size(); j++)
+			{
+				if (RawDataCopy[i][j] > MaxValue)
+					MaxValue = RawDataCopy[i][j];
+				if (RawDataCopy[i][j] < MinValue)
+					MinValue = RawDataCopy[i][j];
+			}
+		}
+
+		MinForColorMap = MinValue;
+		MaxForColorMap = MaxValue;
+
+		if (MinForColorMap == MaxForColorMap)
+			MaxForColorMap += FLT_EPSILON * 4;
+	}
+
+	std::vector<unsigned char> ImageRawData;
+	std::vector<unsigned char> FinalImageRawData;
+	ImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
+	FinalImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
+
+	for (int i = 0; i < RawDataCopy.size(); i++)
+	{
+		for (int j = 0; j < RawDataCopy[i].size(); j++)
+		{
+			// Using RawDataCopy[j][i] instead of RawDataCopy[i][j] to rotate the image by 90 degrees
+			if (Grid[j][i].TrianglesInCell.empty() || RawDataCopy[j][i] == 0.0f)
+			{
+				ImageRawData.push_back(static_cast<unsigned char>(0));
+				ImageRawData.push_back(static_cast<unsigned char>(0));
+				ImageRawData.push_back(static_cast<unsigned char>(0));
+				ImageRawData.push_back(static_cast<unsigned char>(0));
+			}
+			else
+			{
+				// Normalize the value to the range [0, 1] (0 = min, 1 = max)
+				float NormalizedValue = (RawDataCopy[j][i] - MinForColorMap) / (MaxForColorMap - MinForColorMap);
+
+				// It could be more than 1 because I am using user set max value.
+				if (NormalizedValue > 1.0f)
+					NormalizedValue = 1.0f;
+
+				glm::vec3 Color = GetTurboColorMap(NormalizedValue);
+
+				unsigned char R = static_cast<unsigned char>(Color.x * 255.0f);
+				ImageRawData.push_back(R);
+				unsigned char G = static_cast<unsigned char>(Color.y * 255.0f);
+				ImageRawData.push_back(G);
+				unsigned char B = static_cast<unsigned char>(Color.z * 255.0f);
+				ImageRawData.push_back(B);
+				ImageRawData.push_back(static_cast<unsigned char>(255));
+			}
+		}
+	}
+
+	if (CurrentUpAxis.x > 0.0)
+	{
+		// Flip the image diagonally
+		std::vector<unsigned char> FlippedImageRawData;
+		FlippedImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
+
+		for (int i = 0; i < CurrentResolution; i++)
+		{
+			for (int j = 0; j < CurrentResolution; j++)
+			{
+				int index = ((CurrentResolution - 1 - j) * CurrentResolution + (CurrentResolution - 1 - i)) * 4;
+				FlippedImageRawData.push_back(ImageRawData[index + 0]);
+				FlippedImageRawData.push_back(ImageRawData[index + 1]);
+				FlippedImageRawData.push_back(ImageRawData[index + 2]);
+				FlippedImageRawData.push_back(ImageRawData[index + 3]);
+			}
+		}
+
+		FinalImageRawData = FlippedImageRawData;
+	}
+	if (CurrentUpAxis.y > 0.0)
+	{
+		FinalImageRawData = ImageRawData;
+	}
+	if (CurrentUpAxis.z > 0.0)
+	{
+		// Flip the image vertically
+		std::vector<unsigned char> FlippedImageRawData;
+		FlippedImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
+
+		for (int i = CurrentResolution - 1; i >= 0; i--)
+		{
+			for (int j = 0; j < CurrentResolution; j++)
+			{
+				int index = (i * CurrentResolution + j) * 4;
+				FlippedImageRawData.push_back(ImageRawData[index + 0]);
+				FlippedImageRawData.push_back(ImageRawData[index + 1]);
+				FlippedImageRawData.push_back(ImageRawData[index + 2]);
+				FlippedImageRawData.push_back(ImageRawData[index + 3]);
+			}
+		}
+
+		FinalImageRawData = FlippedImageRawData;
+	}
+
+
+	lodepng::encode("test.png", FinalImageRawData, CurrentResolution, CurrentResolution);
 }
 
 void LayerRasterizationManager::UpdateGridDebugDistributionInfo()
@@ -735,15 +940,11 @@ void LayerRasterizationManager::GatherGridRasterizationThreadWork(void* OutputDa
 		LAYER_RASTERIZATION_MANAGER.AfterAllGridRasterizationThreadFinished();
 }
 
-void LayerRasterizationManager::ExportCurrentLayerAsMap(MeshLayer* LayerToExport)
+void LayerRasterizationManager::PrepareCurrentLayerForExport(MeshLayer* LayerToExport)
 {
 	CurrentLayer = LayerToExport;
 	if (CurrentLayer == nullptr)
 		return;
-
-	LAYER_RASTERIZATION_MANAGER.THREAD_COUNT = THREAD_POOL.GetThreadCount() - 1;
-	if (LAYER_RASTERIZATION_MANAGER.THREAD_COUNT < 1)
-		LAYER_RASTERIZATION_MANAGER.THREAD_COUNT = 1;
 
 	OnCalculationsStart();
 
@@ -815,6 +1016,10 @@ void LayerRasterizationManager::SetCumulativeOutliers(int NewValue)
 
 void LayerRasterizationManager::OnCalculationsStart()
 {
+	LAYER_RASTERIZATION_MANAGER.THREAD_COUNT = THREAD_POOL.GetThreadCount() - 1;
+	if (LAYER_RASTERIZATION_MANAGER.THREAD_COUNT < 1)
+		LAYER_RASTERIZATION_MANAGER.THREAD_COUNT = 1;
+
 	LAYER_RASTERIZATION_MANAGER.Progress = 0.0f;
 
 	for (size_t i = 0; i < LAYER_RASTERIZATION_MANAGER.OnCalculationsStartCallbacks.size(); i++)
@@ -827,12 +1032,7 @@ void LayerRasterizationManager::OnCalculationsStart()
 void LayerRasterizationManager::OnCalculationsEnd()
 {
 	LAYER_RASTERIZATION_MANAGER.Progress = 1.0f;
-
-	LAYER_RASTERIZATION_MANAGER.Grid.clear();
-	LAYER_RASTERIZATION_MANAGER.MainThreadGridUpdateTasks.clear();
-	LAYER_RASTERIZATION_MANAGER.GatherGridRasterizationThreadCount = 0;
-	LAYER_RASTERIZATION_MANAGER.CurrentLayer = nullptr;
-	LAYER_RASTERIZATION_MANAGER.CurrentUpAxis = glm::vec3(0.0f);
+	LAYER_RASTERIZATION_MANAGER.ClearDataAfterCalculation();
 
 	for (size_t i = 0; i < LAYER_RASTERIZATION_MANAGER.OnCalculationsEndCallbacks.size(); i++)
 	{
@@ -952,4 +1152,25 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int Gri
 	}
 
 	return Result;
+}
+
+void LayerRasterizationManager::ClearAllData()
+{
+	if (ResultPreview != nullptr)
+	{
+		delete ResultPreview;
+		ResultPreview = nullptr;
+	}
+
+	Grid.clear();
+	MainThreadGridUpdateTasks.clear();
+	GatherGridRasterizationThreadCount = 0;
+	CurrentLayer = nullptr;
+	CurrentUpAxis = glm::vec3(0.0f);
+}
+
+void LayerRasterizationManager::ClearDataAfterCalculation()
+{
+	MainThreadGridUpdateTasks.clear();
+	GatherGridRasterizationThreadCount = 0;
 }

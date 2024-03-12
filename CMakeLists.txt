@@ -115,7 +115,12 @@ add_executable(RugosityCalculator WIN32
 								  ${SubSystems_ComplexityCore_SRC}
 )
 
-target_link_libraries(RugosityCalculator PRIVATE FocalEngine)
+target_link_libraries(RugosityCalculator
+	PRIVATE
+		FocalEngine
+	 PUBLIC
+		${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/gdal_i.lib
+)
 
 source_group("Source Files" FILES ${source_SRC})
 # *************** SUB_SYSTEM ***************
@@ -134,5 +139,8 @@ include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/SubSystems/FocalEngine/SubSystems/FEBasicApplication/ThirdParty/imgui
 	${BASICAPP_DIR}
 	${FOCAL_ENGINE_THIRD_PARTY_DIR}
+	"ThirdParty/GDAL"
+	"ThirdParty/GDAL/ogr"
+	"ThirdParty/GDAL/port"
 	"ThirdParty/"
 )

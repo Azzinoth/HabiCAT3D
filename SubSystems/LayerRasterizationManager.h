@@ -3,12 +3,17 @@
 #include "ComplexityCore/Layers/LayerManager.h"
 using namespace FocalEngine;
 
+#pragma warning (disable: 4251) // for GDAL library
+#include "GDAL/gdal.h"
+#include "GDAL/gdal_priv.h"
+
 class LayerRasterizationManager
 {
 public:
 	SINGLETON_PUBLIC_PART(LayerRasterizationManager)
 
-	void ExportCurrentLayerAsMap(MeshLayer* LayerToExport);
+	void PrepareCurrentLayerForExport(MeshLayer* LayerToExport);
+	void SaveToFile(const std::string FilePath);
 
 	int GetGridRasterizationMode();
 	void SetGridRasterizationMode(int NewValue);
@@ -23,6 +28,8 @@ public:
 	void SetOnCalculationsEndCallback(std::function<void()> Func);
 	
 	float GetProgress();
+
+	void ClearAllData();
 //private:
 	SINGLETON_PRIVATE_PART(LayerRasterizationManager)
 
@@ -77,8 +84,9 @@ public:
 	float CumulativeOutliersUpper = 99.0f;
 	float CumulativeOutliersLower = 0.5f;
 
-	void SaveGridRasterizationToFile(const std::string FilePath);
-	bool b16BitsExport = false;
+	
+	void PrepareRawImageData();
+	bool b32BitsExport = false;
 	bool bUsingCGAL = false;
 
 	double GetArea(std::vector<glm::dvec3>& points);
@@ -101,6 +109,10 @@ public:
 
 	std::vector <std::function<void()>> OnCalculationsStartCallbacks;
 	std::vector<std::function<void()>> OnCalculationsEndCallbacks;
+
+	FETexture* ResultPreview = nullptr;
+
+	void ClearDataAfterCalculation();
 };
 
 #define LAYER_RASTERIZATION_MANAGER LayerRasterizationManager::getInstance()

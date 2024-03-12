@@ -418,6 +418,9 @@ void JitterManager::AdjustOutliers(std::vector<float>& Data, float LowerPercenti
 {
 	if (Data.empty()) return;
 
+	if (LowerPercentile == 0.0f && UpperPercentile == 1.0f)
+		return;
+
 	// Copy and sort the data
 	std::vector<float> SortedData = Data;
 	std::sort(SortedData.begin(), SortedData.end());
@@ -425,6 +428,18 @@ void JitterManager::AdjustOutliers(std::vector<float>& Data, float LowerPercenti
 	// Calculate positions for lower and upper outliers
 	int LowerOutlierPosition = static_cast<int>(SortedData.size() * LowerPercentile);
 	int UpperOutlierPosition = static_cast<int>(SortedData.size() * UpperPercentile);
+
+	if (LowerOutlierPosition < 0)
+		LowerOutlierPosition = 0;
+
+	if (LowerOutlierPosition >= SortedData.size())
+		LowerOutlierPosition = SortedData.size() - 1;
+
+	if (UpperOutlierPosition < 0)
+		UpperOutlierPosition = 0;
+
+	if (UpperOutlierPosition >= SortedData.size())
+		UpperOutlierPosition = SortedData.size() - 1;
 
 	if (LowerOutlierPosition == UpperOutlierPosition)
 		return;
