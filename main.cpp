@@ -315,24 +315,24 @@ void MainWindowRender()
 	ImGui::SliderInt("Resolution", &TempInt, 2, 4096);
 	LAYER_RASTERIZATION_MANAGER.SetGridResolution(TempInt);
 
-	//TempInt = LAYER_RASTERIZATION_MANAGER.GetCumulativeOutliers();
-	//ImGui::SliderInt("Cumulative_Outliers_Upper", &TempInt, 0, 99);
-	//LAYER_RASTERIZATION_MANAGER.SetCumulativeOutliers(TempInt);
+	float TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModeLowerOutlierPercentile();
+	ImGui::SliderFloat("Lower outlier percentile", &TempFloat, 0.0f, 99.9f);
+	LAYER_RASTERIZATION_MANAGER.SetCumulativeModeLowerOutlierPercentile(TempFloat);
 
-	ImGui::SliderFloat("Cumulative_Outliers_Upper", &LAYER_RASTERIZATION_MANAGER.CumulativeOutliersUpper, 0.1f, 100.0f);
-	ImGui::SliderFloat("Cumulative_Outliers_Lower", &LAYER_RASTERIZATION_MANAGER.CumulativeOutliersLower, 0.0f, 99.9f);
-
-	ImGui::Checkbox("Use CGAL", &LAYER_RASTERIZATION_MANAGER.bUsingCGAL);
+	TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModeUpperOutlierPercentile();
+	ImGui::SliderFloat("Upper outlier percentile", &TempFloat, 0.1f, 100.0f);
+	LAYER_RASTERIZATION_MANAGER.SetCumulativeModeUpperOutlierPercentile(TempFloat);
 
 	if (ImGui::Button("Prepare data for export"))
 	{
 		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer());
 	}
 
-	if (LAYER_RASTERIZATION_MANAGER.ResultPreview != nullptr)
+	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
 	{
 		ImGui::Text("Result preview:");
-		ImGui::Image((void*)(intptr_t)LAYER_RASTERIZATION_MANAGER.ResultPreview->GetTextureID(), ImVec2(512, 512));
+		ImGui::Image((void*)(intptr_t)LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID(), ImVec2(512, 512));
+	
 	}
 
 	ImGui::Checkbox("32 bit GeoTiff", &LAYER_RASTERIZATION_MANAGER.b32BitsExport);
@@ -350,13 +350,13 @@ void MainWindowRender()
 	ENGINE.GetCamera()->SetMovementSpeed(CameraSpeed);
 
 	// Output dubug info from LAYER_RASTERIZATION_MANAGER, like min, max, mean, standard deviation, etc.
-	ImGui::Text("Total area used: %f", LAYER_RASTERIZATION_MANAGER.Debug_TotalAreaUsed);
-	ImGui::Text("Rasterization min: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawMin);
-	ImGui::Text("Rasterization max: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawMax);
-	ImGui::Text("Rasterization mean: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawMean);
-	ImGui::Text("Rasterization standard deviation: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawStandardDeviation);
-	ImGui::Text("Rasterization distribution skewness: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawSkewness);
-	ImGui::Text("Rasterization distribution kurtosis: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawKurtosis);
+	//ImGui::Text("Total area used: %f", LAYER_RASTERIZATION_MANAGER.Debug_TotalAreaUsed);
+	//ImGui::Text("Rasterization min: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawMin);
+	//ImGui::Text("Rasterization max: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawMax);
+	//ImGui::Text("Rasterization mean: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawMean);
+	//ImGui::Text("Rasterization standard deviation: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawStandardDeviation);
+	//ImGui::Text("Rasterization distribution skewness: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawSkewness);
+	//ImGui::Text("Rasterization distribution kurtosis: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawKurtosis);
 
 
 	if (UI.ShouldTakeScreenshot())
@@ -385,230 +385,15 @@ void MainWindowRender()
 
 		MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
 
-		static bool bNeedToRenderAABB = true;
+		/*static bool bNeedToRenderAABB = true;
 		if (bNeedToRenderAABB)
 		{
 			bNeedToRenderAABB = false;
 			LINE_RENDERER.RenderAABB(MESH_MANAGER.ActiveMesh->GetAABB().Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), glm::vec3(0.0f, 0.0f, 1.0f));
 
-			//ExportCurrentLayerAsMap();
-
 			LINE_RENDERER.SyncWithGPU();
-		}
-	}
-
-	static bool bNeedToRenderAABB = true;
-	if (bNeedToRenderAABB)
-	{
-		bNeedToRenderAABB = false;
-
-		glm::vec3 Multiplicator = glm::vec3(100.0f, 1.0f, 100.0f);
-		//Multiplicator = glm::vec3(1.0f);
-
-		/*glm::vec3 FirstPoint = glm::vec3(0.040420, 0.531200, 2.167910) * Multiplicator;
-		glm::vec3 SecondPoint = glm::vec3(0.016880, 0.552290, 2.118570) * Multiplicator;
-		glm::vec3 ThirdPoint = glm::vec3(0.002030, 0.547620, 2.223800) * Multiplicator;
-		glm::vec3 Min = glm::vec3(0.000000, 0.000000, 2.120456) * Multiplicator;
-		glm::vec3 Max = glm::vec3(0.014455, 2.464900, 2.135822) * Multiplicator;*/
-
-		/*glm::vec3 FirstPoint = glm::vec3(0.000000, 0.344400, 2.605680) * Multiplicator;
-		glm::vec3 SecondPoint = glm::vec3(0.004200, 0.356840, 2.147420) * Multiplicator;
-		glm::vec3 ThirdPoint = glm::vec3(0.497080, 0.328360, 2.253990) * Multiplicator;
-		glm::vec3 Min = glm::vec3(0.014455, 0.000000, 2.381672) * Multiplicator;
-		glm::vec3 Max = glm::vec3(0.028910, 2.464900, 2.397038) * Multiplicator;*/
-
-		/*glm::vec3 FirstPoint = glm::vec3(0.020720, 0.725140, 0.320140) * Multiplicator;
-		glm::vec3 SecondPoint = glm::vec3(0.118330, 0.696310, 0.286380) * Multiplicator;
-		glm::vec3 ThirdPoint = glm::vec3(0.006580, 0.760780, 0.276570) * Multiplicator;
-		glm::vec3 Min = glm::vec3(0.000000, 0.000000, 0.291947) * Multiplicator;
-		glm::vec3 Max = glm::vec3(0.014455, 2.464900, 0.307312) * Multiplicator;*/
-
-		/*glm::vec3 FirstPoint = glm::vec3(0.118330, 0.696310, 0.286380) * Multiplicator;
-		glm::vec3 SecondPoint = glm::vec3(0.064130, 0.724510, 0.218980) * Multiplicator;
-		glm::vec3 ThirdPoint = glm::vec3(0.006580, 0.760780, 0.276570) * Multiplicator;
-		glm::vec3 Min = glm::vec3(0.014455, 0.000000, 0.261216) * Multiplicator;
-		glm::vec3 Max = glm::vec3(0.028910, 2.464900, 0.276581) * Multiplicator;*/
-
-		/*glm::vec3 FirstPoint = glm::vec3(0.038800, 2.239700, 0.398700) * Multiplicator;
-		glm::vec3 SecondPoint = glm::vec3(0.000000, 2.227500, 0.427600) * Multiplicator;
-		glm::vec3 ThirdPoint = glm::vec3(0.107900, 2.196200, 0.423900) * Multiplicator;
-		glm::vec3 Min = glm::vec3(0.000000, 0.000000, 0.401198) * Multiplicator;
-		glm::vec3 Max = glm::vec3(0.036145, 3.415800, 0.434632) * Multiplicator;*/
-
-		/*glm::vec3 FirstPoint = glm::vec3(1.855600, 1.664400, 8.358300) * Multiplicator;
-		glm::vec3 SecondPoint = glm::vec3(1.864200, 1.670400, 8.270300) * Multiplicator;
-		glm::vec3 ThirdPoint = glm::vec3(1.799500, 1.645200, 8.370400) * Multiplicator;
-		glm::vec3 Min = glm::vec3(1.843391, 0.000000, 8.324867) * Multiplicator;
-		glm::vec3 Max = glm::vec3(1.879536, 3.415800, 8.358300) * Multiplicator;*/
-
-		/*glm::vec3 FirstPoint = glm::vec3(1.855600, 1.664400, 8.358300) * Multiplicator;
-		glm::vec3 SecondPoint = glm::vec3(1.799500, 1.645200, 8.370400) * Multiplicator;
-		glm::vec3 ThirdPoint = glm::vec3(1.860500, 1.697100, 8.432200) * Multiplicator;
-		glm::vec3 Min = glm::vec3(1.843391, 0.000000, 8.324867) * Multiplicator;
-		glm::vec3 Max = glm::vec3(1.879536, 3.415800, 8.358300) * Multiplicator;*/
-
-		/*glm::vec3 FirstPoint = glm::vec3(7.089000, 2.791000, 8.296500) * Multiplicator;
-		glm::vec3 SecondPoint = glm::vec3(7.092500, 2.792900, 8.258000) * Multiplicator;
-		glm::vec3 ThirdPoint = glm::vec3(7.069100, 2.724800, 8.282000) * Multiplicator;
-		glm::vec3 Min = glm::vec3(7.084405, 0.000000, 8.224567) * Multiplicator;
-		glm::vec3 Max = glm::vec3(7.120550, 3.415800, 8.258000) * Multiplicator;*/
-
-		/*glm::vec3 FirstPoint = glm::vec3(2.007777, 0.856372, 0.505804) * Multiplicator;
-		glm::vec3 SecondPoint = glm::vec3(2.032649, 0.816146, 0.647117) * Multiplicator;
-		glm::vec3 ThirdPoint = glm::vec3(2.159220, 0.826750, 0.591183) * Multiplicator;
-		glm::vec3 Min = glm::vec3(2.156437, 0.000000, 0.579817) * Multiplicator;
-		glm::vec3 Max = glm::vec3(2.168156, 1.000000, 0.589814) * Multiplicator;*/
-
-		/*glm::vec3 FirstPoint = glm::vec3(2.007777, 0.856372, 0.505804) * Multiplicator;
-		glm::vec3 SecondPoint = glm::vec3(2.159220, 0.826750, 0.591183) * Multiplicator;
-		glm::vec3 ThirdPoint = glm::vec3(2.318697, 0.860085, 0.560189) * Multiplicator;
-		glm::vec3 Min = glm::vec3(2.156437, 0.000000, 0.579817) * Multiplicator;
-		glm::vec3 Max = glm::vec3(2.168156, 1.000000, 0.589814) * Multiplicator;*/
-
-		//glm::vec3 FirstPoint = glm::vec3(1.315981, 0.518629, 0.995136) * Multiplicator;
-		//glm::vec3 SecondPoint = glm::vec3(1.331583, 0.601360, 0.932809) * Multiplicator;
-		//glm::vec3 ThirdPoint = glm::vec3(1.190084, 0.657671, 0.872898) * Multiplicator;
-		//glm::vec3 Min = glm::vec3(1.195416, 0.000000, 0.879723) * Multiplicator;
-		//glm::vec3 Max = glm::vec3(1.207136, 1.000000, 0.889719) * Multiplicator;
-
-
-		glm::vec3 FirstPoint = glm::vec3(19.337408, 6.413627, 1.789177) * Multiplicator;
-		glm::vec3 SecondPoint = glm::vec3(19.342543, 6.330275, 1.850492) * Multiplicator;
-		glm::vec3 ThirdPoint = glm::vec3(19.374857, 6.348990, 1.842657) * Multiplicator;
-		glm::vec3 Min = glm::vec3(19.332293, 6.258456, 0.000000) * Multiplicator;
-		glm::vec3 Max = glm::vec3(19.492064, 6.427604, 3.346664) * Multiplicator;
-
-
-
-		FEAABB TempAABB = FEAABB(Min, Max);
-		/*std::vector<glm::vec3> Points;
-		TempAABB.RayIntersect(ThirdPoint, FirstPoint - ThirdPoint, Points);*/
-
-
-		
-			
-
-
-		std::vector<glm::vec3> CurrentTriangle;
-		CurrentTriangle.push_back(FirstPoint);
-		CurrentTriangle.push_back(SecondPoint);
-		CurrentTriangle.push_back(ThirdPoint);
-
-
-		bool res = GEOMETRY.IsAABBIntersectTriangle(TempAABB, CurrentTriangle);
-
-		std::vector<glm::dvec3> CurrentTriangleDouble;
-		CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[0].x, CurrentTriangle[0].y, CurrentTriangle[0].z));
-		CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[1].x, CurrentTriangle[1].y, CurrentTriangle[1].z));
-		CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[2].x, CurrentTriangle[2].y, CurrentTriangle[2].z));
-
-
-
-		std::vector<glm::dvec3> DebugResult;
-		DebugResult = GEOMETRY.GetIntersectionPoints(TempAABB, CurrentTriangleDouble);
-
-		for (size_t i = 0; i < DebugResult.size(); i++)
-		{
-			LINE_RENDERER.AddLineToBuffer(FECustomLine(DebugResult[i], DebugResult[i] + glm::dvec3(0.0, 1.0, 0.0), glm::vec3(1.0f, 0.0f, 0.0f)));
-		}
-
-		for (size_t l = 0; l < CurrentTriangleDouble.size(); l++)
-		{
-			if (TempAABB.ContainsPoint(CurrentTriangleDouble[l]))
-			{
-				bool bAlreadyExists = false;
-				int PointsThatAreNotSame = 0;
-				for (size_t q = 0; q < DebugResult.size(); q++)
-				{
-					if (abs(DebugResult[q] - CurrentTriangleDouble[l]).x > glm::dvec3(DBL_EPSILON).x ||
-						abs(DebugResult[q] - CurrentTriangleDouble[l]).y > glm::dvec3(DBL_EPSILON).y ||
-						abs(DebugResult[q] - CurrentTriangleDouble[l]).z > glm::dvec3(DBL_EPSILON).z)
-					{
-						PointsThatAreNotSame++;
-					}
-				}
-
-				if (PointsThatAreNotSame != DebugResult.size())
-					bAlreadyExists = true;
-				
-				if (!bAlreadyExists)
-					DebugResult.push_back(CurrentTriangle[l]);
-			}
-		}
-
-		/*if (TempAABB.ContainsPoint(CurrentTriangleDouble[0]))
-		{
-			DebugResult.push_back(CurrentTriangleDouble[0]);
-		}
-
-		if (TempAABB.ContainsPoint(CurrentTriangleDouble[1]))
-		{
-			DebugResult.push_back(CurrentTriangleDouble[1]);
-		}
-
-		if (TempAABB.ContainsPoint(CurrentTriangleDouble[2]))
-		{
-			DebugResult.push_back(CurrentTriangleDouble[2]);
 		}*/
-
-		double CurrentTrianlgeArea = 0.0;
-
-		if (DebugResult.size() > 2)
-		{
-			//DebugCount++;
-
-			// Calculate the area of the clipped polygon
-			double Area = 0.0;
-			for (size_t p = 0; p < DebugResult.size(); p++)
-			{
-				const glm::dvec3& v1 = DebugResult[p];
-				const glm::dvec3& v2 = DebugResult[(p + 1) % DebugResult.size()];
-				Area += v1.x * v2.y - v2.x * v1.y;
-			}
-			CurrentTrianlgeArea = std::abs(Area) * 0.5;
-
-
-			//double Area_ = QuadrilateralArea_(DebugResult);
-
-			CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetArea(DebugResult);
-
-			if (CurrentTrianlgeArea == 0.0)
-			{
-				double Area = 0.0;
-				for (size_t p = 0; p < DebugResult.size(); p++)
-				{
-					DebugResult[p] *= 100.0;
-					const glm::dvec3& v1 = DebugResult[p];
-					const glm::dvec3& v2 = DebugResult[(p + 1) % DebugResult.size()];
-					Area += v1.x * v2.y - v2.x * v1.y;
-				}
-				CurrentTrianlgeArea = std::abs(Area) * 0.5;
-			}
-		}
-
-		CurrentTrianlgeArea /= 100.0;
-
-		//float alternative = CalculateTriangleAreaInsideAABB(TempAABB, CurrentTriangle);	
-
-
-
-
-
-		LINE_RENDERER.RenderAABB(FEAABB(Min, Max), glm::vec3(0.0f, 0.0f, 1.0f));
-
-
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(FirstPoint, SecondPoint, glm::vec3(1.0f, 0.0f, 1.0f)));
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(SecondPoint, ThirdPoint, glm::vec3(0.0f, 1.0f, 0.0f)));
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(ThirdPoint, FirstPoint, glm::vec3(0.0f, 0.0f, 1.0f)));
-
-		//ExportCurrentLayerAsMap();
-
-		LINE_RENDERER.SyncWithGPU();
 	}
-	
-
-
-
 
 	LINE_RENDERER.Render();
 

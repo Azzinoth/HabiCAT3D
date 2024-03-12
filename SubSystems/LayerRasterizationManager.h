@@ -3,6 +3,8 @@
 #include "ComplexityCore/Layers/LayerManager.h"
 using namespace FocalEngine;
 
+#include "CGALDeclarations.h"
+
 #pragma warning (disable: 4251) // for GDAL library
 #include "GDAL/gdal.h"
 #include "GDAL/gdal_priv.h"
@@ -21,16 +23,22 @@ public:
 	int GetGridResolution();
 	void SetGridResolution(int NewValue);
 
-	int GetCumulativeOutliers();
-	void SetCumulativeOutliers(int NewValue);
+	float GetCumulativeModeLowerOutlierPercentile();
+	void SetCumulativeModeLowerOutlierPercentile(float NewValue);
+
+	float GetCumulativeModeUpperOutlierPercentile();
+	void SetCumulativeModeUpperOutlierPercentile(float NewValue);
 
 	void SetOnCalculationsStartCallback(std::function<void()> Func);
 	void SetOnCalculationsEndCallback(std::function<void()> Func);
 	
 	float GetProgress();
 
+	int GetTexturePreviewID();
+
 	void ClearAllData();
-//private:
+	bool b32BitsExport = false;
+private:
 	SINGLETON_PRIVATE_PART(LayerRasterizationManager)
 
 	struct GridCell
@@ -81,16 +89,20 @@ public:
 	const int GridRasterizationModeMax = 1;
 	const int GridRasterizationModeMean = 2;
 	const int GridRasterizationModeCumulative = 3;
-	float CumulativeOutliersUpper = 99.0f;
-	float CumulativeOutliersLower = 0.5f;
-
+	float CumulativeModeUpperOutlierPercentile = 99.0f;
+	float CumulativeModeLowerOutlierPercentile = 0.5f;
 	
 	void PrepareRawImageData();
-	bool b32BitsExport = false;
-	bool bUsingCGAL = false;
+	//bool b32BitsExport = false;
+	bool bUsingCGAL = true;
 
+	glm::dvec3 CalculateCentroid(const std::vector<glm::dvec3>& points);
+	bool CompareAngles(const glm::dvec3& a, const glm::dvec3& b, const glm::dvec3& centroid);
+	void SortPointsByAngle(std::vector<glm::dvec3>& points);
+	double CalculatePolygonArea(const std::vector<glm::dvec2>& glmPoints);
 	double GetArea(std::vector<glm::dvec3>& points);
 	double GetTriangleIntersectionArea(int GridX, int GridY, int TriangleIndex);
+
 	double Debug_ResultRawMin = 0.0;
 	double Debug_ResultRawMax = 0.0;
 	double Debug_ResultRawMean = 0.0;

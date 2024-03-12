@@ -176,8 +176,6 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 						{
 							Output->push_back(GridUpdateTask(i, j, l));
 						}
-						/*double CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetTriangleIntersectionArea(i, j, l);
-						Output->push_back(GridUpdateTask(i, j, l));*/
 					}
 				}
 			}
@@ -234,8 +232,6 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 						{
 							Output->push_back(GridUpdateTask(i, j, l));
 						}
-						/*double CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetTriangleIntersectionArea(i, j, l);
-						Output->push_back(GridUpdateTask(i, j, l));*/
 					}
 				}
 			}
@@ -292,8 +288,6 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 						{
 							Output->push_back(GridUpdateTask(i, j, l));
 						}
-						/*double CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetTriangleIntersectionArea(i, j, l);
-						Output->push_back(GridUpdateTask(i, j, l));*/
 					}
 				}
 			}
@@ -301,99 +295,64 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 	}
 }
 
-glm::dvec3 CalculateCentroid(const std::vector<glm::dvec3>& points) {
-	glm::dvec3 centroid(0.0, 0.0, 0.0);
-	for (const auto& point : points) {
-		centroid += point;
-	}
-	centroid /= static_cast<double>(points.size());
-	return centroid;
+glm::dvec3 LayerRasterizationManager::CalculateCentroid(const std::vector<glm::dvec3>& Points)
+{
+	glm::dvec3 Centroid(0.0, 0.0, 0.0);
+	for (const auto& Point : Points)
+		Centroid += Point;
+
+	Centroid /= static_cast<double>(Points.size());
+	return Centroid;
 }
 
-bool CompareAngles(const glm::dvec3& a, const glm::dvec3& b, const glm::dvec3& centroid) {
-	double angleA = atan2(a.z - centroid.z, a.x - centroid.x);
-	double angleB = atan2(b.z - centroid.z, b.x - centroid.x);
-	return angleA < angleB;
+bool LayerRasterizationManager::CompareAngles(const glm::dvec3& A, const glm::dvec3& B, const glm::dvec3& Centroid)
+{
+	double AngleA = atan2(A.z - Centroid.z, A.x - Centroid.x);
+	double AngleB = atan2(B.z - Centroid.z, B.x - Centroid.x);
+
+	return AngleA < AngleB;
 }
 
-void SortPointsByAngle(std::vector<glm::dvec3>& points) {
-	glm::dvec3 centroid = CalculateCentroid(points);
-	std::sort(points.begin(), points.end(), [&centroid](const glm::dvec3& a, const glm::dvec3& b) {
-		return CompareAngles(a, b, centroid);
+void LayerRasterizationManager::SortPointsByAngle(std::vector<glm::dvec3>& Points)
+{
+	glm::dvec3 Centroid = CalculateCentroid(Points);
+
+	std::sort(Points.begin(), Points.end(), [&](const glm::dvec3& A, const glm::dvec3& B) {
+		return CompareAngles(A, B, Centroid);
 	});
 }
 
-// Function to calculate the area of a triangle given its vertices
-double TriangleArea(const glm::dvec3& a, const glm::dvec3& b, const glm::dvec3& c) {
-	glm::dvec3 crossProduct = glm::cross(b - a, c - a);
-	return 0.5 * glm::length(crossProduct);
-}
-
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Polygon_2.h>
-#include <CGAL/Polygon_2_algorithms.h>
-
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef K::Point_2 Point_2_;
-typedef CGAL::Polygon_2<K> Polygon_2_;
-
-// Function to calculate the area of a quadrilateral given its vertices
-double QuadrilateralArea(const std::vector<glm::dvec3>& points) {
-	// Ensure there are exactly four vertices
-	if (points.size() != 4) return 0.0;
-
-	// Split the quadrilateral into two triangles and calculate each area
-	double area1 = TriangleArea(points[0], points[1], points[2]);
-	double area2 = TriangleArea(points[2], points[3], points[0]);
-
-	// Sum the areas of the two triangles
-	return area1 + area2;
-}
-
-double CalculatePolygonArea(const std::vector<glm::dvec2>& glmPoints) {
-	Polygon_2_ polygon;
-	for (const auto& p : glmPoints) {
-		polygon.push_back(Point_2_(p.x, p.y));
-	}
+double LayerRasterizationManager::CalculatePolygonArea(const std::vector<glm::dvec2>& Points)
+{
+	Polygon_2 Polygon;
+	for (const auto& Point : Points)
+		Polygon.push_back(Point_2(Point.x, Point.y));
 
 	// Check if the polygon is simple (does not self-intersect)
-	if (!polygon.is_simple()) {
-		std::cerr << "Polygon is not simple." << std::endl;
+	if (!Polygon.is_simple()) 
 		return 0.0;
-	}
 
-	// Calculate the area
-	double area = CGAL::to_double(polygon.area());
-
-	return area;
+	double Area = CGAL::to_double(Polygon.area());
+	return Area;
 }
 
-double LayerRasterizationManager::GetArea(std::vector<glm::dvec3>& points)
+double LayerRasterizationManager::GetArea(std::vector<glm::dvec3>& Points)
 {
-	SortPointsByAngle(points);
+	SortPointsByAngle(Points);
 
-	std::vector<glm::dvec2> glmPoints;
-	for (size_t i = 0; i < points.size(); i++)
+	std::vector<glm::dvec2> ProjectedPoints;
+	for (size_t i = 0; i < Points.size(); i++)
 	{
 		if (CurrentUpAxis.x > 0.0)
-			glmPoints.push_back(glm::dvec2(points[i].y, points[i].z));
+			ProjectedPoints.push_back(glm::dvec2(Points[i].y, Points[i].z));
 		else if (CurrentUpAxis.y > 0.0)
-			glmPoints.push_back(glm::dvec2(points[i].x, points[i].z));
+			ProjectedPoints.push_back(glm::dvec2(Points[i].x, Points[i].z));
 		else if (CurrentUpAxis.z > 0.0)
-			glmPoints.push_back(glm::dvec2(points[i].x, points[i].y));
+			ProjectedPoints.push_back(glm::dvec2(Points[i].x, Points[i].y));
 	}
 
-	return abs(CalculatePolygonArea(std::vector<glm::dvec2>(points.begin(), points.end())));
+	return abs(CalculatePolygonArea(std::vector<glm::dvec2>(Points.begin(), Points.end())));
 }
-
-#include <CGAL/Bbox_3.h>
-#include <CGAL/Triangle_3.h>
-#include <CGAL/intersections.h>
-
-typedef CGAL::Simple_cartesian<double> Kernel;
-typedef Kernel::Point_3 Point_3;
-typedef Kernel::Triangle_3 Triangle_3;
-typedef CGAL::Bbox_3 Bbox_3;
 
 void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 {
@@ -446,13 +405,12 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 
 					for (int k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
 					{
-						double CurrentTrianlgeArea = GetTriangleIntersectionArea(i, j, Grid[i][j].TrianglesInCell[k]);
+						double CurrentTrianlgeArea = Grid[i][j].TrianglesInCellArea[k];
 
 						if (CurrentTrianlgeArea != 0.0 && !isnan(CurrentTrianlgeArea))
 						{
 							TriangleWithAreaCount++;
-							//float CurrentTriangleCoef = CurrentTrianlgeArea / CurrentCellTotalArea;
-							FinalResult += CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]] /** CurrentTriangleCoef*/;
+							FinalResult += CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]];
 						}
 					}
 
@@ -462,9 +420,6 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 				{
 					for (int k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
 					{
-						//double CurrentTrianlgeArea = GetTriangleIntersectionArea(i, j, Grid[i][j].TrianglesInCell[k]);
-
-						
 						double CurrentTrianlgeArea = Grid[i][j].TrianglesInCellArea[k];
 						if (CurrentTrianlgeArea < 0.0)
 							CurrentTrianlgeArea = 0.0;
@@ -472,15 +427,8 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 						if (CurrentTrianlgeArea != 0.0 && !isnan(CurrentTrianlgeArea))
 						{
 							Debug_TotalAreaUsed += CurrentTrianlgeArea;
-							//double CurrentTriangleCoef = CurrentTrianlgeArea / CurrentCellTotalArea;
-							double CurrentTriangleCoef = CurrentTrianlgeArea / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[Grid[i][j].TrianglesInCell[k]];
 							double CurrentTriangleValue = CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]];
-							FinalResult += CurrentTriangleValue * CurrentTrianlgeArea;
-
-							//FinalResult += CurrentTriangleValue * CurrentTriangleCoef;
-
-							/*float CurrentTriangleCoef = CurrentTrianlgeArea / CurrentCellTotalArea;
-							FinalResult += CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]] * CurrentTriangleCoef;*/
+							FinalResult += static_cast<float>(CurrentTriangleValue * CurrentTrianlgeArea);
 						}
 					}
 				}
@@ -493,9 +441,7 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 	}
 
 	UpdateGridDebugDistributionInfo();
-
 	PrepareRawImageData();
-	//SaveToFile("test.png");
 	OnCalculationsEnd();
 }
 
@@ -531,7 +477,7 @@ void LayerRasterizationManager::PrepareRawImageData()
 			}
 		}
 
-		JITTER_MANAGER.AdjustOutliers(FlattenGrid, CumulativeOutliersLower / 100.0f, CumulativeOutliersUpper / 100.0f);
+		JITTER_MANAGER.AdjustOutliers(FlattenGrid, CumulativeModeLowerOutlierPercentile / 100.0f, CumulativeModeUpperOutlierPercentile / 100.0f);
 
 		int Index = 0;
 		for (int i = 0; i < Grid.size(); i++)
@@ -658,55 +604,50 @@ void LayerRasterizationManager::SaveToFile(const std::string FilePath)
 		GDALAllRegister(); // Initialize GDAL
 
 		const char* filename = "output.tif";
-		int xSize = CurrentResolution; // Width of the dataset
-		int ySize = CurrentResolution; // Height of the dataset
-		int nBands = 1; // Number of bands
-		GDALDataType type = GDT_Float32; // Data type of the bands
+		int ImageWidth = CurrentResolution;
+		int ImageHeight = CurrentResolution;
+		int BandsCount = 1;
+		GDALDataType Type = GDT_Float32;
 
 		// Get the GeoTIFF driver
-		GDALDriver* driver = GetGDALDriverManager()->GetDriverByName("GTiff");
-		if (driver == nullptr) {
-			std::cerr << "GTiff driver not available." << std::endl;
-			exit(1);
-		}
+		GDALDriver* Driver = GetGDALDriverManager()->GetDriverByName("GTiff");
+		if (Driver == nullptr)
+			return;
 
 		// Create a new GeoTIFF file
-		GDALDataset* dataset = driver->Create(filename, xSize, ySize, nBands, type, nullptr);
-		if (dataset == nullptr) {
-			std::cerr << "Creation of output file failed." << std::endl;
-			exit(1);
-		}
+		GDALDataset* Dataset = Driver->Create(filename, ImageWidth, ImageHeight, BandsCount, Type, nullptr);
+		if (Dataset == nullptr)
+			return;
 
 		// Set geotransform and projection if necessary
-		double geotransform[6] = { 0, 1, 0, 0, 0, -1 }; // Example values
-		dataset->SetGeoTransform(geotransform); // Set the affine transformation coefficients
-		dataset->SetProjection("WGS84"); // Set the projection
+		double GeoTransform[6] = { 0, 1, 0, 0, 0, -1 }; // Generic transformation
+		Dataset->SetGeoTransform(GeoTransform);
+		Dataset->SetProjection("WGS84");
 
 		// Allocate data buffer for a single band
-		float* pData = (float*)CPLMalloc(sizeof(float) * xSize * ySize);
+		float* RawData = (float*)CPLMalloc(sizeof(float) * ImageWidth * ImageHeight);
 
-
-		for (size_t i = 0; i < xSize; i++)
+		for (size_t i = 0; i < ImageWidth; i++)
 		{
-			for (size_t j = 0; j < ySize; j++)
+			for (size_t j = 0; j < ImageHeight; j++)
 			{
-				pData[i * xSize + j] = Grid[j][i].Value;
+				RawData[i * ImageWidth + j] = Grid[j][i].Value;
 			}
 		}
 
 		// Write data to the first band
-		GDALRasterBand* band = dataset->GetRasterBand(1);
-		CPLErr err = band->RasterIO(GF_Write, 0, 0, xSize, ySize, pData, xSize, ySize, type, 0, 0);
-		if (err != CE_None) {
-			std::cerr << "Error writing data to file." << std::endl;
-			CPLFree(pData);
-			GDALClose(dataset);
-			exit(1);
+		GDALRasterBand* Band = Dataset->GetRasterBand(1);
+		CPLErr Error = Band->RasterIO(GF_Write, 0, 0, ImageWidth, ImageHeight, RawData, ImageWidth, ImageHeight, Type, 0, 0);
+		if (Error != CE_None)
+		{
+			CPLFree(RawData);
+			GDALClose(Dataset);
+			return;
 		}
 
 		// Cleanup
-		CPLFree(pData);
-		GDALClose(dataset);
+		CPLFree(RawData);
+		GDALClose(Dataset);
 
 		return;
 	}
@@ -741,7 +682,7 @@ void LayerRasterizationManager::SaveToFile(const std::string FilePath)
 			}
 		}
 
-		JITTER_MANAGER.AdjustOutliers(FlattenGrid, CumulativeOutliersLower / 100.0f, CumulativeOutliersUpper / 100.0f);
+		JITTER_MANAGER.AdjustOutliers(FlattenGrid, CumulativeModeLowerOutlierPercentile / 100.0f, CumulativeModeUpperOutlierPercentile / 100.0f);
 
 		int Index = 0;
 		for (int i = 0; i < Grid.size(); i++)
@@ -858,8 +799,7 @@ void LayerRasterizationManager::SaveToFile(const std::string FilePath)
 		FinalImageRawData = FlippedImageRawData;
 	}
 
-
-	lodepng::encode("test.png", FinalImageRawData, CurrentResolution, CurrentResolution);
+	lodepng::encode(FilePath, FinalImageRawData, CurrentResolution, CurrentResolution);
 }
 
 void LayerRasterizationManager::UpdateGridDebugDistributionInfo()
@@ -964,7 +904,7 @@ void LayerRasterizationManager::PrepareCurrentLayerForExport(MeshLayer* LayerToE
 		NewThreadData->FirstIndexInTriangleArray = i * NumberOfTrianglesPerThread;
 
 		if (i == LAYER_RASTERIZATION_MANAGER.THREAD_COUNT - 1)
-			NewThreadData->LastIndexInTriangleArray = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() - 1;
+			NewThreadData->LastIndexInTriangleArray = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() - 1);
 		else
 			NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
 
@@ -1001,17 +941,30 @@ void LayerRasterizationManager::SetGridResolution(int NewValue)
 	CurrentResolution = NewValue;
 }
 
-int LayerRasterizationManager::GetCumulativeOutliers()
+float LayerRasterizationManager::GetCumulativeModeLowerOutlierPercentile()
 {
-	return CumulativeOutliersUpper;
+	return CumulativeModeLowerOutlierPercentile;
 }
 
-void LayerRasterizationManager::SetCumulativeOutliers(int NewValue)
+void LayerRasterizationManager::SetCumulativeModeLowerOutlierPercentile(float NewValue)
 {
-	if (NewValue < 0 || NewValue > 99)
+	if (NewValue < 0.0f || NewValue > 99.99f)
 		return;
 
-	CumulativeOutliersUpper = NewValue;
+	CumulativeModeLowerOutlierPercentile = NewValue;
+}
+
+float LayerRasterizationManager::GetCumulativeModeUpperOutlierPercentile()
+{
+	return CumulativeModeUpperOutlierPercentile;
+}
+
+void LayerRasterizationManager::SetCumulativeModeUpperOutlierPercentile(float NewValue)
+{
+	if (NewValue < 0.001f || NewValue > 100.0f)
+		return;
+
+	CumulativeModeUpperOutlierPercentile = NewValue;
 }
 
 void LayerRasterizationManager::OnCalculationsStart()
@@ -1109,9 +1062,9 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int Gri
 			else if (const std::vector<Point_3>* intersect_points = boost::get<std::vector<Point_3>>(&*CGALIntersection))
 			{
 				// Create a polygon from the intersection points
-				Polygon_2_ polygon;
+				Polygon_2 polygon;
 				for (const auto& point : *intersect_points) {
-					polygon.push_back(Point_2_(point.x(), point.z()));
+					polygon.push_back(Point_2(point.x(), point.z()));
 				}
 
 				// Using absolute value to ensure the area is positive
@@ -1124,17 +1077,17 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int Gri
 	{
 		std::vector<glm::dvec3> IntersectionPoints = GEOMETRY.GetIntersectionPoints(Grid[GridX][GridY].AABB, CurrentTriangleDouble);
 
-		for (size_t l = 0; l < CurrentTriangleDouble.size(); l++)
+		for (size_t i = 0; i < CurrentTriangleDouble.size(); i++)
 		{
-			if (Grid[GridX][GridY].AABB.ContainsPoint(CurrentTriangleDouble[l]))
+			if (Grid[GridX][GridY].AABB.ContainsPoint(CurrentTriangleDouble[i]))
 			{
 				bool bAlreadyExists = false;
 				int PointsThatAreNotSame = 0;
-				for (size_t q = 0; q < IntersectionPoints.size(); q++)
+				for (size_t j = 0; j < IntersectionPoints.size(); j++)
 				{
-					if (abs(IntersectionPoints[q] - CurrentTriangleDouble[l]).x > glm::dvec3(DBL_EPSILON).x ||
-						abs(IntersectionPoints[q] - CurrentTriangleDouble[l]).y > glm::dvec3(DBL_EPSILON).y ||
-						abs(IntersectionPoints[q] - CurrentTriangleDouble[l]).z > glm::dvec3(DBL_EPSILON).z)
+					if (abs(IntersectionPoints[j] - CurrentTriangleDouble[i]).x > glm::dvec3(DBL_EPSILON).x ||
+						abs(IntersectionPoints[j] - CurrentTriangleDouble[i]).y > glm::dvec3(DBL_EPSILON).y ||
+						abs(IntersectionPoints[j] - CurrentTriangleDouble[i]).z > glm::dvec3(DBL_EPSILON).z)
 					{
 						PointsThatAreNotSame++;
 					}
@@ -1144,7 +1097,7 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int Gri
 					bAlreadyExists = true;
 
 				if (!bAlreadyExists)
-					IntersectionPoints.push_back(CurrentTriangle[l]);
+					IntersectionPoints.push_back(CurrentTriangle[i]);
 			}
 		}
 
@@ -1173,4 +1126,12 @@ void LayerRasterizationManager::ClearDataAfterCalculation()
 {
 	MainThreadGridUpdateTasks.clear();
 	GatherGridRasterizationThreadCount = 0;
+}
+
+int LayerRasterizationManager::GetTexturePreviewID()
+{
+	if (ResultPreview == nullptr)
+		return -1;
+
+	return ResultPreview->GetTextureID();
 }

@@ -35,6 +35,7 @@ configure_file(${ENGINE_FOLDER}/ResourceManager/Config.h.in ${ENGINE_FOLDER}/Res
 # *************** SUB_SYSTEM ***************
 
 file(GLOB SubSystems_SRC
+	"SubSystems/CGALDeclarations.h"
 	"SubSystems/FELinesRenderer.cpp"
 	"SubSystems/FELinesRenderer.h"
 	"SubSystems/MeshManager.cpp"
