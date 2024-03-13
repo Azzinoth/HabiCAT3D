@@ -15,10 +15,27 @@ public:
 	SINGLETON_PUBLIC_PART(LayerRasterizationManager)
 
 	void PrepareCurrentLayerForExport(MeshLayer* LayerToExport);
-	void SaveToFile(const std::string FilePath);
 
-	int GetGridRasterizationMode();
-	void SetGridRasterizationMode(int NewValue);
+	enum GridRasterizationMode
+	{
+		Min = 0,
+		Max = 1,
+		Mean = 2,
+		Cumulative = 3
+	};
+
+	enum SaveMode
+	{
+		SaveAsPNG = 0,
+		SaveAsTIF = 1,
+		SaveAs32bitTIF = 2
+	};
+	
+	bool SaveToFile(std::string FilePath, SaveMode SaveMode = SaveAsPNG);
+	bool PromptUserForSaveLocation();
+
+	GridRasterizationMode GetGridRasterizationMode();
+	void SetGridRasterizationMode(GridRasterizationMode NewValue);
 
 	int GetGridResolution();
 	void SetGridResolution(int NewValue);
@@ -37,7 +54,6 @@ public:
 	int GetTexturePreviewID();
 
 	void ClearAllData();
-	bool b32BitsExport = false;
 private:
 	SINGLETON_PRIVATE_PART(LayerRasterizationManager)
 
@@ -83,17 +99,12 @@ private:
 	int GatherGridRasterizationThreadCount = 0;
 	MeshLayer* CurrentLayer = nullptr;
 	int CurrentResolution = 256;
-	int GridRasterizationMode = 2;
+	GridRasterizationMode Mode = GridRasterizationMode::Max;
 	glm::vec3 CurrentUpAxis = glm::vec3(0.0f);
-	const int GridRasterizationModeMin = 0;
-	const int GridRasterizationModeMax = 1;
-	const int GridRasterizationModeMean = 2;
-	const int GridRasterizationModeCumulative = 3;
 	float CumulativeModeUpperOutlierPercentile = 99.0f;
 	float CumulativeModeLowerOutlierPercentile = 0.5f;
 	
 	void PrepareRawImageData();
-	//bool b32BitsExport = false;
 	bool bUsingCGAL = true;
 
 	glm::dvec3 CalculateCentroid(const std::vector<glm::dvec3>& points);
@@ -119,7 +130,7 @@ private:
 	static void OnCalculationsStart();
 	static void OnCalculationsEnd();
 
-	std::vector <std::function<void()>> OnCalculationsStartCallbacks;
+	std::vector<std::function<void()>> OnCalculationsStartCallbacks;
 	std::vector<std::function<void()>> OnCalculationsEndCallbacks;
 
 	FETexture* ResultPreview = nullptr;

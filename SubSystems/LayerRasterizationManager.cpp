@@ -163,8 +163,8 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 				{
 					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
 					{
-						if (LAYER_RASTERIZATION_MANAGER.GridRasterizationMode == LAYER_RASTERIZATION_MANAGER.GridRasterizationModeMean ||
-							LAYER_RASTERIZATION_MANAGER.GridRasterizationMode == LAYER_RASTERIZATION_MANAGER.GridRasterizationModeCumulative)
+						if (LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Mean ||
+							LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Cumulative)
 						{
 							double CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetTriangleIntersectionArea(i, j, l);
 							if (CurrentTrianlgeArea > 0)
@@ -219,8 +219,8 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 				{
 					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
 					{
-						if (LAYER_RASTERIZATION_MANAGER.GridRasterizationMode == LAYER_RASTERIZATION_MANAGER.GridRasterizationModeMean ||
-							LAYER_RASTERIZATION_MANAGER.GridRasterizationMode == LAYER_RASTERIZATION_MANAGER.GridRasterizationModeCumulative)
+						if (LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Mean ||
+							LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Cumulative)
 						{
 							double CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetTriangleIntersectionArea(i, j, l);
 							if (CurrentTrianlgeArea > 0)
@@ -275,8 +275,8 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 				{
 					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
 					{
-						if (LAYER_RASTERIZATION_MANAGER.GridRasterizationMode == LAYER_RASTERIZATION_MANAGER.GridRasterizationModeMean ||
-							LAYER_RASTERIZATION_MANAGER.GridRasterizationMode == LAYER_RASTERIZATION_MANAGER.GridRasterizationModeCumulative)
+						if (LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Mean ||
+							LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Cumulative)
 						{
 							double CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetTriangleIntersectionArea(i, j, l);
 							if (CurrentTrianlgeArea > 0)
@@ -372,7 +372,7 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 			{
 				float FinalResult = 0.0f;
 
-				if (GridRasterizationMode == GridRasterizationModeMin)
+				if (Mode == GridRasterizationMode::Min)
 				{
 					float MinValue = FLT_MAX;
 
@@ -385,7 +385,7 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 
 					FinalResult = MinValue;
 				}
-				else if (GridRasterizationMode == GridRasterizationModeMax)
+				else if (Mode == GridRasterizationMode::Max)
 				{
 					float MaxValue = -FLT_MAX;
 
@@ -399,7 +399,7 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 					FinalResult = MaxValue;
 
 				}
-				else if (GridRasterizationMode == GridRasterizationModeMean)
+				else if (Mode == GridRasterizationMode::Mean)
 				{
 					int TriangleWithAreaCount = 0;
 
@@ -416,7 +416,7 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 
 					FinalResult /= static_cast<float>(TriangleWithAreaCount);
 				}
-				else if (GridRasterizationMode == GridRasterizationModeCumulative)
+				else if (Mode == GridRasterizationMode::Cumulative)
 				{
 					for (int k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
 					{
@@ -464,7 +464,7 @@ void LayerRasterizationManager::PrepareRawImageData()
 
 	float MinForColorMap = CurrentLayer->MinVisible;
 	float MaxForColorMap = CurrentLayer->MaxVisible;
-	if (GridRasterizationMode == GridRasterizationModeCumulative)
+	if (Mode == GridRasterizationMode::Cumulative)
 	{
 		std::vector<float> FlattenGrid;
 		FlattenGrid.reserve(Grid.size() * Grid[0].size());
@@ -597,13 +597,29 @@ void LayerRasterizationManager::PrepareRawImageData()
 	ResultPreview = RESOURCE_MANAGER.RawDataToFETexture(FinalImageRawData.data(), CurrentResolution, CurrentResolution);
 }
 
-void LayerRasterizationManager::SaveToFile(const std::string FilePath)
+bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMode)
 {
-	if (b32BitsExport)
-	{
-		GDALAllRegister(); // Initialize GDAL
+	if (Grid.size() == 0)
+		return false;
 
-		const char* filename = "output.tif";
+	if (ResultPreview == nullptr)
+		return false;
+
+	if (SaveMode != SaveAsPNG && SaveMode != SaveAsTIF && SaveMode != SaveAs32bitTIF)
+		return false;
+
+	if (FILE_SYSTEM.GetFileExtension(FilePath.c_str()) == "")
+	{
+		if (SaveMode == SaveAsTIF || SaveMode == SaveAs32bitTIF)
+			FilePath += ".tif";
+		else
+			FilePath += ".png";
+	}
+
+	if (SaveMode == SaveAs32bitTIF)
+	{
+		GDALAllRegister();
+
 		int ImageWidth = CurrentResolution;
 		int ImageHeight = CurrentResolution;
 		int BandsCount = 1;
@@ -612,12 +628,12 @@ void LayerRasterizationManager::SaveToFile(const std::string FilePath)
 		// Get the GeoTIFF driver
 		GDALDriver* Driver = GetGDALDriverManager()->GetDriverByName("GTiff");
 		if (Driver == nullptr)
-			return;
+			return false;
 
 		// Create a new GeoTIFF file
-		GDALDataset* Dataset = Driver->Create(filename, ImageWidth, ImageHeight, BandsCount, Type, nullptr);
+		GDALDataset* Dataset = Driver->Create(FilePath.c_str(), ImageWidth, ImageHeight, BandsCount, Type, nullptr);
 		if (Dataset == nullptr)
-			return;
+			return false;
 
 		// Set geotransform and projection if necessary
 		double GeoTransform[6] = { 0, 1, 0, 0, 0, -1 }; // Generic transformation
@@ -642,14 +658,14 @@ void LayerRasterizationManager::SaveToFile(const std::string FilePath)
 		{
 			CPLFree(RawData);
 			GDALClose(Dataset);
-			return;
+			return false;
 		}
 
 		// Cleanup
 		CPLFree(RawData);
 		GDALClose(Dataset);
 
-		return;
+		return true;
 	}
 
 	std::vector<std::vector<float>> RawDataCopy;
@@ -669,7 +685,7 @@ void LayerRasterizationManager::SaveToFile(const std::string FilePath)
 
 	float MinForColorMap = CurrentLayer->MinVisible;
 	float MaxForColorMap = CurrentLayer->MaxVisible;
-	if (GridRasterizationMode == GridRasterizationModeCumulative)
+	if (Mode == GridRasterizationMode::Cumulative)
 	{
 		std::vector<float> FlattenGrid;
 		FlattenGrid.reserve(Grid.size() * Grid[0].size());
@@ -799,7 +815,73 @@ void LayerRasterizationManager::SaveToFile(const std::string FilePath)
 		FinalImageRawData = FlippedImageRawData;
 	}
 
-	lodepng::encode(FilePath, FinalImageRawData, CurrentResolution, CurrentResolution);
+	if (SaveMode == SaveAsPNG)
+	{
+		lodepng::encode(FilePath, FinalImageRawData, CurrentResolution, CurrentResolution);
+	}
+	else if (SaveMode == SaveAsTIF)
+	{
+		GDALAllRegister();
+
+		int ImageWidth = CurrentResolution;
+		int ImageHeight = CurrentResolution;
+		int BandsCount = 4;
+		GDALDataType Type = GDT_Byte;
+
+		// Get the GeoTIFF driver
+		GDALDriver* Driver = GetGDALDriverManager()->GetDriverByName("GTiff");
+		if (Driver == nullptr)
+			return false;
+
+		// Create a new GeoTIFF file
+		GDALDataset* Dataset = Driver->Create(FilePath.c_str(), ImageWidth, ImageHeight, BandsCount, Type, nullptr);
+		if (Dataset == nullptr)
+			return false;
+
+		// Set geotransform and projection if necessary
+		double GeoTransform[6] = { 0, 1, 0, 0, 0, -1 }; // Generic transformation
+		Dataset->SetGeoTransform(GeoTransform);
+		Dataset->SetProjection("WGS84");
+
+		// Write data to the RGBA bands
+		for (int CurrentBand = 1; CurrentBand <= 4; CurrentBand++)
+		{
+			GDALRasterBand* Band = Dataset->GetRasterBand(CurrentBand);
+			CPLErr Error = Band->RasterIO(GF_Write, 0, 0, ImageWidth, ImageHeight, FinalImageRawData.data() + (CurrentBand - 1), ImageWidth, ImageHeight, Type, 4, 4 * ImageWidth);
+			if (Error != CE_None)
+			{
+				GDALClose(Dataset);
+				return false;
+			}
+		}
+
+		// Cleanup
+		GDALClose(Dataset);
+	}
+
+	return true;
+}
+
+const COMDLG_FILTERSPEC RASTERIZATION_EXPORT_FILE_FILTER[] =
+{
+	{ L"PNG file (*.png)", L"*.png"},
+	{ L"GeoTiff file (*.tif)", L"*.tif" },
+	{ L"GeoTiff file 32-bit gray scale (*.tif)", L"*.tif" }
+};
+
+bool LayerRasterizationManager::PromptUserForSaveLocation()
+{
+	int Index = -1;
+	std::string FilePath;
+	FILE_SYSTEM.ShowFileSaveDialog(FilePath, RASTERIZATION_EXPORT_FILE_FILTER, 3, &Index);
+
+	if (!FilePath.empty())
+	{
+		LAYER_RASTERIZATION_MANAGER.SaveToFile(FilePath, static_cast<LayerRasterizationManager::SaveMode>(Index));
+		return true;
+	}
+	
+	return false;
 }
 
 void LayerRasterizationManager::UpdateGridDebugDistributionInfo()
@@ -915,17 +997,17 @@ void LayerRasterizationManager::PrepareCurrentLayerForExport(MeshLayer* LayerToE
 	}
 }
 
-int LayerRasterizationManager::GetGridRasterizationMode()
+LayerRasterizationManager::GridRasterizationMode LayerRasterizationManager::GetGridRasterizationMode()
 {
-	return GridRasterizationMode;
+	return Mode;
 }
 
-void LayerRasterizationManager::SetGridRasterizationMode(int NewValue)
+void LayerRasterizationManager::SetGridRasterizationMode(GridRasterizationMode NewValue)
 {
 	if (NewValue < 0 || NewValue > 3)
 		return;
 
-	GridRasterizationMode = NewValue;
+	Mode = NewValue;
 }
 
 int LayerRasterizationManager::GetGridResolution()

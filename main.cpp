@@ -309,7 +309,7 @@ void MainWindowRender()
 	const char* rasterizationModes[] = { "Min", "Max", "Mean", "Cumulative"};
 	int TempInt = LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode();
 	ImGui::Combo("Rasterization Mode", &TempInt, rasterizationModes, IM_ARRAYSIZE(rasterizationModes));
-	LAYER_RASTERIZATION_MANAGER.SetGridRasterizationMode(TempInt);
+	LAYER_RASTERIZATION_MANAGER.SetGridRasterizationMode(static_cast<LayerRasterizationManager::GridRasterizationMode>(TempInt));
 
 	TempInt = LAYER_RASTERIZATION_MANAGER.GetGridResolution();
 	ImGui::SliderInt("Resolution", &TempInt, 2, 4096);
@@ -332,15 +332,18 @@ void MainWindowRender()
 	{
 		ImGui::Text("Result preview:");
 		ImGui::Image((void*)(intptr_t)LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID(), ImVec2(512, 512));
-	
 	}
 
-	ImGui::Checkbox("32 bit GeoTiff", &LAYER_RASTERIZATION_MANAGER.b32BitsExport);
+	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() == -1)
+		ImGui::BeginDisabled();
 
 	if (ImGui::Button("Save to file"))
 	{
-		LAYER_RASTERIZATION_MANAGER.SaveToFile("test.png");
+		LAYER_RASTERIZATION_MANAGER.PromptUserForSaveLocation();
 	}
+
+	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() == -1)
+		ImGui::EndDisabled();
 
 	float CameraSpeed = ENGINE.GetCamera()->GetMovementSpeed();
 	ImGui::Text("Camera speed: ");
@@ -348,16 +351,6 @@ void MainWindowRender()
 	ImGui::SetNextItemWidth(70);
 	ImGui::DragFloat("##Camera_speed", &CameraSpeed, 0.01f, 0.01f, 100.0f);
 	ENGINE.GetCamera()->SetMovementSpeed(CameraSpeed);
-
-	// Output dubug info from LAYER_RASTERIZATION_MANAGER, like min, max, mean, standard deviation, etc.
-	//ImGui::Text("Total area used: %f", LAYER_RASTERIZATION_MANAGER.Debug_TotalAreaUsed);
-	//ImGui::Text("Rasterization min: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawMin);
-	//ImGui::Text("Rasterization max: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawMax);
-	//ImGui::Text("Rasterization mean: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawMean);
-	//ImGui::Text("Rasterization standard deviation: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawStandardDeviation);
-	//ImGui::Text("Rasterization distribution skewness: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawSkewness);
-	//ImGui::Text("Rasterization distribution kurtosis: %f", LAYER_RASTERIZATION_MANAGER.Debug_ResultRawKurtosis);
-
 
 	if (UI.ShouldTakeScreenshot())
 	{
@@ -384,15 +377,6 @@ void MainWindowRender()
 		}
 
 		MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
-
-		/*static bool bNeedToRenderAABB = true;
-		if (bNeedToRenderAABB)
-		{
-			bNeedToRenderAABB = false;
-			LINE_RENDERER.RenderAABB(MESH_MANAGER.ActiveMesh->GetAABB().Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), glm::vec3(0.0f, 0.0f, 1.0f));
-
-			LINE_RENDERER.SyncWithGPU();
-		}*/
 	}
 
 	LINE_RENDERER.Render();
@@ -404,154 +388,6 @@ void MainWindowRender()
 		FirstFrame = false;
 		UI.ApplyStandardWindowsSizeAndPosition();
 	}
-}
-
-void GDALLoadTest()
-{
-	//GDALAllRegister(); // Initialize GDAL
-
-
-
-
-
-	//const char* filename = "output.tif";
-	//int xSize = 1024; // Width of the dataset
-	//int ySize = 1024; // Height of the dataset
-	//int nBands = 1; // Number of bands
-	//GDALDataType type = GDT_Float32; // Data type of the bands
-
-	//// Get the GeoTIFF driver
-	//GDALDriver* driver = GetGDALDriverManager()->GetDriverByName("GTiff");
-	//if (driver == nullptr) {
-	//	std::cerr << "GTiff driver not available." << std::endl;
-	//	exit(1);
-	//}
-
-	//// Create a new GeoTIFF file
-	//GDALDataset* dataset = driver->Create(filename, xSize, ySize, nBands, type, nullptr);
-	//if (dataset == nullptr) {
-	//	std::cerr << "Creation of output file failed." << std::endl;
-	//	exit(1);
-	//}
-
-	//// Set geotransform and projection if necessary
-	//double geotransform[6] = { 0, 1, 0, 0, 0, -1 }; // Example values
-	//dataset->SetGeoTransform(geotransform); // Set the affine transformation coefficients
-	//dataset->SetProjection("WGS84"); // Set the projection
-
-	//// Allocate data buffer for a single band
-	//float* pData = (float*)CPLMalloc(sizeof(float) * xSize * ySize);
-
-	//// Populate pData with your data
-
-	//float value = 1.0f;
-	//for (size_t i = 0; i < xSize; i++)
-	//{
-	//	for (size_t j = 0; j < ySize; j++)
-	//	{
-	//		pData[i * xSize + j] = value++;
-	//	}
-	//}
-
-	//// Write data to the first band
-	//GDALRasterBand* band = dataset->GetRasterBand(1);
-	//CPLErr err = band->RasterIO(GF_Write, 0, 0, xSize, ySize, pData, xSize, ySize, type, 0, 0);
-	//if (err != CE_None) {
-	//	std::cerr << "Error writing data to file." << std::endl;
-	//	CPLFree(pData);
-	//	GDALClose(dataset);
-	//	exit(1);
-	//}
-
-	//// Cleanup
-	//CPLFree(pData);
-	//GDALClose(dataset);
-
-
-
-
-
-
-
-
-
-
-
-	//// Create a new GeoTIFF dataset
-	//const char* outputFilename = "output.tif";
-	//int width = 1000;
-	//int height = 1000;
-	//int bandCount = 1;
-	//GDALDriver* driver = GetGDALDriverManager()->GetDriverByName("GTiff");
-	//GDALDataset* outputDataset = driver->Create(outputFilename, width, height, bandCount, GDT_Float32, NULL);
-
-	//// Set geospatial metadata
-	//double geoTransform[6] = { 0, 1, 0, 0, 0, -1 }; // Example geotransform
-	//outputDataset->SetGeoTransform(geoTransform);
-	//const char* projection = "EPSG:4326"; // Example projection (WGS84)
-	//outputDataset->SetProjection(projection);
-
-	//// Write float 32-bit data to the dataset
-	//float* data = new float[width * height];
-
-	//float value = 1.0f;
-	//for (size_t i = 0; i < width; i++)
-	//{
-	//	for (size_t j = 0; j < height; j++)
-	//	{
-	//		data[i * width + j] = value++;
-	//	}
-	//}
-	//// Fill the data array with your float 32-bit information
-	//// ...
-
-	//GDALRasterBand* band = outputDataset->GetRasterBand(1);
-	//band->WriteBlock(0, 0, data);
-
-	//// Close the dataset
-	//GDALClose(outputDataset);
-	//delete[] data;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	//const char* filename = "cea.tif";
-	//GDALDataset* dataset = static_cast<GDALDataset*>(GDALOpen(filename, GA_ReadOnly));
-	//if (dataset == nullptr) {
-	//	std::cerr << "Error opening file" << std::endl;
-	//	//return 1;
-	//}
-
-	//// Basic info about the raster
-	//std::cout << "Size is " << dataset->GetRasterXSize() << "x" << dataset->GetRasterYSize()
-	//	<< ", " << dataset->GetRasterCount() << " bands." << std::endl;
-
-	//// Accessing geospatial metadata
-	//double adfGeoTransform[6];
-	//if (dataset->GetGeoTransform(adfGeoTransform) == CE_None) {
-	//	std::cout << "Origin = (" << adfGeoTransform[0] << ", "
-	//		<< adfGeoTransform[3] << ")" << std::endl;
-	//	std::cout << "Pixel Size = (" << adfGeoTransform[1] << ", "
-	//		<< adfGeoTransform[5] << ")" << std::endl;
-	//}
-
-	//const char* proj = dataset->GetProjectionRef();
-	//if (proj != nullptr) {
-	//	std::cout << "Projection is: " << proj << std::endl;
-	//}
-
-	//GDALClose(dataset);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -601,7 +437,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 	else
 	{
-		GDALLoadTest();
 		ENGINE.InitWindow(1280, 720, "Rugosity Calculator");
 		ENGINE.ActivateSimplifiedRenderingMode();
 		// If I will directly assign result of APPLICATION.AddWindow to UI.MainWindow, then in Release build with full optimization app will crash, because of execution order.
