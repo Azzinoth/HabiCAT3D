@@ -310,16 +310,13 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 
 		Kernel::Plane_3 plane;
 		Kernel::Point_3 centroid;
-
-		Kernel::FT quality = linear_least_squares_fitting_3(result.points().begin(), result.points().end(), plane, centroid,
-			CGAL::Dimension_tag<0>());
-
+		Kernel::FT quality = linear_least_squares_fitting_3(result.points().begin(), result.points().end(), plane, centroid, CGAL::Dimension_tag<0>());
 
 		const auto CGALNormal = plane.perpendicular_line(centroid);
 
 		glm::vec3 Normal = glm::vec3(CGALNormal.direction().vector().x(),
-			CGALNormal.direction().vector().y(),
-			CGALNormal.direction().vector().z());
+									 CGALNormal.direction().vector().y(),
+									 CGALNormal.direction().vector().z());
 
 		Normal = glm::normalize(Normal);
 

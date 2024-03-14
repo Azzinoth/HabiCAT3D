@@ -313,7 +313,7 @@ void MainWindowRender()
 
 	TempInt = LAYER_RASTERIZATION_MANAGER.GetGridResolution();
 	ImGui::SliderInt("Resolution", &TempInt, 2, 4096);
-	LAYER_RASTERIZATION_MANAGER.SetGridResolution(TempInt);
+	//LAYER_RASTERIZATION_MANAGER.SetGridResolution(TempInt);
 
 	float TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModeLowerOutlierPercentile();
 	ImGui::SliderFloat("Lower outlier percentile", &TempFloat, 0.0f, 99.9f);

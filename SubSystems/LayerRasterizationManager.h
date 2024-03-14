@@ -38,7 +38,12 @@ public:
 	void SetGridRasterizationMode(GridRasterizationMode NewValue);
 
 	int GetGridResolution();
-	void SetGridResolution(int NewValue);
+	//void SetGridResolution(int NewValue);
+
+	float GetResolutionInMeters();
+	void SetResolutionInMeters(float NewValue);
+
+	glm::vec2 GetMinMaxResolutionInMeters(glm::vec3 ProjectionVector = glm::vec3(0.0f));
 
 	glm::vec3 GetProjectionVector();
 
@@ -89,8 +94,11 @@ private:
 
 	int THREAD_COUNT = 10;
 
+	const int RASTERIZATION_MIN_RESOLUTION = 16;
+	const int RASTERIZATION_MAX_RESOLUTION = 4096;
+
 	glm::vec3 ConvertToClosestAxis(const glm::vec3& Vector);
-	std::vector<std::vector<GridCell>> GenerateGridProjection(FEAABB& OriginalAABB, const glm::vec3& Axis, int Resolution);
+	std::vector<std::vector<GridCell>> GenerateGridProjection(const glm::vec3& Axis, int Resolution);
 	static void GridRasterizationThread(void* InputData, void* OutputData);
 	static void GatherGridRasterizationThreadWork(void* OutputData);
 
@@ -101,6 +109,7 @@ private:
 	int GatherGridRasterizationThreadCount = 0;
 	MeshLayer* CurrentLayer = nullptr;
 	int CurrentResolution = 256;
+	float CurrentResolutionInMeters = 1.0f;
 	GridRasterizationMode Mode = GridRasterizationMode::Max;
 	glm::vec3 CurrentProjectionVector = glm::vec3(0.0f);
 	float CumulativeModeUpperOutlierPercentile = 99.0f;
@@ -109,6 +118,7 @@ private:
 	void PrepareRawImageData();
 	bool bUsingCGAL = true;
 
+	Point_2 ProjectPointOntoPlane(const Point_3& Point, const Plane_3& Plane);
 	glm::dvec3 CalculateCentroid(const std::vector<glm::dvec3>& points);
 	bool CompareAngles(const glm::dvec3& a, const glm::dvec3& b, const glm::dvec3& centroid);
 	void SortPointsByAngle(std::vector<glm::dvec3>& points);

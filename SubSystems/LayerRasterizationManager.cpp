@@ -31,12 +31,56 @@ glm::vec3 LayerRasterizationManager::ConvertToClosestAxis(const glm::vec3& Vecto
 	}
 }
 
-std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterizationManager::GenerateGridProjection(FEAABB& OriginalAABB, const glm::vec3& Axis, int Resolution)
+std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterizationManager::GenerateGridProjection(const glm::vec3& Axis, int Resolution)
 {
 	std::vector<std::vector<GridCell>> Grid;
 
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+		return Grid;
+
 	if (Axis.x + Axis.y + Axis.z != 1.0f)
 		return Grid;
+
+	glm::vec2 MinMaxResolutionInMeters = GetMinMaxResolutionInMeters(Axis);
+	if (CurrentResolutionInMeters > MinMaxResolutionInMeters.x)
+		CurrentResolutionInMeters = MinMaxResolutionInMeters.x;
+
+	if (CurrentResolutionInMeters < MinMaxResolutionInMeters.y)
+		CurrentResolutionInMeters = MinMaxResolutionInMeters.y;
+
+	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
+	float CellSize = JITTER_MANAGER.GetLowestPossibleResolution() / 4.0f/*CurrentResolutionInMeters*/;
+
+	glm::vec3 CellDimension = glm::vec3(CellSize);
+	unsigned int CountOfCellToCoverAABB = 0;
+
+	if (Axis.x > 0.0)
+	{
+		float UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
+		CountOfCellToCoverAABB = UsableSize / CellSize;
+
+		CellDimension.x = MeshAABB.GetSize().x;
+	}
+	else if (Axis.y > 0.0)
+	{
+		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
+		CountOfCellToCoverAABB = UsableSize / CellSize;
+
+		CellDimension.y = MeshAABB.GetSize().y;
+	}
+	else if (Axis.z > 0.0)
+	{
+		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
+		CountOfCellToCoverAABB = UsableSize / CellSize;
+
+		CellDimension.z = MeshAABB.GetSize().z;
+	}
+
+	CountOfCellToCoverAABB += 1;
+	glm::uvec2 ResolutionXY = glm::uvec2(CountOfCellToCoverAABB, CountOfCellToCoverAABB);
+
+	LAYER_RASTERIZATION_MANAGER.CurrentResolution = glm::max(ResolutionXY.x, ResolutionXY.y);
+	Resolution = LAYER_RASTERIZATION_MANAGER.CurrentResolution;
 
 	Grid.resize(Resolution);
 	for (int i = 0; i < Resolution; i++)
@@ -44,55 +88,39 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 		Grid[i].resize(Resolution);
 	}
 
-	// Get the original AABB min and max vectors
-	glm::vec3 Min = OriginalAABB.GetMin();
-	glm::vec3 Max = OriginalAABB.GetMax();
-
-	// Determine the number of divisions along each axis
-	glm::vec3 Size = Max - Min;
-	glm::vec3 DivisionSize = Size / static_cast<float>(Resolution);
-
-	// Fix the division size for the specified axis to cover the full length of the original AABB
-	if (Axis.x > 0.0) DivisionSize.x = Size.x;
-	if (Axis.y > 0.0) DivisionSize.y = Size.y;
-	if (Axis.z > 0.0) DivisionSize.z = Size.z;
-
 	// Loop through each division to create the grid
 	for (int i = 0; i < Resolution; i++)
 	{
 		for (int j = 0; j < Resolution; j++)
 		{
 			// Calculate min and max for the current cell
-			glm::vec3 CellMin = Min;
-			glm::vec3 CellMax = Min + DivisionSize;
+			glm::vec3 CellMin = MeshAABB.GetMin();
+			glm::vec3 CellMax = MeshAABB.GetMin() + CellDimension;
 
 			if (Axis.x > 0.0f)
 			{
-				CellMin.y += DivisionSize.y * i;
-				CellMax.y += DivisionSize.y * i;
+				CellMin.y += CellDimension.y * i;
+				CellMax.y += CellDimension.y * i;
 
-				CellMin.z += DivisionSize.z * j;
-				CellMax.z += DivisionSize.z * j;
+				CellMin.z += CellDimension.z * j;
+				CellMax.z += CellDimension.z * j;
 			}
 			else if (Axis.y > 0.0f)
 			{
-				CellMin.x += DivisionSize.x * i;
-				CellMax.x += DivisionSize.x * i;
+				CellMin.x += CellDimension.x * i;
+				CellMax.x += CellDimension.x * i;
 
-				CellMin.z += DivisionSize.z * j;
-				CellMax.z += DivisionSize.z * j;
+				CellMin.z += CellDimension.z * j;
+				CellMax.z += CellDimension.z * j;
 			}
 			else if (Axis.z > 0.0f)
 			{
-				CellMin.x += DivisionSize.x * i;
-				CellMax.x += DivisionSize.x * i;
+				CellMin.x += CellDimension.x * i;
+				CellMax.x += CellDimension.x * i;
 
-				CellMin.y += DivisionSize.y * j;
-				CellMax.y += DivisionSize.y * j;
+				CellMin.y += CellDimension.y * j;
+				CellMax.y += CellDimension.y * j;
 			}
-
-			// Ensure we don't exceed original bounds due to floating point arithmetic
-			CellMax = glm::min(CellMax, Max);
 
 			// Create a new AABB for the grid cell
 			GridCell NewCell;
@@ -102,116 +130,6 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 	}
 
 	return Grid;
-
-	
-
-
-	//std::vector<std::vector<GridCell>> Grid;
-
-	//if (Axis.x + Axis.y + Axis.z != 1.0f)
-	//	return Grid;
-
-	//float CellSize = JITTER_MANAGER.GetLowestPossibleResolution() / 4.0f;
-
-	//// Get the original AABB min and max vectors
-	//glm::vec3 Min = OriginalAABB.GetMin();
-	//glm::vec3 Max = OriginalAABB.GetMax();
-
-	//// Determine the number of divisions along each axis
-	//glm::vec3 OriginalAABBSize = Max - Min;
-	//glm::vec3 DivisionSize = OriginalAABBSize / CellSize;
-
-	//// Fix the division size for the specified axis to cover the full length of the original AABB
-	//if (Axis.x > 0.0) DivisionSize.x = 1.0f;
-	//if (Axis.y > 0.0) DivisionSize.y = 1.0f;
-	//if (Axis.z > 0.0) DivisionSize.z = 1.0f;
-
-	//int NewResolutionWidth = ceil(DivisionSize.x);
-	//if (NewResolutionWidth < 1)
-	//	NewResolutionWidth = 1;
-
-	//int NewResolutionHeight = ceil(DivisionSize.y);
-	//if (NewResolutionHeight < 1)
-	//	NewResolutionHeight = 1;
-
-	//glm::uvec2 ResolutionXY = glm::uvec2(NewResolutionWidth, NewResolutionHeight);
-
-	//LAYER_RASTERIZATION_MANAGER.CurrentResolution = glm::max(ResolutionXY.x, ResolutionXY.y);
-	//Resolution = LAYER_RASTERIZATION_MANAGER.CurrentResolution;
-
-	//Grid.resize(Resolution);
-	//for (int i = 0; i < Resolution; i++)
-	//{
-	//	Grid[i].resize(Resolution);
-	//}
-
-	//if (Axis.x > 0.0)
-	//{
-	//	float temp = glm::max(OriginalAABBSize.y, OriginalAABBSize.z);
-	//	DivisionSize = glm::vec3(temp / static_cast<float>(Resolution));
-
-	//	DivisionSize.x = OriginalAABBSize.x;
-	//}
-	//else if (Axis.y > 0.0)
-	//{
-	//	float temp = glm::max(OriginalAABBSize.x, OriginalAABBSize.z);
-	//	DivisionSize = glm::vec3(temp / static_cast<float>(Resolution));
-
-	//	DivisionSize.y = OriginalAABBSize.y;
-	//}
-	//else if (Axis.z > 0.0)
-	//{
-	//	float temp = glm::max(OriginalAABBSize.x, OriginalAABBSize.y);
-	//	DivisionSize = glm::vec3(temp / static_cast<float>(Resolution));
-
-	//	DivisionSize.z = OriginalAABBSize.z;
-	//}
-
-	//// Loop through each division to create the grid
-	//for (int i = 0; i < Resolution; i++)
-	//{
-	//	for (int j = 0; j < Resolution; j++)
-	//	{
-	//		// Calculate min and max for the current cell
-	//		glm::vec3 CellMin = Min;
-	//		glm::vec3 CellMax = Min + DivisionSize;
-
-	//		if (Axis.x > 0.0f)
-	//		{
-	//			CellMin.y += DivisionSize.y * i;
-	//			CellMax.y += DivisionSize.y * i;
-
-	//			CellMin.z += DivisionSize.z * j;
-	//			CellMax.z += DivisionSize.z * j;
-	//		}
-	//		else if (Axis.y > 0.0f)
-	//		{
-	//			CellMin.x += DivisionSize.x * i;
-	//			CellMax.x += DivisionSize.x * i;
-
-	//			CellMin.z += DivisionSize.z * j;
-	//			CellMax.z += DivisionSize.z * j;
-	//		}
-	//		else if (Axis.z > 0.0f)
-	//		{
-	//			CellMin.x += DivisionSize.x * i;
-	//			CellMax.x += DivisionSize.x * i;
-
-	//			CellMin.y += DivisionSize.y * j;
-	//			CellMax.y += DivisionSize.y * j;
-	//		}
-
-	//		// Ensure we don't exceed original bounds due to floating point arithmetic
-	//		CellMax = glm::min(CellMax, Max);
-
-	//		// Create a new AABB for the grid cell
-	//		GridCell NewCell;
-	//		NewCell.AABB = FEAABB(CellMin, CellMax);
-	//		Grid[i][j] = NewCell;
-	//	}
-	//}
-
-	//return Grid;
 }
 
 void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* OutputData)
@@ -933,7 +851,7 @@ void LayerRasterizationManager::PrepareCurrentLayerForExport(MeshLayer* LayerToE
 	else
 		CurrentProjectionVector = ConvertToClosestAxis(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal());
 
-	Grid = GenerateGridProjection(MESH_MANAGER.ActiveMesh->GetAABB(), CurrentProjectionVector, CurrentResolution);
+	Grid = GenerateGridProjection(CurrentProjectionVector, CurrentResolution);
 
 	int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() / LAYER_RASTERIZATION_MANAGER.THREAD_COUNT);
 
@@ -976,13 +894,13 @@ int LayerRasterizationManager::GetGridResolution()
 	return CurrentResolution;
 }
 
-void LayerRasterizationManager::SetGridResolution(int NewValue)
-{
-	if (NewValue < 2 || NewValue > 4096)
-		return;
-
-	CurrentResolution = NewValue;
-}
+//void LayerRasterizationManager::SetGridResolution(int NewValue)
+//{
+//	if (NewValue < 2 || NewValue > 4096)
+//		return;
+//
+//	CurrentResolution = NewValue;
+//}
 
 float LayerRasterizationManager::GetCumulativeModeLowerOutlierPercentile()
 {
@@ -1052,6 +970,15 @@ float LayerRasterizationManager::GetProgress()
 	return Progress;
 }
 
+Point_2 LayerRasterizationManager::ProjectPointOntoPlane(const Point_3& Point, const Plane_3& Plane)
+{
+	Vector_3 OrthogonalVector = Plane.orthogonal_vector();
+	Vector_3 ToPoint = Point - Plane.point();
+	double SignedDistance = ToPoint * OrthogonalVector / std::sqrt(OrthogonalVector.squared_length());
+	Point_3 ProjectedPoint = Point - SignedDistance * OrthogonalVector / std::sqrt(OrthogonalVector.squared_length());
+	return Point_2(ProjectedPoint.x(), ProjectedPoint.y());
+}
+
 double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int GridY, int TriangleIndex)
 {
 	double Result = 0.0;
@@ -1080,15 +1007,23 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int Gri
 		// Compute the intersection between the triangle and the AABB
 		auto CGALIntersection = CGAL::intersection(Triangle, AABB);
 
+		/*const auto CGALNormal = Triangle.supporting_plane().perpendicular_line(PointA);
+
+		Vector_3 Normal = Vector_3(CGALNormal.direction().vector().x(),
+								   CGALNormal.direction().vector().y(),
+								   CGALNormal.direction().vector().z());*/
+
+		Vector_3 Normal = Vector_3(CurrentProjectionVector.x , CurrentProjectionVector.y, CurrentProjectionVector.z);
+
 		// Check the type of the intersection result and calculate the area
 		if (CGALIntersection)
 		{
 			if (const Triangle_3* intersect_triangle = boost::get<Triangle_3>(&*CGALIntersection))
 			{
 				// Project the 3D triangle onto a 2D plane
-				Kernel::Point_2 p1_2d(intersect_triangle->vertex(0).x(), intersect_triangle->vertex(0).z());
-				Kernel::Point_2 p2_2d(intersect_triangle->vertex(1).x(), intersect_triangle->vertex(1).z());
-				Kernel::Point_2 p3_2d(intersect_triangle->vertex(2).x(), intersect_triangle->vertex(2).z());
+				Point_2 p1_2d = ProjectPointOntoPlane(intersect_triangle->vertex(0), Triangle.supporting_plane());
+				Point_2 p2_2d = ProjectPointOntoPlane(intersect_triangle->vertex(1), Triangle.supporting_plane());
+				Point_2 p3_2d = ProjectPointOntoPlane(intersect_triangle->vertex(2), Triangle.supporting_plane());
 
 				// Using absolute value to ensure the area is positive
 				// CGAL will return a negative area if the vertices are ordered clockwise
@@ -1107,7 +1042,7 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int Gri
 				// Create a polygon from the intersection points
 				Polygon_2 polygon;
 				for (const auto& point : *intersect_points) {
-					polygon.push_back(Point_2(point.x(), point.z()));
+					polygon.push_back(ProjectPointOntoPlane(point, Triangle.supporting_plane()));
 				}
 
 				// Using absolute value to ensure the area is positive
@@ -1182,4 +1117,54 @@ int LayerRasterizationManager::GetTexturePreviewID()
 glm::vec3 LayerRasterizationManager::GetProjectionVector()
 {
 	return CurrentProjectionVector;
+}
+
+float LayerRasterizationManager::GetResolutionInMeters()
+{
+	return CurrentResolutionInMeters;
+}
+void LayerRasterizationManager::SetResolutionInMeters(float NewValue)
+{
+	glm::vec2 MinMaxResolutionInMeters = GetMinMaxResolutionInMeters();
+
+	if (NewValue > MinMaxResolutionInMeters.x)
+		NewValue = MinMaxResolutionInMeters.x;
+
+	if (NewValue < MinMaxResolutionInMeters.y)
+		NewValue = MinMaxResolutionInMeters.y;
+
+	CurrentResolutionInMeters = NewValue;
+}
+
+glm::vec2 LayerRasterizationManager::GetMinMaxResolutionInMeters(glm::vec3 ProjectionVector)
+{
+	glm::vec2 Result = glm::vec2(0.0f);
+
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+		return Result;
+
+	glm::vec3 Axis = CurrentProjectionVector;
+	if (ProjectionVector != glm::vec3(0.0f))
+		Axis = ProjectionVector;
+		
+	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
+
+	float UsableSize = 0.0f;
+	if (Axis.x > 0.0)
+	{
+		UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
+	}
+	else if (Axis.y > 0.0)
+	{
+		UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
+	}
+	else if (Axis.z > 0.0)
+	{
+		UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
+	}
+
+	Result.x = UsableSize / (RASTERIZATION_MIN_RESOLUTION + 1);
+	Result.y = UsableSize / (RASTERIZATION_MAX_RESOLUTION + 1);
+
+	return Result;
 }
