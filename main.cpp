@@ -323,7 +323,34 @@ void MainWindowRender()
 	ImGui::SliderFloat("Upper outlier percentile", &TempFloat, 0.1f, 100.0f);
 	LAYER_RASTERIZATION_MANAGER.SetCumulativeModeUpperOutlierPercentile(TempFloat);
 
-	if (ImGui::Button("Prepare data for export"))
+	glm::vec3 ForceProjectionVector = LAYER_RASTERIZATION_MANAGER.GetProjectionVector();
+	int SelectedAxis = ForceProjectionVector == glm::vec3(1.0f, 0.0f, 0.0f) ? 0 : ForceProjectionVector == glm::vec3(0.0f, 1.0f, 0.0f) ? 1 : 2;
+	ImGui::Text("Select the axis along which the layer should be projected: ");
+	if (ImGui::RadioButton("X", &SelectedAxis, 0))
+	{
+		ForceProjectionVector = glm::vec3(1.0f, 0.0f, 0.0f);
+		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer(), ForceProjectionVector);
+	}
+
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Y", &SelectedAxis, 1))
+	{
+		ForceProjectionVector = glm::vec3(0.0f, 1.0f, 0.0f);
+		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer(), ForceProjectionVector);
+	}
+
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Z", &SelectedAxis, 2))
+	{
+		ForceProjectionVector = glm::vec3(0.0f, 0.0f, 1.0f);
+		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer(), ForceProjectionVector);
+	}
+
+	std::string TextForButton = "Prepare data for export";
+	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
+		TextForButton = "Refresh data for export";
+
+	if (ImGui::Button(TextForButton.c_str()))
 	{
 		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer());
 	}
@@ -344,13 +371,6 @@ void MainWindowRender()
 
 	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() == -1)
 		ImGui::EndDisabled();
-
-	float CameraSpeed = ENGINE.GetCamera()->GetMovementSpeed();
-	ImGui::Text("Camera speed: ");
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(70);
-	ImGui::DragFloat("##Camera_speed", &CameraSpeed, 0.01f, 0.01f, 100.0f);
-	ENGINE.GetCamera()->SetMovementSpeed(CameraSpeed);
 
 	if (UI.ShouldTakeScreenshot())
 	{

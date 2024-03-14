@@ -14,7 +14,7 @@ class LayerRasterizationManager
 public:
 	SINGLETON_PUBLIC_PART(LayerRasterizationManager)
 
-	void PrepareCurrentLayerForExport(MeshLayer* LayerToExport);
+	void PrepareCurrentLayerForExport(MeshLayer* LayerToExport, glm::vec3 ForceProjectionVector = glm::vec3(0.0f));
 
 	enum GridRasterizationMode
 	{
@@ -39,6 +39,8 @@ public:
 
 	int GetGridResolution();
 	void SetGridResolution(int NewValue);
+
+	glm::vec3 GetProjectionVector();
 
 	float GetCumulativeModeLowerOutlierPercentile();
 	void SetCumulativeModeLowerOutlierPercentile(float NewValue);
@@ -100,7 +102,7 @@ private:
 	MeshLayer* CurrentLayer = nullptr;
 	int CurrentResolution = 256;
 	GridRasterizationMode Mode = GridRasterizationMode::Max;
-	glm::vec3 CurrentUpAxis = glm::vec3(0.0f);
+	glm::vec3 CurrentProjectionVector = glm::vec3(0.0f);
 	float CumulativeModeUpperOutlierPercentile = 99.0f;
 	float CumulativeModeLowerOutlierPercentile = 0.5f;
 	
@@ -118,7 +120,6 @@ private:
 	double Debug_ResultRawMax = 0.0;
 	double Debug_ResultRawMean = 0.0;
 	double Debug_ResultRawStandardDeviation = 0.0;
-
 	double Debug_ResultRawSkewness = 0.0;
 	double Debug_ResultRawKurtosis = 0.0;
 
