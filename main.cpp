@@ -103,10 +103,10 @@ void LoadMesh(std::string FileName)
 
 void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 {
-	LINE_RENDERER.ClearAll();
-
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() == 1)
 	{
+		LINE_RENDERER.ClearAll();
+
 		std::vector<glm::vec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
 		for (size_t i = 0; i < TranformedTrianglePoints.size(); i++)
 		{
@@ -136,6 +136,8 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 	}
 	else if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() > 1)
 	{
+		LINE_RENDERER.ClearAll();
+
 		for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size(); i++)
 		{
 			std::vector<glm::vec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[i]];
@@ -210,6 +212,8 @@ void mouseButtonCallback(int button, int action, int mods)
 
 	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
 	{
+		//LAYER_RASTERIZATION_MANAGER.DebugMouseClick();
+
 		if (MESH_MANAGER.ActiveMesh != nullptr)
 		{
 			if (UI.GetLayerSelectionMode() == 1)
@@ -304,6 +308,7 @@ void ConsoleThreadCode(void* InputData)
 
 void MainWindowRender()
 {
+	LAYER_RASTERIZATION_MANAGER.ShowDebugWindow();
 	static bool FirstFrame = true;
 
 	const char* rasterizationModes[] = { "Min", "Max", "Mean", "Cumulative"};

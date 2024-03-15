@@ -61,6 +61,9 @@ public:
 	int GetTexturePreviewID();
 
 	void ClearAllData();
+
+	void ShowDebugWindow();
+	void DebugMouseClick();
 private:
 	SINGLETON_PRIVATE_PART(LayerRasterizationManager)
 
@@ -136,6 +139,13 @@ private:
 	void UpdateGridDebugDistributionInfo();
 
 	double Debug_TotalAreaUsed = 0.0;
+
+	void DebugSelectCell(int X, int Y);
+	glm::vec2 DebugSelectedCell = glm::vec2(-1.0);
+
+	bool bDebugShowOnlyCellsWithTriangles = true;
+	bool bDebugShowOnlySelectedCells = false;
+	void DebugRenderGrid();
 
 	float Progress = 0.0f;
 	static void OnCalculationsStart();

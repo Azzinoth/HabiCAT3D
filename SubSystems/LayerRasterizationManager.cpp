@@ -155,7 +155,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 
 	if (UpAxis.x > 0.0)
 	{
-		for (int l = FirstIndexInTriangleArray; l < LastIndexInTriangleArray; l++)
+		for (int l = FirstIndexInTriangleArray; l <= LastIndexInTriangleArray; l++)
 		{
 			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
@@ -189,6 +189,34 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 
 				for (size_t j = SecondAxisStartIndex; j < SecondAxisEndIndex; j++)
 				{
+					//if (i == 101 && j == 135)
+					//{
+					//	int a = 0;
+					//	a++;
+					//}
+					//auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l];
+					//if (CurrentTriangle.size() != 3)
+					//	continue;
+
+					//std::vector<glm::dvec3> CurrentTriangleDouble;
+					//CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[0].x, CurrentTriangle[0].y, CurrentTriangle[0].z));
+					//CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[1].x, CurrentTriangle[1].y, CurrentTriangle[1].z));
+					//CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[2].x, CurrentTriangle[2].y, CurrentTriangle[2].z));
+
+					//// Define a triangle
+					//Point_3 PointA(CurrentTriangleDouble[0].x, CurrentTriangleDouble[0].y, CurrentTriangleDouble[0].z);
+					//Point_3 PointB(CurrentTriangleDouble[1].x, CurrentTriangleDouble[1].y, CurrentTriangleDouble[1].z);
+					//Point_3 PointC(CurrentTriangleDouble[2].x, CurrentTriangleDouble[2].y, CurrentTriangleDouble[2].z);
+					//Triangle_3 Triangle(PointA, PointB, PointC);
+
+					//// Define an AABB
+					//Bbox_3 AABB(Grid[i][j].AABB.GetMin().x, Grid[i][j].AABB.GetMin().y, Grid[i][j].AABB.GetMin().z,
+					//	Grid[i][j].AABB.GetMax().x, Grid[i][j].AABB.GetMax().y, Grid[i][j].AABB.GetMax().z);
+
+					//// Compute the intersection between the triangle and the AABB
+					//auto CGALIntersection = CGAL::intersection(Triangle, AABB);
+					//if (CGALIntersection/*GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l])*/)
+
 					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
 					{
 						if (LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Mean ||
@@ -211,7 +239,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 	}
 	if (UpAxis.y > 0.0)
 	{
-		for (int l = FirstIndexInTriangleArray; l < LastIndexInTriangleArray; l++)
+		for (int l = FirstIndexInTriangleArray; l <= LastIndexInTriangleArray; l++)
 		{
 			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
@@ -245,6 +273,34 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 
 				for (size_t j = SecondAxisStartIndex; j < SecondAxisEndIndex; j++)
 				{
+					//if (i == 101 && j == 135)
+					//{
+					//	int a = 0;
+					//	a++;
+					//}
+					//auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l];
+					//if (CurrentTriangle.size() != 3)
+					//	continue;
+
+					//std::vector<glm::dvec3> CurrentTriangleDouble;
+					//CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[0].x, CurrentTriangle[0].y, CurrentTriangle[0].z));
+					//CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[1].x, CurrentTriangle[1].y, CurrentTriangle[1].z));
+					//CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[2].x, CurrentTriangle[2].y, CurrentTriangle[2].z));
+
+					//// Define a triangle
+					//Point_3 PointA(CurrentTriangleDouble[0].x, CurrentTriangleDouble[0].y, CurrentTriangleDouble[0].z);
+					//Point_3 PointB(CurrentTriangleDouble[1].x, CurrentTriangleDouble[1].y, CurrentTriangleDouble[1].z);
+					//Point_3 PointC(CurrentTriangleDouble[2].x, CurrentTriangleDouble[2].y, CurrentTriangleDouble[2].z);
+					//Triangle_3 Triangle(PointA, PointB, PointC);
+
+					//// Define an AABB
+					//Bbox_3 AABB(Grid[i][j].AABB.GetMin().x, Grid[i][j].AABB.GetMin().y, Grid[i][j].AABB.GetMin().z,
+					//	Grid[i][j].AABB.GetMax().x, Grid[i][j].AABB.GetMax().y, Grid[i][j].AABB.GetMax().z);
+
+					//// Compute the intersection between the triangle and the AABB
+					//auto CGALIntersection = CGAL::intersection(Triangle, AABB);
+					//if (CGALIntersection/*GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l])*/)
+
 					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
 					{
 						if (LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Mean ||
@@ -267,7 +323,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 	}
 	else if (UpAxis.z > 0.0)
 	{
-		for (int l = FirstIndexInTriangleArray; l < LastIndexInTriangleArray; l++)
+		for (int l = FirstIndexInTriangleArray; l <= LastIndexInTriangleArray; l++)
 		{
 			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
 
@@ -301,6 +357,34 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 
 				for (size_t j = SecondAxisStartIndex; j < SecondAxisEndIndex; j++)
 				{
+					//if (i == 101 && j == 135)
+					//{
+					//	int a = 0;
+					//	a++;
+					//}
+					//auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l];
+					//if (CurrentTriangle.size() != 3)
+					//	continue;
+
+					//std::vector<glm::dvec3> CurrentTriangleDouble;
+					//CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[0].x, CurrentTriangle[0].y, CurrentTriangle[0].z));
+					//CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[1].x, CurrentTriangle[1].y, CurrentTriangle[1].z));
+					//CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[2].x, CurrentTriangle[2].y, CurrentTriangle[2].z));
+
+					//// Define a triangle
+					//Point_3 PointA(CurrentTriangleDouble[0].x, CurrentTriangleDouble[0].y, CurrentTriangleDouble[0].z);
+					//Point_3 PointB(CurrentTriangleDouble[1].x, CurrentTriangleDouble[1].y, CurrentTriangleDouble[1].z);
+					//Point_3 PointC(CurrentTriangleDouble[2].x, CurrentTriangleDouble[2].y, CurrentTriangleDouble[2].z);
+					//Triangle_3 Triangle(PointA, PointB, PointC);
+
+					//// Define an AABB
+					//Bbox_3 AABB(Grid[i][j].AABB.GetMin().x, Grid[i][j].AABB.GetMin().y, Grid[i][j].AABB.GetMin().z,
+					//	Grid[i][j].AABB.GetMax().x, Grid[i][j].AABB.GetMax().y, Grid[i][j].AABB.GetMax().z);
+
+					//// Compute the intersection between the triangle and the AABB
+					//auto CGALIntersection = CGAL::intersection(Triangle, AABB);
+					//if (CGALIntersection/*GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l])*/)
+
 					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
 					{
 						if (LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Mean ||
@@ -855,6 +939,12 @@ void LayerRasterizationManager::PrepareCurrentLayerForExport(MeshLayer* LayerToE
 
 	int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() / LAYER_RASTERIZATION_MANAGER.THREAD_COUNT);
 
+	if (LAYER_RASTERIZATION_MANAGER.THREAD_COUNT > NumberOfTrianglesPerThread)
+	{
+		LAYER_RASTERIZATION_MANAGER.THREAD_COUNT = 1;
+		NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
+	}
+
 	std::vector<GridRasterizationThreadData*> ThreadData;
 	for (int i = 0; i < LAYER_RASTERIZATION_MANAGER.THREAD_COUNT; i++)
 	{
@@ -972,12 +1062,25 @@ float LayerRasterizationManager::GetProgress()
 
 Point_2 LayerRasterizationManager::ProjectPointOntoPlane(const Point_3& Point, const Plane_3& Plane)
 {
-	Vector_3 OrthogonalVector = Plane.orthogonal_vector();
-	Vector_3 ToPoint = Point - Plane.point();
-	double SignedDistance = ToPoint * OrthogonalVector / std::sqrt(OrthogonalVector.squared_length());
-	Point_3 ProjectedPoint = Point - SignedDistance * OrthogonalVector / std::sqrt(OrthogonalVector.squared_length());
-	return Point_2(ProjectedPoint.x(), ProjectedPoint.y());
+	// Project the point onto the plane
+	Point_3 ProjectedPoint = Plane.projection(Point);
+
+	// Construct an orthonormal basis for the plane
+	Vector_3 Base1 = Plane.base1();
+	Vector_3 Base2 = Plane.base2();
+
+	// Express the projected point in the local coordinate system of the plane
+	Vector_3 DifferenceVector = ProjectedPoint - Plane.point();
+	double X = DifferenceVector * Base1;
+	double Y = DifferenceVector * Base2;
+
+	return Point_2(X, Y);
 }
+
+//#include <CGAL/partition_2.h>
+//#include <CGAL/polygon_function_objects.h>
+//#include <CGAL/Polygon_with_holes_2.h>
+//#include <CGAL/convex_hull_2.h>
 
 double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int GridY, int TriangleIndex)
 {
@@ -1014,6 +1117,8 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int Gri
 								   CGALNormal.direction().vector().z());*/
 
 		Vector_3 Normal = Vector_3(CurrentProjectionVector.x , CurrentProjectionVector.y, CurrentProjectionVector.z);
+		Plane_3 PlaneToProject(PointA, Normal);
+		//PlaneToProject = Triangle.supporting_plane();
 
 		// Check the type of the intersection result and calculate the area
 		if (CGALIntersection)
@@ -1021,9 +1126,9 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int Gri
 			if (const Triangle_3* intersect_triangle = boost::get<Triangle_3>(&*CGALIntersection))
 			{
 				// Project the 3D triangle onto a 2D plane
-				Point_2 p1_2d = ProjectPointOntoPlane(intersect_triangle->vertex(0), Triangle.supporting_plane());
-				Point_2 p2_2d = ProjectPointOntoPlane(intersect_triangle->vertex(1), Triangle.supporting_plane());
-				Point_2 p3_2d = ProjectPointOntoPlane(intersect_triangle->vertex(2), Triangle.supporting_plane());
+				Point_2 p1_2d = ProjectPointOntoPlane(intersect_triangle->vertex(0), PlaneToProject);
+				Point_2 p2_2d = ProjectPointOntoPlane(intersect_triangle->vertex(1), PlaneToProject);
+				Point_2 p3_2d = ProjectPointOntoPlane(intersect_triangle->vertex(2), PlaneToProject);
 
 				// Using absolute value to ensure the area is positive
 				// CGAL will return a negative area if the vertices are ordered clockwise
@@ -1039,15 +1144,82 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int Gri
 			}
 			else if (const std::vector<Point_3>* intersect_points = boost::get<std::vector<Point_3>>(&*CGALIntersection))
 			{
+				//std::vector<glm::dvec3> IntersectionPoints;
+				//std::vector<glm::dvec2> IntersectionPoints2D;
+				//std::vector < Point_2> points_;
 				// Create a polygon from the intersection points
-				Polygon_2 polygon;
-				for (const auto& point : *intersect_points) {
-					polygon.push_back(ProjectPointOntoPlane(point, Triangle.supporting_plane()));
+				Polygon_2 Polygon;
+				for (const auto& Point : *intersect_points)
+				{
+					Polygon.push_back(ProjectPointOntoPlane(Point, PlaneToProject));
+					//IntersectionPoints.push_back(glm::dvec3(point.x(), point.y(), point.z()));
+					//points_.push_back(ProjectPointOntoPlane(point, PlaneToProject));
+					//IntersectionPoints2D.push_back(glm::dvec2(CGAL::to_double(points_.back().x()), CGAL::to_double(points_.back().y())));
 				}
 
+				//// Check if the polygon is simple (does not self-intersect)
+				//if (!Polygon.is_simple())
+				//{
+				//	/*SortPointsByAngle(IntersectionPoints);
+
+				//	Polygon = Polygon_2();
+				//	for (const auto& Point : IntersectionPoints)
+				//	{
+				//		Point_3 CurrentPoint = Point_3(Point[0], Point[1], Point[2]);
+				//		Polygon.push_back(ProjectPointOntoPlane(CurrentPoint, Triangle.supporting_plane()));
+				//	}
+
+				//	Result = GetArea(IntersectionPoints);*/
+
+
+				//	std::vector<Point_2> hull;
+				//	CGAL::convex_hull_2(points_.begin(), points_.end(), std::back_inserter(hull));
+
+				//	Polygon = Polygon_2();
+				//	for (const auto& Point : hull)
+				//	{
+				//		//Point_3 CurrentPoint = Point_3(Point[0], Point[1], Point[2]);
+				//		Polygon.push_back(Point);
+				//	}
+
+				//	//Polygon_set_2 polygon_set;
+
+				//	//// Insert the non-simple polygon into the Polygon_set_2
+				//	//polygon_set.insert(Polygon);
+
+				//	//// Retrieve the fixed simple polygons from the Polygon_set_2
+				//	//std::vector<Polygon_2> fixed_polygons;
+				//	//polygon_set.polygons_with_holes(std::back_inserter(fixed_polygons));
+
+				//	///*for (const auto& fixed_polygon : fixed_polygons) {
+				//	//	double area = CGAL::to_double(fixed_polygon.area());
+				//	//	
+				//	//}*/
+
+
+				//	
+
+				//	//// Create a Polygon_set_2 object
+				//	//CGAL::Polygon_set_2<Kernel2> polygon_set;
+
+				//	//// Insert the non-simple polygon into the Polygon_set_2
+				//	//polygon_set.insert(Polygon);
+
+				//	//// Retrieve the fixed polygons with holes from the Polygon_set_2
+				//	//std::vector<CGAL::Polygon_with_holes_2<Kernel2>> fixed_polygons;
+				//	//polygon_set.polygons_with_holes(std::back_inserter(fixed_polygons));
+
+				//	//// Iterate over the fixed polygons with holes and calculate their areas
+				//	//for (const auto& fixed_polygon : fixed_polygons) {
+				//	//	double area = CGAL::to_double(fixed_polygon.outer_boundary().area());
+				//	//	//std::cout << "Area of fixed polygon: " << area << std::endl;
+				//	//	// Perform further operations with the fixed polygon if needed
+				//	//}
+				//}
+	
 				// Using absolute value to ensure the area is positive
 				// CGAL will return a negative area if the vertices are ordered clockwise
-				Result = abs(CGAL::to_double(polygon.area()));
+				Result = abs(CGAL::to_double(Polygon.area()));
 			}
 		}
 	}
@@ -1167,4 +1339,300 @@ glm::vec2 LayerRasterizationManager::GetMinMaxResolutionInMeters(glm::vec3 Proje
 	Result.y = UsableSize / (RASTERIZATION_MAX_RESOLUTION + 1);
 
 	return Result;
+}
+
+void LayerRasterizationManager::ShowDebugWindow()
+{
+	if (ImGui::Begin("Layer Rasterization Debug"))
+	{
+		if (ImGui::CollapsingHeader("Info"))
+		{
+			ImGui::Text("Progress: %.2f%%", Progress * 100.0f);
+			ImGui::Separator();
+			ImGui::Text("Grid Resolution: %d", CurrentResolution);
+			ImGui::Text("Grid Resolution (m): %.2f", CurrentResolutionInMeters);
+			ImGui::Separator();
+			ImGui::Text("Mode: %s", std::to_string(Mode).c_str());
+			ImGui::Separator();
+			ImGui::Text("Cumulative Mode Lower Outlier Percentile: %.2f", CumulativeModeLowerOutlierPercentile);
+			ImGui::Text("Cumulative Mode Upper Outlier Percentile: %.2f", CumulativeModeUpperOutlierPercentile);
+			ImGui::Separator();
+			ImGui::Text("Total Area Used: %.2f", Debug_TotalAreaUsed);
+			ImGui::Separator();
+			ImGui::Text("Result Raw Max: %.2f", Debug_ResultRawMax);
+			ImGui::Text("Result Raw Min: %.2f", Debug_ResultRawMin);
+			ImGui::Text("Result Raw Mean: %.2f", Debug_ResultRawMean);
+			ImGui::Text("Result Raw Standard Deviation: %.2f", Debug_ResultRawStandardDeviation);
+			ImGui::Text("Result Raw Skewness: %.2f", Debug_ResultRawSkewness);
+			ImGui::Text("Result Raw Kurtosis: %.2f", Debug_ResultRawKurtosis);
+		}
+
+		ImGui::Checkbox("Show only cell with triangles", &bDebugShowOnlyCellsWithTriangles);
+		ImGui::Checkbox("Show only selected cell", &bDebugShowOnlySelectedCells);
+
+		if (ImGui::Button("Render grid"))
+		{
+			DebugRenderGrid();
+		}
+
+		std::string SelectedCellText = "Selected cell - X : " + std::to_string(int(DebugSelectedCell.x)) + " Y : " + std::to_string(int(DebugSelectedCell.y));
+		ImGui::Text(SelectedCellText.c_str());
+
+		static int TempCellX = 0;
+		static int TempCellY = 0;
+		ImGui::InputInt("SelectedCellX", &TempCellX);
+
+		int TempInt = DebugSelectedCell.y;
+		ImGui::InputInt("SelectedCellY", &TempCellY);
+
+		if (ImGui::Button("Select cell"))
+		{
+			DebugSelectCell(TempCellX, TempCellY);
+		}
+
+
+		ImGui::End();
+	}
+}
+
+void LayerRasterizationManager::DebugRenderGrid()
+{
+	//LINE_RENDERER.ClearAll();
+
+	for (int i = 0; i < Grid.size(); i++)
+	{
+		for (int j = 0; j < Grid[i].size(); j++)
+		{
+			LayerRasterizationManager::GridCell& Cell = Grid[i][j];
+			glm::vec3 Color = glm::vec3(0.0f, 1.0f, 0.0f);
+
+			if (bDebugShowOnlyCellsWithTriangles)
+			{
+				if (!Grid[i][j].TrianglesInCell.empty())
+				{
+					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), Color);
+				}
+			}
+			else if (bDebugShowOnlySelectedCells)
+			{
+				if (DebugSelectedCell.x == i && DebugSelectedCell.y == j)
+				{
+					Color = glm::vec3(1.0f, 1.0f, 0.0f);
+					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), Color);
+
+					for (size_t k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
+					{
+						const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[Grid[i][j].TrianglesInCell[k]];
+
+						std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
+						for (size_t l = 0; l < TranformedTrianglePoints.size(); l++)
+						{
+							TranformedTrianglePoints[l] = MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[l], 1.0f);
+						}
+
+						LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 0.0f, 1.0f)));
+						LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 0.0f, 1.0f)));
+						LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 0.0f, 1.0f)));
+					}
+				}
+			}
+			else
+			{
+				LINE_RENDERER.RenderAABB(Cell.AABB.Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), Color);
+			}
+		}
+	}
+
+	LINE_RENDERER.SyncWithGPU();
+}
+
+void LayerRasterizationManager::DebugMouseClick()
+{
+	if (Grid.size() == 0)
+		return;
+
+	DebugSelectedCell = glm::vec2(-1.0);
+
+	float DistanceToCell = 999999.0f;
+	float LastDistanceToCell = 999999.0f;
+	for (size_t i = 0; i < Grid.size(); i++)
+	{
+		for (size_t j = 0; j < Grid[i].size(); j++)
+		{
+			FEAABB FinalAABB = Grid[i][j].AABB.Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix());
+			if (FinalAABB.RayIntersect(ENGINE.GetCamera()->GetPosition(), ENGINE.ConstructMouseRay(), DistanceToCell))
+			{
+				if (LastDistanceToCell > DistanceToCell)
+				{
+					LastDistanceToCell = DistanceToCell;
+					DebugSelectCell(i, j);
+					return;
+				}
+			}
+		}
+	}
+}
+
+void LayerRasterizationManager::DebugSelectCell(int X, int Y)
+{
+	if (Grid.size() == 0)
+		return;
+
+	if (X < 0 || X >= Grid.size() || Y < 0 || Y >= Grid[0].size())
+		return;
+
+	LINE_RENDERER.ClearAll();
+
+	//CurrentFinalResult = 0.0;
+	DebugSelectedCell = glm::vec2(X, Y);
+
+	double AreaInCell = 0.0;
+
+	for (size_t i = 0; i < Grid[X][Y].TrianglesInCell.size(); i++)
+	{
+		auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[Grid[X][Y].TrianglesInCell[i]];
+		if (CurrentTriangle.size() != 3)
+			continue;
+
+		std::vector<glm::dvec3> CurrentTriangleDouble;
+		CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[0].x, CurrentTriangle[0].y, CurrentTriangle[0].z));
+		CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[1].x, CurrentTriangle[1].y, CurrentTriangle[1].z));
+		CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[2].x, CurrentTriangle[2].y, CurrentTriangle[2].z));
+
+		std::vector<glm::dvec3> DebugResult = GEOMETRY.GetIntersectionPoints(Grid[X][Y].AABB, CurrentTriangleDouble);
+
+
+		std::string Output = "glm::vec3 FirstPoint = glm::vec3(" + std::to_string(CurrentTriangle[0].x) + ", " + std::to_string(CurrentTriangle[0].y) + ", " + std::to_string(CurrentTriangle[0].z) + ") * Multiplicator;\n";
+		Output += "glm::vec3 SecondPoint = glm::vec3(" + std::to_string(CurrentTriangle[1].x) + ", " + std::to_string(CurrentTriangle[1].y) + ", " + std::to_string(CurrentTriangle[1].z) + ") * Multiplicator;\n";
+		Output += "glm::vec3 ThirdPoint = glm::vec3(" + std::to_string(CurrentTriangle[2].x) + ", " + std::to_string(CurrentTriangle[2].y) + ", " + std::to_string(CurrentTriangle[2].z) + ") * Multiplicator;\n";
+
+		Output += "glm::vec3 Min = glm::vec3(" + std::to_string(Grid[X][Y].AABB.GetMin().x) + ", " + std::to_string(Grid[X][Y].AABB.GetMin().y) + ", " + std::to_string(Grid[X][Y].AABB.GetMin().z) + ") * Multiplicator;\n";
+		Output += "glm::vec3 Max = glm::vec3(" + std::to_string(Grid[X][Y].AABB.GetMax().x) + ", " + std::to_string(Grid[X][Y].AABB.GetMax().y) + ", " + std::to_string(Grid[X][Y].AABB.GetMax().z) + ") * Multiplicator;\n";
+
+		int y = 0;
+		y++;
+
+		for (size_t l = 0; l < CurrentTriangleDouble.size(); l++)
+		{
+			if (Grid[X][Y].AABB.ContainsPoint(CurrentTriangleDouble[l]))
+			{
+				bool bAlreadyExists = false;
+				int PointsThatAreNotSame = 0;
+				for (size_t q = 0; q < DebugResult.size(); q++)
+				{
+					if (abs(DebugResult[q] - CurrentTriangleDouble[l]).x > glm::dvec3(DBL_EPSILON).x ||
+						abs(DebugResult[q] - CurrentTriangleDouble[l]).y > glm::dvec3(DBL_EPSILON).y ||
+						abs(DebugResult[q] - CurrentTriangleDouble[l]).z > glm::dvec3(DBL_EPSILON).z)
+					{
+						PointsThatAreNotSame++;
+					}
+				}
+
+				if (PointsThatAreNotSame != DebugResult.size())
+					bAlreadyExists = true;
+
+				if (!bAlreadyExists)
+					DebugResult.push_back(CurrentTriangle[l]);
+			}
+		}
+
+		for (size_t l = 0; l < DebugResult.size(); l++)
+		{
+			glm::dvec3 TransformedPoint = MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(DebugResult[l], 1.0f);
+			LINE_RENDERER.AddLineToBuffer(FECustomLine(TransformedPoint, TransformedPoint + glm::dvec3(0.0, 1.0, 0.0), glm::vec3(1.0f, 0.0f, 0.0f)));
+		}
+
+		double CurrentTrianlgeArea = 0.0;
+		CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetArea(DebugResult);
+
+
+
+
+
+
+
+		//// Define a triangle
+		//Point_3 p1(CurrentTriangleDouble[0].x, CurrentTriangleDouble[0].y, CurrentTriangleDouble[0].z);
+		//Point_3 p2(CurrentTriangleDouble[1].x, CurrentTriangleDouble[1].y, CurrentTriangleDouble[1].z);
+		//Point_3 p3(CurrentTriangleDouble[2].x, CurrentTriangleDouble[2].y, CurrentTriangleDouble[2].z);
+		//Triangle_3 triangle(p1, p2, p3);
+
+		//// Define an AABB
+		//Bbox_3 aabb(Grid[X][Y].AABB.GetMin().x, Grid[X][Y].AABB.GetMin().y, Grid[X][Y].AABB.GetMin().z, Grid[X][Y].AABB.GetMax().x, Grid[X][Y].AABB.GetMax().y, Grid[X][Y].AABB.GetMax().z);
+
+
+		//// Compute the intersection between the triangle and the AABB
+		//auto result = CGAL::intersection(triangle, aabb);
+
+		//double CGALArea = 0.0;
+		//// Check the type of the intersection result and calculate the area
+		//if (result) {
+		//	if (const Triangle_3* intersect_triangle = boost::get<Triangle_3>(&*result)) {
+		//		//double area = CGAL::to_double(CGAL::area(*intersect_triangle));
+		//		//std::cout << "Intersection is a triangle with area: " << area << std::endl;
+		//		int y = 0;
+		//		y++;
+		//	}
+		//	else if (const Kernel::Segment_3* intersect_segment = boost::get<Kernel::Segment_3>(&*result)) {
+		//		std::cout << "Intersection is a segment. Area is zero." << std::endl;
+		//	}
+		//	else if (const Point_3* intersect_point = boost::get<Point_3>(&*result)) {
+		//		std::cout << "Intersection is a point. Area is zero." << std::endl;
+		//	}
+		//	else if (const std::vector<Point_3>* intersect_points = boost::get<std::vector<Point_3>>(&*result)) {
+		//		// Create a polygon from the intersection points
+		//		Polygon_2 polygon;
+		//		for (const auto& point : *intersect_points) {
+		//			polygon.push_back(Point_2(point.x(), point.z()));
+		//		}
+		//		double CGALArea = CGAL::to_double(polygon.area());
+		//		std::cout << "Intersection is a polygon with area: " << area << std::endl;
+		//	}
+		//}
+		//else {
+		//	std::cout << "No intersection. Area is zero." << std::endl;
+		//}
+
+
+
+
+
+
+
+
+
+
+
+
+		/*if (CurrentTrianlgeArea == 0.0)
+		{
+			std::string Output = "glm::vec3 FirstPoint = glm::vec3(" + std::to_string(CurrentTriangle[0].x) + ", " + std::to_string(CurrentTriangle[0].y) + ", " + std::to_string(CurrentTriangle[0].z) + ") * Multiplicator;\n";
+			Output += "glm::vec3 SecondPoint = glm::vec3(" + std::to_string(CurrentTriangle[1].x) + ", " + std::to_string(CurrentTriangle[1].y) + ", " + std::to_string(CurrentTriangle[1].z) + ") * Multiplicator;\n";
+			Output += "glm::vec3 ThirdPoint = glm::vec3(" + std::to_string(CurrentTriangle[2].x) + ", " + std::to_string(CurrentTriangle[2].y) + ", " + std::to_string(CurrentTriangle[2].z) + ") * Multiplicator;\n";
+
+			Output += "glm::vec3 Min = glm::vec3(" + std::to_string(Grid[X][Y].AABB.GetMin().x) + ", " + std::to_string(Grid[X][Y].AABB.GetMin().y) + ", " + std::to_string(Grid[X][Y].AABB.GetMin().z) + ") * Multiplicator;\n";
+			Output += "glm::vec3 Max = glm::vec3(" + std::to_string(Grid[X][Y].AABB.GetMax().x) + ", " + std::to_string(Grid[X][Y].AABB.GetMax().y) + ", " + std::to_string(Grid[X][Y].AABB.GetMax().z) + ") * Multiplicator;\n";
+
+			int y = 0;
+			y++;
+
+			if (DebugResult.size() > 1)
+			{
+				int y = 0;
+				y++;
+			}
+		}*/
+
+		//if (CurrentTrianlgeArea != 0.0 && !isnan(CurrentTrianlgeArea))
+		//{
+		//	//double CurrentTriangleCoef = CurrentTrianlgeArea / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[Grid[X][Y].TrianglesInCell[i]];
+		//	double CurrentTriangleValue = CurrentLayerToExport->TrianglesToData[Grid[X][Y].TrianglesInCell[i]];
+		//	CurrentFinalResult += CurrentTriangleValue * /*CGALArea*/CurrentTrianlgeArea/*CurrentTriangleCoef*/;
+		//	AreaInCell += CurrentTrianlgeArea;
+		//}
+	}
+
+	AreaInCell;
+
+	DebugRenderGrid();
 }
