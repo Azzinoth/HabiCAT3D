@@ -38,8 +38,6 @@ public:
 	void SetGridRasterizationMode(GridRasterizationMode NewValue);
 
 	int GetGridResolution();
-	//void SetGridResolution(int NewValue);
-
 	float GetResolutionInMeters();
 	void SetResolutionInMeters(float NewValue);
 
@@ -101,7 +99,7 @@ private:
 	const int RASTERIZATION_MAX_RESOLUTION = 4096;
 
 	glm::vec3 ConvertToClosestAxis(const glm::vec3& Vector);
-	std::vector<std::vector<GridCell>> GenerateGridProjection(const glm::vec3& Axis, int Resolution);
+	std::vector<std::vector<GridCell>> GenerateGridProjection(const glm::vec3& Axis);
 	static void GridRasterizationThread(void* InputData, void* OutputData);
 	static void GatherGridRasterizationThreadWork(void* OutputData);
 
@@ -157,6 +155,9 @@ private:
 	FETexture* ResultPreview = nullptr;
 
 	void ClearDataAfterCalculation();
+	void UpdateProjectionVector();
+
+	glm::uvec2 GetResolutionInPixelsBasedOnResolutionInMeters(glm::vec3 ProjectionVector, float ResolutionInMeters);
 };
 
 #define LAYER_RASTERIZATION_MANAGER LayerRasterizationManager::getInstance()

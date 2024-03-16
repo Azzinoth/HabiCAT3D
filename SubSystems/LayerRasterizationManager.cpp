@@ -9,17 +9,17 @@ LayerRasterizationManager::~LayerRasterizationManager() {}
 glm::vec3 LayerRasterizationManager::ConvertToClosestAxis(const glm::vec3& Vector)
 {
 	// Calculate the absolute values of the vector components
-	float AbsX = glm::abs(Vector.x);
-	float AbsY = glm::abs(Vector.y);
-	float AbsZ = glm::abs(Vector.z);
+	float AbsoluteX = glm::abs(Vector.x);
+	float AbsoluteY = glm::abs(Vector.y);
+	float AbsoluteZ = glm::abs(Vector.z);
 
 	// Determine the largest component
-	if (AbsX > AbsY && AbsX > AbsZ)
+	if (AbsoluteX > AbsoluteY && AbsoluteX > AbsoluteZ)
 	{
 		// X component is largest, so vector is closest to the X axis
 		return glm::vec3(1.0f, 0.0f, 0.0f);
 	}
-	else if (AbsY > AbsX && AbsY > AbsZ)
+	else if (AbsoluteY > AbsoluteX && AbsoluteY > AbsoluteZ)
 	{
 		// Y component is largest, so vector is closest to the Y axis
 		return glm::vec3(0.0f, 1.0f, 0.0f);
@@ -31,7 +31,7 @@ glm::vec3 LayerRasterizationManager::ConvertToClosestAxis(const glm::vec3& Vecto
 	}
 }
 
-std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterizationManager::GenerateGridProjection(const glm::vec3& Axis, int Resolution)
+std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterizationManager::GenerateGridProjection(const glm::vec3& Axis)
 {
 	std::vector<std::vector<GridCell>> Grid;
 
@@ -49,49 +49,50 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 		CurrentResolutionInMeters = MinMaxResolutionInMeters.y;
 
 	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
-	float CellSize = JITTER_MANAGER.GetLowestPossibleResolution() / 4.0f/*CurrentResolutionInMeters*/;
+	float CellSize = CurrentResolutionInMeters;
+
+	if (CellSize <= 0.0f)
+		return Grid;
 
 	glm::vec3 CellDimension = glm::vec3(CellSize);
-	unsigned int CountOfCellToCoverAABB = 0;
+	//unsigned int CountOfCellToCoverAABB = 0;
 
 	if (Axis.x > 0.0)
 	{
-		float UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
-		CountOfCellToCoverAABB = UsableSize / CellSize;
+		//float UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
+		//CountOfCellToCoverAABB = UsableSize / CellSize;
 
 		CellDimension.x = MeshAABB.GetSize().x;
 	}
 	else if (Axis.y > 0.0)
 	{
-		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
-		CountOfCellToCoverAABB = UsableSize / CellSize;
+		//float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
+		//CountOfCellToCoverAABB = UsableSize / CellSize;
 
 		CellDimension.y = MeshAABB.GetSize().y;
 	}
 	else if (Axis.z > 0.0)
 	{
-		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
-		CountOfCellToCoverAABB = UsableSize / CellSize;
+		//float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
+		//CountOfCellToCoverAABB = UsableSize / CellSize;
 
 		CellDimension.z = MeshAABB.GetSize().z;
 	}
 
-	CountOfCellToCoverAABB += 1;
-	glm::uvec2 ResolutionXY = glm::uvec2(CountOfCellToCoverAABB, CountOfCellToCoverAABB);
+	//CountOfCellToCoverAABB += 1;
+	glm::uvec2 ResolutionXY = GetResolutionInPixelsBasedOnResolutionInMeters(Axis, CurrentResolutionInMeters)/*glm::uvec2(CountOfCellToCoverAABB, CountOfCellToCoverAABB)*/;
+	CurrentResolution = glm::max(ResolutionXY.x, ResolutionXY.y);
 
-	LAYER_RASTERIZATION_MANAGER.CurrentResolution = glm::max(ResolutionXY.x, ResolutionXY.y);
-	Resolution = LAYER_RASTERIZATION_MANAGER.CurrentResolution;
-
-	Grid.resize(Resolution);
-	for (int i = 0; i < Resolution; i++)
+	Grid.resize(CurrentResolution);
+	for (int i = 0; i < CurrentResolution; i++)
 	{
-		Grid[i].resize(Resolution);
+		Grid[i].resize(CurrentResolution);
 	}
 
 	// Loop through each division to create the grid
-	for (int i = 0; i < Resolution; i++)
+	for (int i = 0; i < CurrentResolution; i++)
 	{
-		for (int j = 0; j < Resolution; j++)
+		for (int j = 0; j < CurrentResolution; j++)
 		{
 			// Calculate min and max for the current cell
 			glm::vec3 CellMin = MeshAABB.GetMin();
@@ -851,7 +852,7 @@ void LayerRasterizationManager::PrepareCurrentLayerForExport(MeshLayer* LayerToE
 	else
 		CurrentProjectionVector = ConvertToClosestAxis(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal());
 
-	Grid = GenerateGridProjection(CurrentProjectionVector, CurrentResolution);
+	Grid = GenerateGridProjection(CurrentProjectionVector);
 
 	int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() / LAYER_RASTERIZATION_MANAGER.THREAD_COUNT);
 
@@ -1164,6 +1165,12 @@ void LayerRasterizationManager::SetResolutionInMeters(float NewValue)
 		NewValue = MinMaxResolutionInMeters.y;
 
 	CurrentResolutionInMeters = NewValue;
+
+	if (CurrentProjectionVector == glm::vec3(0.0f))
+		UpdateProjectionVector();
+
+	glm::uvec2 ResolutionXY = GetResolutionInPixelsBasedOnResolutionInMeters(CurrentProjectionVector, CurrentResolutionInMeters);
+	CurrentResolution = glm::max(ResolutionXY.x, ResolutionXY.y);
 }
 
 glm::vec2 LayerRasterizationManager::GetMinMaxResolutionInMeters(glm::vec3 ProjectionVector)
@@ -1176,6 +1183,12 @@ glm::vec2 LayerRasterizationManager::GetMinMaxResolutionInMeters(glm::vec3 Proje
 	glm::vec3 Axis = CurrentProjectionVector;
 	if (ProjectionVector != glm::vec3(0.0f))
 		Axis = ProjectionVector;
+
+	if (Axis == glm::vec3(0.0f))
+		UpdateProjectionVector();
+
+	if (Axis == glm::vec3(0.0f))
+		Result;
 		
 	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
 
@@ -1390,4 +1403,53 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 	}
 
 	DebugRenderGrid();
+}
+
+void LayerRasterizationManager::UpdateProjectionVector()
+{
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+		return;
+
+	LAYER_RASTERIZATION_MANAGER.CurrentProjectionVector = ConvertToClosestAxis(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal());
+}
+
+glm::uvec2 LayerRasterizationManager::GetResolutionInPixelsBasedOnResolutionInMeters(glm::vec3 ProjectionVector, float ResolutionInMeters)
+{
+	glm::uvec2 Result = glm::uvec2(0);
+
+	if (ResolutionInMeters <= 0.0f)
+		return Result;
+
+	if (ProjectionVector == glm::vec3(0.0f))
+		return Result;
+
+	if (ProjectionVector.x + ProjectionVector.y + ProjectionVector.z != 1.0f)
+		return Result;
+
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+		return Result;
+
+	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
+	unsigned int CountOfCellToCoverAABB = 0;
+
+	if (ProjectionVector.x > 0.0)
+	{
+		float UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
+		CountOfCellToCoverAABB = UsableSize / ResolutionInMeters;
+	}
+	else if (ProjectionVector.y > 0.0)
+	{
+		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
+		CountOfCellToCoverAABB = UsableSize / ResolutionInMeters;
+	}
+	else if (ProjectionVector.z > 0.0)
+	{
+		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
+		CountOfCellToCoverAABB = UsableSize / ResolutionInMeters;
+	}
+
+	CountOfCellToCoverAABB += 1;
+	Result = glm::uvec2(CountOfCellToCoverAABB, CountOfCellToCoverAABB);
+
+	return Result;
 }

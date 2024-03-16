@@ -316,17 +316,12 @@ void MainWindowRender()
 	ImGui::Combo("Rasterization Mode", &TempInt, rasterizationModes, IM_ARRAYSIZE(rasterizationModes));
 	LAYER_RASTERIZATION_MANAGER.SetGridRasterizationMode(static_cast<LayerRasterizationManager::GridRasterizationMode>(TempInt));
 
-	TempInt = LAYER_RASTERIZATION_MANAGER.GetGridResolution();
-	ImGui::SliderInt("Resolution", &TempInt, 2, 4096);
-	//LAYER_RASTERIZATION_MANAGER.SetGridResolution(TempInt);
+	float TempFloat = LAYER_RASTERIZATION_MANAGER.GetResolutionInMeters();
+	glm::vec2 MinMax = LAYER_RASTERIZATION_MANAGER.GetMinMaxResolutionInMeters();
+	ImGui::SliderFloat("Resolution in meters", &TempFloat, MinMax.y, MinMax.x);
+	LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(TempFloat);
 
-	float TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModeLowerOutlierPercentile();
-	ImGui::SliderFloat("Lower outlier percentile", &TempFloat, 0.0f, 99.9f);
-	LAYER_RASTERIZATION_MANAGER.SetCumulativeModeLowerOutlierPercentile(TempFloat);
-
-	TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModeUpperOutlierPercentile();
-	ImGui::SliderFloat("Upper outlier percentile", &TempFloat, 0.1f, 100.0f);
-	LAYER_RASTERIZATION_MANAGER.SetCumulativeModeUpperOutlierPercentile(TempFloat);
+	ImGui::Text(std::string("Output image resolution: " + std::to_string(LAYER_RASTERIZATION_MANAGER.GetGridResolution())).c_str());
 
 	glm::vec3 ForceProjectionVector = LAYER_RASTERIZATION_MANAGER.GetProjectionVector();
 	int SelectedAxis = ForceProjectionVector == glm::vec3(1.0f, 0.0f, 0.0f) ? 0 : ForceProjectionVector == glm::vec3(0.0f, 1.0f, 0.0f) ? 1 : 2;
@@ -351,6 +346,17 @@ void MainWindowRender()
 		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer(), ForceProjectionVector);
 	}
 
+	if (LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode() == LayerRasterizationManager::GridRasterizationMode::Cumulative)
+	{
+		TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModeLowerOutlierPercentile();
+		ImGui::SliderFloat("Lower outlier percentile", &TempFloat, 0.0f, 99.9f);
+		LAYER_RASTERIZATION_MANAGER.SetCumulativeModeLowerOutlierPercentile(TempFloat);
+
+		TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModeUpperOutlierPercentile();
+		ImGui::SliderFloat("Upper outlier percentile", &TempFloat, 0.1f, 100.0f);
+		LAYER_RASTERIZATION_MANAGER.SetCumulativeModeUpperOutlierPercentile(TempFloat);
+	}
+	
 	std::string TextForButton = "Prepare data for export";
 	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
 		TextForButton = "Refresh data for export";
@@ -362,7 +368,7 @@ void MainWindowRender()
 
 	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
 	{
-		ImGui::Text("Result preview:");
+		ImGui::Text("Preview:");
 		ImGui::Image((void*)(intptr_t)LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID(), ImVec2(512, 512));
 	}
 
