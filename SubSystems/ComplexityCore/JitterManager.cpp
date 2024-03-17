@@ -472,6 +472,54 @@ void JitterManager::AdjustOutliers(std::vector<float>& Data, float LowerPercenti
 	}
 }
 
+float JitterManager::GetValueThatHaveAtLeastThisPercentOfArea(std::vector<float>& Data, std::vector<float>& CorrespondingAreaData, float PortionOfTotalArea)
+{
+	float Result = FLT_MAX;
+
+	if (Data.empty() || CorrespondingAreaData.empty())
+		return Result;
+
+	struct AreaAndData
+	{
+		float Area;
+		float Data;
+
+		bool operator<(const AreaAndData& Other) const
+		{
+			return Data < Other.Data;
+		}
+	};
+
+	float TotalArea = 0.0f;
+	std::vector<AreaAndData> SortedAreaWithData;
+	SortedAreaWithData.reserve(Data.size());
+	for (size_t i = 0; i < Data.size(); i++)
+	{
+		SortedAreaWithData.push_back({ CorrespondingAreaData[i], Data[i] });
+		TotalArea += CorrespondingAreaData[i];
+	}
+
+	std::sort(SortedAreaWithData.begin(), SortedAreaWithData.end());
+
+	if (TotalArea <= 0.0f)
+		return Result;
+
+	float CurrentArea = 0.0f;
+	for (int i = SortedAreaWithData.size() - 1; i >= 0; i--)
+	{
+		CurrentArea += SortedAreaWithData[i].Area;
+
+		// If we have reached the portion of the total area we are looking for
+		if (CurrentArea >= TotalArea * PortionOfTotalArea)
+		{
+			Result = SortedAreaWithData[i].Data;
+			break;
+		}
+	}
+
+	return Result;
+}
+
 float JitterManager::FindStandardDeviation(std::vector<float> DataPoints)
 {
 	float Mean = 0.0f;

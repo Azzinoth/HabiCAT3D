@@ -476,6 +476,8 @@ void UIManager::OnMeshUpdate()
 
 	UI.Histogram.Clear();
 	UI.HeatMapColorRange.Clear();
+
+	LAYER_RASTERIZATION_MANAGER.ClearAllData();
 }
 
 float UIManager::GetRadiusOfAreaToMeasure()
@@ -1250,6 +1252,8 @@ void UIManager::OnLayerChange()
 {
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return;
+
+	LAYER_RASTERIZATION_MANAGER.ClearAllData();
 
 	UI.bHistogramSelectRegionMode = false;
 	UI.Histogram.Clear();

@@ -306,12 +306,12 @@ void ConsoleThreadCode(void* InputData)
 	}
 }
 
-void MainWindowRender()
+void RasterizationSettingsUI()
 {
-	LAYER_RASTERIZATION_MANAGER.ShowDebugWindow();
-	static bool FirstFrame = true;
+	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
+		ImGui::BeginDisabled();
 
-	const char* rasterizationModes[] = { "Min", "Max", "Mean", "Cumulative"};
+	const char* rasterizationModes[] = { "Min", "Max", "Mean", "Cumulative" };
 	int TempInt = LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode();
 	ImGui::Combo("Rasterization Mode", &TempInt, rasterizationModes, IM_ARRAYSIZE(rasterizationModes));
 	LAYER_RASTERIZATION_MANAGER.SetGridRasterizationMode(static_cast<LayerRasterizationManager::GridRasterizationMode>(TempInt));
@@ -348,15 +348,20 @@ void MainWindowRender()
 
 	if (LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode() == LayerRasterizationManager::GridRasterizationMode::Cumulative)
 	{
-		TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModeLowerOutlierPercentile();
-		ImGui::SliderFloat("Lower outlier percentile", &TempFloat, 0.0f, 99.9f);
-		LAYER_RASTERIZATION_MANAGER.SetCumulativeModeLowerOutlierPercentile(TempFloat);
+		static bool bAutomaticPersentOfAreaThatWouldBeRed = true;
+		ImGui::Checkbox("Automatic outliers suppression", &bAutomaticPersentOfAreaThatWouldBeRed);
 
-		TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModeUpperOutlierPercentile();
-		ImGui::SliderFloat("Upper outlier percentile", &TempFloat, 0.1f, 100.0f);
-		LAYER_RASTERIZATION_MANAGER.SetCumulativeModeUpperOutlierPercentile(TempFloat);
+		if (bAutomaticPersentOfAreaThatWouldBeRed)
+			ImGui::BeginDisabled();
+		
+		TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModePersentOfAreaThatWouldBeRed();
+		ImGui::SliderFloat("Persent of area that would be above color scale threshold(red)", &TempFloat, 0.0f, 99.9f);
+		LAYER_RASTERIZATION_MANAGER.SetCumulativeModePersentOfAreaThatWouldBeRed(TempFloat);
+		
+		if (bAutomaticPersentOfAreaThatWouldBeRed)
+			ImGui::EndDisabled();
 	}
-	
+
 	std::string TextForButton = "Prepare data for export";
 	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
 		TextForButton = "Refresh data for export";
@@ -366,15 +371,10 @@ void MainWindowRender()
 		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer());
 	}
 
-	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
-	{
-		ImGui::Text("Preview:");
-		ImGui::Image((void*)(intptr_t)LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID(), ImVec2(512, 512));
-	}
-
 	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() == -1)
 		ImGui::BeginDisabled();
 
+	ImGui::SameLine();
 	if (ImGui::Button("Save to file"))
 	{
 		LAYER_RASTERIZATION_MANAGER.PromptUserForSaveLocation();
@@ -382,6 +382,23 @@ void MainWindowRender()
 
 	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() == -1)
 		ImGui::EndDisabled();
+
+	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
+	{
+		ImGui::Text("Preview:");
+		ImGui::Image((void*)(intptr_t)LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID(), ImVec2(512, 512));
+	}
+
+	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
+		ImGui::EndDisabled();
+}
+
+void MainWindowRender()
+{
+	LAYER_RASTERIZATION_MANAGER.ShowDebugWindow();
+	static bool FirstFrame = true;
+
+	RasterizationSettingsUI();
 
 	if (UI.ShouldTakeScreenshot())
 	{

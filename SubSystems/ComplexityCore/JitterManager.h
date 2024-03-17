@@ -465,7 +465,8 @@ public:
 	void SetCurrentJitterVectorSetName(std::string Name);
 	std::vector<std::string> GetJitterVectorSetNames();
 
-	void AdjustOutliers(std::vector<float>& Dataf, float LowerPercentilef, float UpperPercentile);
+	void AdjustOutliers(std::vector<float>& Data, float LowerPercentile, float UpperPercentile);
+	float GetValueThatHaveAtLeastThisPercentOfArea(std::vector<float>& Data, std::vector<float>& CorrespondingAreaData, float PortionOfTotalArea);
 
 	// Produces a data layer of standard deviation values for all jitters from last run.
 	std::vector<float> ProduceStandardDeviationData();
@@ -511,7 +512,7 @@ private:
 	static void OnCalculationsStart();
 	static void OnCalculationsEnd();
 
-	std::vector <std::function<void()>> OnCalculationsStartCallbacks;
+	std::vector<std::function<void()>> OnCalculationsStartCallbacks;
 	std::vector<std::function<void(MeshLayer CurrentMeshLayer)>> OnCalculationsEndCallbacks;
 
 	float LastTimeTookForCalculation;

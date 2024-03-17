@@ -518,13 +518,42 @@ void LayerRasterizationManager::PrepareRawImageData()
 
 		double UnitArea = (AABBWidth * AABBHeight);
 		MinForColorMap = UnitArea;
-		MaxForColorMap = 4.0 * UnitArea;
+
+		std::vector<float> FlattenGridValues;
+		FlattenGridValues.reserve(Grid.size() * Grid[0].size());
+
+		std::vector<float> FlattenGridArea;
+		FlattenGridArea.reserve(Grid.size() * Grid[0].size());
+
+		for (int i = 0; i < Grid.size(); i++)
+		{
+			for (int j = 0; j < Grid[i].size(); j++)
+			{
+				FlattenGridValues.push_back(Grid[i][j].Value);
+
+				float AreaInCell = 0.0f;
+				for (size_t k = 0; k < Grid[i][j].TrianglesInCellArea.size(); k++)
+				{
+					AreaInCell += Grid[i][j].TrianglesInCellArea[k];
+				}
+
+				FlattenGridArea.push_back(AreaInCell);
+			}
+		}
+
+		MaxForColorMap = JITTER_MANAGER.GetValueThatHaveAtLeastThisPercentOfArea(FlattenGridValues, FlattenGridArea, PersentOfAreaThatWouldBeRed / 100.0f)/*4.0 * UnitArea*/;
+
+		if (MaxForColorMap <= MinForColorMap)
+			MaxForColorMap = MinForColorMap + FLT_EPSILON * 4;
 	}
 
 	std::vector<unsigned char> ImageRawData;
 	std::vector<unsigned char> FinalImageRawData;
 	ImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
 	FinalImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
+
+	ImageRawData32Bits.clear();
+	ImageRawData32Bits.reserve(CurrentResolution * CurrentResolution);
 
 	for (int i = 0; i < RawDataCopy.size(); i++)
 	{
@@ -537,6 +566,8 @@ void LayerRasterizationManager::PrepareRawImageData()
 				ImageRawData.push_back(static_cast<unsigned char>(0));
 				ImageRawData.push_back(static_cast<unsigned char>(0));
 				ImageRawData.push_back(static_cast<unsigned char>(0));
+
+				ImageRawData32Bits.push_back(0.0f);
 			}
 			else
 			{
@@ -559,6 +590,8 @@ void LayerRasterizationManager::PrepareRawImageData()
 				unsigned char B = static_cast<unsigned char>(Color.z * 255.0f);
 				ImageRawData.push_back(B);
 				ImageRawData.push_back(static_cast<unsigned char>(255));
+
+				ImageRawData32Bits.push_back(RawDataCopy[j][i]);
 			}
 		}
 	}
@@ -568,6 +601,8 @@ void LayerRasterizationManager::PrepareRawImageData()
 		// Flip the image diagonally
 		std::vector<unsigned char> FlippedImageRawData;
 		FlippedImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
+		std::vector<float> FlippedImageRawData32Bits;
+		FlippedImageRawData32Bits.reserve(CurrentResolution * CurrentResolution);
 
 		for (int i = 0; i < CurrentResolution; i++)
 		{
@@ -578,10 +613,13 @@ void LayerRasterizationManager::PrepareRawImageData()
 				FlippedImageRawData.push_back(ImageRawData[index + 1]);
 				FlippedImageRawData.push_back(ImageRawData[index + 2]);
 				FlippedImageRawData.push_back(ImageRawData[index + 3]);
+
+				FlippedImageRawData32Bits.push_back(ImageRawData32Bits[(CurrentResolution - 1 - j) * CurrentResolution + (CurrentResolution - 1 - i)]);
 			}
 		}
 
 		FinalImageRawData = FlippedImageRawData;
+		ImageRawData32Bits = FlippedImageRawData32Bits;
 	}
 	if (CurrentProjectionVector.y > 0.0)
 	{
@@ -591,7 +629,9 @@ void LayerRasterizationManager::PrepareRawImageData()
 	{
 		// Flip the image vertically
 		std::vector<unsigned char> FlippedImageRawData;
-		FlippedImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
+		FlippedImageRawData.reserve(CurrentResolution* CurrentResolution * 4);
+		std::vector<float> FlippedImageRawData32Bits;
+		FlippedImageRawData32Bits.reserve(CurrentResolution* CurrentResolution);
 
 		for (int i = CurrentResolution - 1; i >= 0; i--)
 		{
@@ -602,10 +642,13 @@ void LayerRasterizationManager::PrepareRawImageData()
 				FlippedImageRawData.push_back(ImageRawData[index + 1]);
 				FlippedImageRawData.push_back(ImageRawData[index + 2]);
 				FlippedImageRawData.push_back(ImageRawData[index + 3]);
+
+				FlippedImageRawData32Bits.push_back(ImageRawData32Bits[i * CurrentResolution + j]);
 			}
 		}
 
 		FinalImageRawData = FlippedImageRawData;
+		ImageRawData32Bits = FlippedImageRawData32Bits;
 	}
 
 	ResultPreview = RESOURCE_MANAGER.RawDataToFETexture(FinalImageRawData.data(), CurrentResolution, CurrentResolution);
@@ -622,6 +665,10 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 	if (SaveMode != SaveAsPNG && SaveMode != SaveAsTIF && SaveMode != SaveAs32bitTIF)
 		return false;
 
+	if (SaveMode == SaveAs32bitTIF && ImageRawData32Bits.size() != CurrentResolution * CurrentResolution)
+		return false;
+
+	// If the file path does not have an extension, add the appropriate one
 	if (FILE_SYSTEM.GetFileExtension(FilePath.c_str()) == "")
 	{
 		if (SaveMode == SaveAsTIF || SaveMode == SaveAs32bitTIF)
@@ -654,31 +701,16 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 		Dataset->SetGeoTransform(GeoTransform);
 		Dataset->SetProjection("WGS84");
 
-		// Allocate data buffer for a single band
-		float* RawData = (float*)CPLMalloc(sizeof(float) * ImageWidth * ImageHeight);
-
-		for (size_t i = 0; i < ImageWidth; i++)
-		{
-			for (size_t j = 0; j < ImageHeight; j++)
-			{
-				RawData[i * ImageWidth + j] = Grid[j][i].Value;
-			}
-		}
-
 		// Write data to the first band
 		GDALRasterBand* Band = Dataset->GetRasterBand(1);
-		CPLErr Error = Band->RasterIO(GF_Write, 0, 0, ImageWidth, ImageHeight, RawData, ImageWidth, ImageHeight, Type, 0, 0);
+		CPLErr Error = Band->RasterIO(GF_Write, 0, 0, ImageWidth, ImageHeight, ImageRawData32Bits.data(), ImageWidth, ImageHeight, Type, 0, 0);
 		if (Error != CE_None)
 		{
-			CPLFree(RawData);
 			GDALClose(Dataset);
 			return false;
 		}
 
-		// Cleanup
-		CPLFree(RawData);
 		GDALClose(Dataset);
-
 		return true;
 	}
 
@@ -731,7 +763,6 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 			}
 		}
 
-		// Cleanup
 		GDALClose(Dataset);
 	}
 
@@ -901,38 +932,17 @@ int LayerRasterizationManager::GetGridResolution()
 	return CurrentResolution;
 }
 
-//void LayerRasterizationManager::SetGridResolution(int NewValue)
-//{
-//	if (NewValue < 2 || NewValue > 4096)
-//		return;
-//
-//	CurrentResolution = NewValue;
-//}
-
-float LayerRasterizationManager::GetCumulativeModeLowerOutlierPercentile()
+float LayerRasterizationManager::GetCumulativeModePersentOfAreaThatWouldBeRed()
 {
-	return CumulativeModeLowerOutlierPercentile;
+	return PersentOfAreaThatWouldBeRed;
 }
 
-void LayerRasterizationManager::SetCumulativeModeLowerOutlierPercentile(float NewValue)
+void LayerRasterizationManager::SetCumulativeModePersentOfAreaThatWouldBeRed(float NewValue)
 {
 	if (NewValue < 0.0f || NewValue > 99.99f)
 		return;
 
-	CumulativeModeLowerOutlierPercentile = NewValue;
-}
-
-float LayerRasterizationManager::GetCumulativeModeUpperOutlierPercentile()
-{
-	return CumulativeModeUpperOutlierPercentile;
-}
-
-void LayerRasterizationManager::SetCumulativeModeUpperOutlierPercentile(float NewValue)
-{
-	if (NewValue < 0.001f || NewValue > 100.0f)
-		return;
-
-	CumulativeModeUpperOutlierPercentile = NewValue;
+	PersentOfAreaThatWouldBeRed = NewValue;
 }
 
 void LayerRasterizationManager::OnCalculationsStart()
@@ -1224,9 +1234,6 @@ void LayerRasterizationManager::ShowDebugWindow()
 			ImGui::Text("Grid Resolution (m): %.2f", CurrentResolutionInMeters);
 			ImGui::Separator();
 			ImGui::Text("Mode: %s", std::to_string(Mode).c_str());
-			ImGui::Separator();
-			ImGui::Text("Cumulative Mode Lower Outlier Percentile: %.2f", CumulativeModeLowerOutlierPercentile);
-			ImGui::Text("Cumulative Mode Upper Outlier Percentile: %.2f", CumulativeModeUpperOutlierPercentile);
 			ImGui::Separator();
 			ImGui::Text("Total Area Used: %.2f", Debug_TotalAreaUsed);
 			ImGui::Separator();

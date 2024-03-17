@@ -45,11 +45,8 @@ public:
 
 	glm::vec3 GetProjectionVector();
 
-	float GetCumulativeModeLowerOutlierPercentile();
-	void SetCumulativeModeLowerOutlierPercentile(float NewValue);
-
-	float GetCumulativeModeUpperOutlierPercentile();
-	void SetCumulativeModeUpperOutlierPercentile(float NewValue);
+	float GetCumulativeModePersentOfAreaThatWouldBeRed();
+	void SetCumulativeModePersentOfAreaThatWouldBeRed(float NewValue);
 
 	void SetOnCalculationsStartCallback(std::function<void()> Func);
 	void SetOnCalculationsEndCallback(std::function<void()> Func);
@@ -113,9 +110,9 @@ private:
 	float CurrentResolutionInMeters = 1.0f;
 	GridRasterizationMode Mode = GridRasterizationMode::Max;
 	glm::vec3 CurrentProjectionVector = glm::vec3(0.0f);
-	float CumulativeModeUpperOutlierPercentile = 99.0f;
-	float CumulativeModeLowerOutlierPercentile = 0.5f;
+	float PersentOfAreaThatWouldBeRed = 5.0f;
 	
+	std::vector<float> ImageRawData32Bits;
 	void PrepareRawImageData();
 	bool bUsingCGAL = true;
 
