@@ -40,6 +40,8 @@ public:
 	int GetGridResolution();
 	float GetResolutionInMeters();
 	void SetResolutionInMeters(float NewValue);
+	float GetResolutionInMetersThatWouldGiveSuchResolutionInPixels(int Pixels);
+	float GetResolutionInPixelsThatWouldGiveSuchResolutionInMeters(float Meters);
 
 	glm::vec2 GetMinMaxResolutionInMeters(glm::vec3 ProjectionVector = glm::vec3(0.0f));
 
@@ -47,6 +49,7 @@ public:
 
 	float GetCumulativeModePersentOfAreaThatWouldBeRed();
 	void SetCumulativeModePersentOfAreaThatWouldBeRed(float NewValue);
+	void ActivateAutomaticOutliersSuppression();
 
 	void SetOnCalculationsStartCallback(std::function<void()> Func);
 	void SetOnCalculationsEndCallback(std::function<void()> Func);
@@ -56,9 +59,6 @@ public:
 	int GetTexturePreviewID();
 
 	void ClearAllData();
-
-	void ShowDebugWindow();
-	void DebugMouseClick();
 private:
 	SINGLETON_PRIVATE_PART(LayerRasterizationManager)
 
@@ -124,6 +124,8 @@ private:
 	double GetArea(std::vector<glm::dvec3>& points);
 	double GetTriangleIntersectionArea(int GridX, int GridY, int TriangleIndex);
 
+	void ShowDebugWindow();
+	void DebugMouseClick();
 	double Debug_ResultRawMin = 0.0;
 	double Debug_ResultRawMax = 0.0;
 	double Debug_ResultRawMean = 0.0;
@@ -155,6 +157,8 @@ private:
 	void UpdateProjectionVector();
 
 	glm::uvec2 GetResolutionInPixelsBasedOnResolutionInMeters(glm::vec3 ProjectionVector, float ResolutionInMeters);
+
+	bool GLMVec3Equal(const glm::vec3& A, const glm::vec3& B);
 };
 
 #define LAYER_RASTERIZATION_MANAGER LayerRasterizationManager::getInstance()

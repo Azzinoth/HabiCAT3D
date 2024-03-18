@@ -55,32 +55,21 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 		return Grid;
 
 	glm::vec3 CellDimension = glm::vec3(CellSize);
-	//unsigned int CountOfCellToCoverAABB = 0;
 
 	if (Axis.x > 0.0)
 	{
-		//float UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
-		//CountOfCellToCoverAABB = UsableSize / CellSize;
-
 		CellDimension.x = MeshAABB.GetSize().x;
 	}
 	else if (Axis.y > 0.0)
 	{
-		//float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
-		//CountOfCellToCoverAABB = UsableSize / CellSize;
-
 		CellDimension.y = MeshAABB.GetSize().y;
 	}
 	else if (Axis.z > 0.0)
 	{
-		//float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
-		//CountOfCellToCoverAABB = UsableSize / CellSize;
-
 		CellDimension.z = MeshAABB.GetSize().z;
 	}
 
-	//CountOfCellToCoverAABB += 1;
-	glm::uvec2 ResolutionXY = GetResolutionInPixelsBasedOnResolutionInMeters(Axis, CurrentResolutionInMeters)/*glm::uvec2(CountOfCellToCoverAABB, CountOfCellToCoverAABB)*/;
+	glm::uvec2 ResolutionXY = GetResolutionInPixelsBasedOnResolutionInMeters(Axis, CurrentResolutionInMeters);
 	CurrentResolution = glm::max(ResolutionXY.x, ResolutionXY.y);
 
 	Grid.resize(CurrentResolution);
@@ -652,6 +641,13 @@ void LayerRasterizationManager::PrepareRawImageData()
 	}
 
 	ResultPreview = RESOURCE_MANAGER.RawDataToFETexture(FinalImageRawData.data(), CurrentResolution, CurrentResolution);
+
+	ResultPreview->Bind();
+	FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+	FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+	FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+	FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+	ResultPreview->UnBind();
 }
 
 bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMode)
@@ -878,9 +874,9 @@ void LayerRasterizationManager::PrepareCurrentLayerForExport(MeshLayer* LayerToE
 
 	OnCalculationsStart();
 
-	if (ForceProjectionVector != glm::vec3(0.0f))
+	if (!GLMVec3Equal(ForceProjectionVector, glm::vec3(0.0f)))
 		CurrentProjectionVector = ForceProjectionVector;
-	else
+	else if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
 		CurrentProjectionVector = ConvertToClosestAxis(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal());
 
 	Grid = GenerateGridProjection(CurrentProjectionVector);
@@ -1040,6 +1036,10 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int Gri
 		// not a projection vector to make sure that sum of pixel values will be same for all projections, for scientific measurements.
 		Plane_3 PlaneToProject(PointA, Vector_3(Normal.x, Normal.y, Normal.z));
 
+		// Testing other alternative methods
+		//Normal = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal();
+		//PlaneToProject = Plane_3(PointA, Vector_3(Normal.x, Normal.y, Normal.z));
+
 		// Check the type of the intersection result and calculate the area
 		if (CGALIntersection)
 		{
@@ -1175,8 +1175,8 @@ void LayerRasterizationManager::SetResolutionInMeters(float NewValue)
 		NewValue = MinMaxResolutionInMeters.y;
 
 	CurrentResolutionInMeters = NewValue;
-
-	if (CurrentProjectionVector == glm::vec3(0.0f))
+	
+	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
 		UpdateProjectionVector();
 
 	glm::uvec2 ResolutionXY = GetResolutionInPixelsBasedOnResolutionInMeters(CurrentProjectionVector, CurrentResolutionInMeters);
@@ -1191,14 +1191,17 @@ glm::vec2 LayerRasterizationManager::GetMinMaxResolutionInMeters(glm::vec3 Proje
 		return Result;
 
 	glm::vec3 Axis = CurrentProjectionVector;
-	if (ProjectionVector != glm::vec3(0.0f))
+	if (!GLMVec3Equal(ProjectionVector, glm::vec3(0.0f)))
 		Axis = ProjectionVector;
-
-	if (Axis == glm::vec3(0.0f))
+	
+	if (GLMVec3Equal(Axis, glm::vec3(0.0f)))
+	{
 		UpdateProjectionVector();
+		Axis = CurrentProjectionVector;
+	}
 
-	if (Axis == glm::vec3(0.0f))
-		Result;
+	if (GLMVec3Equal(Axis, glm::vec3(0.0f)))
+		return Result;
 		
 	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
 
@@ -1426,8 +1429,8 @@ glm::uvec2 LayerRasterizationManager::GetResolutionInPixelsBasedOnResolutionInMe
 
 	if (ResolutionInMeters <= 0.0f)
 		return Result;
-
-	if (ProjectionVector == glm::vec3(0.0f))
+	
+	if (GLMVec3Equal(ProjectionVector, glm::vec3(0.0f)))
 		return Result;
 
 	if (ProjectionVector.x + ProjectionVector.y + ProjectionVector.z != 1.0f)
@@ -1457,6 +1460,97 @@ glm::uvec2 LayerRasterizationManager::GetResolutionInPixelsBasedOnResolutionInMe
 
 	CountOfCellToCoverAABB += 1;
 	Result = glm::uvec2(CountOfCellToCoverAABB, CountOfCellToCoverAABB);
+
+	return Result;
+}
+
+bool LayerRasterizationManager::GLMVec3Equal(const glm::vec3& A, const glm::vec3& B)
+{
+	auto Epsilon = glm::epsilon<float>();
+	auto Equal = glm::all(glm::epsilonEqual(A, B, Epsilon));
+	auto Result = Equal;
+	return glm::all(glm::epsilonEqual(A, B, glm::epsilon<float>()));
+}
+
+float LayerRasterizationManager::GetResolutionInMetersThatWouldGiveSuchResolutionInPixels(int Pixels)
+{
+	float Result = -1.0f;
+
+	if (Pixels <= 0)
+		return Result;
+
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+		return Result;
+
+	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
+		UpdateProjectionVector();
+	
+	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
+		return Result;
+
+	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
+	unsigned int CountOfCellToCoverAABB = 0;
+
+	float UsableSize = 0.0f;
+	if (CurrentProjectionVector.x > 0.0)
+	{
+		UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
+	}
+	else if (CurrentProjectionVector.y > 0.0)
+	{
+		UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
+	}
+	else if (CurrentProjectionVector.z > 0.0)
+	{
+		UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
+	}
+
+	Result = UsableSize / Pixels;
+
+	return Result;
+}
+
+void LayerRasterizationManager::ActivateAutomaticOutliersSuppression()
+{
+	SetCumulativeModePersentOfAreaThatWouldBeRed(5.0f);
+}
+
+float LayerRasterizationManager::GetResolutionInPixelsThatWouldGiveSuchResolutionInMeters(float Meters)
+{
+	float Result = -1.0f;
+
+	if (Meters <= 0.0f)
+		return Result;
+
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+		return Result;
+
+	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
+		UpdateProjectionVector();
+
+	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
+		return Result;
+
+	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
+	unsigned int CountOfCellToCoverAABB = 0;
+
+	if (CurrentProjectionVector.x > 0.0)
+	{
+		float UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
+		CountOfCellToCoverAABB = UsableSize / Meters;
+	}
+	else if (CurrentProjectionVector.y > 0.0)
+	{
+		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
+		CountOfCellToCoverAABB = UsableSize / Meters;
+	}
+	else if (CurrentProjectionVector.z > 0.0)
+	{
+		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
+		CountOfCellToCoverAABB = UsableSize / Meters;
+	}
+
+	Result = CountOfCellToCoverAABB;
 
 	return Result;
 }

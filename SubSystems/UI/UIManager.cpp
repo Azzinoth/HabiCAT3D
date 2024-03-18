@@ -478,6 +478,9 @@ void UIManager::OnMeshUpdate()
 	UI.HeatMapColorRange.Clear();
 
 	LAYER_RASTERIZATION_MANAGER.ClearAllData();
+	float ResolutionInMeters = LAYER_RASTERIZATION_MANAGER.GetResolutionInMetersThatWouldGiveSuchResolutionInPixels(512);
+	if (ResolutionInMeters > 0.0f)
+		LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(ResolutionInMeters);
 }
 
 float UIManager::GetRadiusOfAreaToMeasure()
@@ -1680,6 +1683,136 @@ void UIManager::RenderGeneralSettingsTab()
 	}
 }
 
+void UIManager::RasterizationSettingsUI()
+{
+	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
+		ImGui::BeginDisabled();
+
+	bool bNeedUpdate = false;
+
+	const char* RasterizationModes[] = { "Min", "Max", "Mean", "Cumulative" };
+	int TempInt = LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode();
+	ImGui::Text("Mode: ");
+	if (ImGui::Combo("##Mode", &TempInt, RasterizationModes, IM_ARRAYSIZE(RasterizationModes)))
+	{
+		if (TempInt != LayerRasterizationManager::GridRasterizationMode::Cumulative)
+			LAYER_RASTERIZATION_MANAGER.ActivateAutomaticOutliersSuppression();
+		
+		bNeedUpdate = true;
+		LAYER_RASTERIZATION_MANAGER.SetGridRasterizationMode(static_cast<LayerRasterizationManager::GridRasterizationMode>(TempInt));
+	}
+
+	float TempFloat = LAYER_RASTERIZATION_MANAGER.GetResolutionInMeters();
+	glm::vec2 MinMax = LAYER_RASTERIZATION_MANAGER.GetMinMaxResolutionInMeters();
+	ImGui::Text("Resolution in meters: ");
+	static bool bSliderResolutionValueChanged = false;
+	static float SliderResolutionNewValue = 0.0f;
+	if (ImGui::SliderFloat("##Resolution in meters", &TempFloat, MinMax.y, MinMax.x))
+	{
+		bSliderResolutionValueChanged = true;
+		SliderResolutionNewValue = TempFloat;
+	}
+
+	if (bSliderResolutionValueChanged && ImGui::IsMouseReleased(0))
+	{
+		bNeedUpdate = true;
+		bSliderResolutionValueChanged = false;
+		LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(SliderResolutionNewValue);
+	}
+
+	ImGui::Text(std::string("Output resolution: " + std::to_string(LAYER_RASTERIZATION_MANAGER.GetResolutionInPixelsThatWouldGiveSuchResolutionInMeters(TempFloat))).c_str());
+
+	glm::vec3 ForceProjectionVector = LAYER_RASTERIZATION_MANAGER.GetProjectionVector();
+	int SelectedAxis = ForceProjectionVector == glm::vec3(1.0f, 0.0f, 0.0f) ? 0 : ForceProjectionVector == glm::vec3(0.0f, 1.0f, 0.0f) ? 1 : 2;
+	ImGui::Text("Select the axis along which the layer should be projected: ");
+	if (ImGui::RadioButton("X", &SelectedAxis, 0))
+	{
+		bNeedUpdate = true;
+		ForceProjectionVector = glm::vec3(1.0f, 0.0f, 0.0f);
+	}
+
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Y", &SelectedAxis, 1))
+	{
+		bNeedUpdate = true;
+		ForceProjectionVector = glm::vec3(0.0f, 1.0f, 0.0f);
+	}
+
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Z", &SelectedAxis, 2))
+	{
+		bNeedUpdate = true;
+		ForceProjectionVector = glm::vec3(0.0f, 0.0f, 1.0f);
+	}
+
+	if (LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode() == LayerRasterizationManager::GridRasterizationMode::Cumulative)
+	{
+		static bool bAutomaticPersentOfAreaThatWouldBeRed = true;
+		if (ImGui::Checkbox("Automatic outliers suppression", &bAutomaticPersentOfAreaThatWouldBeRed))
+		{
+			if (bAutomaticPersentOfAreaThatWouldBeRed)
+			{
+				bNeedUpdate = true;
+				LAYER_RASTERIZATION_MANAGER.ActivateAutomaticOutliersSuppression();
+			}
+		}
+
+		if (bAutomaticPersentOfAreaThatWouldBeRed)
+			ImGui::BeginDisabled();
+
+		TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModePersentOfAreaThatWouldBeRed();
+		static bool bSliderThresholdValueChanged = false;
+		static float SliderThresholdNewValue = 0.0f;
+		if (ImGui::SliderFloat("Persent of area that would be above color scale threshold(red)", &TempFloat, 0.0f, 99.9f))
+		{
+			bSliderThresholdValueChanged = true;
+			SliderThresholdNewValue = TempFloat;
+		}
+
+		if (bSliderThresholdValueChanged && ImGui::IsMouseReleased(0))
+		{
+			bNeedUpdate = true;
+			bSliderThresholdValueChanged = false;
+			LAYER_RASTERIZATION_MANAGER.SetCumulativeModePersentOfAreaThatWouldBeRed(SliderThresholdNewValue);
+		}
+
+		if (bAutomaticPersentOfAreaThatWouldBeRed)
+			ImGui::EndDisabled();
+	}
+
+	std::string TextForButton = "Activate preview";
+	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() == -1)
+	{
+		if (ImGui::Button(TextForButton.c_str()))
+		{
+			LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer());
+		}
+	}
+
+	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
+	{
+		if (ImGui::Button("Save to file..."))
+		{
+			LAYER_RASTERIZATION_MANAGER.PromptUserForSaveLocation();
+		}
+	}
+
+	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
+	{
+		int CurrentWindowWidth = static_cast<int>(ImGui::GetWindowWidth() * 0.95f);
+		ImGui::Text("Preview:");
+		ImGui::Image((void*)(intptr_t)LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID(), ImVec2(CurrentWindowWidth, CurrentWindowWidth));
+	}
+
+	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
+		ImGui::EndDisabled();
+
+	if (bNeedUpdate /*&& LAYER_RASTERIZATION_MANAGER.GetProgress() >= 1.0f*/)
+	{
+		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer(), ForceProjectionVector);
+	}
+}
+
 void UIManager::RenderExportTab()
 {
 	ImGui::Text("Selection mode:");
@@ -1798,6 +1931,10 @@ void UIManager::RenderExportTab()
 	{
 		bNextFrameForScreenshot = true;
 	}
+
+	ImGui::Separator();
+	ImGui::Text("Export layer as image:");
+	RasterizationSettingsUI();
 }
 
 void UIManager::RenderSettingsWindow()
@@ -1955,4 +2092,9 @@ void UIManager::OnLayerRasterizationCalculationsEnd()
 {
 	UI.bShouldCloseProgressPopup = true;
 	UI.bLayerRasterizationCalculationsInProgress = false;
+}
+
+bool UIManager::IsProgressModalPopupOpen()
+{
+	return !bShouldCloseProgressPopup;
 }

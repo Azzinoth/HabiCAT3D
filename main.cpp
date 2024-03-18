@@ -38,6 +38,9 @@ void LoadMesh(std::string FileName);
 static void DropCallback(int Count, const char** Paths);
 void DropCallback(int Count, const char** Paths)
 {
+	if (UI.IsProgressModalPopupOpen())
+		return;
+
 	for (size_t i = 0; i < size_t(Count); i++)
 	{
 		LoadMesh(Paths[i]);
@@ -306,99 +309,9 @@ void ConsoleThreadCode(void* InputData)
 	}
 }
 
-void RasterizationSettingsUI()
-{
-	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
-		ImGui::BeginDisabled();
-
-	const char* rasterizationModes[] = { "Min", "Max", "Mean", "Cumulative" };
-	int TempInt = LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode();
-	ImGui::Combo("Rasterization Mode", &TempInt, rasterizationModes, IM_ARRAYSIZE(rasterizationModes));
-	LAYER_RASTERIZATION_MANAGER.SetGridRasterizationMode(static_cast<LayerRasterizationManager::GridRasterizationMode>(TempInt));
-
-	float TempFloat = LAYER_RASTERIZATION_MANAGER.GetResolutionInMeters();
-	glm::vec2 MinMax = LAYER_RASTERIZATION_MANAGER.GetMinMaxResolutionInMeters();
-	ImGui::SliderFloat("Resolution in meters", &TempFloat, MinMax.y, MinMax.x);
-	LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(TempFloat);
-
-	ImGui::Text(std::string("Output image resolution: " + std::to_string(LAYER_RASTERIZATION_MANAGER.GetGridResolution())).c_str());
-
-	glm::vec3 ForceProjectionVector = LAYER_RASTERIZATION_MANAGER.GetProjectionVector();
-	int SelectedAxis = ForceProjectionVector == glm::vec3(1.0f, 0.0f, 0.0f) ? 0 : ForceProjectionVector == glm::vec3(0.0f, 1.0f, 0.0f) ? 1 : 2;
-	ImGui::Text("Select the axis along which the layer should be projected: ");
-	if (ImGui::RadioButton("X", &SelectedAxis, 0))
-	{
-		ForceProjectionVector = glm::vec3(1.0f, 0.0f, 0.0f);
-		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer(), ForceProjectionVector);
-	}
-
-	ImGui::SameLine();
-	if (ImGui::RadioButton("Y", &SelectedAxis, 1))
-	{
-		ForceProjectionVector = glm::vec3(0.0f, 1.0f, 0.0f);
-		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer(), ForceProjectionVector);
-	}
-
-	ImGui::SameLine();
-	if (ImGui::RadioButton("Z", &SelectedAxis, 2))
-	{
-		ForceProjectionVector = glm::vec3(0.0f, 0.0f, 1.0f);
-		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer(), ForceProjectionVector);
-	}
-
-	if (LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode() == LayerRasterizationManager::GridRasterizationMode::Cumulative)
-	{
-		static bool bAutomaticPersentOfAreaThatWouldBeRed = true;
-		ImGui::Checkbox("Automatic outliers suppression", &bAutomaticPersentOfAreaThatWouldBeRed);
-
-		if (bAutomaticPersentOfAreaThatWouldBeRed)
-			ImGui::BeginDisabled();
-		
-		TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModePersentOfAreaThatWouldBeRed();
-		ImGui::SliderFloat("Persent of area that would be above color scale threshold(red)", &TempFloat, 0.0f, 99.9f);
-		LAYER_RASTERIZATION_MANAGER.SetCumulativeModePersentOfAreaThatWouldBeRed(TempFloat);
-		
-		if (bAutomaticPersentOfAreaThatWouldBeRed)
-			ImGui::EndDisabled();
-	}
-
-	std::string TextForButton = "Prepare data for export";
-	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
-		TextForButton = "Refresh data for export";
-
-	if (ImGui::Button(TextForButton.c_str()))
-	{
-		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer());
-	}
-
-	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() == -1)
-		ImGui::BeginDisabled();
-
-	ImGui::SameLine();
-	if (ImGui::Button("Save to file"))
-	{
-		LAYER_RASTERIZATION_MANAGER.PromptUserForSaveLocation();
-	}
-
-	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() == -1)
-		ImGui::EndDisabled();
-
-	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
-	{
-		ImGui::Text("Preview:");
-		ImGui::Image((void*)(intptr_t)LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID(), ImVec2(512, 512));
-	}
-
-	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
-		ImGui::EndDisabled();
-}
-
 void MainWindowRender()
 {
-	LAYER_RASTERIZATION_MANAGER.ShowDebugWindow();
 	static bool FirstFrame = true;
-
-	RasterizationSettingsUI();
 
 	if (UI.ShouldTakeScreenshot())
 	{

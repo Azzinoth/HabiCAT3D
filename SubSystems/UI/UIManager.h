@@ -58,6 +58,8 @@ public:
 
 	bool ShouldUseTransparentBackground();
 	void SetUseTransparentBackground(bool NewValue);
+
+	bool IsProgressModalPopupOpen();
 private:
 	SINGLETON_PRIVATE_PART(UIManager)
 
@@ -68,7 +70,7 @@ private:
 	bool bModelCamera = true;
 
 	bool bShouldOpenProgressPopup = false;
-	bool bShouldCloseProgressPopup = false;
+	bool bShouldCloseProgressPopup = true;
 
 	float RadiusOfAreaToMeasure = 1.0f;
 	int LayerSelectionMode = 0;
@@ -128,6 +130,7 @@ private:
 	bool bLayerRasterizationCalculationsInProgress = false;
 	static void OnLayerRasterizationCalculationsStart();
 	static void OnLayerRasterizationCalculationsEnd();
+	void RasterizationSettingsUI();
 };
 
 #define UI UIManager::getInstance()
