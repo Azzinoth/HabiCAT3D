@@ -433,13 +433,13 @@ void JitterManager::AdjustOutliers(std::vector<float>& Data, float LowerPercenti
 		LowerOutlierPosition = 0;
 
 	if (LowerOutlierPosition >= SortedData.size())
-		LowerOutlierPosition = SortedData.size() - 1;
+		LowerOutlierPosition = static_cast<int>(SortedData.size() - 1);
 
 	if (UpperOutlierPosition < 0)
 		UpperOutlierPosition = 0;
 
 	if (UpperOutlierPosition >= SortedData.size())
-		UpperOutlierPosition = SortedData.size() - 1;
+		UpperOutlierPosition = static_cast<int>(SortedData.size() - 1);
 
 	if (LowerOutlierPosition == UpperOutlierPosition)
 		return;
@@ -505,7 +505,7 @@ float JitterManager::GetValueThatHaveAtLeastThisPercentOfArea(std::vector<float>
 		return Result;
 
 	float CurrentArea = 0.0f;
-	for (int i = SortedAreaWithData.size() - 1; i >= 0; i--)
+	for (int i = static_cast<int>(SortedAreaWithData.size() - 1); i >= 0; i--)
 	{
 		CurrentArea += SortedAreaWithData[i].Area;
 

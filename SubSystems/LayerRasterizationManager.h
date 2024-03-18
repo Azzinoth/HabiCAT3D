@@ -41,7 +41,7 @@ public:
 	float GetResolutionInMeters();
 	void SetResolutionInMeters(float NewValue);
 	float GetResolutionInMetersThatWouldGiveSuchResolutionInPixels(int Pixels);
-	float GetResolutionInPixelsThatWouldGiveSuchResolutionInMeters(float Meters);
+	int GetResolutionInPixelsThatWouldGiveSuchResolutionInMeters(float Meters);
 
 	glm::vec2 GetMinMaxResolutionInMeters(glm::vec3 ProjectionVector = glm::vec3(0.0f));
 
@@ -122,7 +122,7 @@ private:
 	void SortPointsByAngle(std::vector<glm::dvec3>& points);
 	double CalculatePolygonArea(const std::vector<glm::dvec2>& glmPoints);
 	double GetArea(std::vector<glm::dvec3>& points);
-	double GetTriangleIntersectionArea(int GridX, int GridY, int TriangleIndex);
+	double GetTriangleIntersectionArea(size_t GridX, size_t GridY, int TriangleIndex);
 
 	void ShowDebugWindow();
 	void DebugMouseClick();

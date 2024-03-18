@@ -1799,7 +1799,7 @@ void UIManager::RasterizationSettingsUI()
 
 	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
 	{
-		int CurrentWindowWidth = static_cast<int>(ImGui::GetWindowWidth() * 0.95f);
+		float CurrentWindowWidth = ImGui::GetWindowWidth() * 0.95f;
 		ImGui::Text("Preview:");
 		ImGui::Image((void*)(intptr_t)LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID(), ImVec2(CurrentWindowWidth, CurrentWindowWidth));
 	}

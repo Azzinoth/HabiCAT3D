@@ -187,12 +187,12 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 							double CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetTriangleIntersectionArea(i, j, l);
 							if (CurrentTrianlgeArea > 0)
 							{
-								Output->push_back(GridUpdateTask(i, j, l, CurrentTrianlgeArea));
+								Output->push_back(GridUpdateTask(static_cast<int>(i), static_cast<int>(j), l, CurrentTrianlgeArea));
 							}
 						}
 						else
 						{
-							Output->push_back(GridUpdateTask(i, j, l));
+							Output->push_back(GridUpdateTask(static_cast<int>(i), static_cast<int>(j), l));
 						}
 					}
 				}
@@ -243,12 +243,12 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 							double CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetTriangleIntersectionArea(i, j, l);
 							if (CurrentTrianlgeArea > 0)
 							{
-								Output->push_back(GridUpdateTask(i, j, l, CurrentTrianlgeArea));
+								Output->push_back(GridUpdateTask(static_cast<int>(i), static_cast<int>(j), l, CurrentTrianlgeArea));
 							}
 						}
 						else
 						{
-							Output->push_back(GridUpdateTask(i, j, l));
+							Output->push_back(GridUpdateTask(static_cast<int>(i), static_cast<int>(j), l));
 						}
 					}
 				}
@@ -299,12 +299,12 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 							double CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetTriangleIntersectionArea(i, j, l);
 							if (CurrentTrianlgeArea > 0)
 							{
-								Output->push_back(GridUpdateTask(i, j, l, CurrentTrianlgeArea));
+								Output->push_back(GridUpdateTask(static_cast<int>(i), static_cast<int>(j), l, CurrentTrianlgeArea));
 							}
 						}
 						else
 						{
-							Output->push_back(GridUpdateTask(i, j, l));
+							Output->push_back(GridUpdateTask(static_cast<int>(i), static_cast<int>(j), l));
 						}
 					}
 				}
@@ -506,7 +506,7 @@ void LayerRasterizationManager::PrepareRawImageData()
 		}
 
 		double UnitArea = (AABBWidth * AABBHeight);
-		MinForColorMap = UnitArea;
+		MinForColorMap = static_cast<float>(UnitArea);
 
 		std::vector<float> FlattenGridValues;
 		FlattenGridValues.reserve(Grid.size() * Grid[0].size());
@@ -523,7 +523,7 @@ void LayerRasterizationManager::PrepareRawImageData()
 				float AreaInCell = 0.0f;
 				for (size_t k = 0; k < Grid[i][j].TrianglesInCellArea.size(); k++)
 				{
-					AreaInCell += Grid[i][j].TrianglesInCellArea[k];
+					AreaInCell += static_cast<float>(Grid[i][j].TrianglesInCellArea[k]);
 				}
 
 				FlattenGridArea.push_back(AreaInCell);
@@ -1000,7 +1000,7 @@ Point_2 LayerRasterizationManager::ProjectPointOntoPlane(const Point_3& Point, c
 	return Point_2(X, Y);
 }
 
-double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int GridY, int TriangleIndex)
+double LayerRasterizationManager::GetTriangleIntersectionArea(size_t GridX, size_t GridY, int TriangleIndex)
 {
 	double Result = 0.0;
 
@@ -1035,10 +1035,6 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(int GridX, int Gri
 		// We are using the normal of the triangle to project the 3D triangle onto a 2D plane
 		// not a projection vector to make sure that sum of pixel values will be same for all projections, for scientific measurements.
 		Plane_3 PlaneToProject(PointA, Vector_3(Normal.x, Normal.y, Normal.z));
-
-		// Testing other alternative methods
-		//Normal = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal();
-		//PlaneToProject = Plane_3(PointA, Vector_3(Normal.x, Normal.y, Normal.z));
 
 		// Check the type of the intersection result and calculate the area
 		if (CGALIntersection)
@@ -1263,7 +1259,7 @@ void LayerRasterizationManager::ShowDebugWindow()
 		static int TempCellY = 0;
 		ImGui::InputInt("SelectedCellX", &TempCellX);
 
-		int TempInt = DebugSelectedCell.y;
+		int TempInt = static_cast<int>(DebugSelectedCell.y);
 		ImGui::InputInt("SelectedCellY", &TempCellY);
 
 		if (ImGui::Button("Select cell"))
@@ -1346,7 +1342,7 @@ void LayerRasterizationManager::DebugMouseClick()
 				if (LastDistanceToCell > DistanceToCell)
 				{
 					LastDistanceToCell = DistanceToCell;
-					DebugSelectCell(i, j);
+					DebugSelectCell(static_cast<int>(i), static_cast<int>(j));
 					return;
 				}
 			}
@@ -1441,23 +1437,22 @@ glm::uvec2 LayerRasterizationManager::GetResolutionInPixelsBasedOnResolutionInMe
 
 	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
 	unsigned int CountOfCellToCoverAABB = 0;
+	float UsableSize = 0.0f;
 
 	if (ProjectionVector.x > 0.0)
 	{
-		float UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
-		CountOfCellToCoverAABB = UsableSize / ResolutionInMeters;
+		UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
 	}
 	else if (ProjectionVector.y > 0.0)
 	{
-		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
-		CountOfCellToCoverAABB = UsableSize / ResolutionInMeters;
+		UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
 	}
 	else if (ProjectionVector.z > 0.0)
 	{
-		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
-		CountOfCellToCoverAABB = UsableSize / ResolutionInMeters;
+		UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
 	}
 
+	CountOfCellToCoverAABB = static_cast<unsigned int>(UsableSize / ResolutionInMeters);
 	CountOfCellToCoverAABB += 1;
 	Result = glm::uvec2(CountOfCellToCoverAABB, CountOfCellToCoverAABB);
 
@@ -1515,9 +1510,9 @@ void LayerRasterizationManager::ActivateAutomaticOutliersSuppression()
 	SetCumulativeModePersentOfAreaThatWouldBeRed(5.0f);
 }
 
-float LayerRasterizationManager::GetResolutionInPixelsThatWouldGiveSuchResolutionInMeters(float Meters)
+int LayerRasterizationManager::GetResolutionInPixelsThatWouldGiveSuchResolutionInMeters(float Meters)
 {
-	float Result = -1.0f;
+	int Result = -1;
 
 	if (Meters <= 0.0f)
 		return Result;
@@ -1533,23 +1528,23 @@ float LayerRasterizationManager::GetResolutionInPixelsThatWouldGiveSuchResolutio
 
 	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
 	unsigned int CountOfCellToCoverAABB = 0;
+	float UsableSize = 0.0f;
 
 	if (CurrentProjectionVector.x > 0.0)
 	{
-		float UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
-		CountOfCellToCoverAABB = UsableSize / Meters;
+		UsableSize = glm::max(MeshAABB.GetSize().y, MeshAABB.GetSize().z);
 	}
 	else if (CurrentProjectionVector.y > 0.0)
 	{
-		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
-		CountOfCellToCoverAABB = UsableSize / Meters;
+		UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().z);
 	}
 	else if (CurrentProjectionVector.z > 0.0)
 	{
-		float UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
-		CountOfCellToCoverAABB = UsableSize / Meters;
+		UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
 	}
 
+	CountOfCellToCoverAABB = static_cast<unsigned int>(UsableSize / Meters);
+	CountOfCellToCoverAABB += 1;
 	Result = CountOfCellToCoverAABB;
 
 	return Result;
