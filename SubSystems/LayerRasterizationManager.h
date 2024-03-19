@@ -16,20 +16,8 @@ public:
 
 	void PrepareCurrentLayerForExport(MeshLayer* LayerToExport, glm::vec3 ForceProjectionVector = glm::vec3(0.0f));
 
-	enum GridRasterizationMode
-	{
-		Min = 0,
-		Max = 1,
-		Mean = 2,
-		Cumulative = 3
-	};
-
-	enum SaveMode
-	{
-		SaveAsPNG = 0,
-		SaveAsTIF = 1,
-		SaveAs32bitTIF = 2
-	};
+	enum GridRasterizationMode { Min = 0, Max = 1, Mean = 2, Cumulative = 3 };
+	enum SaveMode { SaveAsPNG = 0, SaveAsTIF = 1, SaveAs32bitTIF = 2 };
 	
 	bool SaveToFile(std::string FilePath, SaveMode SaveMode = SaveAsPNG);
 	bool PromptUserForSaveLocation();
@@ -42,22 +30,19 @@ public:
 	void SetResolutionInMeters(float NewValue);
 	float GetResolutionInMetersThatWouldGiveSuchResolutionInPixels(int Pixels);
 	int GetResolutionInPixelsThatWouldGiveSuchResolutionInMeters(float Meters);
-
 	glm::vec2 GetMinMaxResolutionInMeters(glm::vec3 ProjectionVector = glm::vec3(0.0f));
-
 	glm::vec3 GetProjectionVector();
+	float GetProgress();
 
 	float GetCumulativeModePersentOfAreaThatWouldBeRed();
 	void SetCumulativeModePersentOfAreaThatWouldBeRed(float NewValue);
 	void ActivateAutomaticOutliersSuppression();
 
+	// Callback setters
 	void SetOnCalculationsStartCallback(std::function<void()> Func);
 	void SetOnCalculationsEndCallback(std::function<void()> Func);
 	
-	float GetProgress();
-
 	int GetTexturePreviewID();
-
 	void ClearAllData();
 private:
 	SINGLETON_PRIVATE_PART(LayerRasterizationManager)
@@ -117,31 +102,30 @@ private:
 	bool bUsingCGAL = true;
 
 	Point_2 ProjectPointOntoPlane(const Point_3& Point, const Plane_3& Plane);
-	glm::dvec3 CalculateCentroid(const std::vector<glm::dvec3>& points);
-	bool CompareAngles(const glm::dvec3& a, const glm::dvec3& b, const glm::dvec3& centroid);
-	void SortPointsByAngle(std::vector<glm::dvec3>& points);
-	double CalculatePolygonArea(const std::vector<glm::dvec2>& glmPoints);
-	double GetArea(std::vector<glm::dvec3>& points);
+	glm::dvec3 CalculateCentroid(const std::vector<glm::dvec3>& Points);
+	bool CompareAngles(const glm::dvec3& A, const glm::dvec3& B, const glm::dvec3& Centroid);
+	void SortPointsByAngle(std::vector<glm::dvec3>& Points);
+	double CalculatePolygonArea(const std::vector<glm::dvec2>& GlmPoints);
+	double GetArea(std::vector<glm::dvec3>& Points);
 	double GetTriangleIntersectionArea(size_t GridX, size_t GridY, int TriangleIndex);
 
-	void ShowDebugWindow();
-	void DebugMouseClick();
+	// Debug related
 	double Debug_ResultRawMin = 0.0;
 	double Debug_ResultRawMax = 0.0;
 	double Debug_ResultRawMean = 0.0;
 	double Debug_ResultRawStandardDeviation = 0.0;
 	double Debug_ResultRawSkewness = 0.0;
 	double Debug_ResultRawKurtosis = 0.0;
-
-	void UpdateGridDebugDistributionInfo();
-
 	double Debug_TotalAreaUsed = 0.0;
-
-	void DebugSelectCell(int X, int Y);
 	glm::vec2 DebugSelectedCell = glm::vec2(-1.0);
 
 	bool bDebugShowOnlyCellsWithTriangles = true;
 	bool bDebugShowOnlySelectedCells = false;
+
+	void ShowDebugWindow();
+	void DebugMouseClick();
+	void UpdateGridDebugDistributionInfo();
+	void DebugSelectCell(int X, int Y);
 	void DebugRenderGrid();
 
 	float Progress = 0.0f;

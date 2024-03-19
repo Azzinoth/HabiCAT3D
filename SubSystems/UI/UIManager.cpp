@@ -1735,7 +1735,7 @@ void UIManager::RasterizationSettingsUI()
 		LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(TempFloat);
 
 		float NewResolution = LAYER_RASTERIZATION_MANAGER.GetResolutionInMeters();
-		strcpy(CustomResolutionInM, std::to_string(NewResolution).c_str());
+		strcpy_s(CustomResolutionInM, std::to_string(NewResolution).c_str());
 	}
 
 	if (bSliderResolutionValueChanged && ImGui::IsMouseReleased(0))
