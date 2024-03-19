@@ -1693,6 +1693,7 @@ void UIManager::RasterizationSettingsUI()
 	const char* RasterizationModes[] = { "Min", "Max", "Mean", "Cumulative" };
 	int TempInt = LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode();
 	ImGui::Text("Mode: ");
+	ImGui::SetNextItemWidth(128);
 	if (ImGui::Combo("##Mode", &TempInt, RasterizationModes, IM_ARRAYSIZE(RasterizationModes)))
 	{
 		if (TempInt != LayerRasterizationManager::GridRasterizationMode::Cumulative)
@@ -1704,13 +1705,37 @@ void UIManager::RasterizationSettingsUI()
 
 	float TempFloat = LAYER_RASTERIZATION_MANAGER.GetResolutionInMeters();
 	glm::vec2 MinMax = LAYER_RASTERIZATION_MANAGER.GetMinMaxResolutionInMeters();
-	ImGui::Text("Resolution in meters: ");
+	
+	ImGui::Text("Choose resolution in meters: ");
+	ImGui::Text(("Min value : "
+				+ std::to_string(MinMax.y)
+				+ " m \nMax value : "
+				+ std::to_string(MinMax.x) + " m").c_str());
 	static bool bSliderResolutionValueChanged = false;
 	static float SliderResolutionNewValue = 0.0f;
 	if (ImGui::SliderFloat("##Resolution in meters", &TempFloat, MinMax.y, MinMax.x))
 	{
 		bSliderResolutionValueChanged = true;
 		SliderResolutionNewValue = TempFloat;
+	}
+
+	static char CustomResolutionInM[512];
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+	ImGui::Text("Input exact value: ");
+	ImGui::SameLine();
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+	ImGui::SetNextItemWidth(128);
+	ImGui::InputText("##ResolutionInM", CustomResolutionInM, IM_ARRAYSIZE(CustomResolutionInM));
+	ImGui::SameLine();
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+	if (ImGui::Button("Apply"))
+	{
+		TempFloat = static_cast<float>(atof(CustomResolutionInM));
+		bNeedUpdate = true;
+		LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(TempFloat);
+
+		float NewResolution = LAYER_RASTERIZATION_MANAGER.GetResolutionInMeters();
+		strcpy(CustomResolutionInM, std::to_string(NewResolution).c_str());
 	}
 
 	if (bSliderResolutionValueChanged && ImGui::IsMouseReleased(0))
@@ -1763,7 +1788,8 @@ void UIManager::RasterizationSettingsUI()
 		TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModePersentOfAreaThatWouldBeRed();
 		static bool bSliderThresholdValueChanged = false;
 		static float SliderThresholdNewValue = 0.0f;
-		if (ImGui::SliderFloat("Persent of area that would be above color scale threshold(red)", &TempFloat, 0.0f, 99.9f))
+		ImGui::Text("Choose persent of area that would be above color scale threshold(red): ");
+		if (ImGui::SliderFloat("##Persent of area that would be above color scale threshold(red)", &TempFloat, 0.0f, 99.9f))
 		{
 			bSliderThresholdValueChanged = true;
 			SliderThresholdNewValue = TempFloat;

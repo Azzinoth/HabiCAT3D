@@ -1,4 +1,5 @@
-RugosityCalculator
+HabiCAT3D
+Habitat Complexity Analysis Tool 3D
 =====
 
 How to:<br />
