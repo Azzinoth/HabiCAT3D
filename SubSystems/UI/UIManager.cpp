@@ -1811,7 +1811,7 @@ void UIManager::RasterizationSettingsUI()
 	{
 		if (ImGui::Button(TextForButton.c_str()))
 		{
-			LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer());
+			LAYER_RASTERIZATION_MANAGER.PrepareLayerForExport(LAYER_MANAGER.GetActiveLayer());
 		}
 	}
 
@@ -1833,9 +1833,9 @@ void UIManager::RasterizationSettingsUI()
 	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
 		ImGui::EndDisabled();
 
-	if (bNeedUpdate /*&& LAYER_RASTERIZATION_MANAGER.GetProgress() >= 1.0f*/)
+	if (bNeedUpdate)
 	{
-		LAYER_RASTERIZATION_MANAGER.PrepareCurrentLayerForExport(LAYER_MANAGER.GetActiveLayer(), ForceProjectionVector);
+		LAYER_RASTERIZATION_MANAGER.PrepareLayerForExport(LAYER_MANAGER.GetActiveLayer(), ForceProjectionVector);
 	}
 }
 

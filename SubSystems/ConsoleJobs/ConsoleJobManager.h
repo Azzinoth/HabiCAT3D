@@ -204,6 +204,69 @@ public:
 	void SetEvaluationSubType(std::string NewValue);
 };
 
+class GlobalSettingJob : public EvaluationJob
+{
+	friend ConsoleJobManager;
+
+	std::string GlobalSettingType;
+
+	int IntValue = 0;
+	float FloatValue = 0.0f;
+	bool bValue = false;
+public:
+	GlobalSettingJob();
+
+	std::string GetGlobalSettingType();
+	void SetGlobalSettingType(std::string NewValue);
+
+	int GetIntValue();
+	void SetIntValue(int NewValue);
+
+	float GetFloatValue();
+	void SetFloatValue(float NewValue);
+
+	bool GetBoolValue();
+	void SetBoolValue(bool NewValue);
+};
+
+class ExportLayerAsImageJob : public EvaluationJob
+{
+	friend ConsoleJobManager;
+
+	LayerRasterizationManager::GridRasterizationMode ExportMode;
+	LayerRasterizationManager::SaveMode SaveMode;
+
+	std::string FilePath = "";
+	float ResolutionInM = 0.0f;
+	glm::vec3 ForceProjectionVector = glm::vec3(0.0f);
+	float PersentOfAreaThatWouldBeRed = 5.0f;
+
+	int LayerIndex = -1;
+public:
+	ExportLayerAsImageJob();
+
+	LayerRasterizationManager::GridRasterizationMode GetExportMode();
+	void SetExportMode(LayerRasterizationManager::GridRasterizationMode NewValue);
+
+	LayerRasterizationManager::SaveMode GetSaveMode();
+	void SetSaveMode(LayerRasterizationManager::SaveMode NewValue);
+
+	std::string GetFilePath();
+	void SetFilePath(std::string NewValue);
+
+	float GetResolutionInM();
+	void SetResolutionInM(float NewValue);
+
+	glm::vec3 GetForceProjectionVector();
+	void SetForceProjectionVector(glm::vec3 NewValue);
+
+	float GetPersentOfAreaThatWouldBeRed();
+	void SetPersentOfAreaThatWouldBeRed(float NewValue);
+
+	int GetLayerIndex();
+	void SetLayerIndex(int NewValue);
+};
+
 class ConsoleJobManager
 {
 public:
@@ -250,6 +313,12 @@ private:
 	std::map<std::string, ConsoleJobInfo> ConsoleJobsInfo;
 	void PrintCommandHelp(std::string CommandName);
 	void PrintHelp(std::string CommandName = "");
+
+	int JobsAdded = 0;
+	void OnAllJobsFinished();
+
+	bool bConvertEvaluationToUsableScript = false;
+	std::vector<std::string> SavedConvertionsOfEvaluationToUsableScript;
 };
 
 #define CONSOLE_JOB_MANAGER ConsoleJobManager::getInstance()

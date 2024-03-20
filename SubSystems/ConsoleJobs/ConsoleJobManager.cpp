@@ -282,6 +282,129 @@ void ComplexityJobSettings::SetCompare_Normalize(bool NewValue)
 	bCompare_Normalize = NewValue;
 }
 
+GlobalSettingJob::GlobalSettingJob()
+{
+	Type = "GLOBAL_SETTINGS_JOB";
+	GlobalSettingType = "EVALUATION_JOB_TO_SCRIPT";
+}
+
+std::string GlobalSettingJob::GetGlobalSettingType()
+{
+	return GlobalSettingType;
+}
+
+void GlobalSettingJob::SetGlobalSettingType(std::string NewValue)
+{
+	GlobalSettingType = NewValue;
+}
+
+int GlobalSettingJob::GetIntValue()
+{
+	return IntValue;
+}
+
+void GlobalSettingJob::SetIntValue(int NewValue)
+{
+	IntValue = NewValue;
+}
+
+float GlobalSettingJob::GetFloatValue()
+{
+	return FloatValue;
+}
+
+void GlobalSettingJob::SetFloatValue(float NewValue)
+{
+	FloatValue = NewValue;
+}
+
+bool GlobalSettingJob::GetBoolValue()
+{
+	return bValue;
+}
+
+void GlobalSettingJob::SetBoolValue(bool NewValue)
+{
+	bValue = NewValue;
+}
+
+ExportLayerAsImageJob::ExportLayerAsImageJob()
+{
+	Type = "EXPORT_LAYER_AS_IMAGE_JOB";
+	ExportMode = LayerRasterizationManager::GridRasterizationMode::Min;
+	SaveMode = LayerRasterizationManager::SaveMode::SaveAsPNG;
+}
+
+LayerRasterizationManager::GridRasterizationMode ExportLayerAsImageJob::GetExportMode()
+{
+	return ExportMode;
+}
+
+void ExportLayerAsImageJob::SetExportMode(LayerRasterizationManager::GridRasterizationMode NewValue)
+{
+	ExportMode = NewValue;
+}
+
+LayerRasterizationManager::SaveMode ExportLayerAsImageJob::GetSaveMode()
+{
+	return SaveMode;
+}
+
+void ExportLayerAsImageJob::SetSaveMode(LayerRasterizationManager::SaveMode NewValue)
+{
+	SaveMode = NewValue;
+}
+
+std::string ExportLayerAsImageJob::GetFilePath()
+{
+	return FilePath;
+}
+
+void ExportLayerAsImageJob::SetFilePath(std::string NewValue)
+{
+	FilePath = NewValue;
+}
+
+float ExportLayerAsImageJob::GetResolutionInM()
+{
+	return ResolutionInM;
+}
+
+void ExportLayerAsImageJob::SetResolutionInM(float NewValue)
+{
+	ResolutionInM = NewValue;
+}
+
+glm::vec3 ExportLayerAsImageJob::GetForceProjectionVector()
+{
+	return ForceProjectionVector;
+}
+
+void ExportLayerAsImageJob::SetForceProjectionVector(glm::vec3 NewValue)
+{
+	ForceProjectionVector = NewValue;
+}
+
+float ExportLayerAsImageJob::GetPersentOfAreaThatWouldBeRed()
+{
+	return PersentOfAreaThatWouldBeRed;
+}
+
+void ExportLayerAsImageJob::SetPersentOfAreaThatWouldBeRed(float NewValue)
+{
+	PersentOfAreaThatWouldBeRed = NewValue;
+}
+
+int ExportLayerAsImageJob::GetLayerIndex()
+{
+	return LayerIndex;
+}
+
+void ExportLayerAsImageJob::SetLayerIndex(int NewValue)
+{
+	LayerIndex = NewValue;
+}
+
 ConsoleJobManager* ConsoleJobManager::Instance = nullptr;
 
 ConsoleJobManager::ConsoleJobManager()
@@ -456,7 +579,98 @@ ConsoleJobManager::ConsoleJobManager()
 	CurrentSettingInfo.bIsOptional = true;
 	CurrentSettingInfo.DefaultValue = "'-1' Which means the last layer.";
 	ConsoleJobsInfo["evaluation"].SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "convert_to_script";
+	CurrentSettingInfo.Description = "Specifies if the job should be converted to a script that later can be used to run the same job but with actual values.(Mostly used to make it easier to create a script file for new models)";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "false";
+	ConsoleJobsInfo["evaluation"].SettingsInfo.push_back(CurrentSettingInfo);
 	// ********** EVALUATION END **********
+
+	// ********** GLOBAL SETTINGS **********
+	ConsoleJobsInfo["global_settings"].CommandName = "global_settings";
+	ConsoleJobsInfo["global_settings"].Purpose = "Sets a global setting for the application.";
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "type";
+	CurrentSettingInfo.Description = "Specifies the type of global setting.";
+	CurrentSettingInfo.bIsOptional = false;
+	CurrentSettingInfo.PossibleValues = { "EVALUATION_JOB_TO_SCRIPT" };
+	ConsoleJobsInfo["global_settings"].SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "int_value";
+	CurrentSettingInfo.Description = "Specifies the integer value for the global setting.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "0";
+	ConsoleJobsInfo["global_settings"].SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "float_value";
+	CurrentSettingInfo.Description = "Specifies the float value for the global setting.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "0.0";
+	ConsoleJobsInfo["global_settings"].SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "bool_value";
+	CurrentSettingInfo.Description = "Specifies the boolean value for the global setting.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "false";
+	ConsoleJobsInfo["global_settings"].SettingsInfo.push_back(CurrentSettingInfo);
+	// ********** GLOBAL SETTINGS END **********
+
+	// ********** EXPORT LAYER AS IMAGE **********
+	ConsoleJobsInfo["export_layer_as_image"].CommandName = "export_layer_as_image";
+	ConsoleJobsInfo["export_layer_as_image"].Purpose = "Exports a layer as an image.";
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "export_mode";
+	CurrentSettingInfo.Description = "Specifies the mode of the export.";
+	CurrentSettingInfo.bIsOptional = false;
+	CurrentSettingInfo.PossibleValues = { "MIN", "MAX", "MEAN", "CUMULATIVE"};
+	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "save_mode";
+	CurrentSettingInfo.Description = "Specifies the type of image file.";
+	CurrentSettingInfo.bIsOptional = false;
+	CurrentSettingInfo.PossibleValues = { "PNG", "GEOTIF", "GEOTIF_32_BITS" };
+	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "filepath";
+	CurrentSettingInfo.Description = "Specifies the path of the file to save.";
+	CurrentSettingInfo.bIsOptional = false;
+	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "resolution";
+	CurrentSettingInfo.Description = "Specifies the resolution in meters for the image.";
+	CurrentSettingInfo.bIsOptional = false;
+	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "layer_index";
+	CurrentSettingInfo.Description = "Specifies the index of the layer to export.";
+	CurrentSettingInfo.bIsOptional = false;
+	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "force_projection_vector";
+	CurrentSettingInfo.Description = "Specifies the projection vector for the image.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.PossibleValues = { "X", "Y", "Z" };
+	CurrentSettingInfo.DefaultValue = "Calculated on fly";
+	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "persent_of_area_that_would_be_red";
+	CurrentSettingInfo.Description = "Specifies the persent of area that would be considered outliers and would be red.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "5.0";
+	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
+	// ********** EXPORT LAYER AS IMAGE END **********
 }
 
 ConsoleJobManager::~ConsoleJobManager() {}
@@ -464,6 +678,7 @@ ConsoleJobManager::~ConsoleJobManager() {}
 void ConsoleJobManager::AddJob(ConsoleJob* Job)
 {
 	JobsList.push_back(Job);
+	JobsAdded++;
 }
 
 void ConsoleJobManager::SetGridResolution(ComplexityJob* Job)
@@ -561,6 +776,7 @@ void ConsoleJobManager::PrintHelp(std::string CommandName)
 			"-run_script_file filepath=[PATH]                Execute a sequence of commands from a specified script(text) file.Each command in the file should be on a new line.\n"
 			"-complexity type=[LAYER_TYPE]                   Create a complexity job with the specified settings to create a layer.\n"
 			"-evaluation type=[TYPE] subtype=[WHAT_TO_TEST]  Create an evaluation job with the specified settings to test a layer or other objects.\n\n"
+			"-global_settings type=[TYPE]                    Set a global setting for the application.\n\n"
 
 			"Examples:\n"
 			"-load filepath=\"C:/data/mesh.obj\"\n"
@@ -850,7 +1066,76 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 				LOG.Add(Message, "CONSOLE_LOG");
 				OutputConsoleTextWithColor(Message, 0, 255, 0);
 			}
+
+			if (bConvertEvaluationToUsableScript)
+			{
+				std::string Script = "-evaluation type=" + CurrentComplexityEvaluationJob->EvaluationType + " subtype=" + CurrentComplexityEvaluationJob->GetEvaluationSubType() + " expected_value=" + std::to_string(CurrentComplexityEvaluationJob->GetActualValue()) + " tolerance=" + std::to_string(CurrentComplexityEvaluationJob->GetTolerance());
+				if (CurrentComplexityEvaluationJob->GetLayerIndex() != -1)
+					Script += " layer_index=" + std::to_string(CurrentComplexityEvaluationJob->GetLayerIndex());
+				
+				SavedConvertionsOfEvaluationToUsableScript.push_back(Script);
+			}
 		}
+	}
+	else if (Job->Type == "GLOBAL_SETTINGS_JOB")
+	{
+		GlobalSettingJob* CurrentGlobalSettingsJob = reinterpret_cast<GlobalSettingJob*>(Job);
+
+		if (CurrentGlobalSettingsJob->GlobalSettingType == "EVALUATION_JOB_TO_SCRIPT")
+		{
+			bConvertEvaluationToUsableScript = CurrentGlobalSettingsJob->GetBoolValue();
+		}
+	}
+	else if (Job->Type == "EXPORT_LAYER_AS_IMAGE_JOB")
+	{
+		ExportLayerAsImageJob* CurrentExportLayerJob = reinterpret_cast<ExportLayerAsImageJob*>(Job);
+
+		if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
+		{
+			std::string ErrorMessage = "Error: No layers to export. Please calculate a layer before attempting to export.";
+			LOG.Add(ErrorMessage, "CONSOLE_LOG");
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return;
+		}
+
+		MeshLayer* LayerToExport = nullptr;
+		if (CurrentExportLayerJob->GetLayerIndex() >= 0 && CurrentExportLayerJob->GetLayerIndex() < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+		{
+			LayerToExport = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[CurrentExportLayerJob->GetLayerIndex()];
+		}
+		else
+		{
+			std::string ErrorMessage = "Error: Layer index is out of range. Please check the layer index and try again.";
+			LOG.Add(ErrorMessage, "CONSOLE_LOG");
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return;
+		}
+
+		if (LayerToExport == nullptr)
+		{
+			std::string ErrorMessage = "Error: Layer to export is null. Please check the layer index and try again.";
+			LOG.Add(ErrorMessage, "CONSOLE_LOG");
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return;
+		}
+
+		std::cout << "Initiating Layer export as image." << std::endl;
+
+
+		LAYER_RASTERIZATION_MANAGER.PrepareLayerForExport(LAYER_MANAGER.GetActiveLayer(), CurrentExportLayerJob->GetForceProjectionVector());
+
+
+		while (abs(LAYER_RASTERIZATION_MANAGER.GetProgress() - 1.0f) > FLT_EPSILON)
+		{
+			std::cout << "\rProgress: " << std::to_string(LAYER_RASTERIZATION_MANAGER.GetProgress() * 100.0f) << " %" << std::flush;
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			THREAD_POOL.Update();
+		}
+
+		
+		LAYER_RASTERIZATION_MANAGER.SaveToFile(CurrentExportLayerJob->GetFilePath());
+		
 	}
 	else if (Job->Type == "HELP_JOB")
 	{
@@ -870,28 +1155,10 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 
 void ConsoleJobManager::Update()
 {
-	if (JobsList.empty() && EvaluationsTotalCount > 1)
+	if (JobsList.empty() && JobsAdded != 0)
 	{
-		std::cout << "All jobs finished." << std::endl;
-
-		if (EvaluationsFailedCount == 0)
-		{
-			OutputConsoleTextWithColor("All evaluations passed: " + std::to_string(EvaluationsTotalCount) + " out of " + std::to_string(EvaluationsTotalCount), 0, 255, 0);
-		}
-		else if (EvaluationsFailedCount > 0 && EvaluationsFailedCount < EvaluationsTotalCount)
-		{
-			OutputConsoleTextWithColor("Some evaluations failed, only: " + std::to_string(EvaluationsTotalCount - EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount) + " passed.", 255, 255, 0);
-		}
-		else if (EvaluationsFailedCount == EvaluationsTotalCount)
-		{
-			OutputConsoleTextWithColor("All evaluations failed: " + std::to_string(EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount), 255, 0, 0);
-
-		}
-
-		EvaluationsTotalCount = 0;
-		EvaluationsFailedCount = 0;
-
-		return;
+		OnAllJobsFinished();
+		JobsAdded = 0;
 	}
 		
 	if (!JobsList.empty())
@@ -923,9 +1190,46 @@ void ConsoleJobManager::Update()
 		std::vector<ConsoleJob*> NewJobs = ConvertCommandAction(Actions);
 		for (size_t i = 0; i < NewJobs.size(); i++)
 		{
-			JobsList.push_back(NewJobs[i]);
+			AddJob(NewJobs[i]);
 		}
 	}
+}
+
+void ConsoleJobManager::OnAllJobsFinished()
+{
+	if (EvaluationsTotalCount > 1)
+	{
+		std::cout << "All jobs finished." << std::endl;
+
+		if (EvaluationsFailedCount == 0)
+		{
+			OutputConsoleTextWithColor("All evaluations passed: " + std::to_string(EvaluationsTotalCount) + " out of " + std::to_string(EvaluationsTotalCount), 0, 255, 0);
+		}
+		else if (EvaluationsFailedCount > 0 && EvaluationsFailedCount < EvaluationsTotalCount)
+		{
+			OutputConsoleTextWithColor("Some evaluations failed, only: " + std::to_string(EvaluationsTotalCount - EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount) + " passed.", 255, 255, 0);
+		}
+		else if (EvaluationsFailedCount == EvaluationsTotalCount)
+		{
+			OutputConsoleTextWithColor("All evaluations failed: " + std::to_string(EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount), 255, 0, 0);
+
+		}
+
+		EvaluationsTotalCount = 0;
+		EvaluationsFailedCount = 0;
+	}
+
+	if (bConvertEvaluationToUsableScript)
+	{
+		std::cout << "Requested convertions of evaluations to usable scripts with actual values:" << std::endl;
+		for (const auto& Script : SavedConvertionsOfEvaluationToUsableScript)
+		{
+			OutputConsoleTextWithColor(Script, 0, 255, 255);
+		}
+		std::cout << std::endl;
+	}
+
+	SavedConvertionsOfEvaluationToUsableScript.clear();
 }
 
 std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineAction ActionToParse)
@@ -1109,6 +1413,96 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 				OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			}
 		}
+	}
+	else if (ActionToParse.Action == "global_settings")
+	{
+		if (ActionToParse.Settings.find("type") == ActionToParse.Settings.end())
+			return Result;
+
+		auto Iterator = ActionToParse.Settings.begin();
+		while (Iterator != ActionToParse.Settings.end())
+		{
+			std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
+			Iterator++;
+		}
+
+		GlobalSettingJob* NewJobToAdd = new GlobalSettingJob();
+		NewJobToAdd->SetGlobalSettingType(ActionToParse.Settings["type"]);
+
+		if (ActionToParse.Settings.find("int_value") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->SetIntValue(std::stoi(ActionToParse.Settings["int_value"]));
+		}
+
+		if (ActionToParse.Settings.find("float_value") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->SetFloatValue(std::stof(ActionToParse.Settings["float_value"]));
+		}
+
+		if (ActionToParse.Settings.find("bool_value") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->SetBoolValue(ActionToParse.Settings["bool_value"] == "TRUE" ? true : false);
+		}
+
+		Result.push_back(NewJobToAdd);
+	}
+	else if (ActionToParse.Action == "export_layer_as_image")
+	{
+		ExportLayerAsImageJob* NewJobToAdd = new ExportLayerAsImageJob();
+
+		auto Iterator = ActionToParse.Settings.begin();
+		while (Iterator != ActionToParse.Settings.end())
+		{
+			std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
+			Iterator++;
+		}
+
+		if (ActionToParse.Settings.find("export_mode") != ActionToParse.Settings.end())
+		{
+			std::string ExportMode = ActionToParse.Settings["export_mode"];
+			if (ExportMode == "MIN") NewJobToAdd->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Min);
+			if (ExportMode == "MAX") NewJobToAdd->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Max);
+			if (ExportMode == "MEAN") NewJobToAdd->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Mean);
+			if (ExportMode == "CUMULATIVE") NewJobToAdd->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Cumulative);
+		}
+
+		if (ActionToParse.Settings.find("save_mode") != ActionToParse.Settings.end())
+		{
+			std::string SaveMode = ActionToParse.Settings["save_mode"];
+			if (SaveMode == "PNG") NewJobToAdd->SetSaveMode(LayerRasterizationManager::SaveMode::SaveAsPNG);
+			if (SaveMode == "GEOTIF") NewJobToAdd->SetSaveMode(LayerRasterizationManager::SaveMode::SaveAsTIF);
+			if (SaveMode == "GEOTIF_32_BITS") NewJobToAdd->SetSaveMode(LayerRasterizationManager::SaveMode::SaveAs32bitTIF);
+		}
+
+		if (ActionToParse.Settings.find("filepath") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->SetFilePath(ActionToParse.Settings["filepath"]);
+		}
+
+		if (ActionToParse.Settings.find("resolution") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->SetResolutionInM(std::stof(ActionToParse.Settings["resolution"]));
+		}
+
+		if (ActionToParse.Settings.find("layer_index") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->SetLayerIndex(std::stoi(ActionToParse.Settings["layer_index"]));
+		}
+
+		if (ActionToParse.Settings.find("force_projection_vector") != ActionToParse.Settings.end())
+		{
+			std::string ForceProjectionVector = ActionToParse.Settings["force_projection_vector"];
+			if (ForceProjectionVector == "X") NewJobToAdd->SetForceProjectionVector(glm::vec3(1.0f, 0.0f, 0.0f));
+			if (ForceProjectionVector == "Y") NewJobToAdd->SetForceProjectionVector(glm::vec3(0.0f, 1.0f, 0.0f));
+			if (ForceProjectionVector == "Z") NewJobToAdd->SetForceProjectionVector(glm::vec3(0.0f, 0.0f, 1.0f));
+		}
+
+		if (ActionToParse.Settings.find("persent_of_area_that_would_be_red") != ActionToParse.Settings.end())
+		{
+			NewJobToAdd->SetPersentOfAreaThatWouldBeRed(std::stof(ActionToParse.Settings["persent_of_area_that_would_be_red"]));
+		}
+
+		Result.push_back(NewJobToAdd);
 	}
 	else if (ActionToParse.Action == "help")
 	{

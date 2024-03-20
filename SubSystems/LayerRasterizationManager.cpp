@@ -866,7 +866,7 @@ void LayerRasterizationManager::GatherGridRasterizationThreadWork(void* OutputDa
 		LAYER_RASTERIZATION_MANAGER.AfterAllGridRasterizationThreadFinished();
 }
 
-void LayerRasterizationManager::PrepareCurrentLayerForExport(MeshLayer* LayerToExport, glm::vec3 ForceProjectionVector)
+void LayerRasterizationManager::PrepareLayerForExport(MeshLayer* LayerToExport, glm::vec3 ForceProjectionVector)
 {
 	CurrentLayer = LayerToExport;
 	if (CurrentLayer == nullptr)

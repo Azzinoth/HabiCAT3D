@@ -14,7 +14,7 @@ class LayerRasterizationManager
 public:
 	SINGLETON_PUBLIC_PART(LayerRasterizationManager)
 
-	void PrepareCurrentLayerForExport(MeshLayer* LayerToExport, glm::vec3 ForceProjectionVector = glm::vec3(0.0f));
+	void PrepareLayerForExport(MeshLayer* LayerToExport, glm::vec3 ForceProjectionVector = glm::vec3(0.0f));
 
 	enum GridRasterizationMode { Min = 0, Max = 1, Mean = 2, Cumulative = 3 };
 	enum SaveMode { SaveAsPNG = 0, SaveAsTIF = 1, SaveAs32bitTIF = 2 };
