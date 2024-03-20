@@ -377,7 +377,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	{
 		FEConsoleWindow* Console = APPLICATION.CreateConsoleWindow(ConsoleThreadCode);
 		Console->WaitForCreation();
-		Console->SetTitle("Rugosity Calculator console");
+		Console->SetTitle("HabiCAT3D console");
 
 		std::vector<ConsoleJob*> ParsedJobs = CONSOLE_JOB_MANAGER.ConvertCommandAction(ParsedCommandActions);
 		for (size_t i = 0; i < ParsedJobs.size(); i++)
@@ -398,7 +398,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 	else
 	{
-		ENGINE.InitWindow(1280, 720, "Rugosity Calculator");
+		ENGINE.InitWindow(1280, 720, "HabiCAT3D");
 		ENGINE.ActivateSimplifiedRenderingMode();
 		// If I will directly assign result of APPLICATION.AddWindow to UI.MainWindow, then in Release build with full optimization app will crash, because of execution order.
 		FEWindow* MainWinodw = APPLICATION.GetMainWindow();

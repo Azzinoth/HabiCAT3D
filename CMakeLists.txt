@@ -5,7 +5,7 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
 # set the project name
-project(RugosityCalculator LANGUAGES CXX)
+project(HabiCAT3D LANGUAGES CXX)
 
 set(CMAKE_CXX_FLAGS_DEBUG "/MP /Zi /MDd /INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF /Od")
 set(CMAKE_CXX_FLAGS_RELEASE "/MP")
@@ -106,17 +106,17 @@ link_directories(${GLEW_LIB_DIR})
 link_directories(${GLFW_LIB_DIR})
 
 # add the executable
-add_executable(RugosityCalculator WIN32
-								  ${source_SRC}
-								  # *************** SUB_SYSTEM ***************
-								  ${SubSystems_SRC}
-								  ${SubSystems_Layers_SRC}
-								  ${SubSystems_UI_SRC}
-								  ${SubSystems_ConsoleJobs_SRC}
-								  ${SubSystems_ComplexityCore_SRC}
+add_executable(HabiCAT3D WIN32
+					     ${source_SRC}
+					     # *************** SUB_SYSTEM ***************
+					     ${SubSystems_SRC}
+					     ${SubSystems_Layers_SRC}
+					     ${SubSystems_UI_SRC}
+					     ${SubSystems_ConsoleJobs_SRC}
+					     ${SubSystems_ComplexityCore_SRC}
 )
 
-target_link_libraries(RugosityCalculator
+target_link_libraries(HabiCAT3D
 	PRIVATE
 		FocalEngine
 	 PUBLIC
@@ -132,7 +132,7 @@ source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
 source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJobs_SRC})
 
 # set as the startup project
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT RugosityCalculator)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT HabiCAT3D)
 
 include_directories(
 	${GLEW_INCLUDE_DIR}

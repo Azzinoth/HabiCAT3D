@@ -1193,7 +1193,7 @@ void UIManager::RenderAboutWindow()
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
-		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 06\\09\\2023";
+		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 03\\19\\2024";
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
