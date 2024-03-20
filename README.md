@@ -19,7 +19,7 @@ Designed for ecologists and researchers, this tool facilitates the analysis, exp
 You can download compiled version from .... (some realease)
 Or compile it on your own.
 
-## Compilation:
+## How to get source code:
 ```bash
 # Initialize a new Git repository
 git init
