@@ -17,6 +17,8 @@ class ExportLayerAsImageJob : public ConsoleJob
 	float PersentOfAreaThatWouldBeRed = 5.0f;
 
 	int LayerIndex = -1;
+
+	static ConsoleJobInfo GetInfo();
 public:
 	ExportLayerAsImageJob();
 

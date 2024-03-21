@@ -10,10 +10,7 @@ class FileSaveJob : public ConsoleJob
 	friend ConsoleJobManager;
 	std::string FilePath;
 
+	static ConsoleJobInfo GetInfo();
 public:
-	FileSaveJob(std::string FilePath)
-	{
-		this->FilePath = FilePath;
-		Type = "FILE_SAVE";
-	}
+	FileSaveJob(std::string FilePath);
 };

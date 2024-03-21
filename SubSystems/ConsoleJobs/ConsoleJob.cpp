@@ -10,3 +10,8 @@ std::string ConsoleJob::GetID()
 {
 	return ID;
 }
+
+ConsoleJobInfo GetInfo()
+{
+	return ConsoleJobInfo();
+}

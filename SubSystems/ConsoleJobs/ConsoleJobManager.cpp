@@ -5,23 +5,13 @@ ConsoleJobManager* ConsoleJobManager::Instance = nullptr;
 
 ConsoleJobManager::ConsoleJobManager()
 {
-	ConsoleJobsInfo["file_load"].CommandName = "file_load";
-	ConsoleJobsInfo["file_load"].Purpose = "Loads a file from the specified path.";
 	ConsoleJobSettingsInfo CurrentSettingInfo;
-	CurrentSettingInfo.Name = "filepath";
-	CurrentSettingInfo.Description = "The path of the file to load.";
-	CurrentSettingInfo.bIsOptional = false;
-	ConsoleJobsInfo["file_load"].SettingsInfo.push_back(CurrentSettingInfo);
-	
-	ConsoleJobsInfo["file_save"].CommandName = "file_save";
-	ConsoleJobsInfo["file_save"].Purpose = "Saves the current state to a file at the specified path.";
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "filepath";
-	CurrentSettingInfo.Description = "The path of the file to save.";
-	CurrentSettingInfo.bIsOptional = false;
-	ConsoleJobsInfo["file_save"].SettingsInfo.push_back(CurrentSettingInfo);
 
-	ConsoleJobsInfo["run_script_file"].CommandName = "file_save";
+	ConsoleJobsInfo["help"] = HelpJob::GetInfo();
+	ConsoleJobsInfo["file_load"] = FileLoadJob::GetInfo();
+	ConsoleJobsInfo["file_save"] = FileSaveJob::GetInfo();
+
+	ConsoleJobsInfo["run_script_file"].CommandName = "run_script_file";
 	ConsoleJobsInfo["run_script_file"].Purpose = "Executes a sequence of commands from a specified script(text) file. Each command in the file should be on a new line.";
 	CurrentSettingInfo = ConsoleJobSettingsInfo();
 	CurrentSettingInfo.Name = "filepath";
@@ -29,244 +19,10 @@ ConsoleJobManager::ConsoleJobManager()
 	CurrentSettingInfo.bIsOptional = false;
 	ConsoleJobsInfo["run_script_file"].SettingsInfo.push_back(CurrentSettingInfo);
 
-	// ********** COMPLEXITY **********
-	ConsoleJobsInfo["complexity"].CommandName = "complexity";
-	ConsoleJobsInfo["complexity"].Purpose = "Creates a job to add complexity layer of a model based on the specified type.";
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "type";
-	CurrentSettingInfo.Description = "Specifies the type of complexity calculation.";
-	CurrentSettingInfo.bIsOptional = false;
-	CurrentSettingInfo.PossibleValues = { "HEIGHT", "AREA", "RUGOSITY", "TRIANGLE_EDGE", "TRIANGLE_COUNT", "VECTOR_DISPERSION", "FRACTAL_DIMENSION", "COMPARE" };
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "resolution";
-	CurrentSettingInfo.Description = "Specifies the resolution in meters for the complexity calculation. Alternative to relative_resolution.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "Minimal possible";
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "relative_resolution";
-	CurrentSettingInfo.Description = "Specifies the resolution as a float between 0.0 and 1.0, where 0.0 represents the lowest possible resolution and 1.0 represents the highest. Alternative to resolution.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "0.0";
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "jitter_quality";
-	CurrentSettingInfo.Description = "Specifies the quality of jitter applied to the model. Higher values mean more jitters and potentially smoother results but slower processing.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "55";
-	CurrentSettingInfo.PossibleValues = JITTER_MANAGER.GetJitterVectorSetNames();
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "run_on_whole_model";
-	CurrentSettingInfo.Description = "Specifies if the calculation should be run on the whole model without jitter.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "false";
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "triangle_edges_mode";
-	CurrentSettingInfo.Description = "Specifies the mode of triangle edges calculation. Relevant only for 'TRIANGLE_EDGE' complexity type.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "MAX_LEHGTH";
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "rugosity_algorithm";
-	CurrentSettingInfo.Description = "Specifies the algorithm for rugosity calculation. Relevant only for 'RUGOSITY' complexity type.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "AVERAGE";
-	CurrentSettingInfo.PossibleValues = { "AVERAGE", "MIN", "LSF(CGAL)" };
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "rugosity_is_using_unique_projected_area";
-	CurrentSettingInfo.Description = "Specifies if the unique projected area should be used for rugosity calculation. Relevant only for 'RUGOSITY' complexity type.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "false";
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "rugosity_delete_outliers";
-	CurrentSettingInfo.Description = "Specifies if the outliers should be deleted from the rugosity calculation. Relevant only for 'RUGOSITY' complexity type.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "true";
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "rugosity_min_algorithm_quality";
-	CurrentSettingInfo.Description = "Specifies the quality of the rugosity calculation. Relevant only for 'RUGOSITY' complexity type and when the rugosity_algorithm is set to 'MIN'.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "91";
-	CurrentSettingInfo.PossibleValues = RUGOSITY_LAYER_PRODUCER.GetOrientationSetNamesForMinRugosityList();
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-	
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "fractal_dimension_should_filter_values";
-	CurrentSettingInfo.Description = "Specifies if the app should filter values that are less that 2.0. Relevant only for 'FRACTAL_DIMENSION' complexity type.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "true";
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "is_standard_deviation_needed";
-	CurrentSettingInfo.Description = "Specifies if the app should also add layer with standard deviation.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "false";
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "compare_first_layer_index";
-	CurrentSettingInfo.Description = "Specifies the index of the first layer to compare. Relevant only for 'COMPARE' complexity type.";
-	CurrentSettingInfo.bIsOptional = false;
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "compare_second_layer_index";
-	CurrentSettingInfo.Description = "Specifies the index of the second layer to compare. Relevant only for 'COMPARE' complexity type.";
-	CurrentSettingInfo.bIsOptional = false;
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "compare_normalize";
-	CurrentSettingInfo.Description = "Specifies if the app should normalize the layers before comparing. Relevant only for 'COMPARE' complexity type.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "true";
-	ConsoleJobsInfo["complexity"].SettingsInfo.push_back(CurrentSettingInfo);
-	// ********** COMPLEXITY END **********
-
-	// ********** EVALUATION **********
-	ConsoleJobsInfo["evaluation"].CommandName = "evaluation";
-	ConsoleJobsInfo["evaluation"].Purpose = "Creates an evaluation job with the specified settings to test a layer or other objects.";
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "type";
-	CurrentSettingInfo.Description = "Specifies the type of evaluation.";
-	CurrentSettingInfo.bIsOptional = false;
-	CurrentSettingInfo.PossibleValues = { "COMPLEXITY" };
-
-	ConsoleJobsInfo["evaluation"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "subtype";
-	CurrentSettingInfo.Description = "Specifies the subtype of evaluation.";
-	CurrentSettingInfo.bIsOptional = false;
-	CurrentSettingInfo.PossibleValues = { "MEAN_LAYER_VALUE", "MEDIAN_LAYER_VALUE", "MAX_LAYER_VALUE", "MIN_LAYER_VALUE" };
-	ConsoleJobsInfo["evaluation"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "expected_value";
-	CurrentSettingInfo.Description = "Specifies the expected value for the evaluation.";
-	CurrentSettingInfo.bIsOptional = false;
-	ConsoleJobsInfo["evaluation"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "tolerance";
-	CurrentSettingInfo.Description = "Specifies the tolerance for the evaluation.";
-	CurrentSettingInfo.bIsOptional = false;
-	ConsoleJobsInfo["evaluation"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "layer_index";
-	CurrentSettingInfo.Description = "Specifies the index of the layer to evaluate. Relevant only for 'COMPLEXITY' evaluation type.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "'-1' Which means the last layer.";
-	ConsoleJobsInfo["evaluation"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "convert_to_script";
-	CurrentSettingInfo.Description = "Specifies if the job should be converted to a script that later can be used to run the same job but with actual values.(Mostly used to make it easier to create a script file for new models)";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "false";
-	ConsoleJobsInfo["evaluation"].SettingsInfo.push_back(CurrentSettingInfo);
-	// ********** EVALUATION END **********
-
-	// ********** GLOBAL SETTINGS **********
-	ConsoleJobsInfo["global_settings"].CommandName = "global_settings";
-	ConsoleJobsInfo["global_settings"].Purpose = "Sets a global setting for the application.";
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "type";
-	CurrentSettingInfo.Description = "Specifies the type of global setting.";
-	CurrentSettingInfo.bIsOptional = false;
-	CurrentSettingInfo.PossibleValues = { "EVALUATION_JOB_TO_SCRIPT" };
-	ConsoleJobsInfo["global_settings"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "int_value";
-	CurrentSettingInfo.Description = "Specifies the integer value for the global setting.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "0";
-	ConsoleJobsInfo["global_settings"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "float_value";
-	CurrentSettingInfo.Description = "Specifies the float value for the global setting.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "0.0";
-	ConsoleJobsInfo["global_settings"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "bool_value";
-	CurrentSettingInfo.Description = "Specifies the boolean value for the global setting.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "false";
-	ConsoleJobsInfo["global_settings"].SettingsInfo.push_back(CurrentSettingInfo);
-	// ********** GLOBAL SETTINGS END **********
-
-	// ********** EXPORT LAYER AS IMAGE **********
-	ConsoleJobsInfo["export_layer_as_image"].CommandName = "export_layer_as_image";
-	ConsoleJobsInfo["export_layer_as_image"].Purpose = "Exports a layer as an image.";
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "export_mode";
-	CurrentSettingInfo.Description = "Specifies the mode of the export.";
-	CurrentSettingInfo.bIsOptional = false;
-	CurrentSettingInfo.PossibleValues = { "MIN", "MAX", "MEAN", "CUMULATIVE"};
-	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "save_mode";
-	CurrentSettingInfo.Description = "Specifies the type of image file.";
-	CurrentSettingInfo.bIsOptional = false;
-	CurrentSettingInfo.PossibleValues = { "PNG", "GEOTIF", "GEOTIF_32_BITS" };
-	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "filepath";
-	CurrentSettingInfo.Description = "Specifies the path of the file to save.";
-	CurrentSettingInfo.bIsOptional = false;
-	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "resolution";
-	CurrentSettingInfo.Description = "Specifies the resolution in meters for the image.";
-	CurrentSettingInfo.bIsOptional = false;
-	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "layer_index";
-	CurrentSettingInfo.Description = "Specifies the index of the layer to export.";
-	CurrentSettingInfo.bIsOptional = false;
-	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "force_projection_vector";
-	CurrentSettingInfo.Description = "Specifies the projection vector for the image.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.PossibleValues = { "X", "Y", "Z" };
-	CurrentSettingInfo.DefaultValue = "Calculated on fly";
-	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
-
-	CurrentSettingInfo = ConsoleJobSettingsInfo();
-	CurrentSettingInfo.Name = "persent_of_area_that_would_be_red";
-	CurrentSettingInfo.Description = "Specifies the persent of area that would be considered outliers and would be red.";
-	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "5.0";
-	ConsoleJobsInfo["export_layer_as_image"].SettingsInfo.push_back(CurrentSettingInfo);
-	// ********** EXPORT LAYER AS IMAGE END **********
+	ConsoleJobsInfo["complexity"] = ComplexityJob::GetInfo();
+	ConsoleJobsInfo["evaluation"] = ComplexityEvaluationJob::GetInfo();
+	ConsoleJobsInfo["global_settings"] = GlobalSettingJob::GetInfo();
+	ConsoleJobsInfo["export_layer_as_image"] = ExportLayerAsImageJob::GetInfo();
 }
 
 ConsoleJobManager::~ConsoleJobManager() {}
@@ -326,6 +82,8 @@ void ConsoleJobManager::WaitForJitterManager()
 
 void ConsoleJobManager::PrintCommandHelp(std::string CommandName)
 {
+	std::transform(CommandName.begin(), CommandName.end(), CommandName.begin(), [](unsigned char c) { return std::tolower(c); });
+
 	std::cout << "\n\n";
 
 	ConsoleJobInfo* Info = nullptr;
@@ -379,8 +137,9 @@ void ConsoleJobManager::PrintHelp(std::string CommandName)
 			"-file_save filepath=[PATH]                      Save the current state to a file at the specified path.\n"
 			"-run_script_file filepath=[PATH]                Execute a sequence of commands from a specified script(text) file.Each command in the file should be on a new line.\n"
 			"-complexity type=[LAYER_TYPE]                   Create a complexity job with the specified settings to create a layer.\n"
-			"-evaluation type=[TYPE] subtype=[WHAT_TO_TEST]  Create an evaluation job with the specified settings to test a layer or other objects.\n\n"
-			"-global_settings type=[TYPE]                    Set a global setting for the application.\n\n"
+			"-evaluation type=[TYPE] subtype=[WHAT_TO_TEST]  Create an evaluation job with the specified settings to test a layer or other objects.\n"
+			"-global_settings type=[TYPE]                    Set a global setting for the application.\n"
+			"-export_layer_as_image export_mode=[MODE]       Export a layer as an image.\n\n"
 
 			"Examples:\n"
 			"-load filepath=\"C:/data/mesh.obj\"\n"
@@ -873,10 +632,9 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 
 	if (ActionToParse.Action == "load")
 	{
-		if (ActionToParse.Settings.find("filepath") != ActionToParse.Settings.end())
-		{
-			Result.push_back(new FileLoadJob(ActionToParse.Settings["filepath"]));
-		}
+		FileLoadJob* NewJobToAdd = FileLoadJob::CreateFileLoadJob(ActionToParse);
+		if (NewJobToAdd != nullptr)
+			Result.push_back(NewJobToAdd);
 	}
 	else if (ActionToParse.Action == "save")
 	{

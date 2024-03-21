@@ -10,10 +10,9 @@ class FileLoadJob : public ConsoleJob
 	friend ConsoleJobManager;
 	std::string FilePath;
 
+	static ConsoleJobInfo GetInfo();
 public:
-	FileLoadJob(std::string FilePath)
-	{
-		this->FilePath = FilePath;
-		Type = "FILE_LOAD";
-	};
+	FileLoadJob(std::string FilePath);
+
+	static FileLoadJob* CreateFileLoadJob(CommandLineAction ActionToParse);
 };

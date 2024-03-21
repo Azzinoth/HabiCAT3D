@@ -12,6 +12,8 @@ class GlobalSettingJob : public ConsoleJob
 	int IntValue = 0;
 	float FloatValue = 0.0f;
 	bool bValue = false;
+
+	static ConsoleJobInfo GetInfo();
 public:
 	GlobalSettingJob();
 

@@ -26,6 +26,8 @@ class ComplexityEvaluationJob : public EvaluationJob
 	float Tolerance = 0.0f;
 
 	int LayerIndex = -1;
+
+	static ConsoleJobInfo GetInfo();
 public:
 	ComplexityEvaluationJob();
 

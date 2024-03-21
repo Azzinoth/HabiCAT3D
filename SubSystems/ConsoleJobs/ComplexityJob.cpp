@@ -15,6 +15,130 @@ ComplexityJob::ComplexityJob(std::string ComplexityType, ComplexityJobSettings S
 	Type = "COMPLEXITY_JOB";
 }
 
+ConsoleJobInfo ComplexityJob::GetInfo()
+{
+	ConsoleJobInfo Info;
+	Info.CommandName = "complexity";
+	Info.Purpose = "Creates a job to add complexity layer of a model based on the specified type.";
+	ConsoleJobSettingsInfo CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "type";
+	CurrentSettingInfo.Description = "Specifies the type of complexity calculation.";
+	CurrentSettingInfo.bIsOptional = false;
+	CurrentSettingInfo.PossibleValues = { "HEIGHT", "AREA", "RUGOSITY", "TRIANGLE_EDGE", "TRIANGLE_COUNT", "VECTOR_DISPERSION", "FRACTAL_DIMENSION", "COMPARE" };
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "resolution";
+	CurrentSettingInfo.Description = "Specifies the resolution in meters for the complexity calculation. Alternative to relative_resolution.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "Minimal possible";
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "relative_resolution";
+	CurrentSettingInfo.Description = "Specifies the resolution as a float between 0.0 and 1.0, where 0.0 represents the lowest possible resolution and 1.0 represents the highest. Alternative to resolution.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "0.0";
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "jitter_quality";
+	CurrentSettingInfo.Description = "Specifies the quality of jitter applied to the model. Higher values mean more jitters and potentially smoother results but slower processing.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "55";
+	CurrentSettingInfo.PossibleValues = JITTER_MANAGER.GetJitterVectorSetNames();
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "run_on_whole_model";
+	CurrentSettingInfo.Description = "Specifies if the calculation should be run on the whole model without jitter.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "false";
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "triangle_edges_mode";
+	CurrentSettingInfo.Description = "Specifies the mode of triangle edges calculation. Relevant only for 'TRIANGLE_EDGE' complexity type.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "MAX_LEHGTH";
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "rugosity_algorithm";
+	CurrentSettingInfo.Description = "Specifies the algorithm for rugosity calculation. Relevant only for 'RUGOSITY' complexity type.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "AVERAGE";
+	CurrentSettingInfo.PossibleValues = { "AVERAGE", "MIN", "LSF(CGAL)" };
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "rugosity_is_using_unique_projected_area";
+	CurrentSettingInfo.Description = "Specifies if the unique projected area should be used for rugosity calculation. Relevant only for 'RUGOSITY' complexity type.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "false";
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "rugosity_delete_outliers";
+	CurrentSettingInfo.Description = "Specifies if the outliers should be deleted from the rugosity calculation. Relevant only for 'RUGOSITY' complexity type.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "true";
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "rugosity_min_algorithm_quality";
+	CurrentSettingInfo.Description = "Specifies the quality of the rugosity calculation. Relevant only for 'RUGOSITY' complexity type and when the rugosity_algorithm is set to 'MIN'.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "91";
+	CurrentSettingInfo.PossibleValues = RUGOSITY_LAYER_PRODUCER.GetOrientationSetNamesForMinRugosityList();
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "fractal_dimension_should_filter_values";
+	CurrentSettingInfo.Description = "Specifies if the app should filter values that are less that 2.0. Relevant only for 'FRACTAL_DIMENSION' complexity type.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "true";
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "is_standard_deviation_needed";
+	CurrentSettingInfo.Description = "Specifies if the app should also add layer with standard deviation.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "false";
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "compare_first_layer_index";
+	CurrentSettingInfo.Description = "Specifies the index of the first layer to compare. Relevant only for 'COMPARE' complexity type.";
+	CurrentSettingInfo.bIsOptional = false;
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "compare_second_layer_index";
+	CurrentSettingInfo.Description = "Specifies the index of the second layer to compare. Relevant only for 'COMPARE' complexity type.";
+	CurrentSettingInfo.bIsOptional = false;
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "compare_normalize";
+	CurrentSettingInfo.Description = "Specifies if the app should normalize the layers before comparing. Relevant only for 'COMPARE' complexity type.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "true";
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	return Info;
+}
+
+std::string ComplexityJob::GetComplexityType()
+{
+	return ComplexityType;
+}
+
+void ComplexityJob::SetComplexityType(std::string NewValue)
+{
+	ComplexityType = NewValue;
+}
+
 // Resolution in range of 0.0 to 1.0
 float ComplexityJobSettings::GetRelativeResolution()
 {

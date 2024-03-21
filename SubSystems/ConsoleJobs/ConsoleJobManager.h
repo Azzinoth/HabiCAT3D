@@ -36,22 +36,6 @@ private:
 
 	void OutputConsoleTextWithColor(std::string Text, int R, int G, int B);
 
-	struct ConsoleJobSettingsInfo
-	{
-		std::string Name;
-		std::string Description;
-		bool bIsOptional;
-		std::string DefaultValue;
-		std::vector<std::string> PossibleValues;
-	};
-
-	struct ConsoleJobInfo
-	{
-		std::string CommandName;
-		std::string Purpose;
-		std::vector<ConsoleJobSettingsInfo> SettingsInfo;
-	};
-
 	std::map<std::string, ConsoleJobInfo> ConsoleJobsInfo;
 	void PrintCommandHelp(std::string CommandName);
 	void PrintHelp(std::string CommandName = "");

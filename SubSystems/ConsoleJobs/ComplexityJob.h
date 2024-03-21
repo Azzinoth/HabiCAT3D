@@ -101,13 +101,17 @@ public:
 
 class ComplexityJob : public ConsoleJob
 {
-public:
 	friend ConsoleJobManager;
 
+	std::string ComplexityType;
+
+	static ConsoleJobInfo GetInfo();
+public:
 	ComplexityJob();
 	ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings);
 
-	std::string ComplexityType;
+	std::string GetComplexityType();
+	void SetComplexityType(std::string NewValue);
 
 	ComplexityJobSettings Settings;
 };

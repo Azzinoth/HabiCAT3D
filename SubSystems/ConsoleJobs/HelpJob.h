@@ -9,6 +9,7 @@ class HelpJob : public ConsoleJob
 {
 	friend ConsoleJobManager;
 	std::string CommandName = "";
+	static ConsoleJobInfo GetInfo();
 public:
 	HelpJob(std::string CommandName = "");
 	std::string GetCommandName();
