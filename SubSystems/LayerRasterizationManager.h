@@ -97,6 +97,8 @@ private:
 	glm::vec3 CurrentProjectionVector = glm::vec3(0.0f);
 	float PersentOfAreaThatWouldBeRed = 5.0f;
 	
+	// Used if console mode is activated
+	std::vector<unsigned char> FinalImageRawData;
 	std::vector<float> ImageRawData32Bits;
 	void PrepareRawImageData();
 	bool bUsingCGAL = true;

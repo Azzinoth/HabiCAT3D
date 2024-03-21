@@ -530,14 +530,13 @@ void LayerRasterizationManager::PrepareRawImageData()
 			}
 		}
 
-		MaxForColorMap = JITTER_MANAGER.GetValueThatHaveAtLeastThisPercentOfArea(FlattenGridValues, FlattenGridArea, PersentOfAreaThatWouldBeRed / 100.0f)/*4.0 * UnitArea*/;
+		MaxForColorMap = JITTER_MANAGER.GetValueThatHaveAtLeastThisPercentOfArea(FlattenGridValues, FlattenGridArea, PersentOfAreaThatWouldBeRed / 100.0f);
 
 		if (MaxForColorMap <= MinForColorMap)
 			MaxForColorMap = MinForColorMap + FLT_EPSILON * 4;
 	}
 
 	std::vector<unsigned char> ImageRawData;
-	std::vector<unsigned char> FinalImageRawData;
 	ImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
 	FinalImageRawData.reserve(CurrentResolution * CurrentResolution * 4);
 
@@ -640,14 +639,19 @@ void LayerRasterizationManager::PrepareRawImageData()
 		ImageRawData32Bits = FlippedImageRawData32Bits;
 	}
 
-	ResultPreview = RESOURCE_MANAGER.RawDataToFETexture(FinalImageRawData.data(), CurrentResolution, CurrentResolution);
+	if (!APPLICATION.HasConsoleWindow())
+	{
+		ResultPreview = RESOURCE_MANAGER.RawDataToFETexture(FinalImageRawData.data(), CurrentResolution, CurrentResolution);
 
-	ResultPreview->Bind();
-	FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-	FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-	FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-	FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-	ResultPreview->UnBind();
+		ResultPreview->Bind();
+		FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+		FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+		FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+		FE_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+		ResultPreview->UnBind();
+
+		FinalImageRawData.clear();
+	}
 }
 
 bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMode)
@@ -655,7 +659,7 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 	if (Grid.size() == 0)
 		return false;
 
-	if (ResultPreview == nullptr)
+	if (!APPLICATION.HasConsoleWindow() && ResultPreview == nullptr)
 		return false;
 
 	if (SaveMode != SaveAsPNG && SaveMode != SaveAsTIF && SaveMode != SaveAs32bitTIF)
@@ -710,7 +714,15 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 		return true;
 	}
 
-	unsigned char* RawImageData = ResultPreview->GetRawData();
+	unsigned char* RawImageData = nullptr;
+	if (APPLICATION.HasConsoleWindow())
+	{
+		RawImageData = FinalImageRawData.data();
+	}
+	else
+	{
+		RawImageData = ResultPreview->GetRawData();
+	}
 
 	if (SaveMode == SaveAsPNG)
 	{
@@ -729,7 +741,8 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 		GDALDriver* Driver = GetGDALDriverManager()->GetDriverByName("GTiff");
 		if (Driver == nullptr)
 		{
-			delete[] RawImageData;
+			if (!APPLICATION.HasConsoleWindow())
+				delete[] RawImageData;
 			return false;
 		}
 
@@ -737,7 +750,8 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 		GDALDataset* Dataset = Driver->Create(FilePath.c_str(), ImageWidth, ImageHeight, BandsCount, Type, nullptr);
 		if (Dataset == nullptr)
 		{
-			delete[] RawImageData;
+			if (!APPLICATION.HasConsoleWindow())
+				delete[] RawImageData;
 			return false;
 		}
 
@@ -754,7 +768,8 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 			if (Error != CE_None)
 			{
 				GDALClose(Dataset);
-				delete[] RawImageData;
+				if (!APPLICATION.HasConsoleWindow())
+					delete[] RawImageData;
 				return false;
 			}
 		}
@@ -762,7 +777,8 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 		GDALClose(Dataset);
 	}
 
-	delete[] RawImageData;
+	if (!APPLICATION.HasConsoleWindow())
+		delete[] RawImageData;
 	return true;
 }
 

@@ -93,6 +93,22 @@ file(GLOB SubSystems_UI_SRC
 )
 
 file(GLOB SubSystems_ConsoleJobs_SRC
+	"SubSystems/ConsoleJobs/ConsoleJob.h"
+	"SubSystems/ConsoleJobs/ConsoleJob.cpp"
+	"SubSystems/ConsoleJobs/HelpJob.h"
+	"SubSystems/ConsoleJobs/HelpJob.cpp"
+	"SubSystems/ConsoleJobs/FileLoadJob.h"
+	"SubSystems/ConsoleJobs/FileLoadJob.cpp"
+	"SubSystems/ConsoleJobs/FileSaveJob.h"
+	"SubSystems/ConsoleJobs/FileSaveJob.cpp"
+	"SubSystems/ConsoleJobs/ComplexityJob.h"
+	"SubSystems/ConsoleJobs/ComplexityJob.cpp"
+	"SubSystems/ConsoleJobs/EvaluationJob.h"
+	"SubSystems/ConsoleJobs/EvaluationJob.cpp"
+	"SubSystems/ConsoleJobs/GlobalSettingJob.h"
+	"SubSystems/ConsoleJobs/GlobalSettingJob.cpp"
+	"SubSystems/ConsoleJobs/ExportLayerAsImageJob.h"
+	"SubSystems/ConsoleJobs/ExportLayerAsImageJob.cpp"
 	"SubSystems/ConsoleJobs/ConsoleJobManager.h"
 	"SubSystems/ConsoleJobs/ConsoleJobManager.cpp"
 )
