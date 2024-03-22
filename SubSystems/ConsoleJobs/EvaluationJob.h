@@ -30,6 +30,7 @@ class ComplexityEvaluationJob : public EvaluationJob
 	static ConsoleJobInfo GetInfo();
 public:
 	ComplexityEvaluationJob();
+	static ComplexityEvaluationJob* CreateComplexityEvaluation(CommandLineAction ActionToParse);
 
 	float GetExpectedValue();
 	void SetExpectedValue(float NewValue);

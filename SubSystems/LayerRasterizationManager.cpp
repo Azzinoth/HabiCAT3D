@@ -703,6 +703,8 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 
 		// Write data to the first band
 		GDALRasterBand* Band = Dataset->GetRasterBand(1);
+		// Set the NODATA value for the band
+		Band->SetNoDataValue(0.0);
 		CPLErr Error = Band->RasterIO(GF_Write, 0, 0, ImageWidth, ImageHeight, ImageRawData32Bits.data(), ImageWidth, ImageHeight, Type, 0, 0);
 		if (Error != CE_None)
 		{

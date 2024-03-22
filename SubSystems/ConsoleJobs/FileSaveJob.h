@@ -13,4 +13,6 @@ class FileSaveJob : public ConsoleJob
 	static ConsoleJobInfo GetInfo();
 public:
 	FileSaveJob(std::string FilePath);
+
+	static FileSaveJob* CreateFileSaveJob(CommandLineAction ActionToParse);
 };

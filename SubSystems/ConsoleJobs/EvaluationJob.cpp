@@ -12,6 +12,50 @@ ComplexityEvaluationJob::ComplexityEvaluationJob()
 	EvaluationType = "COMPLEXITY";
 }
 
+ComplexityEvaluationJob* ComplexityEvaluationJob::CreateComplexityEvaluation(CommandLineAction ActionToParse)
+{
+	ComplexityEvaluationJob* Result = nullptr;
+
+	if (ActionToParse.Settings.find("type") == ActionToParse.Settings.end())
+		return Result;
+
+	if (ActionToParse.Settings.find("subtype") == ActionToParse.Settings.end())
+		return Result;
+
+	std::string Type = ActionToParse.Settings["type"];
+	std::transform(Type.begin(), Type.end(), Type.begin(), [](unsigned char c) { return std::toupper(c); });
+
+	auto Iterator = ActionToParse.Settings.begin();
+	while (Iterator != ActionToParse.Settings.end())
+	{
+		std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
+		Iterator++;
+	}
+
+	if (ActionToParse.Settings["type"] != "COMPLEXITY")
+		return Result;
+
+	Result = new ComplexityEvaluationJob();
+	Result->SetEvaluationSubType(ActionToParse.Settings["subtype"]);
+
+	if (ActionToParse.Settings.find("expected_value") != ActionToParse.Settings.end())
+	{
+		Result->SetExpectedValue(std::stof(ActionToParse.Settings["expected_value"]));
+	}
+
+	if (ActionToParse.Settings.find("tolerance") != ActionToParse.Settings.end())
+	{
+		Result->SetTolerance(std::stof(ActionToParse.Settings["tolerance"]));
+	}
+
+	if (ActionToParse.Settings.find("layer_index") != ActionToParse.Settings.end())
+	{
+		Result->SetLayerIndex(std::stoi(ActionToParse.Settings["layer_index"]));
+	}
+
+	return Result;
+}
+
 ConsoleJobInfo ComplexityEvaluationJob::GetInfo()
 {
 	ConsoleJobInfo Info;

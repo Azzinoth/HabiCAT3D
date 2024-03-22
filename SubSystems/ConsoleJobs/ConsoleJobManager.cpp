@@ -638,142 +638,21 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 	}
 	else if (ActionToParse.Action == "save")
 	{
-		if (ActionToParse.Settings.find("filepath") != ActionToParse.Settings.end())
-		{
-			Result.push_back(new FileSaveJob(ActionToParse.Settings["filepath"]));
-		}
+		FileSaveJob* NewJobToAdd = FileSaveJob::CreateFileSaveJob(ActionToParse);
+		if (NewJobToAdd != nullptr)
+			Result.push_back(NewJobToAdd);
 	}
 	else if (ActionToParse.Action == "complexity")
 	{
-		if (ActionToParse.Settings.find("type") == ActionToParse.Settings.end())
-			return Result;
-
-		std::string Type = ActionToParse.Settings["type"];
-		std::transform(Type.begin(), Type.end(), Type.begin(), [](unsigned char c) { return std::toupper(c); });
-
-		auto Iterator = ActionToParse.Settings.begin();
-		while (Iterator != ActionToParse.Settings.end())
-		{
-			std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
-			Iterator++;
-		}
-
-		ComplexityJob* NewJobToAdd = new ComplexityJob();
-		NewJobToAdd->ComplexityType = Type;
-
-		if (ActionToParse.Settings.find("resolution") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetResolutionInM(std::stof(ActionToParse.Settings["resolution"]));
-		}
-
-		if (ActionToParse.Settings.find("relative_resolution") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetRelativeResolution(std::stof(ActionToParse.Settings["relative_resolution"]));
-		}
-
-		if (ActionToParse.Settings.find("jitter_quality") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetJitterQuality(ActionToParse.Settings["jitter_quality"]);
-		}
-
-		if (ActionToParse.Settings.find("run_on_whole_model") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetRunOnWholeModel(ActionToParse.Settings["run_on_whole_model"] == "TRUE" ? true : false);
-		}
-
-		if (ActionToParse.Settings.find("rugosity_algorithm") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetRugosity_Algorithm(ActionToParse.Settings["rugosity_algorithm"]);
-		}
-
-		if (ActionToParse.Settings.find("rugosity_min_algorithm_quality") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetRugosity_MinAlgorithm_Quality(ActionToParse.Settings["rugosity_min_algorithm_quality"]);
-		}
-
-		if (ActionToParse.Settings.find("rugosity_is_using_unique_projected_area") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetRugosity_IsUsingUniqueProjectedArea(ActionToParse.Settings["rugosity_is_using_unique_projected_area"] == "TRUE" ? true : false);
-		}
-
-		if (ActionToParse.Settings.find("rugosity_delete_outliers") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetRugosity_DeleteOutliers(ActionToParse.Settings["rugosity_delete_outliers"] == "TRUE" ? true : false);
-		}
-
-		if (ActionToParse.Settings.find("fractal_dimension_should_filter_values") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetFractalDimension_ShouldFilterValues(ActionToParse.Settings["fractal_dimension_should_filter_values"] == "TRUE" ? true : false);
-		}
-
-		if (ActionToParse.Settings.find("triangle_edges_mode") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetTriangleEdges_Mode(ActionToParse.Settings["triangle_edges_mode"]);
-		}
-
-		if (ActionToParse.Settings.find("is_standard_deviation_needed") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetIsStandardDeviationNeeded(ActionToParse.Settings["is_standard_deviation_needed"] == "TRUE" ? true : false);
-		}
-
-		if (ActionToParse.Settings.find("compare_first_layer_index") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetCompare_FirstLayerIndex(std::stoi(ActionToParse.Settings["compare_first_layer_index"]));
-		}
-
-		if (ActionToParse.Settings.find("compare_second_layer_index") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetCompare_SecondLayerIndex(std::stoi(ActionToParse.Settings["compare_second_layer_index"]));
-		}
-
-		if (ActionToParse.Settings.find("compare_normalize") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->Settings.SetCompare_Normalize(ActionToParse.Settings["compare_normalize"] == "TRUE" ? true : false);
-		}
-
-		Result.push_back(NewJobToAdd);
+		ComplexityJob* NewJobToAdd = ComplexityJob::CreateComplexityJob(ActionToParse);
+		if (NewJobToAdd != nullptr)
+			Result.push_back(NewJobToAdd);
 	}
 	else if (ActionToParse.Action == "evaluation")
 	{
-		if (ActionToParse.Settings.find("type") == ActionToParse.Settings.end())
-			return Result;
-
-		if (ActionToParse.Settings.find("subtype") == ActionToParse.Settings.end())
-			return Result;
-
-		std::string Type = ActionToParse.Settings["type"];
-		std::transform(Type.begin(), Type.end(), Type.begin(), [](unsigned char c) { return std::toupper(c); });
-
-		auto Iterator = ActionToParse.Settings.begin();
-		while (Iterator != ActionToParse.Settings.end())
-		{
-			std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
-			Iterator++;
-		}
-
-		if (ActionToParse.Settings["type"] == "COMPLEXITY")
-		{
-			ComplexityEvaluationJob* NewJobToAdd = new ComplexityEvaluationJob();
-
-			NewJobToAdd->SetEvaluationSubType(ActionToParse.Settings["subtype"]);
-
-			if (ActionToParse.Settings.find("expected_value") != ActionToParse.Settings.end())
-			{
-				NewJobToAdd->SetExpectedValue(std::stof(ActionToParse.Settings["expected_value"]));
-			}
-
-			if (ActionToParse.Settings.find("tolerance") != ActionToParse.Settings.end())
-			{
-				NewJobToAdd->SetTolerance(std::stof(ActionToParse.Settings["tolerance"]));
-			}
-
-			if (ActionToParse.Settings.find("layer_index") != ActionToParse.Settings.end())
-			{
-				NewJobToAdd->SetLayerIndex(std::stoi(ActionToParse.Settings["layer_index"]));
-			}
-
+		ComplexityEvaluationJob* NewJobToAdd = ComplexityEvaluationJob::CreateComplexityEvaluation(ActionToParse);
+		if (NewJobToAdd != nullptr)
 			Result.push_back(NewJobToAdd);
-		}
 	}
 	else if (ActionToParse.Action == "run_script_file")
 	{

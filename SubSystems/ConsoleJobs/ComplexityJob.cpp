@@ -15,6 +15,99 @@ ComplexityJob::ComplexityJob(std::string ComplexityType, ComplexityJobSettings S
 	Type = "COMPLEXITY_JOB";
 }
 
+ComplexityJob* ComplexityJob::CreateComplexityJob(CommandLineAction ActionToParse)
+{
+	ComplexityJob* Result = nullptr;
+
+	if (ActionToParse.Settings.find("type") == ActionToParse.Settings.end())
+		return Result;
+
+	std::string Type = ActionToParse.Settings["type"];
+	std::transform(Type.begin(), Type.end(), Type.begin(), [](unsigned char c) { return std::toupper(c); });
+
+	auto Iterator = ActionToParse.Settings.begin();
+	while (Iterator != ActionToParse.Settings.end())
+	{
+		std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
+		Iterator++;
+	}
+
+	Result = new ComplexityJob();
+	Result->ComplexityType = Type;
+
+	if (ActionToParse.Settings.find("resolution") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetResolutionInM(std::stof(ActionToParse.Settings["resolution"]));
+	}
+
+	if (ActionToParse.Settings.find("relative_resolution") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetRelativeResolution(std::stof(ActionToParse.Settings["relative_resolution"]));
+	}
+
+	if (ActionToParse.Settings.find("jitter_quality") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetJitterQuality(ActionToParse.Settings["jitter_quality"]);
+	}
+
+	if (ActionToParse.Settings.find("run_on_whole_model") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetRunOnWholeModel(ActionToParse.Settings["run_on_whole_model"] == "TRUE" ? true : false);
+	}
+
+	if (ActionToParse.Settings.find("rugosity_algorithm") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetRugosity_Algorithm(ActionToParse.Settings["rugosity_algorithm"]);
+	}
+
+	if (ActionToParse.Settings.find("rugosity_min_algorithm_quality") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetRugosity_MinAlgorithm_Quality(ActionToParse.Settings["rugosity_min_algorithm_quality"]);
+	}
+
+	if (ActionToParse.Settings.find("rugosity_is_using_unique_projected_area") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetRugosity_IsUsingUniqueProjectedArea(ActionToParse.Settings["rugosity_is_using_unique_projected_area"] == "TRUE" ? true : false);
+	}
+
+	if (ActionToParse.Settings.find("rugosity_delete_outliers") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetRugosity_DeleteOutliers(ActionToParse.Settings["rugosity_delete_outliers"] == "TRUE" ? true : false);
+	}
+
+	if (ActionToParse.Settings.find("fractal_dimension_should_filter_values") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetFractalDimension_ShouldFilterValues(ActionToParse.Settings["fractal_dimension_should_filter_values"] == "TRUE" ? true : false);
+	}
+
+	if (ActionToParse.Settings.find("triangle_edges_mode") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetTriangleEdges_Mode(ActionToParse.Settings["triangle_edges_mode"]);
+	}
+
+	if (ActionToParse.Settings.find("is_standard_deviation_needed") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetIsStandardDeviationNeeded(ActionToParse.Settings["is_standard_deviation_needed"] == "TRUE" ? true : false);
+	}
+
+	if (ActionToParse.Settings.find("compare_first_layer_index") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetCompare_FirstLayerIndex(std::stoi(ActionToParse.Settings["compare_first_layer_index"]));
+	}
+
+	if (ActionToParse.Settings.find("compare_second_layer_index") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetCompare_SecondLayerIndex(std::stoi(ActionToParse.Settings["compare_second_layer_index"]));
+	}
+
+	if (ActionToParse.Settings.find("compare_normalize") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetCompare_Normalize(ActionToParse.Settings["compare_normalize"] == "TRUE" ? true : false);
+	}
+
+	return Result;
+}
+
 ConsoleJobInfo ComplexityJob::GetInfo()
 {
 	ConsoleJobInfo Info;
