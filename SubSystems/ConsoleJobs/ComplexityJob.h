@@ -106,10 +106,11 @@ class ComplexityJob : public ConsoleJob
 	std::string ComplexityType;
 
 	static ConsoleJobInfo GetInfo();
+	bool Execute(void* InputData = nullptr, void* OutputData = nullptr);
 public:
 	ComplexityJob();
 	ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings);
-	static ComplexityJob* CreateComplexityJob(CommandLineAction ActionToParse);
+	static ComplexityJob* CreateInstance(CommandLineAction ActionToParse);
 
 	std::string GetComplexityType();
 	void SetComplexityType(std::string NewValue);

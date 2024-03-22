@@ -95,6 +95,8 @@ file(GLOB SubSystems_UI_SRC
 file(GLOB SubSystems_ConsoleJobs_SRC
 	"SubSystems/ConsoleJobs/ConsoleJob.h"
 	"SubSystems/ConsoleJobs/ConsoleJob.cpp"
+	"SubSystems/ConsoleJobs/ExitJob.h"
+	"SubSystems/ConsoleJobs/ExitJob.cpp"
 	"SubSystems/ConsoleJobs/HelpJob.h"
 	"SubSystems/ConsoleJobs/HelpJob.cpp"
 	"SubSystems/ConsoleJobs/FileLoadJob.h"

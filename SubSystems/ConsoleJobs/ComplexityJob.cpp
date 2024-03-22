@@ -15,7 +15,7 @@ ComplexityJob::ComplexityJob(std::string ComplexityType, ComplexityJobSettings S
 	Type = "COMPLEXITY_JOB";
 }
 
-ComplexityJob* ComplexityJob::CreateComplexityJob(CommandLineAction ActionToParse)
+ComplexityJob* ComplexityJob::CreateInstance(CommandLineAction ActionToParse)
 {
 	ComplexityJob* Result = nullptr;
 
@@ -230,6 +230,12 @@ std::string ComplexityJob::GetComplexityType()
 void ComplexityJob::SetComplexityType(std::string NewValue)
 {
 	ComplexityType = NewValue;
+}
+
+bool ComplexityJob::Execute(void* InputData, void* OutputData)
+{
+	// TODO: Implement this
+	return true;
 }
 
 // Resolution in range of 0.0 to 1.0

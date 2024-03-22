@@ -12,7 +12,7 @@ ComplexityEvaluationJob::ComplexityEvaluationJob()
 	EvaluationType = "COMPLEXITY";
 }
 
-ComplexityEvaluationJob* ComplexityEvaluationJob::CreateComplexityEvaluation(CommandLineAction ActionToParse)
+ComplexityEvaluationJob* ComplexityEvaluationJob::CreateInstance(CommandLineAction ActionToParse)
 {
 	ComplexityEvaluationJob* Result = nullptr;
 
@@ -152,4 +152,10 @@ void ComplexityEvaluationJob::SetEvaluationSubType(std::string NewValue)
 std::string ComplexityEvaluationJob::GetEvaluationSubType()
 {
 	return EvaluationSubType;
+}
+
+bool ComplexityEvaluationJob::Execute(void* InputData, void* OutputData)
+{
+	// TODO: Implement this
+	return true;
 }

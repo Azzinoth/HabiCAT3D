@@ -7,7 +7,7 @@ FileLoadJob::FileLoadJob(std::string FilePath)
 	Type = "FILE_LOAD";
 }
 
-FileLoadJob* FileLoadJob::CreateFileLoadJob(CommandLineAction ActionToParse)
+FileLoadJob* FileLoadJob::CreateInstance(CommandLineAction ActionToParse)
 {
 	FileLoadJob* Result = nullptr;
 
@@ -34,4 +34,10 @@ ConsoleJobInfo FileLoadJob::GetInfo()
 	Info.SettingsInfo.push_back(CurrentSettingInfo);
 
 	return Info;
+}
+
+bool FileLoadJob::Execute(void* InputData, void* OutputData)
+{
+	// TODO: Implement this
+	return true;
 }

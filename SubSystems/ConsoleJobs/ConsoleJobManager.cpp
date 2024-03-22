@@ -159,6 +159,11 @@ void ConsoleJobManager::PrintHelp(std::string CommandName)
 
 void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 {
+	if (!Job->Execute(nullptr, nullptr))
+	{
+		// Handle error, if type of job is critical, clear all jobs.
+	}
+
 	if (Job->Type == "FILE_LOAD")
 	{
 		FileLoadJob* FileJob = reinterpret_cast<FileLoadJob*>(Job);
@@ -604,7 +609,6 @@ void ConsoleJobManager::OnAllJobsFinished()
 		else if (EvaluationsFailedCount == EvaluationsTotalCount)
 		{
 			OutputConsoleTextWithColor("All evaluations failed: " + std::to_string(EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount), 255, 0, 0);
-
 		}
 
 		EvaluationsTotalCount = 0;
@@ -630,31 +634,7 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 
 	std::transform(ActionToParse.Action.begin(), ActionToParse.Action.end(), ActionToParse.Action.begin(), [](unsigned char c) { return std::tolower(c); });
 
-	if (ActionToParse.Action == "load")
-	{
-		FileLoadJob* NewJobToAdd = FileLoadJob::CreateFileLoadJob(ActionToParse);
-		if (NewJobToAdd != nullptr)
-			Result.push_back(NewJobToAdd);
-	}
-	else if (ActionToParse.Action == "save")
-	{
-		FileSaveJob* NewJobToAdd = FileSaveJob::CreateFileSaveJob(ActionToParse);
-		if (NewJobToAdd != nullptr)
-			Result.push_back(NewJobToAdd);
-	}
-	else if (ActionToParse.Action == "complexity")
-	{
-		ComplexityJob* NewJobToAdd = ComplexityJob::CreateComplexityJob(ActionToParse);
-		if (NewJobToAdd != nullptr)
-			Result.push_back(NewJobToAdd);
-	}
-	else if (ActionToParse.Action == "evaluation")
-	{
-		ComplexityEvaluationJob* NewJobToAdd = ComplexityEvaluationJob::CreateComplexityEvaluation(ActionToParse);
-		if (NewJobToAdd != nullptr)
-			Result.push_back(NewJobToAdd);
-	}
-	else if (ActionToParse.Action == "run_script_file")
+	if (ActionToParse.Action == "run_script_file")
 	{
 		if (ActionToParse.Settings.find("filepath") != ActionToParse.Settings.end())
 		{
@@ -684,117 +664,44 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 			}
 		}
 	}
+
+	ConsoleJob* NewJobToAdd = nullptr;
+
+	if (ActionToParse.Action == "load")
+	{
+		NewJobToAdd = FileLoadJob::CreateInstance(ActionToParse);
+	}
+	else if (ActionToParse.Action == "save")
+	{
+		NewJobToAdd = FileSaveJob::CreateInstance(ActionToParse);
+	}
+	else if (ActionToParse.Action == "complexity")
+	{
+		NewJobToAdd = ComplexityJob::CreateInstance(ActionToParse);
+	}
+	else if (ActionToParse.Action == "evaluation")
+	{
+		NewJobToAdd = ComplexityEvaluationJob::CreateInstance(ActionToParse);
+	}
 	else if (ActionToParse.Action == "global_settings")
 	{
-		if (ActionToParse.Settings.find("type") == ActionToParse.Settings.end())
-			return Result;
-
-		auto Iterator = ActionToParse.Settings.begin();
-		while (Iterator != ActionToParse.Settings.end())
-		{
-			std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
-			Iterator++;
-		}
-
-		GlobalSettingJob* NewJobToAdd = new GlobalSettingJob();
-		NewJobToAdd->SetGlobalSettingType(ActionToParse.Settings["type"]);
-
-		if (ActionToParse.Settings.find("int_value") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->SetIntValue(std::stoi(ActionToParse.Settings["int_value"]));
-		}
-
-		if (ActionToParse.Settings.find("float_value") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->SetFloatValue(std::stof(ActionToParse.Settings["float_value"]));
-		}
-
-		if (ActionToParse.Settings.find("bool_value") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->SetBoolValue(ActionToParse.Settings["bool_value"] == "TRUE" ? true : false);
-		}
-
-		Result.push_back(NewJobToAdd);
+		NewJobToAdd = GlobalSettingJob::CreateInstance(ActionToParse);
 	}
 	else if (ActionToParse.Action == "export_layer_as_image")
 	{
-		ExportLayerAsImageJob* NewJobToAdd = new ExportLayerAsImageJob();
-
-		auto Iterator = ActionToParse.Settings.begin();
-		while (Iterator != ActionToParse.Settings.end())
-		{
-			if (Iterator->first == "filepath")
-			{
-				Iterator++;
-				continue;
-			}
-
-			std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
-			Iterator++;
-		}
-
-		if (ActionToParse.Settings.find("export_mode") != ActionToParse.Settings.end())
-		{
-			std::string ExportMode = ActionToParse.Settings["export_mode"];
-			if (ExportMode == "MIN") NewJobToAdd->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Min);
-			if (ExportMode == "MAX") NewJobToAdd->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Max);
-			if (ExportMode == "MEAN") NewJobToAdd->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Mean);
-			if (ExportMode == "CUMULATIVE") NewJobToAdd->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Cumulative);
-		}
-
-		if (ActionToParse.Settings.find("save_mode") != ActionToParse.Settings.end())
-		{
-			std::string SaveMode = ActionToParse.Settings["save_mode"];
-			if (SaveMode == "PNG") NewJobToAdd->SetSaveMode(LayerRasterizationManager::SaveMode::SaveAsPNG);
-			if (SaveMode == "GEOTIF") NewJobToAdd->SetSaveMode(LayerRasterizationManager::SaveMode::SaveAsTIF);
-			if (SaveMode == "GEOTIF_32_BITS") NewJobToAdd->SetSaveMode(LayerRasterizationManager::SaveMode::SaveAs32bitTIF);
-		}
-
-		if (ActionToParse.Settings.find("filepath") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->SetFilePath(ActionToParse.Settings["filepath"]);
-		}
-
-		if (ActionToParse.Settings.find("resolution") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->SetResolutionInM(std::stof(ActionToParse.Settings["resolution"]));
-		}
-
-		if (ActionToParse.Settings.find("layer_index") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->SetLayerIndex(std::stoi(ActionToParse.Settings["layer_index"]));
-		}
-
-		if (ActionToParse.Settings.find("force_projection_vector") != ActionToParse.Settings.end())
-		{
-			std::string ForceProjectionVector = ActionToParse.Settings["force_projection_vector"];
-			if (ForceProjectionVector == "X") NewJobToAdd->SetForceProjectionVector(glm::vec3(1.0f, 0.0f, 0.0f));
-			if (ForceProjectionVector == "Y") NewJobToAdd->SetForceProjectionVector(glm::vec3(0.0f, 1.0f, 0.0f));
-			if (ForceProjectionVector == "Z") NewJobToAdd->SetForceProjectionVector(glm::vec3(0.0f, 0.0f, 1.0f));
-		}
-
-		if (ActionToParse.Settings.find("persent_of_area_that_would_be_red") != ActionToParse.Settings.end())
-		{
-			NewJobToAdd->SetPersentOfAreaThatWouldBeRed(std::stof(ActionToParse.Settings["persent_of_area_that_would_be_red"]));
-		}
-
-		Result.push_back(NewJobToAdd);
+		NewJobToAdd = ExportLayerAsImageJob::CreateInstance(ActionToParse);
 	}
 	else if (ActionToParse.Action == "help")
 	{
-		std::string CommandName;
-		if (ActionToParse.Settings.find("command_name") != ActionToParse.Settings.end())
-			CommandName = ActionToParse.Settings["command_name"];
-		
-		HelpJob* NewJobToAdd = new HelpJob(CommandName);
-		Result.push_back(NewJobToAdd);
+		NewJobToAdd = HelpJob::CreateInstance(ActionToParse);
 	}
 	else if (ActionToParse.Action == "exit")
 	{
-		ConsoleJob* NewJobToAdd = new ConsoleJob();
-		NewJobToAdd->Type = "EXIT_JOB";
-		Result.push_back(NewJobToAdd);
+		NewJobToAdd = ExitJob::CreateInstance(ActionToParse);
 	}
+
+	if (NewJobToAdd != nullptr)
+		Result.push_back(NewJobToAdd);
 
 	return Result;
 }

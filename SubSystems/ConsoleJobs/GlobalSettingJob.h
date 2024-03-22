@@ -14,8 +14,10 @@ class GlobalSettingJob : public ConsoleJob
 	bool bValue = false;
 
 	static ConsoleJobInfo GetInfo();
+	bool Execute(void* InputData = nullptr, void* OutputData = nullptr);
 public:
 	GlobalSettingJob();
+	static GlobalSettingJob* CreateInstance(CommandLineAction ActionToParse);
 
 	std::string GetGlobalSettingType();
 	void SetGlobalSettingType(std::string NewValue);

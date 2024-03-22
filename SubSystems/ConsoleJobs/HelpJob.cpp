@@ -7,6 +7,18 @@ HelpJob::HelpJob(std::string CommandName)
 	Type = "HELP_JOB";
 }
 
+HelpJob* HelpJob::CreateInstance(CommandLineAction ActionToParse)
+{
+	HelpJob* Result = nullptr;
+
+	std::string CommandName;
+	if (ActionToParse.Settings.find("command_name") != ActionToParse.Settings.end())
+		CommandName = ActionToParse.Settings["command_name"];
+
+	Result = new HelpJob(CommandName);
+	return Result;
+}
+
 std::string HelpJob::GetCommandName()
 {
 	return CommandName;
@@ -25,4 +37,10 @@ ConsoleJobInfo HelpJob::GetInfo()
 	Info.SettingsInfo.push_back(CurrentSettingInfo);
 
 	return Info;
+}
+
+bool HelpJob::Execute(void* InputData, void* OutputData)
+{
+	// TODO: Implement this
+	return true;
 }

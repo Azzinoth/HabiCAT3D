@@ -28,9 +28,10 @@ class ComplexityEvaluationJob : public EvaluationJob
 	int LayerIndex = -1;
 
 	static ConsoleJobInfo GetInfo();
+	bool Execute(void* InputData = nullptr, void* OutputData = nullptr);
 public:
 	ComplexityEvaluationJob();
-	static ComplexityEvaluationJob* CreateComplexityEvaluation(CommandLineAction ActionToParse);
+	static ComplexityEvaluationJob* CreateInstance(CommandLineAction ActionToParse);
 
 	float GetExpectedValue();
 	void SetExpectedValue(float NewValue);

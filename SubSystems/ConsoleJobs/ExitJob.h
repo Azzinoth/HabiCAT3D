@@ -5,15 +5,13 @@
 using namespace FocalEngine;
 
 class ConsoleJobManager;
-class FileSaveJob : public ConsoleJob
+class ExitJob : public ConsoleJob
 {
 	friend ConsoleJobManager;
-	std::string FilePath;
-
 	static ConsoleJobInfo GetInfo();
+
 	bool Execute(void* InputData = nullptr, void* OutputData = nullptr);
 public:
-	FileSaveJob(std::string FilePath);
-
-	static FileSaveJob* CreateInstance(CommandLineAction ActionToParse);
+	ExitJob();
+	static ExitJob* CreateInstance(CommandLineAction ActionToParse);
 };

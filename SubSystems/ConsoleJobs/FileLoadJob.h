@@ -11,8 +11,9 @@ class FileLoadJob : public ConsoleJob
 	std::string FilePath;
 
 	static ConsoleJobInfo GetInfo();
+	bool Execute(void* InputData = nullptr, void* OutputData = nullptr);
 public:
 	FileLoadJob(std::string FilePath);
 
-	static FileLoadJob* CreateFileLoadJob(CommandLineAction ActionToParse);
+	static FileLoadJob* CreateInstance(CommandLineAction ActionToParse);
 };

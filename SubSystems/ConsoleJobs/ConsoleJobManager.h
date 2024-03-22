@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ExitJob.h"
 #include "HelpJob.h"
 #include "FileLoadJob.h"
 #include "FileSaveJob.h"

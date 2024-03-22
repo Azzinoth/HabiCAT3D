@@ -7,7 +7,7 @@ FileSaveJob::FileSaveJob(std::string FilePath)
 	Type = "FILE_SAVE";
 }
 
-FileSaveJob* FileSaveJob::CreateFileSaveJob(CommandLineAction ActionToParse)
+FileSaveJob* FileSaveJob::CreateInstance(CommandLineAction ActionToParse)
 {
 	FileSaveJob* Result = nullptr;
 
@@ -35,4 +35,10 @@ ConsoleJobInfo FileSaveJob::GetInfo()
 	Info.SettingsInfo.push_back(CurrentSettingInfo);
 
 	return Info;
+}
+
+bool FileSaveJob::Execute(void* InputData, void* OutputData)
+{
+	// TODO: Implement this
+	return true;
 }

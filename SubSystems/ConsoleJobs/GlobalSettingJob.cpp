@@ -7,6 +7,41 @@ GlobalSettingJob::GlobalSettingJob()
 	GlobalSettingType = "EVALUATION_JOB_TO_SCRIPT";
 }
 
+GlobalSettingJob* GlobalSettingJob::CreateInstance(CommandLineAction ActionToParse)
+{
+	GlobalSettingJob* Result = nullptr;
+
+	if (ActionToParse.Settings.find("type") == ActionToParse.Settings.end())
+		return Result;
+
+	auto Iterator = ActionToParse.Settings.begin();
+	while (Iterator != ActionToParse.Settings.end())
+	{
+		std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
+		Iterator++;
+	}
+
+	Result = new GlobalSettingJob();
+	Result->SetGlobalSettingType(ActionToParse.Settings["type"]);
+
+	if (ActionToParse.Settings.find("int_value") != ActionToParse.Settings.end())
+	{
+		Result->SetIntValue(std::stoi(ActionToParse.Settings["int_value"]));
+	}
+
+	if (ActionToParse.Settings.find("float_value") != ActionToParse.Settings.end())
+	{
+		Result->SetFloatValue(std::stof(ActionToParse.Settings["float_value"]));
+	}
+
+	if (ActionToParse.Settings.find("bool_value") != ActionToParse.Settings.end())
+	{
+		Result->SetBoolValue(ActionToParse.Settings["bool_value"] == "TRUE" ? true : false);
+	}
+
+	return Result;
+}
+
 ConsoleJobInfo GlobalSettingJob::GetInfo()
 {
 	ConsoleJobInfo Info;
@@ -81,4 +116,10 @@ bool GlobalSettingJob::GetBoolValue()
 void GlobalSettingJob::SetBoolValue(bool NewValue)
 {
 	bValue = NewValue;
+}
+
+bool GlobalSettingJob::Execute(void* InputData, void* OutputData)
+{
+	// TODO: Implement this
+	return true;
 }

@@ -19,8 +19,10 @@ class ExportLayerAsImageJob : public ConsoleJob
 	int LayerIndex = -1;
 
 	static ConsoleJobInfo GetInfo();
+	bool Execute(void* InputData = nullptr, void* OutputData = nullptr);
 public:
 	ExportLayerAsImageJob();
+	static ExportLayerAsImageJob* CreateInstance(CommandLineAction ActionToParse);
 
 	LayerRasterizationManager::GridRasterizationMode GetExportMode();
 	void SetExportMode(LayerRasterizationManager::GridRasterizationMode NewValue);

@@ -8,6 +8,71 @@ ExportLayerAsImageJob::ExportLayerAsImageJob()
 	SaveMode = LayerRasterizationManager::SaveMode::SaveAsPNG;
 }
 
+ExportLayerAsImageJob* ExportLayerAsImageJob::CreateInstance(CommandLineAction ActionToParse)
+{
+	ExportLayerAsImageJob* Result = new ExportLayerAsImageJob();
+
+	auto Iterator = ActionToParse.Settings.begin();
+	while (Iterator != ActionToParse.Settings.end())
+	{
+		if (Iterator->first == "filepath")
+		{
+			Iterator++;
+			continue;
+		}
+
+		std::transform(Iterator->second.begin(), Iterator->second.end(), Iterator->second.begin(), [](unsigned char c) { return std::toupper(c); });
+		Iterator++;
+	}
+
+	if (ActionToParse.Settings.find("export_mode") != ActionToParse.Settings.end())
+	{
+		std::string ExportMode = ActionToParse.Settings["export_mode"];
+		if (ExportMode == "MIN") Result->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Min);
+		if (ExportMode == "MAX") Result->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Max);
+		if (ExportMode == "MEAN") Result->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Mean);
+		if (ExportMode == "CUMULATIVE") Result->SetExportMode(LayerRasterizationManager::GridRasterizationMode::Cumulative);
+	}
+
+	if (ActionToParse.Settings.find("save_mode") != ActionToParse.Settings.end())
+	{
+		std::string SaveMode = ActionToParse.Settings["save_mode"];
+		if (SaveMode == "PNG") Result->SetSaveMode(LayerRasterizationManager::SaveMode::SaveAsPNG);
+		if (SaveMode == "GEOTIF") Result->SetSaveMode(LayerRasterizationManager::SaveMode::SaveAsTIF);
+		if (SaveMode == "GEOTIF_32_BITS") Result->SetSaveMode(LayerRasterizationManager::SaveMode::SaveAs32bitTIF);
+	}
+
+	if (ActionToParse.Settings.find("filepath") != ActionToParse.Settings.end())
+	{
+		Result->SetFilePath(ActionToParse.Settings["filepath"]);
+	}
+
+	if (ActionToParse.Settings.find("resolution") != ActionToParse.Settings.end())
+	{
+		Result->SetResolutionInM(std::stof(ActionToParse.Settings["resolution"]));
+	}
+
+	if (ActionToParse.Settings.find("layer_index") != ActionToParse.Settings.end())
+	{
+		Result->SetLayerIndex(std::stoi(ActionToParse.Settings["layer_index"]));
+	}
+
+	if (ActionToParse.Settings.find("force_projection_vector") != ActionToParse.Settings.end())
+	{
+		std::string ForceProjectionVector = ActionToParse.Settings["force_projection_vector"];
+		if (ForceProjectionVector == "X") Result->SetForceProjectionVector(glm::vec3(1.0f, 0.0f, 0.0f));
+		if (ForceProjectionVector == "Y") Result->SetForceProjectionVector(glm::vec3(0.0f, 1.0f, 0.0f));
+		if (ForceProjectionVector == "Z") Result->SetForceProjectionVector(glm::vec3(0.0f, 0.0f, 1.0f));
+	}
+
+	if (ActionToParse.Settings.find("persent_of_area_that_would_be_red") != ActionToParse.Settings.end())
+	{
+		Result->SetPersentOfAreaThatWouldBeRed(std::stof(ActionToParse.Settings["persent_of_area_that_would_be_red"]));
+	}
+
+	return Result;
+}
+
 ConsoleJobInfo ExportLayerAsImageJob::GetInfo()
 {
 	ConsoleJobInfo Info;
@@ -132,4 +197,10 @@ int ExportLayerAsImageJob::GetLayerIndex()
 void ExportLayerAsImageJob::SetLayerIndex(int NewValue)
 {
 	LayerIndex = NewValue;
+}
+
+bool ExportLayerAsImageJob::Execute(void* InputData, void* OutputData)
+{
+	// TODO: Implement this
+	return true;
 }

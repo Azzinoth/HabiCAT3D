@@ -30,8 +30,10 @@ protected:
 	std::string Type;
 
 	ConsoleJob();
-	static ConsoleJobInfo GetInfo();
-	//virtual void Execute(void* InputData) = 0;
+
+	// Returns true if the job was successfully executed.
+	// Returns false if the job failed to execute.
+	virtual bool Execute(void* InputData = nullptr, void* OutputData = nullptr) = 0;
 public:
 	std::string GetID();
 };
