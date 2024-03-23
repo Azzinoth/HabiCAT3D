@@ -6,6 +6,7 @@ using namespace FocalEngine;
 class ComplexityJobSettings
 {
 	friend ConsoleJobManager;
+	friend class ComplexityJob;
 
 	float RelativeResolution = 0.0f;
 	float ResolutionInM = 0.0f;
@@ -107,6 +108,10 @@ class ComplexityJob : public ConsoleJob
 
 	static ConsoleJobInfo GetInfo();
 	bool Execute(void* InputData = nullptr, void* OutputData = nullptr);
+
+	void WaitForJitterManager();
+	bool SetGridResolution();
+	void SetRugosityAlgorithm();
 public:
 	ComplexityJob();
 	ComplexityJob(std::string ComplexityType, ComplexityJobSettings Settings);

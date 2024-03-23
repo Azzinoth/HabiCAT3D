@@ -39,6 +39,8 @@ ConsoleJobInfo FileSaveJob::GetInfo()
 
 bool FileSaveJob::Execute(void* InputData, void* OutputData)
 {
-	// TODO: Implement this
+	COMPLEXITY_METRIC_MANAGER.SaveToRUGFile(FilePath);
+	OutputConsoleTextWithColor("File saved successfully.", 0, 255, 0);
+
 	return true;
 }

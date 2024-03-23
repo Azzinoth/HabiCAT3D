@@ -38,6 +38,18 @@ ConsoleJobInfo FileLoadJob::GetInfo()
 
 bool FileLoadJob::Execute(void* InputData, void* OutputData)
 {
-	// TODO: Implement this
+	std::cout << "Initiating file load process for: " << FilePath << std::endl;
+
+	if (!FILE_SYSTEM.CheckFile(FilePath.c_str()))
+		return false;
+
+	std::cout << "File found. Loading file: " << FilePath << std::endl;
+
+	COMPLEXITY_METRIC_MANAGER.ImportOBJ(FilePath.c_str(), true);
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->UpdateAverageNormal();
+
+	OutputConsoleTextWithColor("Successfully completed loading file: ", 0, 255, 0);
+	OutputConsoleTextWithColor(FilePath, 0, 255, 0);
+
 	return true;
 }

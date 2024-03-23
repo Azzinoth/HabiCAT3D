@@ -120,6 +120,13 @@ void GlobalSettingJob::SetBoolValue(bool NewValue)
 
 bool GlobalSettingJob::Execute(void* InputData, void* OutputData)
 {
-	// TODO: Implement this
-	return true;
+	if (InputData != nullptr)
+	{
+		if (GlobalSettingType == "EVALUATION_JOB_TO_SCRIPT")
+			*reinterpret_cast<bool*>(InputData) = GetBoolValue();
+		
+		return true;
+	}
+
+	return false;
 }

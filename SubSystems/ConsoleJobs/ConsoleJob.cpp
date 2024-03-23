@@ -11,7 +11,9 @@ std::string ConsoleJob::GetID()
 	return ID;
 }
 
-ConsoleJobInfo GetInfo()
+void ConsoleJob::OutputConsoleTextWithColor(std::string Text, int R, int G, int B)
 {
-	return ConsoleJobInfo();
+	APPLICATION.GetConsoleWindow()->SetNearestConsoleTextColor(R, G, B);
+	std::cout << Text << std::endl;
+	APPLICATION.GetConsoleWindow()->SetNearestConsoleTextColor(255, 255, 255);
 }

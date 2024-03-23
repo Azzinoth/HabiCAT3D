@@ -12,6 +12,9 @@ class HelpJob : public ConsoleJob
 
 	static ConsoleJobInfo GetInfo();
 	bool Execute(void* InputData = nullptr, void* OutputData = nullptr);
+	void PrintCommandHelp(std::string CommandName);
+
+	static std::map<std::string, ConsoleJobInfo>* ConsoleJobsInfo;
 public:
 	HelpJob(std::string CommandName = "");
 	static HelpJob* CreateInstance(CommandLineAction ActionToParse);

@@ -7,8 +7,8 @@ class EvaluationJob : public ConsoleJob
 {
 	friend ConsoleJobManager;
 
-	bool bFailed = true;
 protected:
+	bool bFailed = true;
 	std::string EvaluationType;
 public:
 

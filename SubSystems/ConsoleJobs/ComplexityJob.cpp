@@ -232,9 +232,222 @@ void ComplexityJob::SetComplexityType(std::string NewValue)
 	ComplexityType = NewValue;
 }
 
+void ComplexityJob::WaitForJitterManager()
+{
+	while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
+	{
+		float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
+		std::cout << "\rProgress: " << std::to_string(Progress * 100.0f) << " %" << std::flush;
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		THREAD_POOL.Update();
+	}
+}
+
+bool ComplexityJob::SetGridResolution()
+{
+	if (Settings.ResolutionInM == 0.0f && Settings.RelativeResolution == 0.0f)
+	{
+		JITTER_MANAGER.SetResolutionInM(JITTER_MANAGER.GetLowestPossibleResolution());
+		return true;
+	}
+
+	if (Settings.ResolutionInM != 0.0f &&
+		Settings.ResolutionInM >= JITTER_MANAGER.GetLowestPossibleResolution() &&
+		Settings.ResolutionInM <= JITTER_MANAGER.GetHigestPossibleResolution())
+	{
+		JITTER_MANAGER.SetResolutionInM(Settings.ResolutionInM);
+		return true;
+	}
+
+	if (Settings.ResolutionInM == 0.0f && Settings.RelativeResolution != 0.0f)
+	{
+		float Range = JITTER_MANAGER.GetHigestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution();
+		JITTER_MANAGER.SetResolutionInM(JITTER_MANAGER.GetLowestPossibleResolution() + Range * Settings.RelativeResolution);
+		return true;
+	}
+
+	return false;
+}
+
+void ComplexityJob::SetRugosityAlgorithm()
+{
+	if (ComplexityType != "RUGOSITY")
+		return;
+
+	RUGOSITY_LAYER_PRODUCER.SetUseFindSmallestRugosity(Settings.GetRugosity_Algorithm() == "MIN");
+	RUGOSITY_LAYER_PRODUCER.SetUseCGALVariant(Settings.GetRugosity_Algorithm() == "LSF(CGAL)");
+}
+
 bool ComplexityJob::Execute(void* InputData, void* OutputData)
 {
-	// TODO: Implement this
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	{
+		std::string ErrorMessage = "Error: No file loaded. Please load a file before attempting to calculate complexity.";
+		LOG.Add(ErrorMessage, "CONSOLE_LOG");
+		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+		return false;
+	}
+
+	if (!SetGridResolution())
+	{
+		std::string ErrorMessage = "Error: Invalid resolution value. Given value is - " + std::to_string(Settings.ResolutionInM) + ". Bur value should be between " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " and " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + ".";
+		LOG.Add(ErrorMessage, "CONSOLE_LOG");
+		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+		return false;
+	}
+	JITTER_MANAGER.SetCurrentJitterVectorSetName(Settings.GetJitterQuality());
+
+	if (ComplexityType == "HEIGHT")
+	{
+		std::cout << "Initiating Height Layer calculation." << std::endl;
+
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
+
+		std::cout << "Height Layer calculation completed." << std::endl;
+	}
+	else if (ComplexityType == "AREA")
+	{
+		std::cout << "Initiating Area Layer calculation." << std::endl;
+
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(AREA_LAYER_PRODUCER.Calculate());
+
+		std::cout << "Area Layer calculation completed." << std::endl;
+	}
+	else if (ComplexityType == "TRIANGLE_EDGE")
+	{
+		std::cout << "Initiating Triangle Edge Layer calculation." << std::endl;
+
+		int Mode = 0;
+		if (Settings.GetTriangleEdges_Mode() == "MIN_LEHGTH")
+		{
+			Mode = 1;
+		}
+		else if (Settings.GetTriangleEdges_Mode() == "MEAN_LEHGTH")
+		{
+			Mode = 2;
+		}
+
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(Mode));
+
+		std::cout << "Triangle Edge Layer calculation completed." << std::endl;
+	}
+	else if (ComplexityType == "TRIANGLE_COUNT")
+	{
+		std::cout << "Initiating Triangle Count Layer calculation." << std::endl;
+
+		if (Settings.IsRunOnWholeModel())
+		{
+			TRIANGLE_COUNT_LAYER_PRODUCER.CalculateOnWholeModel();
+		}
+		else
+		{
+			TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(false);
+		}
+
+		WaitForJitterManager();
+
+		std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
+		std::cout << std::endl;
+		std::cout << "Triangle Count Layer calculation completed." << std::endl;
+	}
+	else if (ComplexityType == "RUGOSITY")
+	{
+		std::cout << "Initiating Rugosity Layer calculation." << std::endl;
+
+		SetRugosityAlgorithm();
+		RUGOSITY_LAYER_PRODUCER.SetCalculateStandardDeviation(Settings.IsStandardDeviationNeeded());
+		RUGOSITY_LAYER_PRODUCER.SetDeleteOutliers(Settings.IsRugosity_DeleteOutliers());
+
+		RUGOSITY_LAYER_PRODUCER.SetOrientationSetForMinRugosityName(Settings.GetRugosity_MinAlgorithm_Quality());
+		RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedArea(Settings.GetRugosity_IsUsingUniqueProjectedArea());
+
+		if (Settings.IsRunOnWholeModel())
+		{
+			RUGOSITY_LAYER_PRODUCER.CalculateOnWholeModel();
+		}
+		else
+		{
+			RUGOSITY_LAYER_PRODUCER.CalculateWithJitterAsync();
+		}
+
+		WaitForJitterManager();
+
+		std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
+		std::cout << std::endl;
+		std::cout << "Rugosity Layer calculation completed." << std::endl;
+	}
+	else if (ComplexityType == "VECTOR_DISPERSION")
+	{
+		std::cout << "Initiating Vector Dispersion calculation." << std::endl;
+
+		VECTOR_DISPERSION_LAYER_PRODUCER.SetShouldCalculateStandardDeviation(Settings.IsStandardDeviationNeeded());
+
+		if (Settings.IsRunOnWholeModel())
+		{
+			VECTOR_DISPERSION_LAYER_PRODUCER.CalculateOnWholeModel();
+		}
+		else
+		{
+			VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(false);
+		}
+
+		WaitForJitterManager();
+
+		std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
+		std::cout << std::endl;
+		std::cout << "Vector Dispersion calculation completed." << std::endl;
+	}
+	else if (ComplexityType == "FRACTAL_DIMENSION")
+	{
+		std::cout << "Initiating Fractal Dimension Layer calculation." << std::endl;
+
+		FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldCalculateStandardDeviation(Settings.IsStandardDeviationNeeded());
+		FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldFilterFractalDimensionValues(Settings.GetFractalDimension_ShouldFilterValues());
+
+		if (Settings.IsRunOnWholeModel())
+		{
+			FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel();
+		}
+		else
+		{
+			FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(false);
+		}
+
+		WaitForJitterManager();
+
+		std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
+		std::cout << std::endl;
+		std::cout << "Fractal Dimension Layer calculation completed." << std::endl;
+	}
+	else if (ComplexityType == "COMPARE")
+	{
+		std::cout << "Initiating Compare Layer calculation." << std::endl;
+
+		int FirstLayerIndex = Settings.GetCompare_FirstLayerIndex();
+		if (FirstLayerIndex < 0 || FirstLayerIndex > COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+		{
+			std::string ErrorMessage = "Error: First layer index is out of range. Please check the layer index and try again.";
+			LOG.Add(ErrorMessage, "CONSOLE_LOG");
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return false;
+		}
+
+		int SecondLayerIndex = Settings.GetCompare_SecondLayerIndex();
+		if (SecondLayerIndex < 0 || SecondLayerIndex > COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+		{
+			std::string ErrorMessage = "Error: Second layer index is out of range. Please check the layer index and try again.";
+			LOG.Add(ErrorMessage, "CONSOLE_LOG");
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return false;
+		}
+
+		COMPARE_LAYER_PRODUCER.SetShouldNormalize(Settings.IsCompare_Normalize());
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstLayerIndex, SecondLayerIndex));
+
+		std::cout << "Compare Layer calculation completed." << std::endl;
+	}
+
 	return true;
 }
 

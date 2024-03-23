@@ -201,6 +201,74 @@ void ExportLayerAsImageJob::SetLayerIndex(int NewValue)
 
 bool ExportLayerAsImageJob::Execute(void* InputData, void* OutputData)
 {
-	// TODO: Implement this
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
+	{
+		std::string ErrorMessage = "Error: No layers to export. Please calculate a layer before attempting to export.";
+		LOG.Add(ErrorMessage, "CONSOLE_LOG");
+		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+		return false;
+	}
+
+	MeshLayer* LayerToExport = nullptr;
+	if (GetLayerIndex() >= 0 && GetLayerIndex() < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+	{
+		LayerToExport = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[GetLayerIndex()];
+	}
+	else
+	{
+		std::string ErrorMessage = "Error: Layer index is out of range. Please check the layer index and try again.";
+		LOG.Add(ErrorMessage, "CONSOLE_LOG");
+		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+		return false;
+	}
+
+	if (LayerToExport == nullptr)
+	{
+		std::string ErrorMessage = "Error: Layer to export is null. Please check the layer index and try again.";
+		LOG.Add(ErrorMessage, "CONSOLE_LOG");
+		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+		return false;
+	}
+
+	std::cout << "Initiating Layer export as image." << std::endl;
+
+	LAYER_RASTERIZATION_MANAGER.SetGridRasterizationMode(GetExportMode());
+
+	glm::vec2 MinMaxResolutionInMeters = LAYER_RASTERIZATION_MANAGER.GetMinMaxResolutionInMeters();
+	float ResolutionInMeters = GetResolutionInM();
+	if (ResolutionInMeters > MinMaxResolutionInMeters.x)
+	{
+		std::string ErrorMessage = "Error: Resolution is too high. Your value: " + std::to_string(ResolutionInMeters) + " meters. Max value: " + std::to_string(MinMaxResolutionInMeters.x) + " meters. Please check the resolution and try again.";
+		LOG.Add(ErrorMessage, "CONSOLE_LOG");
+		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+		return false;
+	}
+
+	if (ResolutionInMeters < MinMaxResolutionInMeters.y)
+	{
+		std::string ErrorMessage = "Error: Resolution is too low. Your value: " + std::to_string(ResolutionInMeters) + " meters. Min value: " + std::to_string(MinMaxResolutionInMeters.y) + " meters. Please check the resolution and try again.";
+		LOG.Add(ErrorMessage, "CONSOLE_LOG");
+		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+		return false;
+	}
+	LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(ResolutionInMeters);
+
+	LAYER_RASTERIZATION_MANAGER.SetCumulativeModePersentOfAreaThatWouldBeRed(GetPersentOfAreaThatWouldBeRed());
+
+	LAYER_RASTERIZATION_MANAGER.PrepareLayerForExport(LayerToExport, GetForceProjectionVector());
+
+	while (abs(LAYER_RASTERIZATION_MANAGER.GetProgress() - 1.0f) > FLT_EPSILON)
+	{
+		std::cout << "\rProgress: " << std::to_string(LAYER_RASTERIZATION_MANAGER.GetProgress() * 100.0f) << " %" << std::flush;
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		THREAD_POOL.Update();
+	}
+
+	std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
+	std::cout << std::endl;
+	std::cout << "Layer export calculation completed." << std::endl;
+
+	LAYER_RASTERIZATION_MANAGER.SaveToFile(GetFilePath(), SaveMode);
 	return true;
 }

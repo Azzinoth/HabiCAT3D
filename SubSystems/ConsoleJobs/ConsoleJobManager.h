@@ -29,17 +29,9 @@ private:
 	int EvaluationsTotalCount = 0;
 	int EvaluationsFailedCount = 0;
 
-	bool SetGridResolution(ComplexityJob* Job);
-	void SetRugosityAlgorithm(ComplexityJob* Job);
-
 	void ExecuteJob(ConsoleJob* Job);
-	void WaitForJitterManager();
-
-	void OutputConsoleTextWithColor(std::string Text, int R, int G, int B);
 
 	std::map<std::string, ConsoleJobInfo> ConsoleJobsInfo;
-	void PrintCommandHelp(std::string CommandName);
-	void PrintHelp(std::string CommandName = "");
 
 	int JobsAdded = 0;
 	void OnAllJobsFinished();

@@ -22,6 +22,6 @@ ConsoleJobInfo ExitJob::GetInfo()
 
 bool ExitJob::Execute(void* InputData, void* OutputData)
 {
-	// TODO: Implement this
+	APPLICATION.Close();
 	return true;
 }

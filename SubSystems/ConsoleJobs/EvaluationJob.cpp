@@ -156,6 +156,91 @@ std::string ComplexityEvaluationJob::GetEvaluationSubType()
 
 bool ComplexityEvaluationJob::Execute(void* InputData, void* OutputData)
 {
-	// TODO: Implement this
+	//EvaluationJob* CurrentEvaluationJob = reinterpret_cast<EvaluationJob*>(Job);
+
+	if (EvaluationType == "COMPLEXITY")
+	{
+		//ComplexityEvaluationJob* CurrentComplexityEvaluationJob = reinterpret_cast<ComplexityEvaluationJob*>(Job);
+
+		if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
+		{
+			std::string ErrorMessage = "Error: No layers to evaluate. Please calculate a layer before attempting to evaluate.";
+			LOG.Add(ErrorMessage, "CONSOLE_LOG");
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return false;
+		}
+
+		MeshLayer* LayerToEvaluate = nullptr;
+		if (GetLayerIndex() != -1)
+		{
+			LayerToEvaluate = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[GetLayerIndex()];
+		}
+		else
+		{
+			LayerToEvaluate = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back();
+		}
+
+		if (LayerToEvaluate == nullptr)
+		{
+			std::string ErrorMessage = "Error: Layer to evaluate is null. Please check the layer index and try again.";
+			LOG.Add(ErrorMessage, "CONSOLE_LOG");
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return false;
+		}
+
+		bFailed = false;
+		float Difference = FLT_MAX;
+
+		if (GetEvaluationSubType() == "MEAN_LAYER_VALUE")
+		{
+			SetActualValue(LayerToEvaluate->GetMean());
+		}
+		else if (GetEvaluationSubType() == "MEDIAN_LAYER_VALUE")
+		{
+			SetActualValue(LayerToEvaluate->GetMedian());
+		}
+		else if (GetEvaluationSubType() == "MAX_LAYER_VALUE")
+		{
+			SetActualValue(LayerToEvaluate->GetMax());
+		}
+		else if (GetEvaluationSubType() == "MIN_LAYER_VALUE")
+		{
+			SetActualValue(LayerToEvaluate->GetMin());
+		}
+
+		Difference = GetExpectedValue() - GetActualValue();
+
+		if (abs(Difference) > GetTolerance())
+			bFailed = true;
+
+		if (isnan(GetActualValue()))
+			bFailed = true;
+
+		//EvaluationsTotalCount++;
+		if (Failed())
+		{
+			std::string ErrorMessage = "Error: Evaluation failed. Type: " + EvaluationType + " SubType: " + GetEvaluationSubType() + " Expected: " + std::to_string(GetExpectedValue()) + " Tolerance: " + std::to_string(GetTolerance()) + " Actual: " + std::to_string(GetActualValue());
+			LOG.Add(ErrorMessage, "CONSOLE_LOG");
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+
+			//EvaluationsFailedCount++;
+		}
+		else
+		{
+			std::string Message = "Evaluation passed. Type: " + EvaluationType + " SubType: " + GetEvaluationSubType() + " Expected: " + std::to_string(GetExpectedValue()) + " Tolerance: " + std::to_string(GetTolerance()) + " Actual: " + std::to_string(GetActualValue());
+			LOG.Add(Message, "CONSOLE_LOG");
+			OutputConsoleTextWithColor(Message, 0, 255, 0);
+		}
+
+		if (InputData != nullptr)
+		{
+			std::string Script = "-evaluation type=" + EvaluationType + " subtype=" + GetEvaluationSubType() + " expected_value=" + std::to_string(GetActualValue()) + " tolerance=" + std::to_string(GetTolerance());
+			if (GetLayerIndex() != -1)
+				Script += " layer_index=" + std::to_string(GetLayerIndex());
+
+			reinterpret_cast<std::vector<std::string>*>(InputData)->push_back(Script);
+		}
+	}
+
 	return true;
 }

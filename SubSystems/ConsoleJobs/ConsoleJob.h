@@ -34,6 +34,8 @@ protected:
 	// Returns true if the job was successfully executed.
 	// Returns false if the job failed to execute.
 	virtual bool Execute(void* InputData = nullptr, void* OutputData = nullptr) = 0;
+
+	static void OutputConsoleTextWithColor(std::string Text, int R, int G, int B);
 public:
 	std::string GetID();
 };
