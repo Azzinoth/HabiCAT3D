@@ -13,6 +13,7 @@ class ExportLayerAsImageJob : public ConsoleJob
 
 	std::string FilePath = "";
 	float ResolutionInM = 0.0f;
+	int ResolutionInPixels = 0;
 	glm::vec3 ForceProjectionVector = glm::vec3(0.0f);
 	float PersentOfAreaThatWouldBeRed = 5.0f;
 
@@ -35,6 +36,9 @@ public:
 
 	float GetResolutionInM();
 	void SetResolutionInM(float NewValue);
+
+	int GetResolutionInPixels();
+	void SetResolutionInPixels(int NewValue);
 
 	glm::vec3 GetForceProjectionVector();
 	void SetForceProjectionVector(glm::vec3 NewValue);

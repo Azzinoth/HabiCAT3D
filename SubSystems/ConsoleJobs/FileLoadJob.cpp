@@ -51,5 +51,10 @@ bool FileLoadJob::Execute(void* InputData, void* OutputData)
 	OutputConsoleTextWithColor("Successfully completed loading file: ", 0, 255, 0);
 	OutputConsoleTextWithColor(FilePath, 0, 255, 0);
 
+	LAYER_RASTERIZATION_MANAGER.ClearAllData();
+	float ResolutionInMeters = LAYER_RASTERIZATION_MANAGER.GetResolutionInMetersBasedOnResolutionInPixels(512);
+	if (ResolutionInMeters > 0.0f)
+		LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(ResolutionInMeters);
+
 	return true;
 }

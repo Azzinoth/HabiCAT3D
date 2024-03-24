@@ -28,7 +28,7 @@ public:
 	int GetGridResolution();
 	float GetResolutionInMeters();
 	void SetResolutionInMeters(float NewValue);
-	float GetResolutionInMetersThatWouldGiveSuchResolutionInPixels(int Pixels);
+	float GetResolutionInMetersBasedOnResolutionInPixels(int Pixels);
 	int GetResolutionInPixelsThatWouldGiveSuchResolutionInMeters(float Meters);
 	glm::vec2 GetMinMaxResolutionInMeters(glm::vec3 ProjectionVector = glm::vec3(0.0f));
 	glm::vec3 GetProjectionVector();

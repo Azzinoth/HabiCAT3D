@@ -478,7 +478,7 @@ void UIManager::OnMeshUpdate()
 	UI.HeatMapColorRange.Clear();
 
 	LAYER_RASTERIZATION_MANAGER.ClearAllData();
-	float ResolutionInMeters = LAYER_RASTERIZATION_MANAGER.GetResolutionInMetersThatWouldGiveSuchResolutionInPixels(512);
+	float ResolutionInMeters = LAYER_RASTERIZATION_MANAGER.GetResolutionInMetersBasedOnResolutionInPixels(512);
 	if (ResolutionInMeters > 0.0f)
 		LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(ResolutionInMeters);
 }

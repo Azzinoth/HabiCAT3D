@@ -1026,6 +1026,9 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(size_t GridX, size
 	if (CurrentTriangle.size() != 3)
 		return Result;
 
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[TriangleIndex] == 0.0)
+		return Result;
+
 	std::vector<glm::dvec3> CurrentTriangleDouble;
 	CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[0].x, CurrentTriangle[0].y, CurrentTriangle[0].z));
 	CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[1].x, CurrentTriangle[1].y, CurrentTriangle[1].z));
@@ -1050,6 +1053,9 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(size_t GridX, size
 		glm::dvec3 Edge_1 = CurrentTriangleDouble[2] - CurrentTriangleDouble[0];
 
 		glm::dvec3 Normal = glm::normalize(glm::cross(Edge_1, Edge_0));
+		if (isnan(Normal.x) || isnan(Normal.y) || isnan(Normal.z))
+			return Result;
+
 		// We are using the normal of the triangle to project the 3D triangle onto a 2D plane
 		// not a projection vector to make sure that sum of pixel values will be same for all projections, for scientific measurements.
 		Plane_3 PlaneToProject(PointA, Vector_3(Normal.x, Normal.y, Normal.z));
@@ -1485,7 +1491,7 @@ bool LayerRasterizationManager::GLMVec3Equal(const glm::vec3& A, const glm::vec3
 	return glm::all(glm::epsilonEqual(A, B, glm::epsilon<float>()));
 }
 
-float LayerRasterizationManager::GetResolutionInMetersThatWouldGiveSuchResolutionInPixels(int Pixels)
+float LayerRasterizationManager::GetResolutionInMetersBasedOnResolutionInPixels(int Pixels)
 {
 	float Result = -1.0f;
 

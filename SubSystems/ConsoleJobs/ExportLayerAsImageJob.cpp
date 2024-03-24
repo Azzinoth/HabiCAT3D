@@ -52,6 +52,11 @@ ExportLayerAsImageJob* ExportLayerAsImageJob::CreateInstance(CommandLineAction A
 		Result->SetResolutionInM(std::stof(ActionToParse.Settings["resolution"]));
 	}
 
+	if (ActionToParse.Settings.find("resolution_in_pixels") != ActionToParse.Settings.end())
+	{
+		Result->SetResolutionInPixels(std::stoi(ActionToParse.Settings["resolution_in_pixels"]));
+	}
+
 	if (ActionToParse.Settings.find("layer_index") != ActionToParse.Settings.end())
 	{
 		Result->SetLayerIndex(std::stoi(ActionToParse.Settings["layer_index"]));
@@ -103,6 +108,12 @@ ConsoleJobInfo ExportLayerAsImageJob::GetInfo()
 	CurrentSettingInfo.Name = "resolution";
 	CurrentSettingInfo.Description = "Specifies the resolution in meters for the image.";
 	CurrentSettingInfo.bIsOptional = false;
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "resolution_in_pixels";
+	CurrentSettingInfo.Description = "Specifies the resolution in pixels for the image.";
+	CurrentSettingInfo.bIsOptional = true;
 	Info.SettingsInfo.push_back(CurrentSettingInfo);
 
 	CurrentSettingInfo = ConsoleJobSettingsInfo();
@@ -167,6 +178,16 @@ float ExportLayerAsImageJob::GetResolutionInM()
 void ExportLayerAsImageJob::SetResolutionInM(float NewValue)
 {
 	ResolutionInM = NewValue;
+}
+
+int ExportLayerAsImageJob::GetResolutionInPixels()
+{
+	return ResolutionInPixels;
+}
+
+void ExportLayerAsImageJob::SetResolutionInPixels(int NewValue)
+{
+	ResolutionInPixels = NewValue;
 }
 
 glm::vec3 ExportLayerAsImageJob::GetForceProjectionVector()
@@ -235,7 +256,17 @@ bool ExportLayerAsImageJob::Execute(void* InputData, void* OutputData)
 	LAYER_RASTERIZATION_MANAGER.SetGridRasterizationMode(GetExportMode());
 
 	glm::vec2 MinMaxResolutionInMeters = LAYER_RASTERIZATION_MANAGER.GetMinMaxResolutionInMeters();
-	float ResolutionInMeters = GetResolutionInM();
+	float ResolutionInMeters = 0.0f;
+	if (GetResolutionInPixels() > 0)
+	{
+		ResolutionInMeters = LAYER_RASTERIZATION_MANAGER.GetResolutionInMetersBasedOnResolutionInPixels(GetResolutionInPixels());
+		std::cout << "Resolution in pixels: " + std::to_string(GetResolutionInPixels()) + " was converted from resolution in meters : " << ResolutionInMeters << " meters." << std::endl;
+	}
+	else
+	{
+		ResolutionInMeters = GetResolutionInM();
+	}
+
 	if (ResolutionInMeters > MinMaxResolutionInMeters.x)
 	{
 		std::string ErrorMessage = "Error: Resolution is too high. Your value: " + std::to_string(ResolutionInMeters) + " meters. Max value: " + std::to_string(MinMaxResolutionInMeters.x) + " meters. Please check the resolution and try again.";
