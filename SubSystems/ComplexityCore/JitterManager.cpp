@@ -91,10 +91,6 @@ void JitterManager::CalculateWithGridJitterAsync(std::function<void(GridNode* Cu
 	if (bSmootherResult)
 		TempShifts = PseudoRandom64;
 
-	//auto ShiftsToUse = &TetrahedronJitterOrientationsOptions[CurrentJitterVectorSetName]/*Tetrahedron73Jitter*//*SphereJitter*/;
-	//if (bSmootherResult)
-	//	ShiftsToUse = &PseudoRandom64;
-
 	JitterToDoCount = static_cast<int>(TempShifts.size() / 4);
 	if (DebugJitterToDoCount != -1)
 		JitterToDoCount = DebugJitterToDoCount;
@@ -155,7 +151,6 @@ void JitterManager::RunCalculationOnGridAsync(void* InputData, void* OutputData)
 	Output->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
 	Output->TimeTakenToCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
 
-	//JITTER_MANAGER.ExtractDataFromGrid(Output);
 	Output->FillMeshWithUserData();
 	Output->bFullyLoaded = true;
 }
