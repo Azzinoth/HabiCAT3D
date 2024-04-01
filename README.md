@@ -1,5 +1,7 @@
 # HabiCAT3D (Habitat Complexity Analysis Tool 3D)
 
+![build](https://github.com/Azzinoth/HabiCAT3D/actions/workflows/Build.yml/badge.svg?branch=dev)
+
 - **Figure 1:** App icon?
 
 - **Figure 2:** Heatmap of rugosity values on a complex 3D model.(Landscape type?)
