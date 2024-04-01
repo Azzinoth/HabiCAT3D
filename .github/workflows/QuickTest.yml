@@ -1,0 +1,38 @@
+name: QuickTest
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
+
+jobs:
+  test:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+        
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-artifacts
+        
+    - name: Run test
+      run: |
+        cd ${{github.workspace}}/build/Release
+        
+        Start-Process -FilePath "./HabiCAT3D.exe" -ArgumentList "-console" -Wait -NoNewWindow
+        Start-Sleep -Seconds 5
+        
+        if ($LASTEXITCODE -eq 0)
+        {
+          Write-Host "Application ran successfully without crashing."
+        } else
+        {
+          Write-Error "Application crashed or exited with a non-zero exit code."
+          exit 1
+        }
