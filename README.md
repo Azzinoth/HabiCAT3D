@@ -46,5 +46,14 @@ cmake CMakeLists.txt
 ## How To Use
 You can use GUI or command-line arguments....
 
-## License
-license.
+
+
+## Third Party Licenses
+
+This project uses the following third-party libraries:
+
+1) **Focal Engine**: This library is licensed under MIT License. The full license text can be found at [Focal Engine's GitHub repository](https://github.com/Azzinoth/FocalEngine)
+2) **CGAL**: Some parts of CGAL are available under the LGPL, whereas other parts are under the GPL. The full license text can be found at [CGAL's GitHub repository](https://github.com/CGAL/cgal/blob/master/Installation/LICENSE) or [CGAL's webpage](https://www.cgal.org/license.html).
+3) **boost**: This library is licensed under Boost Software License. The full license text can be found at [boost's GitHub repository](https://github.com/boostorg/boost/blob/master/LICENSE_1_0.txt)
+4) **Eigen**: This library is part of CGAL.
+5) **GDAL**: This library is licensed under MIT License. The full license text can be found at [GDAL's GitHub repository](https://github.com/OSGeo/gdal?tab=License-1-ov-file#readme)
