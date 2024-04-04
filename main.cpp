@@ -351,6 +351,37 @@ void MainWindowRender()
 	}
 }
 
+GLFWimage ConvertIconToGLFWImage(HICON Icon)
+{
+	ICONINFO IconInfo;
+	GetIconInfo(Icon, &IconInfo);
+	BITMAP BMP;
+	GetObject(IconInfo.hbmColor, sizeof(BITMAP), &BMP);
+
+	GLFWimage Result;
+	Result.width = BMP.bmWidth;
+	Result.height = BMP.bmHeight;
+
+	int BytesPerPixel = BMP.bmBitsPixel / 8;
+	int Size = Result.width * Result.height * 4;
+	Result.pixels = new unsigned char[Size];
+
+	// Get the bits from the bitmap and store them in the GLFWimage
+	GetBitmapBits(IconInfo.hbmColor, Size, Result.pixels);
+
+	// Convert BGR to RGB
+	for (int i = 0; i < Size; i += 4)
+	{
+		std::swap(Result.pixels[i], Result.pixels[i + 2]); // Swap B and R
+	}
+
+	// Clean up
+	DeleteObject(IconInfo.hbmColor);
+	DeleteObject(IconInfo.hbmMask);
+
+	return Result;
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	//LOG.SetFileOutput(true);
@@ -401,9 +432,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		ENGINE.InitWindow(1280, 720, "HabiCAT3D");
 		ENGINE.ActivateSimplifiedRenderingMode();
 		// If I will directly assign result of APPLICATION.AddWindow to UI.MainWindow, then in Release build with full optimization app will crash, because of execution order.
-		FEWindow* MainWinodw = APPLICATION.GetMainWindow();
+		FEWindow* MainWindow = APPLICATION.GetMainWindow();
 
-		UI.MainWindow = MainWinodw;
+		GLFWimage Icon = ConvertIconToGLFWImage(LoadIcon(hInstance, MAKEINTRESOURCE(101)));
+		glfwSetWindowIcon(MainWindow->GetGlfwWindow(), 1, &Icon);
+
+		UI.MainWindow = MainWindow;
 		UI.MainWindow->SetRenderFunction(MainWindowRender);
 
 		UI.MainWindow->AddOnDropCallback(DropCallback);

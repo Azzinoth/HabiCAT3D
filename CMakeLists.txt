@@ -118,6 +118,7 @@ file(GLOB SubSystems_ConsoleJobs_SRC
 file(GLOB source_SRC
 	"EngineInclude.h"
 	"main.cpp"
+	"HabiCAT3D.rc"
 )
 
 link_directories(${GLEW_LIB_DIR})
