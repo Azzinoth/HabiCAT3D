@@ -23,7 +23,7 @@ Designed for ecologists and researchers, this tool facilitates the analysis, exp
 	
 - **Layers:** Our layer system allows users to compare results obtained using different metrics and settings. Each analysis run creates a new layer, which can be accessed through tabs at the top of the screen. Users can visually compare layers or generate heatmaps to highlight the differences between them.
 
-img of layer tabs
+![](https://github.com/Azzinoth/HabiCAT3D/blob/media/Layer_Tabs.png)
 
 - **.RUG file format:** Users can save and load entire workspace using a custom (.RUG) format. RUG files save all layers alongside the model, decreasing model load times and eliminating the need to re-run calculations.
 
