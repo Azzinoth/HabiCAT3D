@@ -7,163 +7,42 @@ MeshManager::MeshManager()
 {
 	if (!APPLICATION.HasConsoleWindow())
 	{
-		MeshShader = new FEShader("mainShader", sTestVS, sTestFS);
-		MeshShader->getParameter("lightDirection")->updateData(glm::vec3(0.0, 1.0, 0.2));
+		CustomMeshShader = RESOURCE_MANAGER.CreateShader("MainMeshShader", CustomMesh_VS, CustomMesh_FS);
+		CustomMeshShader->UpdateParameterData("lightDirection", glm::vec3(0.0, 1.0, 0.2));
+
+		CustomMaterial = RESOURCE_MANAGER.CreateMaterial("MainMeshMaterial");
+		CustomMaterial->Shader = CustomMeshShader;
 	}
 }
 
 MeshManager::~MeshManager() {}
 
-FEMesh* MeshManager::RawDataToMesh(float* positions, int posSize,
-	float* colors, int colorSize,
-	float* UV, int UVSize,
-	float* normals, int normSize,
-	float* tangents, int tanSize,
-	int* indices, int indexSize,
-	float* matIndexs, int matIndexsSize, int matCount,
-	std::string Name)
-{
-	int vertexType = FE_POSITION | FE_INDEX;
-
-	GLuint vaoID;
-	FE_GL_ERROR(glGenVertexArrays(1, &vaoID));
-	FE_GL_ERROR(glBindVertexArray(vaoID));
-
-	GLuint indicesBufferID;
-	// index
-	FE_GL_ERROR(glGenBuffers(1, &indicesBufferID));
-	FE_GL_ERROR(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesBufferID));
-	FE_GL_ERROR(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indexSize, indices, GL_STATIC_DRAW));
-
-	GLuint positionsBufferID;
-	// verCoords
-	FE_GL_ERROR(glGenBuffers(1, &positionsBufferID));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, positionsBufferID));
-	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * posSize, positions, GL_STATIC_DRAW));
-	FE_GL_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-
-	GLuint colorsBufferID = 0;
-	if (colors != nullptr)
-	{
-		vertexType |= FE_COLOR;
-		// colors
-		FE_GL_ERROR(glGenBuffers(1, &colorsBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, colorsBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * colorSize, colors, GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(1/*FE_COLOR*/, 3, GL_FLOAT, false, 0, 0));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-	}
-
-	GLuint normalsBufferID = 0;
-	if (normals != nullptr)
-	{
-		vertexType |= FE_NORMAL;
-		// normals
-		FE_GL_ERROR(glGenBuffers(1, &normalsBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, normalsBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * normSize, normals, GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(2/*FE_NORMAL*/, 3, GL_FLOAT, false, 0, 0));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-	}
-
-	GLuint tangentsBufferID = 0;
-	if (tangents != nullptr)
-	{
-		//vertexType |= FE_TANGENTS;
-		//// tangents
-		//FE_GL_ERROR(glGenBuffers(1, &tangentsBufferID));
-		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, tangentsBufferID));
-		//FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * tanSize, tangents, GL_STATIC_DRAW));
-		//FE_GL_ERROR(glVertexAttribPointer(3/*FE_TANGENTS*/, 3, GL_FLOAT, false, 0, 0));
-		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-	}
-
-	GLuint UVBufferID = 0;
-	if (UV != nullptr)
-	{
-		// UV
-		//FE_GL_ERROR(glGenBuffers(1, &UVBufferID));
-		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, UVBufferID));
-		//FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * UVSize, UV, GL_STATIC_DRAW));
-		//FE_GL_ERROR(glVertexAttribPointer(4/*FE_UV*/, 2, GL_FLOAT, false, 0, 0));
-		//FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-	}
-
-	FEMesh* newMesh = new FEMesh(vaoID, indexSize, vertexType, Name);
-	newMesh->indicesCount = indexSize;
-	newMesh->indicesBufferID = indicesBufferID;
-
-	newMesh->positionsCount = posSize;
-	newMesh->positionsBufferID = positionsBufferID;
-
-	newMesh->colorCount = colorSize;
-	newMesh->colorBufferID = colorsBufferID;
-
-	newMesh->normalsCount = normSize;
-	newMesh->normalsBufferID = normalsBufferID;
-
-	newMesh->tangentsCount = tanSize;
-	newMesh->tangentsBufferID = tangentsBufferID;
-
-	newMesh->UVCount = UVSize;
-	newMesh->UVBufferID = UVBufferID;
-
-	newMesh->AABB = FEAABB(positions, posSize);
-
-	return newMesh;
-}
-
-FEMesh* MeshManager::RawDataToMesh(double* positions, int posSize,
-	float* colors, int colorSize,
-	float* UV, int UVSize,
-	float* normals, int normSize,
-	float* tangents, int tanSize,
-	int* indices, int indexSize,
-	float* matIndexs, int matIndexsSize, int matCount,
-	std::string Name)
-{
-	float* FloatPositions = new float[posSize];
-
-	for (size_t i = 0; i < posSize; i++)
-	{
-		FloatPositions[i] = float(positions[i]);
-	}
-
-	FEMesh* result = RawDataToMesh(FloatPositions, posSize,
-		colors, colorSize,
-		UV, UVSize,
-		normals, normSize,
-		tangents, tanSize,
-		indices, indexSize,
-		matIndexs, matIndexsSize, matCount,
-		Name);
-
-	delete[] FloatPositions;
-
-	return result;
-}
-
 FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
 	FEMesh* result = nullptr;
 	FEObjLoader& objLoader = FEObjLoader::getInstance();
-	objLoader.forceOneMesh = bForceOneMesh;
-	objLoader.readFile(FileName);
+	objLoader.ForceOneMesh(bForceOneMesh);
+	objLoader.ForcePositionNormalization(true);
+	objLoader.UseDoublePrecisionForReadingCoordinates(true);
+	objLoader.DoubleVertexOnSeams(false);
+	objLoader.ReadFile(FileName);
 
-	if (objLoader.loadedObjects.size() > 0)
+	std::vector<FERawOBJData*>* LoadedObjects = objLoader.GetLoadedObjects();
+	FERawOBJData* FirstObject = LoadedObjects->size() > 0 ? LoadedObjects->at(0) : nullptr;
+
+	if (FirstObject != nullptr)
 	{
-		result = RawDataToMesh(objLoader.loadedObjects[0]->fVerC.data(), int(objLoader.loadedObjects[0]->fVerC.size()),
-			objLoader.loadedObjects[0]->fColorsC.data(), int(objLoader.loadedObjects[0]->fColorsC.size()),
-			objLoader.loadedObjects[0]->fTexC.data(), int(objLoader.loadedObjects[0]->fTexC.size()),
-			objLoader.loadedObjects[0]->fNorC.data(), int(objLoader.loadedObjects[0]->fNorC.size()),
-			objLoader.loadedObjects[0]->fTanC.data(), int(objLoader.loadedObjects[0]->fTanC.size()),
-			objLoader.loadedObjects[0]->fInd.data(), int(objLoader.loadedObjects[0]->fInd.size()),
-			objLoader.loadedObjects[0]->matIDs.data(), int(objLoader.loadedObjects[0]->matIDs.size()), int(objLoader.loadedObjects[0]->materialRecords.size()), "");
+		result = RESOURCE_MANAGER.RawDataToMesh(FirstObject->FVerC.data(), int(FirstObject->FVerC.size()),
+												FirstObject->FTexC.data(), int(FirstObject->FTexC.size()),
+												FirstObject->FNorC.data(), int(FirstObject->FNorC.size()),
+												FirstObject->FTanC.data(), int(FirstObject->FTanC.size()),
+												FirstObject->FInd.data(), int(FirstObject->FInd.size()),
+												FirstObject->fColorsC.data(), int(FirstObject->fColorsC.size()),
+												FirstObject->MatIDs.data(), int(FirstObject->MatIDs.size()), int(FirstObject->MaterialRecords.size()), "");
+	
+		COMPLEXITY_METRIC_MANAGER.Init(FirstObject->FVerC, FirstObject->fColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
 	}
-
-	COMPLEXITY_METRIC_MANAGER.Init(objLoader.loadedObjects[0]->fVerC, objLoader.loadedObjects[0]->fColorsC, objLoader.loadedObjects[0]->fTexC, objLoader.loadedObjects[0]->fTanC, objLoader.loadedObjects[0]->fInd, objLoader.loadedObjects[0]->fNorC);
-
+	
 	return result;
 }
 
@@ -292,15 +171,15 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	File.close();
 
-	FEMesh* NewMesh = RawDataToMesh((float*)VertexBuffer, VertexCount,
-		(float*)ColorBuffer, ColorCount,
-		(float*)TexBuffer, TexCout,
-		(float*)NormBuffer, NormCout,
-		(float*)TangBuffer, TangCout,
-		(int*)IndexBuffer, IndexCout,
-		nullptr, 0, 0, "");
+	FEMesh* NewMesh = RESOURCE_MANAGER.RawDataToMesh((float*)VertexBuffer, VertexCount,
+													 (float*)TexBuffer, TexCout,
+													 (float*)NormBuffer, NormCout,
+													 (float*)TangBuffer, TangCout,
+													 (int*)IndexBuffer, IndexCout,
+													 (float*)ColorBuffer, ColorCount,
+													 nullptr, 0, 0, "");
 
-	std::vector<double> FEVertices;
+	std::vector<float> FEVertices;
 	FEVertices.resize(VertexCount);
 	for (size_t i = 0; i < VertexCount; i++)
 	{
@@ -350,8 +229,6 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 	delete[] NormBuffer;
 	delete[] TangBuffer;
 	delete[] IndexBuffer;
-
-	NewMesh->AABB = MeshAABB;
 
 	for (size_t i = 0; i < Layers.size(); i++)
 	{
@@ -412,4 +289,210 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 		return;
 
 	COMPLEXITY_METRIC_MANAGER.SaveToRUGFileAskForFilePath();
+}
+
+int MeshManager::GetHeatMapType()
+{
+	return HeatMapType;
+}
+
+void MeshManager::SetHeatMapType(int NewValue)
+{
+	HeatMapType = NewValue;
+}
+
+void MeshManager::ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex)
+{
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+		return;
+
+	if (ActiveMesh == nullptr)
+		return;
+
+	if (LayerIndex < 0 || LayerIndex >= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+		return;
+
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.empty())
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].FillRawData();
+
+	FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
+
+	if (GPULayerIndex == 0)
+	{
+		FirstLayerBufferID = 0;
+		FE_GL_ERROR(glGenBuffers(1, &FirstLayerBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, FirstLayerBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.size(), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(7, 3, GL_FLOAT, false, 0, nullptr));
+	}
+	else
+	{
+		SecondLayerBufferID = 0;
+		FE_GL_ERROR(glGenBuffers(1, &SecondLayerBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, SecondLayerBufferID));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.size(), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, nullptr));
+	}
+
+	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+}
+
+GLuint MeshManager::GetFirstLayerBufferID()
+{
+	return FirstLayerBufferID;
+}
+
+GLuint MeshManager::GetSecondLayerBufferID()
+{
+	return SecondLayerBufferID;
+}
+
+void MeshManager::GetMeasuredRugosityArea(float& Radius, glm::vec3& Center)
+{
+	Radius = MeasuredRugosityAreaRadius;
+	Center = MeasuredRugosityAreaCenter;
+}
+
+void MeshManager::ClearMeasuredRugosityArea()
+{
+	MeasuredRugosityAreaRadius = -1.0f;
+	MeasuredRugosityAreaCenter = glm::vec3(0.0f);
+}
+
+bool MeshManager::SelectTriangle(glm::dvec3 MouseRay)
+{
+	if (ActiveMesh == nullptr || ActiveEntity == nullptr)
+		return false;
+
+	float CurrentDistance = 0.0f;
+	float LastDistance = 9999.0f;
+
+	int TriangeIndex = -1;
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
+
+	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	{
+		std::vector<glm::vec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
+		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+		{
+			TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+		}
+
+		const bool bHit = GEOMETRY.IsRayIntersectingTriangle(ENGINE.GetCamera()->GetPosition(), MouseRay, TranformedTrianglePoints, CurrentDistance);
+
+		if (bHit && CurrentDistance < LastDistance)
+		{
+			LastDistance = CurrentDistance;
+			TriangeIndex = i;
+		}
+	}
+
+	if (TriangeIndex != -1)
+	{
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.push_back(TriangeIndex);
+		return true;
+	}
+
+	return false;
+}
+
+glm::vec3 MeshManager::IntersectTriangle(glm::dvec3 MouseRay)
+{
+	if (ActiveMesh == nullptr || ActiveEntity == nullptr)
+		return glm::vec3(0.0f);
+
+	float CurrentDistance = 0.0f;
+	float LastDistance = 9999.0f;
+
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	{
+		std::vector<glm::vec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
+		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+		{
+			TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+		}
+
+		glm::vec3 HitPosition;
+		const bool bHit = GEOMETRY.IsRayIntersectingTriangle(ENGINE.GetCamera()->GetPosition(), MouseRay, TranformedTrianglePoints, CurrentDistance, &HitPosition);
+
+		if (bHit && CurrentDistance < LastDistance)
+		{
+			LastDistance = CurrentDistance;
+
+			const glm::mat4 Inverse = glm::inverse(ActiveEntity->Transform.GetTransformMatrix());
+			return Inverse * glm::vec4(HitPosition, 1.0f);
+		}
+	}
+
+	return glm::vec3(0.0f);
+}
+
+bool MeshManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
+{
+	bool Result = false;
+
+	if (ActiveMesh == nullptr || ActiveEntity == nullptr)
+		return Result;
+	
+	SelectTriangle(MouseRay);
+
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() == 0)
+		return Result;
+
+	MeasuredRugosityAreaRadius = Radius;
+	MeasuredRugosityAreaCenter = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]], 1.0f);
+
+	const glm::vec3 FirstSelectedTriangleCentroid = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
+
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	{
+		if (i == COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0])
+			continue;
+
+		if (glm::distance(FirstSelectedTriangleCentroid, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[i]) <= Radius)
+		{
+			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.push_back(static_cast<int>(i));
+			Result = true;
+		}
+	}
+
+	return Result;
+}
+
+float MeshManager::GetUnselectedAreaSaturationFactor()
+{
+	return UnselectedAreaSaturationFactor;
+}
+
+void MeshManager::SetUnselectedAreaSaturationFactor(float NewValue)
+{
+	if (NewValue < 0.0f)
+		NewValue = 0.0f;
+
+	UnselectedAreaSaturationFactor = NewValue;
+}
+
+float MeshManager::GetUnselectedAreaBrightnessFactor()
+{
+	return UnselectedAreaBrightnessFactor;
+}
+
+void MeshManager::SetUnselectedAreaBrightnessFactor(float NewValue)
+{
+	if (NewValue < 0.0f)
+		NewValue = 0.0f;
+
+	UnselectedAreaBrightnessFactor = NewValue;
+}
+
+void MeshManager::ClearBuffers()
+{
+	if (FirstLayerBufferID > 0)
+		glDeleteBuffers(1, &FirstLayerBufferID);
+
+	if (SecondLayerBufferID > 0)
+		glDeleteBuffers(1, &SecondLayerBufferID);
+
+	FirstLayerBufferID = 0;
+	SecondLayerBufferID = 0;
 }

@@ -3,7 +3,7 @@ using namespace FocalEngine;
 
 FELinesRenderer* FELinesRenderer::Instance = nullptr;
 
-FELine::FELine(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 Color)
+FECustomLine::FECustomLine(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 Color)
 {
 	A = PointA;
 	B = PointB;
@@ -12,11 +12,11 @@ FELine::FELine(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 Color)
 
 FELinesRenderer::FELinesRenderer()
 {
-	LineShader = new FEShader("lineShader", LineVS, LineFS);
+	LineShader = RESOURCE_MANAGER.CreateShader("Custom:ineShader", LineVS, LineFS);
 	glGenVertexArrays(1, &LineVAO);
 }
 
-void FELinesRenderer::Render(FEBasicCamera* camera)
+void FELinesRenderer::Render()
 {
 #ifdef NEW_LINES
 	SyncWithGPU();  // Ensure GPU buffer is up-to-date
@@ -25,21 +25,11 @@ void FELinesRenderer::Render(FEBasicCamera* camera)
 	if (PointsToRender == 0)
 		return;
 
-	LineShader->start();
+	LineShader->Start();
 
-	auto iterator = LineShader->parameters.begin();
-	while (iterator != LineShader->parameters.end())
-	{
-		if (iterator->second.nameHash == int(std::hash<std::string>{}("FEViewMatrix")))
-			iterator->second.updateData(camera->GetViewMatrix());
-
-		if (iterator->second.nameHash == int(std::hash<std::string>{}("FEProjectionMatrix")))
-			iterator->second.updateData(camera->GetProjectionMatrix());
-
-		iterator++;
-	}
-
-	LineShader->loadDataToGPU();
+	LineShader->UpdateParameterData("FEViewMatrix", ENGINE.GetCamera()->GetViewMatrix());
+	LineShader->UpdateParameterData("FEProjectionMatrix", ENGINE.GetCamera()->GetProjectionMatrix());
+	LineShader->LoadDataToGPU();
 
 	FE_GL_ERROR(glBindVertexArray(LineVAO));
 	FE_GL_ERROR(glEnableVertexAttribArray(0));
@@ -48,10 +38,10 @@ void FELinesRenderer::Render(FEBasicCamera* camera)
 	FE_GL_ERROR(glDrawArrays(GL_LINES, 0, PointsToRender * 2));
 
 	FE_GL_ERROR(glBindVertexArray(0));
-	LineShader->stop();
+	LineShader->Stop();
 }
 
-void FELinesRenderer::AddLineToBuffer(FELine LineToAdd)
+void FELinesRenderer::AddLineToBuffer(FECustomLine LineToAdd)
 {
 #ifdef NEW_LINES
 	FrameLines.push_back(LineToAdd);
@@ -134,7 +124,7 @@ void FELinesRenderer::SyncWithGPU()
 #endif
 }
 
-void FELinesRenderer::clearAll()
+void FELinesRenderer::ClearAll()
 {
 #ifdef NEW_LINES
 	PointsToRender = 0;
@@ -145,23 +135,23 @@ void FELinesRenderer::clearAll()
 #endif
 }
 
-void FELinesRenderer::RenderAABB(FEAABB AABB, glm::vec3 color)
+void FELinesRenderer::RenderAABB(FEAABB AABB, glm::vec3 Color)
 {
 	// bottom plane
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()), glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMin()[2]), color));
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()), glm::vec3(AABB.getMin()[0], AABB.getMin()[1], AABB.getMax()[2]), color));
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMin()[2]), glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMax()[2]), color));
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMax()[2]), glm::vec3(AABB.getMin()[0], AABB.getMin()[1], AABB.getMax()[2]), color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMin()), glm::vec3(AABB.GetMax()[0], AABB.GetMin()[1], AABB.GetMin()[2]), Color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMin()), glm::vec3(AABB.GetMin()[0], AABB.GetMin()[1], AABB.GetMax()[2]), Color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMax()[0], AABB.GetMin()[1], AABB.GetMin()[2]), glm::vec3(AABB.GetMax()[0], AABB.GetMin()[1], AABB.GetMax()[2]), Color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMax()[0], AABB.GetMin()[1], AABB.GetMax()[2]), glm::vec3(AABB.GetMin()[0], AABB.GetMin()[1], AABB.GetMax()[2]), Color));
 
 	// upper plane
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMin()[2]), glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMin()[2]), color));
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMin()[2]), glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMax()[2]), color));
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMin()[2]), glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMax()[2]), color));
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMax()[2]), glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMax()[2]), color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMin()[0], AABB.GetMax()[1], AABB.GetMin()[2]), glm::vec3(AABB.GetMax()[0], AABB.GetMax()[1], AABB.GetMin()[2]), Color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMin()[0], AABB.GetMax()[1], AABB.GetMin()[2]), glm::vec3(AABB.GetMin()[0], AABB.GetMax()[1], AABB.GetMax()[2]), Color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMax()[0], AABB.GetMax()[1], AABB.GetMin()[2]), glm::vec3(AABB.GetMax()[0], AABB.GetMax()[1], AABB.GetMax()[2]), Color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMax()[0], AABB.GetMax()[1], AABB.GetMax()[2]), glm::vec3(AABB.GetMin()[0], AABB.GetMax()[1], AABB.GetMax()[2]), Color));
 
 	// conect two planes
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMin()[2]), glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMin()[2]), color));
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()[0], AABB.getMin()[1], AABB.getMax()[2]), glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMax()[2]), color));
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMax()[0], AABB.getMin()[1], AABB.getMax()[2]), glm::vec3(AABB.getMax()[0], AABB.getMax()[1], AABB.getMax()[2]), color));
-	AddLineToBuffer(FELine(glm::vec3(AABB.getMin()[0], AABB.getMin()[1], AABB.getMin()[2]), glm::vec3(AABB.getMin()[0], AABB.getMax()[1], AABB.getMin()[2]), color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMax()[0], AABB.GetMin()[1], AABB.GetMin()[2]), glm::vec3(AABB.GetMax()[0], AABB.GetMax()[1], AABB.GetMin()[2]), Color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMin()[0], AABB.GetMin()[1], AABB.GetMax()[2]), glm::vec3(AABB.GetMin()[0], AABB.GetMax()[1], AABB.GetMax()[2]), Color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMax()[0], AABB.GetMin()[1], AABB.GetMax()[2]), glm::vec3(AABB.GetMax()[0], AABB.GetMax()[1], AABB.GetMax()[2]), Color));
+	AddLineToBuffer(FECustomLine(glm::vec3(AABB.GetMin()[0], AABB.GetMin()[1], AABB.GetMin()[2]), glm::vec3(AABB.GetMin()[0], AABB.GetMax()[1], AABB.GetMin()[2]), Color));
 }

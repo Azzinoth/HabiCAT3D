@@ -22,7 +22,10 @@ UIManager::UIManager()
 	MESH_MANAGER.AddLoadCallback(UIManager::OnMeshUpdate);
 	LAYER_MANAGER.AddActiveLayerChangedCallback(UIManager::OnLayerChange);
 
-	AddNewLayerIcon = FETexture::LoadPNGTexture("Resources/AddNewLayer.png");
+	LAYER_RASTERIZATION_MANAGER.SetOnCalculationsStartCallback(OnLayerRasterizationCalculationsStart);
+	LAYER_RASTERIZATION_MANAGER.SetOnCalculationsEndCallback(OnLayerRasterizationCalculationsEnd);
+
+	AddNewLayerIcon = RESOURCE_MANAGER.LoadPNGTexture("Resources/AddNewLayer.png");
 }
 
 UIManager::~UIManager() {}
@@ -88,7 +91,11 @@ void UIManager::ShowTransformConfiguration(const std::string Name, FETransformCo
 	Transform->SetRotation(rotation);
 
 	// ********************* SCALE *********************
-	ImGui::Checkbox("Uniform scaling", &Transform->uniformScaling);
+	bool bTemp = Transform->IsUniformScalingSet();
+	ImGui::Checkbox("Uniform scaling", &bTemp);
+	Transform->SetUniformScaling(bTemp);
+	Transform->IsUniformScalingSet();
+
 	glm::vec3 scale = Transform->GetScale();
 	ImGui::Text("Scale : ");
 	ImGui::SameLine();
@@ -114,7 +121,7 @@ void UIManager::ShowCameraTransform()
 	if (!bModelCamera)
 	{
 		// ********* POSITION *********
-		glm::vec3 cameraPosition = CurrentCamera->GetPosition();
+		glm::vec3 cameraPosition = ENGINE.GetCamera()->GetPosition();
 
 		ImGui::Text("Position : ");
 		ImGui::SameLine();
@@ -129,7 +136,7 @@ void UIManager::ShowCameraTransform()
 		ImGui::SetNextItemWidth(70);
 		ImGui::DragFloat("##Z pos", &cameraPosition[2], 0.1f);
 
-		CurrentCamera->SetPosition(cameraPosition);
+		ENGINE.GetCamera()->SetPosition(cameraPosition);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
@@ -146,7 +153,7 @@ void UIManager::ShowCameraTransform()
 		}
 
 		// ********* ROTATION *********
-		glm::vec3 CameraRotation = glm::vec3(CurrentCamera->GetYaw(), CurrentCamera->GetPitch(), CurrentCamera->GetRoll());
+		glm::vec3 CameraRotation = glm::vec3(ENGINE.GetCamera()->GetYaw(), ENGINE.GetCamera()->GetPitch(), ENGINE.GetCamera()->GetRoll());
 
 		ImGui::Text("Rotation : ");
 		ImGui::SameLine();
@@ -168,9 +175,9 @@ void UIManager::ShowCameraTransform()
 			APPLICATION.SetClipboardText(CameraRotationToStr());
 		}
 
-		CurrentCamera->SetYaw(CameraRotation[0]);
-		CurrentCamera->SetPitch(CameraRotation[1]);
-		CurrentCamera->SetRoll(CameraRotation[2]);
+		ENGINE.GetCamera()->SetYaw(CameraRotation[0]);
+		ENGINE.GetCamera()->SetPitch(CameraRotation[1]);
+		ENGINE.GetCamera()->SetRoll(CameraRotation[2]);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
@@ -179,14 +186,14 @@ void UIManager::ShowCameraTransform()
 			StrToCameraRotation(APPLICATION.GetClipboardText());
 		}
 
-		float CameraSpeed = CurrentCamera->GetMovementSpeed();
+		float CameraSpeed = ENGINE.GetCamera()->GetMovementSpeed();
 		ImGui::Text("Camera speed: ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(70);
 		ImGui::DragFloat("##Camera_speed", &CameraSpeed, 0.01f, 0.01f, 100.0f);
-		CurrentCamera->SetMovementSpeed(CameraSpeed);
+		ENGINE.GetCamera()->SetMovementSpeed(CameraSpeed);
 
-		CurrentCamera->UpdateViewMatrix();
+		ENGINE.GetCamera()->UpdateViewMatrix();
 
 		if (bDeveloperMode)
 		{
@@ -196,31 +203,11 @@ void UIManager::ShowCameraTransform()
 	}
 	else
 	{
-		/*float tempFloat = currentCamera->CurrentPolarAngle;
-		ImGui::Text("CurrentPolarAngle : ");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##CurrentPolarAngle", &tempFloat, 0.1f);
-		currentCamera->CurrentPolarAngle = tempFloat;
-
-		tempFloat = currentCamera->CurrentAzimutAngle;
-		ImGui::Text("CurrentAzimutAngle : ");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##CurrentAzimutAngle", &tempFloat, 0.1f);
-		currentCamera->CurrentAzimutAngle = tempFloat;*/
-
 		if (bDeveloperMode)
 		{
 			ImGui::Text(("Thread count: " + std::to_string(THREAD_POOL.GetThreadCount())).c_str());
 		}
 	}
-}
-
-void UIManager::SetCamera(FEBasicCamera* NewCamera)
-{
-	CurrentCamera = NewCamera;
-	SDF::CurrentCamera = CurrentCamera;
 }
 
 bool UIManager::GetWireFrameMode()
@@ -331,8 +318,8 @@ void UIManager::Render(bool bScreenshotMode)
 		MainWindow->GetSize(&WindowW, &WindowH);
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
-		float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
-		std::string ProgressText = "Progress: " + std::to_string(Progress * 100.0f);
+		UpdateProgressModalPopupCurrentValue();
+		std::string ProgressText = "Progress: " + std::to_string(ProgressModalPopupCurrentValue * 100.0f);
 		ProgressText += " %";
 		ImGui::SetCursorPosX(90);
 		ImGui::Text(ProgressText.c_str());
@@ -346,7 +333,7 @@ void UIManager::Render(bool bScreenshotMode)
 
 std::string UIManager::CameraPositionToStr()
 {
-	const glm::vec3 CameraPosition = CurrentCamera->GetPosition();
+	const glm::vec3 CameraPosition = ENGINE.GetCamera()->GetPosition();
 	return "( X:" + std::to_string(CameraPosition.x) + " Y:" + std::to_string(CameraPosition.y) + " Z:" + std::to_string(CameraPosition.z) + " )";
 }
 
@@ -409,12 +396,12 @@ void UIManager::StrToCameraPosition(std::string Text)
 
 	const float Z = float(atof(temp.c_str()));
 
-	CurrentCamera->SetPosition(glm::vec3(X, Y, Z));
+	ENGINE.GetCamera()->SetPosition(glm::vec3(X, Y, Z));
 }
 
 std::string UIManager::CameraRotationToStr()
 {
-	const glm::vec3 CameraRotation = glm::vec3(CurrentCamera->GetYaw(), CurrentCamera->GetPitch(), CurrentCamera->GetRoll());
+	const glm::vec3 CameraRotation = glm::vec3(ENGINE.GetCamera()->GetYaw(), ENGINE.GetCamera()->GetPitch(), ENGINE.GetCamera()->GetRoll());
 	return "( X:" + std::to_string(CameraRotation.x) + " Y:" + std::to_string(CameraRotation.y) + " Z:" + std::to_string(CameraRotation.z) + " )";
 }
 
@@ -477,18 +464,23 @@ void UIManager::StrToCameraRotation(std::string Text)
 
 	const float Z = float(atof(temp.c_str()));
 
-	CurrentCamera->SetYaw(X);
-	CurrentCamera->SetPitch(Y);
-	CurrentCamera->SetRoll(Z);
+	ENGINE.GetCamera()->SetYaw(X);
+	ENGINE.GetCamera()->SetPitch(Y);
+	ENGINE.GetCamera()->SetRoll(Z);
 }
 
 void UIManager::OnMeshUpdate()
 {
-	LINE_RENDERER.clearAll();
+	LINE_RENDERER.ClearAll();
 	LINE_RENDERER.SyncWithGPU();
 
 	UI.Histogram.Clear();
 	UI.HeatMapColorRange.Clear();
+
+	LAYER_RASTERIZATION_MANAGER.ClearAllData();
+	float ResolutionInMeters = LAYER_RASTERIZATION_MANAGER.GetResolutionInMetersBasedOnResolutionInPixels(512);
+	if (ResolutionInMeters > 0.0f)
+		LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(ResolutionInMeters);
 }
 
 float UIManager::GetRadiusOfAreaToMeasure()
@@ -513,6 +505,7 @@ void UIManager::SetLayerSelectionMode(const int NewValue)
 
 void UIManager::OnJitterCalculationsStart()
 {
+	UI.bJitterCalculationsInProgress = true;
 	UI.bShouldCloseProgressPopup = false;
 	UI.bShouldOpenProgressPopup = true;
 }
@@ -521,13 +514,14 @@ void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
 {
 	UI.bShouldCloseProgressPopup = true;
 	UI.CurrentJitterStepIndexVisualize = static_cast<int>(JITTER_MANAGER.GetLastUsedJitterSettings().size() - 1);
+	UI.bJitterCalculationsInProgress = false;
 }
 
 static auto CompareColormapValue = [](float Value) {
 
 	Value = Value * 2.0f - 1.0f;
 
-	static auto mix = [](glm::vec3 FirstColor, glm::vec3 SecondColor, float Factor) {
+	static auto Mix = [](glm::vec3 FirstColor, glm::vec3 SecondColor, float Factor) {
 		return glm::vec3(FirstColor.x + (SecondColor.x - FirstColor.x) * Factor,
 						 FirstColor.y + (SecondColor.y - FirstColor.y) * Factor,
 						 FirstColor.z + (SecondColor.z - FirstColor.z) * Factor);
@@ -543,25 +537,15 @@ static auto CompareColormapValue = [](float Value) {
 	if (Value < 0)
 	{
 		// Interpolate between blue and white for negative values
-		FinalColor = mix(ColorNeutral, ColorNegative, -Value);
+		FinalColor = Mix(ColorNeutral, ColorNegative, -Value);
 	}
 	else
 	{
 		// Interpolate between white and red for positive values
-		FinalColor = mix(ColorNeutral, ColorPositive, Value);
+		FinalColor = Mix(ColorNeutral, ColorPositive, Value);
 	}
 
-	return ImColor(int(FinalColor.x * 255), int(FinalColor.y * 255), int(FinalColor.z * 255), 255);
-};
-
-static auto TurboColorMapValue = [](float Value) {
-	static double turbo_srgb_floats[256][3] = { {0.18995,0.07176,0.23217},{0.19483,0.08339,0.26149},{0.19956,0.09498,0.29024},{0.20415,0.10652,0.31844},{0.20860,0.11802,0.34607},{0.21291,0.12947,0.37314},{0.21708,0.14087,0.39964},{0.22111,0.15223,0.42558},{0.22500,0.16354,0.45096},{0.22875,0.17481,0.47578},{0.23236,0.18603,0.50004},{0.23582,0.19720,0.52373},{0.23915,0.20833,0.54686},{0.24234,0.21941,0.56942},{0.24539,0.23044,0.59142},{0.24830,0.24143,0.61286},{0.25107,0.25237,0.63374},{0.25369,0.26327,0.65406},{0.25618,0.27412,0.67381},{0.25853,0.28492,0.69300},{0.26074,0.29568,0.71162},{0.26280,0.30639,0.72968},{0.26473,0.31706,0.74718},{0.26652,0.32768,0.76412},{0.26816,0.33825,0.78050},{0.26967,0.34878,0.79631},{0.27103,0.35926,0.81156},{0.27226,0.36970,0.82624},{0.27334,0.38008,0.84037},{0.27429,0.39043,0.85393},{0.27509,0.40072,0.86692},{0.27576,0.41097,0.87936},{0.27628,0.42118,0.89123},{0.27667,0.43134,0.90254},{0.27691,0.44145,0.91328},{0.27701,0.45152,0.92347},{0.27698,0.46153,0.93309},{0.27680,0.47151,0.94214},{0.27648,0.48144,0.95064},{0.27603,0.49132,0.95857},{0.27543,0.50115,0.96594},{0.27469,0.51094,0.97275},{0.27381,0.52069,0.97899},{0.27273,0.53040,0.98461},{0.27106,0.54015,0.98930},{0.26878,0.54995,0.99303},{0.26592,0.55979,0.99583},{0.26252,0.56967,0.99773},{0.25862,0.57958,0.99876},{0.25425,0.58950,0.99896},{0.24946,0.59943,0.99835},{0.24427,0.60937,0.99697},{0.23874,0.61931,0.99485},{0.23288,0.62923,0.99202},{0.22676,0.63913,0.98851},{0.22039,0.64901,0.98436},{0.21382,0.65886,0.97959},{0.20708,0.66866,0.97423},{0.20021,0.67842,0.96833},{0.19326,0.68812,0.96190},{0.18625,0.69775,0.95498},{0.17923,0.70732,0.94761},{0.17223,0.71680,0.93981},{0.16529,0.72620,0.93161},{0.15844,0.73551,0.92305},{0.15173,0.74472,0.91416},{0.14519,0.75381,0.90496},{0.13886,0.76279,0.89550},{0.13278,0.77165,0.88580},{0.12698,0.78037,0.87590},{0.12151,0.78896,0.86581},{0.11639,0.79740,0.85559},{0.11167,0.80569,0.84525},{0.10738,0.81381,0.83484},{0.10357,0.82177,0.82437},{0.10026,0.82955,0.81389},{0.09750,0.83714,0.80342},{0.09532,0.84455,0.79299},{0.09377,0.85175,0.78264},{0.09287,0.85875,0.77240},{0.09267,0.86554,0.76230},{0.09320,0.87211,0.75237},{0.09451,0.87844,0.74265},{0.09662,0.88454,0.73316},{0.09958,0.89040,0.72393},{0.10342,0.89600,0.71500},{0.10815,0.90142,0.70599},{0.11374,0.90673,0.69651},{0.12014,0.91193,0.68660},{0.12733,0.91701,0.67627},{0.13526,0.92197,0.66556},{0.14391,0.92680,0.65448},{0.15323,0.93151,0.64308},{0.16319,0.93609,0.63137},{0.17377,0.94053,0.61938},{0.18491,0.94484,0.60713},{0.19659,0.94901,0.59466},{0.20877,0.95304,0.58199},{0.22142,0.95692,0.56914},{0.23449,0.96065,0.55614},{0.24797,0.96423,0.54303},{0.26180,0.96765,0.52981},{0.27597,0.97092,0.51653},{0.29042,0.97403,0.50321},{0.30513,0.97697,0.48987},{0.32006,0.97974,0.47654},{0.33517,0.98234,0.46325},{0.35043,0.98477,0.45002},{0.36581,0.98702,0.43688},{0.38127,0.98909,0.42386},{0.39678,0.99098,0.41098},{0.41229,0.99268,0.39826},{0.42778,0.99419,0.38575},{0.44321,0.99551,0.37345},{0.45854,0.99663,0.36140},{0.47375,0.99755,0.34963},{0.48879,0.99828,0.33816},{0.50362,0.99879,0.32701},{0.51822,0.99910,0.31622},{0.53255,0.99919,0.30581},{0.54658,0.99907,0.29581},{0.56026,0.99873,0.28623},{0.57357,0.99817,0.27712},{0.58646,0.99739,0.26849},{0.59891,0.99638,0.26038},{0.61088,0.99514,0.25280},{0.62233,0.99366,0.24579},{0.63323,0.99195,0.23937},{0.64362,0.98999,0.23356},{0.65394,0.98775,0.22835},{0.66428,0.98524,0.22370},{0.67462,0.98246,0.21960},{0.68494,0.97941,0.21602},{0.69525,0.97610,0.21294},{0.70553,0.97255,0.21032},{0.71577,0.96875,0.20815},{0.72596,0.96470,0.20640},{0.73610,0.96043,0.20504},{0.74617,0.95593,0.20406},{0.75617,0.95121,0.20343},{0.76608,0.94627,0.20311},{0.77591,0.94113,0.20310},{0.78563,0.93579,0.20336},{0.79524,0.93025,0.20386},{0.80473,0.92452,0.20459},{0.81410,0.91861,0.20552},{0.82333,0.91253,0.20663},{0.83241,0.90627,0.20788},{0.84133,0.89986,0.20926},{0.85010,0.89328,0.21074},{0.85868,0.88655,0.21230},{0.86709,0.87968,0.21391},{0.87530,0.87267,0.21555},{0.88331,0.86553,0.21719},{0.89112,0.85826,0.21880},{0.89870,0.85087,0.22038},{0.90605,0.84337,0.22188},{0.91317,0.83576,0.22328},{0.92004,0.82806,0.22456},{0.92666,0.82025,0.22570},{0.93301,0.81236,0.22667},{0.93909,0.80439,0.22744},{0.94489,0.79634,0.22800},{0.95039,0.78823,0.22831},{0.95560,0.78005,0.22836},{0.96049,0.77181,0.22811},{0.96507,0.76352,0.22754},{0.96931,0.75519,0.22663},{0.97323,0.74682,0.22536},{0.97679,0.73842,0.22369},{0.98000,0.73000,0.22161},{0.98289,0.72140,0.21918},{0.98549,0.71250,0.21650},{0.98781,0.70330,0.21358},{0.98986,0.69382,0.21043},{0.99163,0.68408,0.20706},{0.99314,0.67408,0.20348},{0.99438,0.66386,0.19971},{0.99535,0.65341,0.19577},{0.99607,0.64277,0.19165},{0.99654,0.63193,0.18738},{0.99675,0.62093,0.18297},{0.99672,0.60977,0.17842},{0.99644,0.59846,0.17376},{0.99593,0.58703,0.16899},{0.99517,0.57549,0.16412},{0.99419,0.56386,0.15918},{0.99297,0.55214,0.15417},{0.99153,0.54036,0.14910},{0.98987,0.52854,0.14398},{0.98799,0.51667,0.13883},{0.98590,0.50479,0.13367},{0.98360,0.49291,0.12849},{0.98108,0.48104,0.12332},{0.97837,0.46920,0.11817},{0.97545,0.45740,0.11305},{0.97234,0.44565,0.10797},{0.96904,0.43399,0.10294},{0.96555,0.42241,0.09798},{0.96187,0.41093,0.09310},{0.95801,0.39958,0.08831},{0.95398,0.38836,0.08362},{0.94977,0.37729,0.07905},{0.94538,0.36638,0.07461},{0.94084,0.35566,0.07031},{0.93612,0.34513,0.06616},{0.93125,0.33482,0.06218},{0.92623,0.32473,0.05837},{0.92105,0.31489,0.05475},{0.91572,0.30530,0.05134},{0.91024,0.29599,0.04814},{0.90463,0.28696,0.04516},{0.89888,0.27824,0.04243},{0.89298,0.26981,0.03993},{0.88691,0.26152,0.03753},{0.88066,0.25334,0.03521},{0.87422,0.24526,0.03297},{0.86760,0.23730,0.03082},{0.86079,0.22945,0.02875},{0.85380,0.22170,0.02677},{0.84662,0.21407,0.02487},{0.83926,0.20654,0.02305},{0.83172,0.19912,0.02131},{0.82399,0.19182,0.01966},{0.81608,0.18462,0.01809},{0.80799,0.17753,0.01660},{0.79971,0.17055,0.01520},{0.79125,0.16368,0.01387},{0.78260,0.15693,0.01264},{0.77377,0.15028,0.01148},{0.76476,0.14374,0.01041},{0.75556,0.13731,0.00942},{0.74617,0.13098,0.00851},{0.73661,0.12477,0.00769},{0.72686,0.11867,0.00695},{0.71692,0.11268,0.00629},{0.70680,0.10680,0.00571},{0.69650,0.10102,0.00522},{0.68602,0.09536,0.00481},{0.67535,0.08980,0.00449},{0.66449,0.08436,0.00424},{0.65345,0.07902,0.00408},{0.64223,0.07380,0.00401},{0.63082,0.06868,0.00401},{0.61923,0.06367,0.00410},{0.60746,0.05878,0.00427},{0.59550,0.05399,0.00453},{0.58336,0.04931,0.00486},{0.57103,0.04474,0.00529},{0.55852,0.04028,0.00579},{0.54583,0.03593,0.00638},{0.53295,0.03169,0.00705},{0.51989,0.02756,0.00780},{0.50664,0.02354,0.00863},{0.49321,0.01963,0.00955},{0.47960,0.01583,0.01055} };
-
-	const int index = int(255 * Value);
-
-	return ImColor(int(turbo_srgb_floats[index][0] * 255),
-				   int(turbo_srgb_floats[index][1] * 255),
-				   int(turbo_srgb_floats[index][2] * 255), 255);
+	return glm::vec3(FinalColor.x, FinalColor.y, FinalColor.z);
 };
 
 static auto RainbowScaledColor = [](float Value) {
@@ -626,7 +610,7 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 									(bScreenshotMode ? ImGuiWindowFlags_NoTitleBar : ImGuiWindowFlags_None));
 
 	if (HeatMapColorRange.GetColorRangeFunction() == nullptr)
-		HeatMapColorRange.SetColorRangeFunction(TurboColorMapValue);
+		HeatMapColorRange.SetColorRangeFunction(GetTurboColorMap);
 
 	if (bScreenshotMode && MeshAndCurrentLayerIsValid())
 	{
@@ -914,17 +898,14 @@ void UIManager::RenderLayerChooseWindow()
 	ImGui::End();
 }
 
-bool UIManager::GetIsModelCamera()
-{
-	return bModelCamera;
-}
-
 void UIManager::SetIsModelCamera(const bool NewValue)
 {
 	SwapCameraImpl(NewValue);
 
+	FEBasicCamera* CurrentCamera = ENGINE.GetCamera();
+
 	CurrentCamera->Reset();
-	CurrentCamera->SetFarPlane(MESH_MANAGER.ActiveMesh->AABB.getSize() * 5.0f);
+	CurrentCamera->SetFarPlane(MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 5.0f);
 
 	int MainWindowW = 0;
 	int MainWindowH = 0;
@@ -934,16 +915,16 @@ void UIManager::SetIsModelCamera(const bool NewValue)
 	if (NewValue)
 	{
 		FEModelViewCamera* ModelCamera = reinterpret_cast<FEModelViewCamera*>(CurrentCamera);
-		ModelCamera->SetDistanceToModel(MESH_MANAGER.ActiveMesh->AABB.getSize() * 1.5f);
+		ModelCamera->SetDistanceToModel(MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f);
 	}
 	else
 	{
-		CurrentCamera->SetPosition(glm::vec3(0.0f, 0.0f, MESH_MANAGER.ActiveMesh->AABB.getSize() * 1.5f));
+		CurrentCamera->SetPosition(glm::vec3(0.0f, 0.0f, MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f));
 		CurrentCamera->SetYaw(0.0f);
 		CurrentCamera->SetPitch(0.0f);
 		CurrentCamera->SetRoll(0.0f);
 
-		CurrentCamera->SetMovementSpeed(MESH_MANAGER.ActiveMesh->AABB.getSize() / 5.0f);
+		CurrentCamera->SetMovementSpeed(MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() / 5.0f);
 	}
 
 	bModelCamera = NewValue;
@@ -1067,7 +1048,7 @@ void UIManager::RenderHistogramWindow()
 
 			glm::vec2 MinValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
 			glm::vec2 MaxValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
-			float PercentageOfAreaSelected = (MaxValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TotalArea * 100.0f) - (MinValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TotalArea * 100.0f);
+			float PercentageOfAreaSelected = (MaxValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f) - (MinValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f);
 
 			ImGui::SetCursorPos(ImVec2(200.0f, 33.0f));
 			std::string CurrentText = "Selected area: " + TruncateAfterDot(std::to_string(PercentageOfAreaSelected), 3) + " %%";
@@ -1212,7 +1193,7 @@ void UIManager::RenderAboutWindow()
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
-		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 06\\09\\2023";
+		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 03\\19\\2024";
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
@@ -1275,6 +1256,8 @@ void UIManager::OnLayerChange()
 	if (MESH_MANAGER.ActiveMesh == nullptr)
 		return;
 
+	LAYER_RASTERIZATION_MANAGER.ClearAllData();
+
 	UI.bHistogramSelectRegionMode = false;
 	UI.Histogram.Clear();
 	UI.HeatMapColorRange.Clear();
@@ -1291,8 +1274,8 @@ void UIManager::OnLayerChange()
 
 		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
-		MESH_MANAGER.ActiveMesh->HeatMapType = 5;
-		UI.HeatMapColorRange.SetColorRangeFunction(TurboColorMapValue);
+		MESH_MANAGER.SetHeatMapType(5);
+		UI.HeatMapColorRange.SetColorRangeFunction(GetTurboColorMap);
 		UI.HeatMapColorRange.bRenderSlider = true;
 	
 		float MiddleOfRange = CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) / 2.0f;
@@ -1301,7 +1284,7 @@ void UIManager::OnLayerChange()
 		if (CurrentLayer->GetType() == COMPARE)
 		{
 			UI.HeatMapColorRange.SetColorRangeFunction(CompareColormapValue);
-			MESH_MANAGER.ActiveMesh->HeatMapType = 6;
+			MESH_MANAGER.SetHeatMapType(6);
 
 			UI.HeatMapColorRange.bRenderSlider = false;
 			UI.HeatMapColorRange.SetSliderValue(1.0f);
@@ -1317,31 +1300,29 @@ void UIManager::OnLayerChange()
 
 			NormalizedPosition += PositionStep;
 		}
-
-		UI.HeatMapColorRange.SetRangeBottomLimit(CurrentLayer->GetMin() / CurrentLayer->GetMax());
 	}
 	else
 	{
-		MESH_MANAGER.ActiveMesh->HeatMapType = -1;
+		MESH_MANAGER.SetHeatMapType(-1);
 	}
 
-	if (UI.GetDebugSDF() != nullptr)
+	if (UI.GetDebugGrid() != nullptr)
 	{
-		UI.InitDebugSDF(UI.CurrentJitterStepIndexVisualize);
-		UI.UpdateRenderingMode(UI.GetDebugSDF(), UI.GetDebugSDF()->RenderingMode);
+		UI.InitDebugGrid(UI.CurrentJitterStepIndexVisualize);
+		UI.UpdateRenderingMode(UI.GetDebugGrid(), UI.GetDebugGrid()->RenderingMode);
 	}	
 }
 
-std::vector<SDFInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugInfo* DebugInfo)
+std::vector<GridInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugInfo* DebugInfo)
 {
-	std::vector<SDFInitData_Jitter> Result;
+	std::vector<GridInitData_Jitter> Result;
 
 	if (DebugInfo == nullptr)
 		return Result;
 
 	std::istringstream iss(DebugInfo->ToString());
 	std::string Line;
-	SDFInitData_Jitter CurrentData;
+	GridInitData_Jitter CurrentData;
 	bool bNewData = true;
 
 	while (std::getline(iss, Line))
@@ -1366,7 +1347,7 @@ std::vector<SDFInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugIn
 			CurrentData.GridScale = std::stof(Line.substr(Line.find(":") + 1));
 			Result.push_back(CurrentData);
 			bNewData = true;
-			CurrentData = SDFInitData_Jitter();
+			CurrentData = GridInitData_Jitter();
 		}
 		else if (bNewData)
 		{
@@ -1378,12 +1359,12 @@ std::vector<SDFInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugIn
 	return Result;
 }
 
-void UIManager::InitDebugSDF(size_t JitterIndex)
+void UIManager::InitDebugGrid(size_t JitterIndex)
 {
 	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
 		return;
 
-	std::vector<SDFInitData_Jitter> UsedSettings;
+	std::vector<GridInitData_Jitter> UsedSettings;
 	UsedSettings = ReadJitterSettingsFromDebugInfo(LAYER_MANAGER.GetActiveLayer()->DebugInfo);
 
 	if (JitterIndex >= UsedSettings.size())
@@ -1413,15 +1394,15 @@ void UIManager::InitDebugSDF(size_t JitterIndex)
 	if (CurrentLayerResolutionInM <= 0.0f && CurrentLayerResolutionInM != -1.0f)
 		return;
 
-	delete DebugSDF;
-	DebugSDF = new SDF();
+	delete DebugGrid;
+	DebugGrid = new MeasurementGrid();
 
-	SDFInitData_Jitter* CurrentSettings = &UsedSettings[JitterIndex];
-	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredSDF(CurrentSettings, CurrentLayerResolutionInM);
+	GridInitData_Jitter* CurrentSettings = &UsedSettings[JitterIndex];
+	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(CurrentSettings, CurrentLayerResolutionInM);
 
-	DebugSDF->Init(0, FinalAABB, CurrentLayerResolutionInM);
-	DebugSDF->FillCellsWithTriangleInfo();
-	DebugSDF->bFullyLoaded = true;
+	DebugGrid->Init(0, FinalAABB, CurrentLayerResolutionInM);
+	DebugGrid->FillCellsWithTriangleInfo();
+	DebugGrid->bFullyLoaded = true;
 }
 
 void UIManager::RenderLayerSettingsTab()
@@ -1450,7 +1431,7 @@ void UIManager::RenderLayerSettingsTab()
 
 		ImGui::Text("Triangle count: ");
 		ImGui::SameLine();
-		ImGui::Text(std::to_string(MESH_MANAGER.ActiveMesh->getTriangleCount()).c_str());
+		ImGui::Text(std::to_string(MESH_MANAGER.ActiveMesh->GetVertexCount() / 3).c_str());
 
 		ImGui::Text((std::string("ID: ") + Layer->GetID()).c_str());
 		static char CurrentLayerCaption[1024];
@@ -1540,8 +1521,8 @@ void UIManager::RenderLayerSettingsTab()
 
 		if (CurrentDistribution != glm::vec2())
 		{
-			ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TotalArea * 100.0f) + " %%").c_str());
-			ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.y / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TotalArea * 100.0f) + " %%").c_str());
+			ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f) + " %%").c_str());
+			ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.y / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f) + " %%").c_str());
 		}
 	}
 }
@@ -1575,8 +1556,8 @@ void UIManager::RenderGeneralSettingsTab()
 
 	if (!IsInDeveloperMode())
 	{
-		if (DebugSDF != nullptr && DebugSDF->RenderingMode != 0)
-			UpdateRenderingMode(DebugSDF, 0);
+		if (DebugGrid != nullptr && DebugGrid->RenderingMode != 0)
+			UpdateRenderingMode(DebugGrid, 0);
 	}
 	
 	/*if (IsInDeveloperMode())
@@ -1590,12 +1571,12 @@ void UIManager::RenderGeneralSettingsTab()
 
 	if (IsInDeveloperMode() && LAYER_MANAGER.GetActiveLayerIndex() != -1)
 	{
-		if (DebugSDF == nullptr)
-			UI.InitDebugSDF(JITTER_MANAGER.GetJitterToDoCount() - 1);
+		if (DebugGrid == nullptr)
+			UI.InitDebugGrid(JITTER_MANAGER.GetJitterToDoCount() - 1);
 
-		if (DebugSDF != nullptr)
+		if (DebugGrid != nullptr)
 		{
-			std::vector<SDFInitData_Jitter> UsedSettings;
+			std::vector<GridInitData_Jitter> UsedSettings;
 			UsedSettings = ReadJitterSettingsFromDebugInfo(LAYER_MANAGER.GetActiveLayer()->DebugInfo);
 
 			if (UsedSettings.size() > 0)
@@ -1615,14 +1596,14 @@ void UIManager::RenderGeneralSettingsTab()
 						if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
 						{
 							CurrentJitterStepIndexVisualize = static_cast<int>(i);
-							int LastSDFRendetingMode = DebugSDF->RenderingMode;
+							int LastGridRendetingMode = DebugGrid->RenderingMode;
 
-							InitDebugSDF(CurrentJitterStepIndexVisualize);
+							InitDebugGrid(CurrentJitterStepIndexVisualize);
 
-							DebugSDF->RenderingMode = LastSDFRendetingMode;
-							if (DebugSDF->RenderingMode == 1)
+							DebugGrid->RenderingMode = LastGridRendetingMode;
+							if (DebugGrid->RenderingMode == 1)
 							{
-								UpdateRenderingMode(DebugSDF, 1);
+								UpdateRenderingMode(DebugGrid, 1);
 							}
 						}
 
@@ -1639,34 +1620,34 @@ void UIManager::RenderGeneralSettingsTab()
 				ImGui::Text(JitterInfo.c_str());
 			}
 
-			ImGui::Text("Visualization of SDF:");
+			ImGui::Text("Visualization of Grid:");
 
-			if (ImGui::RadioButton("Do not draw", &DebugSDF->RenderingMode, 0))
+			if (ImGui::RadioButton("Do not draw", &DebugGrid->RenderingMode, 0))
 			{
-				UpdateRenderingMode(DebugSDF, 0);
+				UpdateRenderingMode(DebugGrid, 0);
 			}
 
-			if (ImGui::RadioButton("Show cells with triangles", &DebugSDF->RenderingMode, 1))
+			if (ImGui::RadioButton("Show cells with triangles", &DebugGrid->RenderingMode, 1))
 			{
 #ifdef NEW_LINES
-				InitDebugSDF(CurrentJitterStepIndexVisualize);
+				InitDebugGrid(CurrentJitterStepIndexVisualize);
 #endif
-				UpdateRenderingMode(DebugSDF, 1);
+				UpdateRenderingMode(DebugGrid, 1);
 			}
 
-			if (ImGui::RadioButton("Show all cells", &DebugSDF->RenderingMode, 2))
+			if (ImGui::RadioButton("Show all cells", &DebugGrid->RenderingMode, 2))
 			{
-				UpdateRenderingMode(DebugSDF, 2);
+				UpdateRenderingMode(DebugGrid, 2);
 			}
 
 #ifdef NEW_LINES
-			if (DebugSDF->RenderingMode == 1)
+			if (DebugGrid->RenderingMode == 1)
 			{
-				DebugSDF->AddLinesOfSDF();
+				DebugGrid->AddLinesOfGrid();
 			}
 #endif
 
-			if (DebugSDF->RenderingMode == 1)
+			if (DebugGrid->RenderingMode == 1)
 			{
 				MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
 				if (CurrentLayer == nullptr)
@@ -1676,19 +1657,19 @@ void UIManager::RenderGeneralSettingsTab()
 				{
 				case LAYER_TYPE::RUGOSITY:
 				{
-					//RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(DebugSDF);
+					//RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(DebugGrid);
 					break;
 				}
 
 				case LAYER_TYPE::VECTOR_DISPERSION:
 				{
-					//VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugSDF);
+					//VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugGrid);
 					break;
 				}
 
 				case LAYER_TYPE::FRACTAL_DIMENSION:
 				{
-					FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoWindow(DebugSDF);
+					FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoWindow(DebugGrid);
 					break;
 				}
 
@@ -1702,27 +1683,183 @@ void UIManager::RenderGeneralSettingsTab()
 	}
 }
 
+void UIManager::RasterizationSettingsUI()
+{
+	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
+		ImGui::BeginDisabled();
+
+	bool bNeedUpdate = false;
+
+	const char* RasterizationModes[] = { "Min", "Max", "Mean", "Cumulative" };
+	int TempInt = LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode();
+	ImGui::Text("Mode: ");
+	ImGui::SetNextItemWidth(128);
+	if (ImGui::Combo("##Mode", &TempInt, RasterizationModes, IM_ARRAYSIZE(RasterizationModes)))
+	{
+		if (TempInt != LayerRasterizationManager::GridRasterizationMode::Cumulative)
+			LAYER_RASTERIZATION_MANAGER.ActivateAutomaticOutliersSuppression();
+		
+		bNeedUpdate = true;
+		LAYER_RASTERIZATION_MANAGER.SetGridRasterizationMode(static_cast<LayerRasterizationManager::GridRasterizationMode>(TempInt));
+	}
+
+	float TempFloat = LAYER_RASTERIZATION_MANAGER.GetResolutionInMeters();
+	glm::vec2 MinMax = LAYER_RASTERIZATION_MANAGER.GetMinMaxResolutionInMeters();
+	
+	ImGui::Text("Choose resolution in meters: ");
+	ImGui::Text(("Min value : "
+				+ std::to_string(MinMax.y)
+				+ " m \nMax value : "
+				+ std::to_string(MinMax.x) + " m").c_str());
+	static bool bSliderResolutionValueChanged = false;
+	static float SliderResolutionNewValue = 0.0f;
+	if (ImGui::SliderFloat("##Resolution in meters", &TempFloat, MinMax.y, MinMax.x))
+	{
+		bSliderResolutionValueChanged = true;
+		SliderResolutionNewValue = TempFloat;
+	}
+
+	static char CustomResolutionInM[512];
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+	ImGui::Text("Input exact value: ");
+	ImGui::SameLine();
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+	ImGui::SetNextItemWidth(128);
+	ImGui::InputText("##ResolutionInM", CustomResolutionInM, IM_ARRAYSIZE(CustomResolutionInM));
+	ImGui::SameLine();
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+	if (ImGui::Button("Apply"))
+	{
+		TempFloat = static_cast<float>(atof(CustomResolutionInM));
+		bNeedUpdate = true;
+		LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(TempFloat);
+
+		float NewResolution = LAYER_RASTERIZATION_MANAGER.GetResolutionInMeters();
+		strcpy_s(CustomResolutionInM, std::to_string(NewResolution).c_str());
+	}
+
+	if (bSliderResolutionValueChanged && ImGui::IsMouseReleased(0))
+	{
+		bNeedUpdate = true;
+		bSliderResolutionValueChanged = false;
+		LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(SliderResolutionNewValue);
+	}
+
+	ImGui::Text(std::string("Output resolution: " + std::to_string(LAYER_RASTERIZATION_MANAGER.GetResolutionInPixelsThatWouldGiveSuchResolutionInMeters(TempFloat))).c_str());
+
+	glm::vec3 ForceProjectionVector = LAYER_RASTERIZATION_MANAGER.GetProjectionVector();
+	int SelectedAxis = ForceProjectionVector == glm::vec3(1.0f, 0.0f, 0.0f) ? 0 : ForceProjectionVector == glm::vec3(0.0f, 1.0f, 0.0f) ? 1 : 2;
+	ImGui::Text("Select the axis along which the layer should be projected: ");
+	if (ImGui::RadioButton("X", &SelectedAxis, 0))
+	{
+		bNeedUpdate = true;
+		ForceProjectionVector = glm::vec3(1.0f, 0.0f, 0.0f);
+	}
+
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Y", &SelectedAxis, 1))
+	{
+		bNeedUpdate = true;
+		ForceProjectionVector = glm::vec3(0.0f, 1.0f, 0.0f);
+	}
+
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Z", &SelectedAxis, 2))
+	{
+		bNeedUpdate = true;
+		ForceProjectionVector = glm::vec3(0.0f, 0.0f, 1.0f);
+	}
+
+	if (LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode() == LayerRasterizationManager::GridRasterizationMode::Cumulative)
+	{
+		static bool bAutomaticPersentOfAreaThatWouldBeRed = true;
+		if (ImGui::Checkbox("Automatic outliers suppression", &bAutomaticPersentOfAreaThatWouldBeRed))
+		{
+			if (bAutomaticPersentOfAreaThatWouldBeRed)
+			{
+				bNeedUpdate = true;
+				LAYER_RASTERIZATION_MANAGER.ActivateAutomaticOutliersSuppression();
+			}
+		}
+
+		if (bAutomaticPersentOfAreaThatWouldBeRed)
+			ImGui::BeginDisabled();
+
+		TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModePersentOfAreaThatWouldBeRed();
+		static bool bSliderThresholdValueChanged = false;
+		static float SliderThresholdNewValue = 0.0f;
+		ImGui::Text("Choose persent of area that would be above color scale threshold(red): ");
+		if (ImGui::SliderFloat("##Persent of area that would be above color scale threshold(red)", &TempFloat, 0.0f, 99.9f))
+		{
+			bSliderThresholdValueChanged = true;
+			SliderThresholdNewValue = TempFloat;
+		}
+
+		if (bSliderThresholdValueChanged && ImGui::IsMouseReleased(0))
+		{
+			bNeedUpdate = true;
+			bSliderThresholdValueChanged = false;
+			LAYER_RASTERIZATION_MANAGER.SetCumulativeModePersentOfAreaThatWouldBeRed(SliderThresholdNewValue);
+		}
+
+		if (bAutomaticPersentOfAreaThatWouldBeRed)
+			ImGui::EndDisabled();
+	}
+
+	std::string TextForButton = "Activate preview";
+	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() == -1)
+	{
+		if (ImGui::Button(TextForButton.c_str()))
+		{
+			LAYER_RASTERIZATION_MANAGER.PrepareLayerForExport(LAYER_MANAGER.GetActiveLayer());
+		}
+	}
+
+	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
+	{
+		if (ImGui::Button("Save to file..."))
+		{
+			LAYER_RASTERIZATION_MANAGER.PromptUserForSaveLocation();
+		}
+	}
+
+	if (LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID() != -1)
+	{
+		float CurrentWindowWidth = ImGui::GetWindowWidth() * 0.95f;
+		ImGui::Text("Preview:");
+		ImGui::Image((void*)(intptr_t)LAYER_RASTERIZATION_MANAGER.GetTexturePreviewID(), ImVec2(CurrentWindowWidth, CurrentWindowWidth));
+	}
+
+	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
+		ImGui::EndDisabled();
+
+	if (bNeedUpdate)
+	{
+		LAYER_RASTERIZATION_MANAGER.PrepareLayerForExport(LAYER_MANAGER.GetActiveLayer(), ForceProjectionVector);
+	}
+}
+
 void UIManager::RenderExportTab()
 {
 	ImGui::Text("Selection mode:");
 	if (ImGui::RadioButton("None", &LayerSelectionMode, 0))
 	{
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
+		LINE_RENDERER.ClearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
 
 	if (ImGui::RadioButton("Triangles", &LayerSelectionMode, 1))
 	{
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
+		LINE_RENDERER.ClearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
 
 	if (ImGui::RadioButton("Area", &LayerSelectionMode, 2))
 	{
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
-		LINE_RENDERER.clearAll();
+		LINE_RENDERER.ClearAll();
 		LINE_RENDERER.SyncWithGPU();
 	}
 
@@ -1820,6 +1957,10 @@ void UIManager::RenderExportTab()
 	{
 		bNextFrameForScreenshot = true;
 	}
+
+	ImGui::Separator();
+	ImGui::Text("Export layer as image:");
+	RasterizationSettingsUI();
 }
 
 void UIManager::RenderSettingsWindow()
@@ -1881,18 +2022,18 @@ void UIManager::SetAmbientLightFactor(float NewValue)
 	AmbientLightFactor = NewValue;
 }
 
-SDF* UIManager::GetDebugSDF()
+MeasurementGrid* UIManager::GetDebugGrid()
 {
-	return DebugSDF;
+	return DebugGrid;
 }
 
-void UIManager::UpdateRenderingMode(SDF* SDF, int NewRenderingMode)
+void UIManager::UpdateRenderingMode(MeasurementGrid* Grid, int NewRenderingMode)
 {
 	if (NewRenderingMode < 0)
 		return;
 
-	SDF->RenderingMode = NewRenderingMode;
-	SDF->UpdateRenderedLines();
+	Grid->RenderingMode = NewRenderingMode;
+	Grid->UpdateRenderedLines();
 
 	if (NewRenderingMode == 0)
 		return;
@@ -1908,19 +2049,19 @@ void UIManager::UpdateRenderingMode(SDF* SDF, int NewRenderingMode)
 	{
 		case LAYER_TYPE::RUGOSITY:
 		{
-			RUGOSITY_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(SDF);
+			RUGOSITY_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
 			break;
 		}
 
 		case LAYER_TYPE::VECTOR_DISPERSION:
 		{
-			VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(SDF);
+			VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
 			break;
 		}
 		
 		case LAYER_TYPE::FRACTAL_DIMENSION:
 		{
-			FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(SDF);
+			FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
 			break;
 		}
 
@@ -1952,4 +2093,34 @@ bool UIManager::ShouldUseTransparentBackground()
 bool UIManager::MeshAndCurrentLayerIsValid()
 {
 	return MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1 && COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() > LAYER_MANAGER.GetActiveLayerIndex();
+}
+
+void UIManager::UpdateProgressModalPopupCurrentValue()
+{
+	if (bJitterCalculationsInProgress)
+	{
+		ProgressModalPopupCurrentValue = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
+	}
+	else if (bLayerRasterizationCalculationsInProgress)
+	{
+		ProgressModalPopupCurrentValue = LAYER_RASTERIZATION_MANAGER.GetProgress();
+	}
+}
+
+void UIManager::OnLayerRasterizationCalculationsStart()
+{
+	UI.bLayerRasterizationCalculationsInProgress = true;
+	UI.bShouldCloseProgressPopup = false;
+	UI.bShouldOpenProgressPopup = true;
+}
+
+void UIManager::OnLayerRasterizationCalculationsEnd()
+{
+	UI.bShouldCloseProgressPopup = true;
+	UI.bLayerRasterizationCalculationsInProgress = false;
+}
+
+bool UIManager::IsProgressModalPopupOpen()
+{
+	return !bShouldCloseProgressPopup;
 }

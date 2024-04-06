@@ -16,6 +16,7 @@
 *.vcxproj.user
 imgui.ini
 *.txt
+*.aps
 cmake_install.cmake
 
 # Folders

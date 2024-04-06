@@ -1,5 +1,5 @@
 #pragma once
-#include "../FEMesh.h"
+#include "../EngineInclude.h"
 using namespace FocalEngine;
 
 static const char* const LineVS = R"(
@@ -31,52 +31,47 @@ void main(void)
 
 //#define NEW_LINES
 
-namespace FocalEngine
+struct FELinePoint
 {
-	#define FE_MAX_LINES 1000000
+	glm::vec3 Position;
+	glm::vec3 Color;
+};
 
-	struct FELinePoint
-	{
-		glm::vec3 Position;
-		glm::vec3 Color;
-	};
+struct FECustomLine
+{
+	glm::vec3 A;
+	glm::vec3 B;
+	glm::vec3 Color;
 
-	struct FELine
-	{
-		glm::vec3 A;
-		glm::vec3 B;
-		glm::vec3 Color;
-
-		FELine(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 Color = glm::vec3(0.0f));
-	};
+	FECustomLine(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 Color = glm::vec3(0.0f));
+};
 	
-	class FELinesRenderer
-	{
-	public:
-		SINGLETON_PUBLIC_PART(FELinesRenderer)
+class FELinesRenderer
+{
+public:
+	SINGLETON_PUBLIC_PART(FELinesRenderer)
 
-		void Render(FEBasicCamera* camera);
-		void AddLineToBuffer(FELine LineToAdd);
-		void SyncWithGPU();
+	void Render();
+	void AddLineToBuffer(FECustomLine LineToAdd);
+	void SyncWithGPU();
 
-		void RenderAABB(FEAABB AABB, glm::vec3 color);
+	void RenderAABB(FEAABB AABB, glm::vec3 Color);
 
-		void clearAll();
-	private:
-		SINGLETON_PRIVATE_PART(FELinesRenderer)
+	void ClearAll();
+private:
+	SINGLETON_PRIVATE_PART(FELinesRenderer)
 
-		GLuint LineVAO = 0;
-		GLenum LineBuffer = 0;
-		FEShader* LineShader = nullptr;
+	GLuint LineVAO = 0;
+	GLenum LineBuffer = 0;
+	FEShader* LineShader = nullptr;
 #ifdef NEW_LINES
-		std::vector<FELine> FrameLines;
-		std::vector<FELinePoint> RenderLinePoints;
-		bool LinesAreDifferent();
+	std::vector<FELine> FrameLines;
+	std::vector<FELinePoint> RenderLinePoints;
+	bool LinesAreDifferent();
 #else
-		std::vector<FELinePoint> LinePointVector;
+	std::vector<FELinePoint> LinePointVector;
 #endif
-		int PointsToRender = 0;
-	};
+	int PointsToRender = 0;
+};
 
-	#define LINE_RENDERER FELinesRenderer::getInstance()
-}
+#define LINE_RENDERER FELinesRenderer::getInstance()

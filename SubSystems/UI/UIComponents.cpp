@@ -38,7 +38,6 @@ void FEArrowScroller::Clear()
 
 	AvailableRange = FLT_MAX;
 	RangePosition = 0.0f;
-	//RangeBottomLimit = 1.0f;
 }
 
 ImVec2 FEArrowScroller::GetPixelPosition() const
@@ -123,7 +122,7 @@ void FEArrowScroller::Render()
 	if (IsSelected())
 	{
 		LastFrameDelta = bHorizontal ? MouseXWindows - LastFrameMouseX : MouseYWindows - LastFrameMouseY;
-		float BottomLimitInPixels = AvailableRange * 0.0f/** (1.0f - RangeBottomLimit)*/;
+		float BottomLimitInPixels = AvailableRange * 0.0f;
 
 		if (bHorizontal)
 		{
@@ -257,23 +256,6 @@ void FEArrowScroller::SetRangePosition(float NewValue)
 	RangePosition = NewValue;
 }
 
-float FEArrowScroller::GetRangeBottomLimit()
-{
-	return 0.0f;
-	//return RangeBottomLimit;
-}
-
-void FEArrowScroller::SetRangeBottomLimit(float NewValue)
-{
-	if (NewValue < 0.0f)
-		NewValue = 0.0f;
-
-	if (NewValue > 1.0f)
-		NewValue = 1.0f;
-
-	//RangeBottomLimit = NewValue;
-}
-
 ImVec2 Legend::GetPosition()
 {
 	return Position;
@@ -400,12 +382,12 @@ void FEColorRangeAdjuster::SetPosition(const ImVec2 NewPosition)
 	Position = NewPosition;
 }
 
-std::function<ImColor(float)> FEColorRangeAdjuster::GetColorRangeFunction()
+std::function<glm::vec3(float)> FEColorRangeAdjuster::GetColorRangeFunction()
 {
 	return ColorRangeFunction;
 }
 
-void FEColorRangeAdjuster::SetColorRangeFunction(std::function<ImColor(float)> UserFunc)
+void FEColorRangeAdjuster::SetColorRangeFunction(std::function<glm::vec3(float)> UserFunc)
 {
 	ColorRangeFunction = UserFunc;
 }
@@ -425,22 +407,6 @@ void FEColorRangeAdjuster::SetSliderValue(float NewValue)
 
 	Slider.SetRangePosition(1.0f - NewValue);
 	Slider.SetPixelPosition(ImVec2(Slider.GetPixelPosition().x, Slider.GetRangePosition() * Slider.GetAvailableRange()));
-}
-
-float FEColorRangeAdjuster::GetRangeBottomLimit()
-{
-	return 1.0f - Slider.GetRangeBottomLimit();
-}
-
-void FEColorRangeAdjuster::SetRangeBottomLimit(float NewValue)
-{
-	if (NewValue < 0.0f)
-		NewValue = 0.0f;
-
-	if (NewValue > 1.0f)
-		NewValue = 1.0f;
-
-	Slider.SetRangeBottomLimit(1.0f - NewValue);
 }
 
 void FEColorRangeAdjuster::Clear()
@@ -480,14 +446,15 @@ void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 	// Take max color from range and desaturate it.
 	if (ColorRangeFunction != nullptr)
 	{
-		CurrentColor = ColorRangeFunction(1.0f);
+		glm::vec3 ColorGiven = ColorRangeFunction(1.0f);
+		CurrentColor = ImColor(int(ColorGiven.x * 255), int(ColorGiven.y * 255), int(ColorGiven.z * 255), 255);
 		CurrentColor = ImColor(CurrentColor.Value.x * 0.5f + 0.15f, CurrentColor.Value.y * 0.5f + 0.15f, CurrentColor.Value.z * 0.5f + 0.15f);
 	}
 
 	Legend.SetPosition(RangePosition + ImVec2(15, -10));
 	Legend.SetSize(RangeSize);
 
-	if (bScreenshotMode)
+	if (bScreenshotMode && ImGui::GetIO().Fonts->Fonts.Size > 0)
 	{
 		ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
@@ -495,7 +462,7 @@ void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 	
 	Legend.Render();
 
-	if (bScreenshotMode)
+	if (bScreenshotMode && ImGui::GetIO().Fonts->Fonts.Size > 0)
 	{
 		ImGui::PopStyleColor();
 		ImGui::PopFont();
@@ -514,7 +481,10 @@ void FEColorRangeAdjuster::Render(bool bScreenshotMode)
 		float factor = i / float(RangeSize.y - UpperUnusedStart);
 
 		if (ColorRangeFunction != nullptr)
-			CurrentColor = ColorRangeFunction(factor);
+		{
+			glm::vec3 ColorGiven = ColorRangeFunction(factor);
+			CurrentColor = ImColor(int(ColorGiven.x * 255), int(ColorGiven.y * 255), int(ColorGiven.z * 255), 255);
+		}
 			
 		ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(WindowX, WindowY + RangeSize.y - i + 1) + RangePosition,
 			ImVec2(WindowX + RangeSize.x, WindowY + RangeSize.y - i) + RangePosition,
@@ -776,15 +746,6 @@ void FEGraphRender::Render()
 	RenderBottomLegend();
 
 	bCacheIsDirty = false;
-
-	//ImGuiWindow* CurrentWindow = ImGui::GetCurrentWindow();
-	//if (CurrentWindow != nullptr)
-	//{
-	//	// Debug functionality
-	//	ImGui::GetWindowDrawList()->AddRectFilled(CurrentWindow->Pos + Position + GraphCanvasPosition,
-	//											  CurrentWindow->Pos + Position + Size,
-	//											  ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f, 45.0f / 255.0f));
-	//}
 }
 
 void FEGraphRender::InputUpdate()

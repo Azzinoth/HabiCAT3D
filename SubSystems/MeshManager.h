@@ -1,8 +1,9 @@
 #pragma once
-#include "../FEMesh.h"
+#include "../EngineInclude.h"
+#include "ComplexityCore/MeasurementGrid.h"
 using namespace FocalEngine;
 
-static const char* const sTestVS = R"(
+static const char* const CustomMesh_VS = R"(
 @In_Position@
 @In_Normal@
 
@@ -52,7 +53,7 @@ void main(void)
 }
 )";
 
-static const char* const sTestFS = R"(
+static const char* const CustomMesh_FS = R"(
 in VS_OUT
 {
 	vec2 UV;
@@ -89,8 +90,8 @@ uniform float LayerAbsoluteMax;
 uniform float SelectedRangeMin;
 uniform float SelectedRangeMax;
 
-uniform float saturationFactor;  // A factor between 0.0 and 1.0
-uniform float brightnessValue;   // A value to add/subtract for brightness. Can be positive or negative.
+uniform float UnselectedAreaSaturationFactor;  // A factor between 0.0 and 1.0
+uniform float UnselectedAreaBrightnessFactor;   // A value to add/subtract for brightness. Can be positive or negative.
 
 layout (location = 0) out vec4 out_Color;
 
@@ -336,8 +337,8 @@ void main(void)
 			vec3 hsv = rgb2hsv(finalBaseColor.rgb);
 
 			// Adjust saturation and brightness (value)
-			hsv.y *= saturationFactor;
-			hsv.z *= brightnessValue;
+			hsv.y *= UnselectedAreaSaturationFactor;
+			hsv.z *= UnselectedAreaBrightnessFactor;
 
 			// Clamp the saturation and brightness components
 			hsv.y = clamp(hsv.y, 0.0, 1.0);
@@ -352,52 +353,61 @@ void main(void)
 }
 )";
 
-namespace FocalEngine
+class FECGALWrapper;
+class MeshManager
 {
-	class FECGALWrapper;
-	class MeshManager
-	{
-		friend FECGALWrapper;
-	public:
-		SINGLETON_PUBLIC_PART(MeshManager)
+	friend FECGALWrapper;
+public:
+	SINGLETON_PUBLIC_PART(MeshManager)
 
-		FEShader* MeshShader = nullptr;
+	FEShader* CustomMeshShader = nullptr;
+	FEMaterial* CustomMaterial = nullptr;
 
-		FEMesh* LoadMesh(std::string FileName);
-		FEMesh* ActiveMesh = nullptr;
+	FEMesh* LoadMesh(std::string FileName);
+	FEMesh* ActiveMesh = nullptr;
+	FEEntity* ActiveEntity = nullptr;
 
-		void AddLoadCallback(std::function<void()> Func);
-		void SaveRUGMesh(FEMesh* Mesh);
+	void AddLoadCallback(std::function<void()> Func);
+	void SaveRUGMesh(FEMesh* Mesh);
 
-		float saturationFactor = 0.3f;
-		float brightnessValue = 0.2f;
+	float GetUnselectedAreaSaturationFactor();
+	void SetUnselectedAreaSaturationFactor(float NewValue);
+	float GetUnselectedAreaBrightnessFactor();
+	void SetUnselectedAreaBrightnessFactor(float NewValue);
 
-	private:
-		SINGLETON_PRIVATE_PART(MeshManager)
+	int GetHeatMapType();
+	void SetHeatMapType(int NewValue);
 
-		FEMesh* RawDataToMesh(float* positions, int posSize,
-							  float* colors, int colorSize,
-							  float* UV, int UVSize,
-							  float* normals, int normSize,
-							  float* tangents, int tanSize,
-							  int* indices, int indexSize,
-							  float* matIndexs, int matIndexsSize, int matCount,
-							  std::string Name);
+	void ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex = 0);
 
-		FEMesh* RawDataToMesh(double* positions, int posSize,
-							  float* colors, int colorSize,
-							  float* UV, int UVSize,
-							  float* normals, int normSize,
-							  float* tangents, int tanSize,
-							  int* indices, int indexSize,
-							  float* matIndexs, int matIndexsSize, int matCount,
-							  std::string Name);
+	GLuint GetFirstLayerBufferID();
+	GLuint GetSecondLayerBufferID();
 
-		FEMesh* ImportOBJ(const char* FileName, bool bForceOneMesh);
-		FEMesh* LoadRUGMesh(std::string FileName);
+	void GetMeasuredRugosityArea(float& Radius, glm::vec3& Center);
+	void ClearMeasuredRugosityArea();
 
-		std::vector<std::function<void()>> ClientLoadCallbacks;
-	};
+	bool SelectTriangle(glm::dvec3 MouseRay);
+	bool SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius);
+	glm::vec3 IntersectTriangle(glm::dvec3 MouseRay);
 
-	#define MESH_MANAGER MeshManager::getInstance()
-}
+	void ClearBuffers();
+private:
+	SINGLETON_PRIVATE_PART(MeshManager)
+
+	FEMesh* ImportOBJ(const char* FileName, bool bForceOneMesh);
+	FEMesh* LoadRUGMesh(std::string FileName);
+
+	std::vector<std::function<void()>> ClientLoadCallbacks;
+
+	int HeatMapType = 5;
+	GLuint FirstLayerBufferID = 0;
+	GLuint SecondLayerBufferID = 0;
+
+	float UnselectedAreaSaturationFactor = 0.3f;
+	float UnselectedAreaBrightnessFactor = 0.2f;
+
+	float MeasuredRugosityAreaRadius = -1.0f;
+	glm::vec3 MeasuredRugosityAreaCenter = glm::vec3(0.0f);
+};
+
+#define MESH_MANAGER MeshManager::getInstance()

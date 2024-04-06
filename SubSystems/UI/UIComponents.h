@@ -1,4 +1,4 @@
-#include "../ExcelWrapper.h"
+#include "../SubSystems/ComplexityCore/Layers/RugosityLayerProducer.h"
 
 class FEArrowScroller
 {
@@ -24,7 +24,6 @@ class FEArrowScroller
 
 	float AvailableRange;
 	float RangePosition = 0.0f;
-	//float RangeBottomLimit = 1.0f;
 public:
 	FEArrowScroller(bool Horizontal = true);
 
@@ -55,9 +54,6 @@ public:
 
 	float GetRangePosition();
 	void SetRangePosition(float NewValue);
-
-	float GetRangeBottomLimit();
-	void SetRangeBottomLimit(float NewValue);
 
 	ImVec2 GetPixelPosition() const;
 	void SetPixelPosition(ImVec2 NewPosition);
@@ -107,7 +103,7 @@ class FEColorRangeAdjuster
 	ImVec2 RangeSize;
 	ImVec2 RangePosition;
 
-	std::function<ImColor(float)> ColorRangeFunction;
+	std::function<glm::vec3(float)> ColorRangeFunction;
 	static ImVec2 LegendCaptionsPosition(ImVec2 Position, ImVec2 Size, float NormalizedPosition, std::string Caption);
 public:
 	Legend Legend;
@@ -118,14 +114,11 @@ public:
 	ImVec2 GetPosition() const;
 	void SetPosition(ImVec2 NewPosition);
 
-	std::function<ImColor(float)> GetColorRangeFunction();
-	void SetColorRangeFunction(std::function<ImColor(float)> UserFunc);
+	std::function<glm::vec3(float)> GetColorRangeFunction();
+	void SetColorRangeFunction(std::function<glm::vec3(float)> UserFunc);
 
 	float GetSliderValue();
 	void SetSliderValue(float NewValue);
-
-	float GetRangeBottomLimit();
-	void SetRangeBottomLimit(float NewValue);
 
 	void Render(bool bScreenshotMode);
 	void Clear();
