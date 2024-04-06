@@ -43,13 +43,16 @@ Designed for ecologists and researchers, this tool facilitates the analysis, exp
 - **Export Options:**
 	- **Selection tool (Only in GUI Mode):** The user can query the layer value of a single triangle or the layer values within a specified radius of a point. If the 'Export to File' option is activated, then the values will be automatically saved to a text file.
 	- **Screenshot (Only in GUI Mode):** The 'Take Screenshot' button generates a screenshot without the GUI and with a larger legend, making it suitable for use in figures.
-	- **Whole Layer as Image:** Layer values will be projected onto a plane and converted to a PNG or GeoTIFF (color or 32-bit float with raw values) image. The 32-bit float raw export is essential for easy use of the application's calculation results in other applications.
+	- **Whole Layer as Image:** Layer values will be projected onto a plane and converted to a `PNG` or `GeoTIFF` (color or `32-bit float` with raw values) image. The `32-bit float` raw export is essential for easy use of the application's calculation results in other applications.
 		- **Cumulative Suboption:** In complex 3D models, multiple triangles may project to the same pixel when creating a 2D image. The cumulative option resolves this by accumulating the complexity metric along the projection axis, creating an "X-ray" effect that preserves information about high-complexity areas. This option is useful for models with overhangs and caves.
-## Quick starting guide
-You can use GUI or command-line arguments....
+## Quick Start Guides
+
+[Quick start guide for GUI mode.](https://github.com/Azzinoth/HabiCAT3D/tree/media/Quick%20Start%20Guide/Quick%20start%20guide(GUI).md)
+
+[Quick start guide for CLI mode.](https://github.com/Azzinoth/HabiCAT3D/tree/media/Quick%20Start%20Guide/Quick%20start%20guide(CLI).md)
 
 ## How To Get
-- **Download ready-to-use application:** will add links later.
+- **Download ready-to-use application:**
 - **Download source code and compile:** Look for instructions below.
 
 ## How to compile
