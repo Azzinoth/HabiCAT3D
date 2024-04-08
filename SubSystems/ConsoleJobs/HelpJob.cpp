@@ -100,7 +100,8 @@ bool HelpJob::Execute(void* InputData, void* OutputData)
 			"-complexity type=[LAYER_TYPE]                   Create a complexity job with the specified settings to create a layer.\n"
 			"-evaluation type=[TYPE] subtype=[WHAT_TO_TEST]  Create an evaluation job with the specified settings to test a layer or other objects.\n"
 			"-global_settings type=[TYPE]                    Set a global setting for the application.\n"
-			"-export_layer_as_image export_mode=[MODE]       Export a layer as an image.\n\n"
+			"-export_layer_as_image export_mode=[MODE]       Export a layer as an image.\n"
+			"-query request=[WHAT_TO_QUERY]					 Query information to be outputted to the console or log.\n\n"
 
 			"Examples:\n"
 			"-load filepath=\"C:/data/mesh.obj\"\n"

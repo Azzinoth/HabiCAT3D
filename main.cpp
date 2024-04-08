@@ -166,6 +166,10 @@ void OutputSelectedAreaInfoToFile()
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() < 2)
 		return;
 
+	bool bCurrentSettings = LOG.IsFileOutputActive();
+	if (!bCurrentSettings)
+		LOG.SetFileOutput(true);
+
 	std::string Text = "Area radius : " + std::to_string(UI.GetRadiusOfAreaToMeasure());
 	LOG.Add(Text, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName);
 
@@ -194,6 +198,9 @@ void OutputSelectedAreaInfoToFile()
 		Text += std::to_string(Total);
 		LOG.Add(Text, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName);
 	}
+
+	if (!bCurrentSettings)
+		LOG.SetFileOutput(false);
 }
 
 void mouseButtonCallback(int button, int action, int mods)

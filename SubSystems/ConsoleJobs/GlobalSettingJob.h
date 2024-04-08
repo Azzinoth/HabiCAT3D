@@ -16,7 +16,7 @@ class GlobalSettingJob : public ConsoleJob
 	static ConsoleJobInfo GetInfo();
 	bool Execute(void* InputData = nullptr, void* OutputData = nullptr);
 public:
-	GlobalSettingJob();
+	GlobalSettingJob(std::string GlobalSettingType);
 	static GlobalSettingJob* CreateInstance(CommandLineAction ActionToParse);
 
 	std::string GetGlobalSettingType();

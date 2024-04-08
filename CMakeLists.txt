@@ -111,6 +111,8 @@ file(GLOB SubSystems_ConsoleJobs_SRC
 	"SubSystems/ConsoleJobs/GlobalSettingJob.cpp"
 	"SubSystems/ConsoleJobs/ExportLayerAsImageJob.h"
 	"SubSystems/ConsoleJobs/ExportLayerAsImageJob.cpp"
+	"SubSystems/ConsoleJobs/QueryJob.h"
+	"SubSystems/ConsoleJobs/QueryJob.cpp"
 	"SubSystems/ConsoleJobs/ConsoleJobManager.h"
 	"SubSystems/ConsoleJobs/ConsoleJobManager.cpp"
 )

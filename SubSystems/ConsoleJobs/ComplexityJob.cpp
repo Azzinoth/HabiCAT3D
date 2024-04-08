@@ -284,7 +284,6 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 	{
 		std::string ErrorMessage = "Error: No file loaded. Please load a file before attempting to calculate complexity.";
-		LOG.Add(ErrorMessage, "CONSOLE_LOG");
 		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 		return false;
 	}
@@ -292,7 +291,6 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 	if (!SetGridResolution())
 	{
 		std::string ErrorMessage = "Error: Invalid resolution value. Given value is - " + std::to_string(Settings.ResolutionInM) + ". Bur value should be between " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " and " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + ".";
-		LOG.Add(ErrorMessage, "CONSOLE_LOG");
 		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 		return false;
 	}
@@ -428,7 +426,6 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		if (FirstLayerIndex < 0 || FirstLayerIndex > COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
 		{
 			std::string ErrorMessage = "Error: First layer index is out of range. Please check the layer index and try again.";
-			LOG.Add(ErrorMessage, "CONSOLE_LOG");
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			return false;
 		}
@@ -437,7 +434,6 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		if (SecondLayerIndex < 0 || SecondLayerIndex > COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
 		{
 			std::string ErrorMessage = "Error: Second layer index is out of range. Please check the layer index and try again.";
-			LOG.Add(ErrorMessage, "CONSOLE_LOG");
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			return false;
 		}

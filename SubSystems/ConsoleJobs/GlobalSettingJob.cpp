@@ -1,10 +1,10 @@
 #include "GlobalSettingJob.h"
 using namespace FocalEngine;
 
-GlobalSettingJob::GlobalSettingJob()
+GlobalSettingJob::GlobalSettingJob(std::string GlobalSettingType)
 {
 	Type = "GLOBAL_SETTINGS_JOB";
-	GlobalSettingType = "EVALUATION_JOB_TO_SCRIPT";
+	this->GlobalSettingType = GlobalSettingType;
 }
 
 GlobalSettingJob* GlobalSettingJob::CreateInstance(CommandLineAction ActionToParse)
@@ -21,8 +21,7 @@ GlobalSettingJob* GlobalSettingJob::CreateInstance(CommandLineAction ActionToPar
 		Iterator++;
 	}
 
-	Result = new GlobalSettingJob();
-	Result->SetGlobalSettingType(ActionToParse.Settings["type"]);
+	Result = new GlobalSettingJob(ActionToParse.Settings["type"]);
 
 	if (ActionToParse.Settings.find("int_value") != ActionToParse.Settings.end())
 	{
@@ -51,7 +50,7 @@ ConsoleJobInfo GlobalSettingJob::GetInfo()
 	CurrentSettingInfo.Name = "type";
 	CurrentSettingInfo.Description = "Specifies the type of global setting.";
 	CurrentSettingInfo.bIsOptional = false;
-	CurrentSettingInfo.PossibleValues = { "EVALUATION_JOB_TO_SCRIPT" };
+	CurrentSettingInfo.PossibleValues = { "EVALUATION_JOB_TO_SCRIPT", "OUTPUT_LOG_TO_FILE" };
 	Info.SettingsInfo.push_back(CurrentSettingInfo);
 
 	CurrentSettingInfo = ConsoleJobSettingsInfo();
@@ -123,6 +122,9 @@ bool GlobalSettingJob::Execute(void* InputData, void* OutputData)
 	if (InputData != nullptr)
 	{
 		if (GlobalSettingType == "EVALUATION_JOB_TO_SCRIPT")
+			*reinterpret_cast<bool*>(InputData) = GetBoolValue();
+
+		if (GlobalSettingType == "OUTPUT_LOG_TO_FILE")
 			*reinterpret_cast<bool*>(InputData) = GetBoolValue();
 		
 		return true;

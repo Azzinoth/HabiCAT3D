@@ -15,5 +15,7 @@ void ConsoleJob::OutputConsoleTextWithColor(std::string Text, int R, int G, int 
 {
 	APPLICATION.GetConsoleWindow()->SetNearestConsoleTextColor(R, G, B);
 	std::cout << Text << std::endl;
+	if (LOG.IsFileOutputActive())
+		LOG.Add(Text, "CONSOLE_LOG");
 	APPLICATION.GetConsoleWindow()->SetNearestConsoleTextColor(255, 255, 255);
 }

@@ -23,6 +23,7 @@ ConsoleJobManager::ConsoleJobManager()
 	ConsoleJobsInfo["evaluation"] = ComplexityEvaluationJob::GetInfo();
 	ConsoleJobsInfo["global_settings"] = GlobalSettingJob::GetInfo();
 	ConsoleJobsInfo["export_layer_as_image"] = ExportLayerAsImageJob::GetInfo();
+	ConsoleJobsInfo["query"] = QueryJob::GetInfo();
 
 	HelpJob::ConsoleJobsInfo = &ConsoleJobsInfo;
 }
@@ -42,7 +43,14 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 		InputData = (void*)(&SavedConvertionsOfEvaluationToUsableScript);
 
 	if (Job->Type == "GLOBAL_SETTINGS_JOB")
-		InputData = (void*)(&bConvertEvaluationToUsableScript);
+	{
+		GlobalSettingJob* GlobalSetting = reinterpret_cast<GlobalSettingJob*>(Job);
+
+		if (GlobalSetting->GlobalSettingType == "EVALUATION_JOB_TO_SCRIPT")
+			InputData = (void*)(&bConvertEvaluationToUsableScript);
+		else if (GlobalSetting->GlobalSettingType == "OUTPUT_LOG_TO_FILE")
+			InputData = (void*)(&bOutputLogToFile);
+	}
 
 	if (Job->Execute(InputData, nullptr))
 	{
@@ -53,6 +61,21 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 			if (reinterpret_cast<EvaluationJob*>(Job)->Failed())
 				EvaluationsFailedCount++;
 		}
+
+		if (Job->Type == "QUERY_JOB")
+		{
+			QueryJob* Query = reinterpret_cast<QueryJob*>(Job);
+			if (Query->Request == "EVALUATION_SUMMARY")
+				OutputEvaluationResults();
+		}
+
+		if (Job->Type == "GLOBAL_SETTINGS_JOB")
+		{
+			GlobalSettingJob* GlobalSetting = reinterpret_cast<GlobalSettingJob*>(Job);
+
+			if (GlobalSetting->GlobalSettingType == "OUTPUT_LOG_TO_FILE")
+				LOG.SetFileOutput(bOutputLogToFile);
+		}
 	}
 	else
 	{
@@ -61,7 +84,6 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 			FileLoadJob* FileJob = reinterpret_cast<FileLoadJob*>(Job);
 
 			std::string ErrorMessage = "Error: File not found - " + FileJob->FilePath + ". Please check the file path and try again.";
-			LOG.Add(ErrorMessage, "CONSOLE_LOG");
 			ConsoleJob::OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 
 			JobsList.clear();
@@ -116,24 +138,28 @@ void ConsoleJobManager::Update()
 	}
 }
 
+void ConsoleJobManager::OutputEvaluationResults()
+{
+	if (EvaluationsFailedCount == 0)
+	{
+		ConsoleJob::OutputConsoleTextWithColor("All evaluations passed: " + std::to_string(EvaluationsTotalCount) + " out of " + std::to_string(EvaluationsTotalCount), 0, 255, 0);
+	}
+	else if (EvaluationsFailedCount > 0 && EvaluationsFailedCount < EvaluationsTotalCount)
+	{
+		ConsoleJob::OutputConsoleTextWithColor("Some evaluations failed, only: " + std::to_string(EvaluationsTotalCount - EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount) + " passed.", 255, 255, 0);
+	}
+	else if (EvaluationsFailedCount == EvaluationsTotalCount)
+	{
+		ConsoleJob::OutputConsoleTextWithColor("All evaluations failed: " + std::to_string(EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount), 255, 0, 0);
+	}
+}
+
 void ConsoleJobManager::OnAllJobsFinished()
 {
 	if (EvaluationsTotalCount > 1)
 	{
-		std::cout << "All jobs finished." << std::endl;
-
-		if (EvaluationsFailedCount == 0)
-		{
-			ConsoleJob::OutputConsoleTextWithColor("All evaluations passed: " + std::to_string(EvaluationsTotalCount) + " out of " + std::to_string(EvaluationsTotalCount), 0, 255, 0);
-		}
-		else if (EvaluationsFailedCount > 0 && EvaluationsFailedCount < EvaluationsTotalCount)
-		{
-			ConsoleJob::OutputConsoleTextWithColor("Some evaluations failed, only: " + std::to_string(EvaluationsTotalCount - EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount) + " passed.", 255, 255, 0);
-		}
-		else if (EvaluationsFailedCount == EvaluationsTotalCount)
-		{
-			ConsoleJob::OutputConsoleTextWithColor("All evaluations failed: " + std::to_string(EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount), 255, 0, 0);
-		}
+		ConsoleJob::OutputConsoleTextWithColor("All jobs finished.", 255, 255, 255);
+		OutputEvaluationResults();
 
 		EvaluationsTotalCount = 0;
 		EvaluationsFailedCount = 0;
@@ -163,6 +189,7 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 		if (ActionToParse.Settings.find("filepath") != ActionToParse.Settings.end())
 		{
 			std::string FilePath = ActionToParse.Settings["filepath"];
+
 			if (FILE_SYSTEM.CheckFile(FilePath.c_str()))
 			{
 				std::ifstream File(FilePath);
@@ -183,7 +210,6 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 			else
 			{
 				std::string ErrorMessage = "Error: File not found - " + FilePath + ". Please check the file path and try again.";
-				LOG.Add(ErrorMessage, "CONSOLE_LOG");
 				ConsoleJob::OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			}
 		}
@@ -214,6 +240,10 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 	else if (ActionToParse.Action == "export_layer_as_image")
 	{
 		NewJobToAdd = ExportLayerAsImageJob::CreateInstance(ActionToParse);
+	}
+	else if (ActionToParse.Action == "query")
+	{
+		NewJobToAdd = QueryJob::CreateInstance(ActionToParse);
 	}
 	else if (ActionToParse.Action == "help")
 	{
