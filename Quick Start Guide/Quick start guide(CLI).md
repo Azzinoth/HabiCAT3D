@@ -132,7 +132,7 @@ Sets a global setting for the application.
 
 Settings:
   - `type` (Required): Specifies the type of global setting.
-    Possible Values: `'EVALUATION_JOB_TO_SCRIPT'`
+    Possible Values: `'EVALUATION_JOB_TO_SCRIPT'`, `'OUTPUT_LOG_TO_FILE'`
 
   - `int_value` (Optional): Specifies the integer value for the global setting.
     Default: `0`
@@ -171,6 +171,16 @@ Settings:
 
   - `persent_of_area_that_would_be_red` (Optional): Specifies the persent of area that would be considered outliers and would be red.
     Default: `5.0`
+---
+`-query`
+
+Purpose:
+
+With this command, users can query information to be outputted to the console or log.
+
+Settings:
+  - `request` (Required): Specifies what to query.
+    Possible Values: `'EVALUATION_SUMMARY'`
 ---
 
 ## Examples:
