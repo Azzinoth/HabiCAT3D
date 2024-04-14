@@ -75,13 +75,16 @@ Settings:
 
   - `rugosity_algorithm` (Optional): Specifies the algorithm for rugosity calculation. Relevant only for `'RUGOSITY'` complexity type.
     Possible Values: `'AVERAGE'`, `'MIN'`, `'LSF(CGAL)'`
-    Default: `AVERAGE`
+    Default: `MIN`
 
   - `rugosity_is_using_unique_projected_area` (Optional): Specifies if the unique projected area should be used for rugosity calculation. Relevant only for `'RUGOSITY'` complexity type.
     Default: `"false"`
 
-  - `rugosity_delete_outliers` (Optional): Specifies if the outliers should be deleted from the rugosity calculation. Relevant only for `'RUGOSITY'` complexity type.
+  - `rugosity_is_unique_projected_area_approximated` (Optional): Specifies if the approximation should be used for unique projected area rugosity calculation(Speeds Up by Over 100x). Relevant only for 'RUGOSITY' complexity type.
     Default: `"true"`
+
+  - `rugosity_delete_outliers` (Optional): Specifies if the outliers should be deleted from the rugosity calculation. Relevant only for `'RUGOSITY'` complexity type.
+    Default: `"false"`
 
   - `rugosity_min_algorithm_quality` (Optional): Specifies the quality of the rugosity calculation.
     Relevant only for `'RUGOSITY'` complexity type and when the rugosity_algorithm is set to `'MIN'`.

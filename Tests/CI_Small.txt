@@ -32,17 +32,17 @@
 -evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=20.660200 tolerance=0.001
 -evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=74.104546 tolerance=0.01
 
--complexity type=RUGOSITY jitter_quality=1
+-complexity type=RUGOSITY rugosity_algorithm=AVERAGE rugosity_delete_outliers="true" jitter_quality=1
 -evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.007396 tolerance=0.01
 -evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.941885 tolerance=0.01
 -evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=8.965695 tolerance=0.01
 
--complexity type=RUGOSITY jitter_quality=25
+-complexity type=RUGOSITY rugosity_algorithm=AVERAGE rugosity_delete_outliers="true" jitter_quality=25
 -evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.007426 tolerance=0.01
 -evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.964095 tolerance=0.01
 -evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=6.419599 tolerance=0.01
 
--complexity type=RUGOSITY
+-complexity type=RUGOSITY rugosity_algorithm=AVERAGE rugosity_delete_outliers="true"
 -evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.007631 tolerance=0.01
 -evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.969468 tolerance=0.01
 -evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=6.076324 tolerance=0.01
@@ -54,8 +54,8 @@
 
 -complexity type=RUGOSITY rugosity_algorithm=MIN rugosity_min_algorithm_quality=33
 -evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.007631 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.321487 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=2.161123 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.322294 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=2.452940 tolerance=0.01
 
 -complexity type=VECTOR_DISPERSION relative_resolution=0.1
 -evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.245438 tolerance=0.01
