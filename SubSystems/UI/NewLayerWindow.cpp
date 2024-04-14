@@ -380,6 +380,14 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 	ImGui::Checkbox("Unique projected area (very slow).", &TempBool);
 	RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedArea(TempBool);
 
+	if (TempBool)
+	{
+		TempBool = RUGOSITY_LAYER_PRODUCER.GetIsUsingUniqueProjectedAreaApproximation();
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 15);
+		ImGui::Checkbox("Enable Approximation (Speeds Up by Over 100x)", &TempBool);
+		RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedAreaApproximation(TempBool);
+	}
+
 	TempBool = RUGOSITY_LAYER_PRODUCER.ShouldCalculateStandardDeviation();
 	ImGui::Checkbox("Add standard deviation layer.", &TempBool);
 	RUGOSITY_LAYER_PRODUCER.SetCalculateStandardDeviation(TempBool);

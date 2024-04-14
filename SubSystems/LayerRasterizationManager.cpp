@@ -325,9 +325,25 @@ glm::dvec3 LayerRasterizationManager::CalculateCentroid(const std::vector<glm::d
 
 bool LayerRasterizationManager::CompareAngles(const glm::dvec3& A, const glm::dvec3& B, const glm::dvec3& Centroid)
 {
-	double AngleA = atan2(A.z - Centroid.z, A.x - Centroid.x);
-	double AngleB = atan2(B.z - Centroid.z, B.x - Centroid.x);
+	double AngleA = 0.0;
+	double AngleB = 0.0;
 
+	if (CurrentProjectionVector.x > 0.0)
+	{
+		AngleA = atan2(A.z - Centroid.z, A.y - Centroid.y);
+		AngleB = atan2(B.z - Centroid.z, B.y - Centroid.y);
+	}
+	else if (CurrentProjectionVector.y > 0.0)
+	{
+		AngleA = atan2(A.z - Centroid.z, A.x - Centroid.x);
+		AngleB = atan2(B.z - Centroid.z, B.x - Centroid.x);
+	}
+	else if (CurrentProjectionVector.z > 0.0)
+	{
+		AngleA = atan2(A.y - Centroid.y, A.x - Centroid.x);
+		AngleB = atan2(B.y - Centroid.y, B.x - Centroid.x);
+	}
+	
 	return AngleA < AngleB;
 }
 
@@ -652,6 +668,42 @@ void LayerRasterizationManager::PrepareRawImageData()
 
 		FinalImageRawData.clear();
 	}
+}
+
+void LayerRasterizationManager::GDALCopyProjectionAndGeoTransform(GDALDataset* DataSetToChange, std::string ExampleFile)
+{
+	if (DataSetToChange == nullptr)
+		return;
+
+	if (ExampleFile == "")
+		return;
+
+	if (!FILE_SYSTEM.CheckFile(ExampleFile.c_str()))
+		return;
+
+	// Open source dataset
+	GDALDataset* SourceDataSet = static_cast<GDALDataset*>(GDALOpen(ExampleFile.c_str(), GA_ReadOnly));
+	if (SourceDataSet == nullptr)
+		return;
+
+	// Extract projection and geotransformation from source dataset
+	const char* Projection = SourceDataSet->GetProjectionRef();
+	double GeoTransform[6];
+	if (SourceDataSet->GetGeoTransform(GeoTransform) != CE_None)
+	{
+		GDALClose(SourceDataSet);
+		return;
+	}
+
+	// Set projection and geotransformation to the target dataset
+	DataSetToChange->SetProjection(Projection);
+	if (DataSetToChange->SetGeoTransform(GeoTransform) != CE_None)
+	{
+		GDALClose(SourceDataSet);
+		return;
+	}
+
+	GDALClose(SourceDataSet);
 }
 
 bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMode)
@@ -1108,7 +1160,7 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(size_t GridX, size
 					for (const auto& Point : IntersectionPoints)
 					{
 						Point_3 CurrentPoint = Point_3(Point[0], Point[1], Point[2]);
-						Polygon.push_back(ProjectPointOntoPlane(CurrentPoint, Triangle.supporting_plane()));
+						Polygon.push_back(ProjectPointOntoPlane(CurrentPoint, PlaneToProject));
 					}
 				}
 	

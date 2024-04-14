@@ -43,3 +43,5 @@ typedef Kernel::Plane_3 Plane_3;
 typedef CGAL::Simple_cartesian<double> Kernel;
 typedef Kernel::Triangle_3 Triangle_3;
 typedef CGAL::Bbox_3 Bbox_3;
+
+#include <CGAL/convex_hull_2.h>
