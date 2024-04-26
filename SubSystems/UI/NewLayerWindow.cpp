@@ -345,7 +345,7 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 		ImGui::EndCombo();
 	}
 
-	if (RUGOSITY_LAYER_PRODUCER.GetUsedRugosityAlgorithmName() == "Min Rugosity")
+	if (RUGOSITY_LAYER_PRODUCER.GetUsedRugosityAlgorithmName() == "Min Rugosity(default)")
 	{
 		ImGui::Text("Orientation set(advanced option): ");
 		ImGui::SameLine();
