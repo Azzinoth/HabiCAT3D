@@ -2,6 +2,7 @@
 	<img src="https://github.com/Azzinoth/HabiCAT3D/blob/media/HabiCAT3D_Logo.png" width=256 />
 	<h1> HabiCAT 3D <br>Habitat Complexity Analysis Tool 3D </h1>
 	<img src="https://github.com/Azzinoth/HabiCAT3D/actions/workflows/Build.yml/badge.svg" alt="Build Status">
+	<img src="https://github.com/Azzinoth/HabiCAT3D/actions/workflows/ContinuousIntegration.yml/badge.svg" alt="Continuous Integration">
 	<img src="https://github.com/Azzinoth/HabiCAT3D/blob/media/Coral_With_Rugosity.png"/>
 </div>
 

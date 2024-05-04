@@ -145,6 +145,8 @@ private:
 	glm::uvec2 GetResolutionInPixelsBasedOnResolutionInMeters(glm::vec3 ProjectionVector, float ResolutionInMeters);
 
 	bool GLMVec3Equal(const glm::vec3& A, const glm::vec3& B);
+
+	void GDALCopyProjectionAndGeoTransform(GDALDataset* DataSetToChange, std::string ExampleFile);
 };
 
 #define LAYER_RASTERIZATION_MANAGER LayerRasterizationManager::getInstance()

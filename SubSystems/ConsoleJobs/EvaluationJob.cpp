@@ -156,16 +156,11 @@ std::string ComplexityEvaluationJob::GetEvaluationSubType()
 
 bool ComplexityEvaluationJob::Execute(void* InputData, void* OutputData)
 {
-	//EvaluationJob* CurrentEvaluationJob = reinterpret_cast<EvaluationJob*>(Job);
-
 	if (EvaluationType == "COMPLEXITY")
 	{
-		//ComplexityEvaluationJob* CurrentComplexityEvaluationJob = reinterpret_cast<ComplexityEvaluationJob*>(Job);
-
 		if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
 		{
 			std::string ErrorMessage = "Error: No layers to evaluate. Please calculate a layer before attempting to evaluate.";
-			LOG.Add(ErrorMessage, "CONSOLE_LOG");
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			return false;
 		}
@@ -183,7 +178,6 @@ bool ComplexityEvaluationJob::Execute(void* InputData, void* OutputData)
 		if (LayerToEvaluate == nullptr)
 		{
 			std::string ErrorMessage = "Error: Layer to evaluate is null. Please check the layer index and try again.";
-			LOG.Add(ErrorMessage, "CONSOLE_LOG");
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			return false;
 		}
@@ -216,19 +210,14 @@ bool ComplexityEvaluationJob::Execute(void* InputData, void* OutputData)
 		if (isnan(GetActualValue()))
 			bFailed = true;
 
-		//EvaluationsTotalCount++;
 		if (Failed())
 		{
 			std::string ErrorMessage = "Error: Evaluation failed. Type: " + EvaluationType + " SubType: " + GetEvaluationSubType() + " Expected: " + std::to_string(GetExpectedValue()) + " Tolerance: " + std::to_string(GetTolerance()) + " Actual: " + std::to_string(GetActualValue());
-			LOG.Add(ErrorMessage, "CONSOLE_LOG");
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
-
-			//EvaluationsFailedCount++;
 		}
 		else
 		{
 			std::string Message = "Evaluation passed. Type: " + EvaluationType + " SubType: " + GetEvaluationSubType() + " Expected: " + std::to_string(GetExpectedValue()) + " Tolerance: " + std::to_string(GetTolerance()) + " Actual: " + std::to_string(GetActualValue());
-			LOG.Add(Message, "CONSOLE_LOG");
 			OutputConsoleTextWithColor(Message, 0, 255, 0);
 		}
 

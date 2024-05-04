@@ -8,8 +8,8 @@ void(*RugosityLayerProducer::OnRugosityCalculationsEndCallbackImpl)(MeshLayer) =
 
 RugosityLayerProducer::RugosityLayerProducer()
 {
-	RugosityAlgorithmList.push_back("Average normal(default)");
-	RugosityAlgorithmList.push_back("Min Rugosity");
+	RugosityAlgorithmList.push_back("Average normal");
+	RugosityAlgorithmList.push_back("Min Rugosity(default)");
 	RugosityAlgorithmList.push_back("Least square fitting");
 
 	OrientationSetNamesForMinRugosityList.push_back("1");
@@ -93,6 +93,23 @@ Point_2 RugosityLayerProducer::ProjectToLocalCoordinates(const glm::dvec3& Point
 	return Point_2(X, Y);
 }
 
+Point_2 RugosityLayerProducer::ProjectPointOntoPlane(const Point_3& Point, const Plane_3& Plane)
+{
+	// Project the point onto the plane
+	Point_3 ProjectedPoint = Plane.projection(Point);
+
+	// Construct an orthonormal basis for the plane
+	Vector_3 Base1 = Plane.base1();
+	Vector_3 Base2 = Plane.base2();
+
+	// Express the projected point in the local coordinate system of the plane
+	Vector_3 DifferenceVector = ProjectedPoint - Plane.point();
+	double X = DifferenceVector * Base1;
+	double Y = DifferenceVector * Base2;
+
+	return Point_2(X, Y);
+}
+
 void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 {
 	if (CurrentNode->TrianglesInCell.empty())
@@ -123,84 +140,117 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 		if (RUGOSITY_LAYER_PRODUCER.bUniqueProjectedArea)
 		{
 			CGALCorrectTotalArea = TotalArea;
-
-			glm::dvec3 U, V;
-			RUGOSITY_LAYER_PRODUCER.CreateLocalCoordinateSystem(PlaneNormal, U, V);
-
-			Polygon_vector Triangles;
-			for (int i = 0; i < CurrentNode->TrianglesInCell.size(); i++)
-			{
-				if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
-					continue;
-
-				std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[i]];
-				Polygon_2 TempTriangle;
-
-#ifndef CGAL_FOR_PROJECTION
-				glm::dvec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
-				glm::dvec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
-				glm::dvec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
-
-				TempTriangle.push_back(RUGOSITY_LAYER_PRODUCER.ProjectToLocalCoordinates(AProjection, U, V));
-				TempTriangle.push_back(RUGOSITY_LAYER_PRODUCER.ProjectToLocalCoordinates(BProjection, U, V));
-				TempTriangle.push_back(RUGOSITY_LAYER_PRODUCER.ProjectToLocalCoordinates(CProjection, U, V));
-
-#else CGAL_FOR_PROJECTION
-				for (size_t j = 0; j < CurrentTriangle.size(); j++)
-				{
-					Point_3 Projection_CGAL_3D = plane.projection(Point_3(CurrentTriangle[j].x, CurrentTriangle[j].y, CurrentTriangle[j].z));
-
-					double X = glm::dot(glm::dvec3(Projection_CGAL_3D.x(), Projection_CGAL_3D.y(), Projection_CGAL_3D.z()), base1);
-					double Y = glm::dot(glm::dvec3(Projection_CGAL_3D.x(), Projection_CGAL_3D.y(), Projection_CGAL_3D.z()), base2);
-
-					Point_2 AProjection_CGAL_2D(X, Y);
-					TempTriangle.push_back(AProjection_CGAL_2D);
-				}
-#endif
-
-				if (!CGAL::is_ccw_strongly_convex_2(TempTriangle.vertices_begin(), TempTriangle.vertices_end()))
-					TempTriangle.reverse_orientation();
-
-				if (TempTriangle.area() == 0.0)
-				{
-					CGALCorrectTotalArea -= static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[i]]);
-				}
-				else
-				{
-					Triangles.push_back(TempTriangle);
-				}
-			}
-
-			Polygon_set_2 TriangleGroup;
-			std::vector<int> CGALFailedIndexes;
-
-			std::vector<int> Ranges;
-			try
-			{
-				TriangleGroup.join(Triangles.begin(), Triangles.end());
-			}
-			catch (...)
-			{
-				for (size_t i = 0; i < Triangles.size(); i++)
-				{
-					try
-					{
-						TriangleGroup.join(Triangles[i]);
-					}
-					catch (...)
-					{
-						CGALFailedIndexes.push_back(static_cast<int>(i));
-					}
-				}
-
-				for (size_t i = 0; i < CGALFailedIndexes.size(); i++)
-				{
-					CGALCorrectTotalArea -= static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[CGALFailedIndexes[i]]]);
-				}
-			}
-
 			double TotalProjectedArea = 0.0;
-			TotalProjectedArea = RUGOSITY_LAYER_PRODUCER.CGALCalculateArea(TriangleGroup);
+
+			if (RUGOSITY_LAYER_PRODUCER.bUniqueProjectedAreaApproximation)
+			{
+				Point_3 PointA(0.0f, 0.0f, 0.0f);
+				Plane_3 PlaneToProjectOnto(PointA, Vector_3(PlaneNormal.x, PlaneNormal.y, PlaneNormal.z));
+
+				std::vector<Point_2> ProjectedPoints, ConvexHullOfProjectedPoints;
+				for (int i = 0; i < CurrentNode->TrianglesInCell.size(); i++)
+				{
+					if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
+						continue;
+
+					std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[i]];
+					for (size_t j = 0; j < CurrentTriangle.size(); j++)
+					{
+						ProjectedPoints.push_back(RUGOSITY_LAYER_PRODUCER.ProjectPointOntoPlane(Point_3(CurrentTriangle[j].x, CurrentTriangle[j].y, CurrentTriangle[j].z), PlaneToProjectOnto));
+					}
+				}
+
+
+				CGAL::convex_hull_2(ProjectedPoints.begin(), ProjectedPoints.end(), std::back_inserter(ConvexHullOfProjectedPoints));
+
+
+				Polygon_2 Polygon;
+				for (const auto& CurrentPoint : ConvexHullOfProjectedPoints)
+					Polygon.push_back(CurrentPoint);
+
+				TotalProjectedArea = abs(CGAL::to_double(Polygon.area()));
+			}
+			else
+			{
+				Polygon_vector Triangles;
+
+				for (int i = 0; i < CurrentNode->TrianglesInCell.size(); i++)
+				{
+					if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
+						continue;
+
+					std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[i]];
+
+					Polygon_2 TempTriangle;
+					
+#ifndef CGAL_FOR_PROJECTION
+					glm::dvec3 U, V;
+					RUGOSITY_LAYER_PRODUCER.CreateLocalCoordinateSystem(PlaneNormal, U, V);
+
+					glm::dvec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
+					glm::dvec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
+					glm::dvec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
+					
+					TempTriangle.push_back(RUGOSITY_LAYER_PRODUCER.ProjectToLocalCoordinates(AProjection, U, V));
+					TempTriangle.push_back(RUGOSITY_LAYER_PRODUCER.ProjectToLocalCoordinates(BProjection, U, V));
+					TempTriangle.push_back(RUGOSITY_LAYER_PRODUCER.ProjectToLocalCoordinates(CProjection, U, V));
+					
+#else CGAL_FOR_PROJECTION
+					for (size_t j = 0; j < CurrentTriangle.size(); j++)
+					{
+						Point_3 Projection_CGAL_3D = plane.projection(Point_3(CurrentTriangle[j].x, CurrentTriangle[j].y, CurrentTriangle[j].z));
+					
+						double X = glm::dot(glm::dvec3(Projection_CGAL_3D.x(), Projection_CGAL_3D.y(), Projection_CGAL_3D.z()), base1);
+						double Y = glm::dot(glm::dvec3(Projection_CGAL_3D.x(), Projection_CGAL_3D.y(), Projection_CGAL_3D.z()), base2);
+					
+						Point_2 AProjection_CGAL_2D(X, Y);
+						TempTriangle.push_back(AProjection_CGAL_2D);
+					}
+#endif
+					
+					if (!CGAL::is_ccw_strongly_convex_2(TempTriangle.vertices_begin(), TempTriangle.vertices_end()))
+						TempTriangle.reverse_orientation();
+					
+					if (TempTriangle.area() == 0.0)
+					{
+						CGALCorrectTotalArea -= static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[i]]);
+					}
+					else
+					{
+						Triangles.push_back(TempTriangle);
+					}
+				}
+
+				Polygon_set_2 TriangleGroup;
+				std::vector<int> CGALFailedIndexes;
+
+				std::vector<int> Ranges;
+				try
+				{
+					TriangleGroup.join(Triangles.begin(), Triangles.end());
+				}
+				catch (...)
+				{
+					for (size_t i = 0; i < Triangles.size(); i++)
+					{
+						try
+						{
+							TriangleGroup.join(Triangles[i]);
+						}
+						catch (...)
+						{
+							CGALFailedIndexes.push_back(static_cast<int>(i));
+						}
+					}
+
+					for (size_t i = 0; i < CGALFailedIndexes.size(); i++)
+					{
+						CGALCorrectTotalArea -= static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[CGALFailedIndexes[i]]]);
+					}
+				}
+
+				TotalProjectedArea = RUGOSITY_LAYER_PRODUCER.CGALCalculateArea(TriangleGroup);
+			}
 
 			if (TotalProjectedArea == 0)
 			{
@@ -541,6 +591,11 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		OverlapAware = "Yes";
 	NewLayer.DebugInfo->AddEntry("Unique projected area (very slow)", OverlapAware);
 
+	std::string OverlapAwareApproximation = "No";
+	if (RUGOSITY_LAYER_PRODUCER.bUniqueProjectedAreaApproximation)
+		OverlapAwareApproximation = "Yes";
+	NewLayer.DebugInfo->AddEntry("Approximation of unique projected area", OverlapAwareApproximation);
+
 	LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
 
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
@@ -614,4 +669,14 @@ bool RugosityLayerProducer::GetIsUsingUniqueProjectedArea()
 void RugosityLayerProducer::SetIsUsingUniqueProjectedArea(bool NewValue)
 {
 	bUniqueProjectedArea = NewValue;
+}
+
+bool RugosityLayerProducer::GetIsUsingUniqueProjectedAreaApproximation()
+{
+	return bUniqueProjectedAreaApproximation;
+}
+
+void RugosityLayerProducer::SetIsUsingUniqueProjectedAreaApproximation(bool NewValue)
+{
+	bUniqueProjectedAreaApproximation = NewValue;
 }

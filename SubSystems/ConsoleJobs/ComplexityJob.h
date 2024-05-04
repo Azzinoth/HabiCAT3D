@@ -16,9 +16,10 @@ class ComplexityJobSettings
 
 	std::string TriangleEdges_Mode = "MAX_LEHGTH";
 
-	std::string Rugosity_Algorithm = "AVERAGE";
+	std::string Rugosity_Algorithm = "MIN";
 	bool bUniqueProjectedArea = false;
-	bool bRugosity_DeleteOutliers = true;
+	bool bUniqueProjectedAreaApproximation = true;
+	bool bRugosity_DeleteOutliers = false;
 	std::string Rugosity_MinAlgorithm_Quality = "91";
 
 	bool bFractalDimension_FilterValues = true;
@@ -63,6 +64,11 @@ public:
 	bool GetRugosity_IsUsingUniqueProjectedArea();
 	// Is unique projected area used, it yields very accurate results, but this method is very slow.
 	void SetRugosity_IsUsingUniqueProjectedArea(bool NewValue);
+
+	// Is unique projected area approximation used, gives huge speedup.
+	bool GetRugosity_IsUsingUniqueProjectedAreaApproximation();
+	// Is unique projected area approximation used, gives huge speedup.
+	void SetRugosity_IsUsingUniqueProjectedAreaApproximation(bool NewValue);
 
 	bool IsRugosity_DeleteOutliers();
 	void SetRugosity_DeleteOutliers(bool NewValue);

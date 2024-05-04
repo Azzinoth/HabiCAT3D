@@ -1,0 +1,96 @@
+name: ContinuousIntegration
+
+on:
+  push:
+      branches: [ "master", "dev" ]
+  pull_request:
+      branches: [ "master", "dev" ]
+
+jobs:
+  ContinuousIntegration:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        build_type: [Release]
+
+    steps:
+    
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+        
+    - name: Checkout resources
+      uses: actions/checkout@v4
+      with:
+        ref: media
+        path: media
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Ensure all files are in place
+      working-directory: ${{github.workspace}}
+      run: |
+        copy "media/Tests/CI_Small.txt" CI_Small.txt
+        copy "media/Tests/staghornOriginal.obj" staghornOriginal.obj
+        Move "${{github.workspace}}\build\Release\HabiCAT3D.exe" "${{github.workspace}}\HabiCAT3D.exe"
+        
+    - name: Run test
+      working-directory: ${{github.workspace}}
+      run: |
+        $processStartInfo = New-Object System.Diagnostics.ProcessStartInfo
+        $processStartInfo.FileName = "HabiCAT3D.exe"
+        $processStartInfo.Arguments = "-console -run_script_file filepath=`"CI_Small.txt`""
+        $processStartInfo.RedirectStandardInput = $true
+        $processStartInfo.UseShellExecute = $false
+
+        Write-Host "Starting the executable..."
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $processStartInfo
+        $process.Start() | Out-Null
+        Write-Host "Executable started."
+        
+        Write-Host "Waiting for the process to exit..."
+        $process.WaitForExit(300000) # 300 seconds
+        
+        $substring = "All evaluations passed"
+        $found = $false
+        Get-Content "CONSOLE_LOG.txt" | ForEach-Object {
+            if ($_ -match $substring)
+            {
+              Write-Host $_
+              $found = $true
+            }
+        }
+
+        if (-not $found)
+        {
+          Write-Error "Not all evaluations succeeded."
+          exit 1
+        }
+
+        if (Test-Path "Results.rug")
+        {
+          Write-Host "Application created Results.rug successfully."
+        } else
+        {
+          Write-Error "Failed to detect Results.rug"
+          exit 1
+        }
+        
+        if ($process.ExitCode -eq 0)
+        {
+          Write-Host "Application ran successfully and exited gracefully."
+        }
+        else
+        {
+          Write-Host "Application exit code: $($process.ExitCode)"
+          Write-Error "Application crashed or exited with a non-zero exit code."
+          exit 1
+        }
+      shell: pwsh

@@ -8,6 +8,7 @@
 #include "EvaluationJob.h"
 #include "GlobalSettingJob.h"
 #include "ExportLayerAsImageJob.h"
+#include "QueryJob.h"
 using namespace FocalEngine;
 
 class ConsoleJobManager
@@ -35,9 +36,12 @@ private:
 
 	int JobsAdded = 0;
 	void OnAllJobsFinished();
+	void OutputEvaluationResults();
 
 	bool bConvertEvaluationToUsableScript = false;
 	std::vector<std::string> SavedConvertionsOfEvaluationToUsableScript;
+
+	bool bOutputLogToFile = false;
 };
 
 #define CONSOLE_JOB_MANAGER ConsoleJobManager::getInstance()

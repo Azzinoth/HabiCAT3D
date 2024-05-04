@@ -70,6 +70,11 @@ ComplexityJob* ComplexityJob::CreateInstance(CommandLineAction ActionToParse)
 		Result->Settings.SetRugosity_IsUsingUniqueProjectedArea(ActionToParse.Settings["rugosity_is_using_unique_projected_area"] == "TRUE" ? true : false);
 	}
 
+	if (ActionToParse.Settings.find("rugosity_is_unique_projected_area_approximated") != ActionToParse.Settings.end())
+	{
+		Result->Settings.SetRugosity_IsUsingUniqueProjectedAreaApproximation(ActionToParse.Settings["rugosity_is_unique_projected_area_approximated"] == "TRUE" ? true : false);
+	}
+
 	if (ActionToParse.Settings.find("rugosity_delete_outliers") != ActionToParse.Settings.end())
 	{
 		Result->Settings.SetRugosity_DeleteOutliers(ActionToParse.Settings["rugosity_delete_outliers"] == "TRUE" ? true : false);
@@ -160,7 +165,7 @@ ConsoleJobInfo ComplexityJob::GetInfo()
 	CurrentSettingInfo.Name = "rugosity_algorithm";
 	CurrentSettingInfo.Description = "Specifies the algorithm for rugosity calculation. Relevant only for 'RUGOSITY' complexity type.";
 	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "AVERAGE";
+	CurrentSettingInfo.DefaultValue = "MIN";
 	CurrentSettingInfo.PossibleValues = { "AVERAGE", "MIN", "LSF(CGAL)" };
 	Info.SettingsInfo.push_back(CurrentSettingInfo);
 
@@ -172,10 +177,17 @@ ConsoleJobInfo ComplexityJob::GetInfo()
 	Info.SettingsInfo.push_back(CurrentSettingInfo);
 
 	CurrentSettingInfo = ConsoleJobSettingsInfo();
+	CurrentSettingInfo.Name = "rugosity_is_unique_projected_area_approximated";
+	CurrentSettingInfo.Description = "Specifies if the approximation should be used for unique projected area rugosity calculation(Speeds Up by Over 100x). Relevant only for 'RUGOSITY' complexity type.";
+	CurrentSettingInfo.bIsOptional = true;
+	CurrentSettingInfo.DefaultValue = "true";
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo = ConsoleJobSettingsInfo();
 	CurrentSettingInfo.Name = "rugosity_delete_outliers";
 	CurrentSettingInfo.Description = "Specifies if the outliers should be deleted from the rugosity calculation. Relevant only for 'RUGOSITY' complexity type.";
 	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "true";
+	CurrentSettingInfo.DefaultValue = "false";
 	Info.SettingsInfo.push_back(CurrentSettingInfo);
 
 	CurrentSettingInfo = ConsoleJobSettingsInfo();
@@ -284,7 +296,6 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 	{
 		std::string ErrorMessage = "Error: No file loaded. Please load a file before attempting to calculate complexity.";
-		LOG.Add(ErrorMessage, "CONSOLE_LOG");
 		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 		return false;
 	}
@@ -292,7 +303,6 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 	if (!SetGridResolution())
 	{
 		std::string ErrorMessage = "Error: Invalid resolution value. Given value is - " + std::to_string(Settings.ResolutionInM) + ". Bur value should be between " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " and " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + ".";
-		LOG.Add(ErrorMessage, "CONSOLE_LOG");
 		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 		return false;
 	}
@@ -361,6 +371,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 
 		RUGOSITY_LAYER_PRODUCER.SetOrientationSetForMinRugosityName(Settings.GetRugosity_MinAlgorithm_Quality());
 		RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedArea(Settings.GetRugosity_IsUsingUniqueProjectedArea());
+		RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedAreaApproximation(Settings.GetRugosity_IsUsingUniqueProjectedAreaApproximation());
 
 		if (Settings.IsRunOnWholeModel())
 		{
@@ -428,7 +439,6 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		if (FirstLayerIndex < 0 || FirstLayerIndex > COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
 		{
 			std::string ErrorMessage = "Error: First layer index is out of range. Please check the layer index and try again.";
-			LOG.Add(ErrorMessage, "CONSOLE_LOG");
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			return false;
 		}
@@ -437,7 +447,6 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		if (SecondLayerIndex < 0 || SecondLayerIndex > COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
 		{
 			std::string ErrorMessage = "Error: Second layer index is out of range. Please check the layer index and try again.";
-			LOG.Add(ErrorMessage, "CONSOLE_LOG");
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			return false;
 		}
@@ -541,6 +550,18 @@ bool ComplexityJobSettings::GetRugosity_IsUsingUniqueProjectedArea()
 void ComplexityJobSettings::SetRugosity_IsUsingUniqueProjectedArea(bool NewValue)
 {
 	bUniqueProjectedArea = NewValue;
+}
+
+// Is unique projected area approximation used, gives huge speedup.
+bool ComplexityJobSettings::GetRugosity_IsUsingUniqueProjectedAreaApproximation()
+{
+	return bUniqueProjectedAreaApproximation;
+}
+
+// Is unique projected area approximation used, gives huge speedup.
+void ComplexityJobSettings::SetRugosity_IsUsingUniqueProjectedAreaApproximation(bool NewValue)
+{
+	bUniqueProjectedAreaApproximation = NewValue;
 }
 
 // Number of reference planes, more planes better results, but slower

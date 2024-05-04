@@ -345,7 +345,7 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 		ImGui::EndCombo();
 	}
 
-	if (RUGOSITY_LAYER_PRODUCER.GetUsedRugosityAlgorithmName() == "Min Rugosity")
+	if (RUGOSITY_LAYER_PRODUCER.GetUsedRugosityAlgorithmName() == "Min Rugosity(default)")
 	{
 		ImGui::Text("Orientation set(advanced option): ");
 		ImGui::SameLine();
@@ -379,6 +379,14 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 	bool TempBool = RUGOSITY_LAYER_PRODUCER.GetIsUsingUniqueProjectedArea();
 	ImGui::Checkbox("Unique projected area (very slow).", &TempBool);
 	RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedArea(TempBool);
+
+	if (TempBool)
+	{
+		TempBool = RUGOSITY_LAYER_PRODUCER.GetIsUsingUniqueProjectedAreaApproximation();
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 15);
+		ImGui::Checkbox("Enable Approximation (Speeds Up by Over 100x)", &TempBool);
+		RUGOSITY_LAYER_PRODUCER.SetIsUsingUniqueProjectedAreaApproximation(TempBool);
+	}
 
 	TempBool = RUGOSITY_LAYER_PRODUCER.ShouldCalculateStandardDeviation();
 	ImGui::Checkbox("Add standard deviation layer.", &TempBool);
