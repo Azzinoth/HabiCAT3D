@@ -146,7 +146,7 @@ void ConsoleJobManager::OutputEvaluationResults()
 	}
 	else if (EvaluationsFailedCount > 0 && EvaluationsFailedCount < EvaluationsTotalCount)
 	{
-		ConsoleJob::OutputConsoleTextWithColor("Some evaluations failed, only: " + std::to_string(EvaluationsTotalCount - EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount) + " passed.", 255, 255, 0);
+		ConsoleJob::OutputConsoleTextWithColor("Some evaluations failed: " + std::to_string(EvaluationsTotalCount - EvaluationsFailedCount) + " out of " + std::to_string(EvaluationsTotalCount) + " passed.", 255, 255, 0);
 	}
 	else if (EvaluationsFailedCount == EvaluationsTotalCount)
 	{

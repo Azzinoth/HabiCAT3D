@@ -76,6 +76,103 @@ int JitterManager::GetJitterToDoCount()
 	return JitterToDoCount;
 }
 
+void JitterManager::CalcualtionThread(void* InputData, void* OutputData)
+{
+	CalculationThreadData* Input = reinterpret_cast<CalculationThreadData*>(InputData);
+	for (size_t i = 0; i < Input->Nodes.size(); i++)
+	{
+		JITTER_MANAGER.CurrentFunc(Input->Nodes[i]);
+	}
+}
+
+void JitterManager::GatherCalcualtionThreadWork(void* OutputData)
+{
+	JITTER_MANAGER.JitterThreadFinishedCount++;
+	JITTER_MANAGER.TotalJitterIndex++;
+	if (JITTER_MANAGER.JitterThreadFinishedCount == JITTER_MANAGER.THREAD_COUNT)
+	{
+		JITTER_MANAGER.JitterThreadFinishedCount = 0;
+		JITTER_MANAGER.AfterAllCurrentJitterThreadsFinished();
+	}
+
+	if (JITTER_MANAGER.TotalJitterIndex >= JITTER_MANAGER.GetJitterToDoCount() * JITTER_MANAGER.THREAD_COUNT)
+	{
+		JITTER_MANAGER.ApproximateTimeToFinishInMS = 0;
+	}
+	else
+	{
+		uint64_t CurrentTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+		uint64_t TimeDifference = CurrentTime - JITTER_MANAGER.LastProgressUpdatedTime;
+		JITTER_MANAGER.LastProgressUpdatedTime = CurrentTime;
+
+		uint64_t TimeDifferenceInMS = (CurrentTime - JITTER_MANAGER.StartTime) / 1000000;
+		int StepsLeft = JITTER_MANAGER.GetJitterToDoCount() * JITTER_MANAGER.THREAD_COUNT - JITTER_MANAGER.TotalJitterIndex;
+		float TimePerStep = float(TimeDifferenceInMS) / float(JITTER_MANAGER.TotalJitterIndex);
+
+		// For smoothing the time to finish.
+		JITTER_MANAGER.LastApproximationsOfTimeToFinish[JITTER_MANAGER.CurrentApproximationOfTimeToFinishIndex] = TimePerStep * StepsLeft;
+		
+		JITTER_MANAGER.CurrentApproximationOfTimeToFinishIndex++;
+		if (JITTER_MANAGER.CurrentApproximationOfTimeToFinishIndex >= JITTER_MANAGER.LastApproximationsOfTimeToFinish.size())
+			JITTER_MANAGER.CurrentApproximationOfTimeToFinishIndex = 0;
+
+		for (size_t i = 0; i < JITTER_MANAGER.LastApproximationsOfTimeToFinish.size(); i++)
+		{
+			JITTER_MANAGER.ApproximateTimeToFinishInMS += JITTER_MANAGER.LastApproximationsOfTimeToFinish[i];
+		}
+		JITTER_MANAGER.ApproximateTimeToFinishInMS /= JITTER_MANAGER.LastApproximationsOfTimeToFinish.size();
+	}
+}
+
+int JitterManager::GetTimeToFinishInSeconds()
+{
+	return JITTER_MANAGER.ApproximateTimeToFinishInMS / 1000;
+}
+
+std::string JitterManager::GetTimeToFinishFormated()
+{
+	auto Duration = std::chrono::milliseconds(JITTER_MANAGER.ApproximateTimeToFinishInMS);
+
+	auto Hours = std::chrono::duration_cast<std::chrono::hours>(Duration);
+	Duration -= Hours;
+
+	auto Minutes = std::chrono::duration_cast<std::chrono::minutes>(Duration);
+	Duration -= Minutes;
+
+	auto Seconds = std::chrono::duration_cast<std::chrono::seconds>(Duration);
+
+	std::string Result;
+	if (Hours.count() > 0)
+		Result += std::to_string(Hours.count()) + " hours ";
+	if (Minutes.count() > 0)
+		Result += std::to_string(Minutes.count()) + " minutes ";
+	if (Seconds.count() > 0)
+		Result += std::to_string(Seconds.count()) + " seconds";
+
+	return Result;
+}
+
+void JitterManager::AfterAllCurrentJitterThreadsFinished()
+{
+	JITTER_MANAGER.JitterDoneCount++;
+	JITTER_MANAGER.LastUsedGrid->FillMeshWithUserData();
+	JITTER_MANAGER.LastUsedGrid->bFullyLoaded = true;
+	JITTER_MANAGER.MoveResultDataFromGrid(JITTER_MANAGER.LastUsedGrid);
+
+	if (JITTER_MANAGER.JitterDoneCount != JITTER_MANAGER.JitterToDoCount)
+	{
+		delete JITTER_MANAGER.LastUsedGrid;
+		JITTER_MANAGER.LastUsedGrid = nullptr;
+
+		CurrentJitterIndex++;
+		JITTER_MANAGER.RunNextJitter();
+	}
+	else
+	{
+		OnCalculationsEnd();
+	}
+}
+
 void JitterManager::CalculateWithGridJitterAsync(std::function<void(GridNode* CurrentNode)> Func, bool bSmootherResult)
 {
 	if (Func == nullptr)
@@ -106,20 +203,133 @@ void JitterManager::CalculateWithGridJitterAsync(std::function<void(GridNode* Cu
 	LastUsedJitterSettings.clear();
 	LastUsedJitterSettings.resize(JitterToDoCount);
 
-	for (size_t i = 0; i < JitterToDoCount; i++)
+	if (!bUseingAlternativeMultiThreading)
 	{
-		ShiftX = TempShifts[i * 4];
-		ShiftY = TempShifts[i * 4 + 1];
-		ShiftZ = TempShifts[i * 4 + 2];
-		GridScale = TempShifts[i * 4 + 3];
+		for (size_t i = 0; i < JitterToDoCount; i++)
+		{
+			ShiftX = TempShifts[i * 4];
+			ShiftY = TempShifts[i * 4 + 1];
+			ShiftZ = TempShifts[i * 4 + 2];
+			GridScale = TempShifts[i * 4 + 3];
 
-		// For debug purposes.
-		LastUsedJitterSettings[i].ShiftX = ShiftX;
-		LastUsedJitterSettings[i].ShiftY = ShiftY;
-		LastUsedJitterSettings[i].ShiftZ = ShiftZ;
-		LastUsedJitterSettings[i].GridScale = GridScale;
+			// For debug purposes.
+			LastUsedJitterSettings[i].ShiftX = ShiftX;
+			LastUsedJitterSettings[i].ShiftY = ShiftY;
+			LastUsedJitterSettings[i].ShiftZ = ShiftZ;
+			LastUsedJitterSettings[i].GridScale = GridScale;
 
-		RunCreationOfGridAsync();
+			RunCreationOfGridAsync();
+		}
+	}
+	else
+	{
+		JITTER_MANAGER.CurrentFunc = Func;
+		CurrentlyUsedShifts = TempShifts;
+		CurrentJitterIndex = 0;
+		RunNextJitter();
+	}
+}
+
+float JitterManager::GetProgress()
+{
+	float Result = 0.0f;
+	if (!bUseingAlternativeMultiThreading)
+	{
+		Result = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
+	}
+	else
+	{
+		Result = float(JITTER_MANAGER.TotalJitterIndex) / (float(JITTER_MANAGER.GetJitterToDoCount()) * float(JITTER_MANAGER.THREAD_COUNT));
+	}
+
+	if (Result > 1.0f)
+		Result = 1.0f;
+
+	return Result;
+}
+
+void JitterManager::RunNextJitter()
+{
+	JitterThreadFinishedCount = 0;
+
+	ShiftX = CurrentlyUsedShifts[CurrentJitterIndex * 4];
+	ShiftY = CurrentlyUsedShifts[CurrentJitterIndex * 4 + 1];
+	ShiftZ = CurrentlyUsedShifts[CurrentJitterIndex * 4 + 2];
+	GridScale = CurrentlyUsedShifts[CurrentJitterIndex * 4 + 3];
+
+	// For debug purposes.
+	LastUsedJitterSettings[CurrentJitterIndex].ShiftX = ShiftX;
+	LastUsedJitterSettings[CurrentJitterIndex].ShiftY = ShiftY;
+	LastUsedJitterSettings[CurrentJitterIndex].ShiftZ = ShiftZ;
+	LastUsedJitterSettings[CurrentJitterIndex].GridScale = GridScale;
+
+	MeasurementGrid* Grid = new MeasurementGrid();
+	JITTER_MANAGER.LastUsedGrid = Grid;
+
+	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(&LastUsedJitterSettings[CurrentJitterIndex], JITTER_MANAGER.GetResolutionInM());
+	Grid->Init(0, FinalAABB, JITTER_MANAGER.GetResolutionInM());
+	Grid->FillCellsWithTriangleInfo();
+
+	int NodesWithTrianglesCount = 0;
+	int TriangleCount = 0;
+	std::vector<GridNode*> NodesWithData;
+	for (size_t i = 0; i < Grid->Data.size(); i++)
+	{
+		for (size_t j = 0; j < Grid->Data.size(); j++)
+		{
+			for (size_t k = 0; k < Grid->Data.size(); k++)
+			{
+				if (!Grid->Data[i][j][k].TrianglesInCell.empty())
+				{
+					TriangleCount += static_cast<int>(Grid->Data[i][j][k].TrianglesInCell.size());
+					NodesWithData.push_back(&Grid->Data[i][j][k]);
+				}
+			}
+		}
+	}
+	NodesWithTrianglesCount = static_cast<int>(NodesWithData.size());
+
+	THREAD_COUNT = THREAD_POOL.GetThreadCount() * 10;
+	// It shouuld be based on complexity of the algorithm
+	// not only triangle count.
+	THREAD_COUNT = TriangleCount / 10000.0;
+	
+	int NumberOfTrianglesPerThread = static_cast<int>(TriangleCount / THREAD_COUNT);
+
+	int LastAssignedIndex = -1;
+	int CurrentlyAssignedNodes = 0;
+	int CurrentlyAssignedTriangles = 0;
+	std::vector<CalculationThreadData*> ThreadData;
+	for (int i = 0; i < THREAD_COUNT; i++)
+	{
+		CurrentlyAssignedNodes = 0;
+		CurrentlyAssignedTriangles = 0;
+		CalculationThreadData* NewThreadData = new CalculationThreadData();
+
+		if (i == THREAD_COUNT - 1)
+		{
+			for (size_t j = LastAssignedIndex + 1; j < NodesWithData.size(); j++)
+			{
+				NewThreadData->Nodes.push_back(NodesWithData[j]);
+			}
+		}
+		else
+		{
+			for (size_t j = LastAssignedIndex + 1; j < NodesWithData.size(); j++)
+			{
+				NewThreadData->Nodes.push_back(NodesWithData[j]);
+
+				CurrentlyAssignedTriangles += static_cast<int>(NodesWithData[j]->TrianglesInCell.size());
+				if (CurrentlyAssignedTriangles >= NumberOfTrianglesPerThread)
+				{
+					LastAssignedIndex = static_cast<int>(j);
+					break;
+				}
+			}
+		}
+
+		ThreadData.push_back(NewThreadData);
+		THREAD_POOL.Execute(CalcualtionThread, NewThreadData, nullptr, GatherCalcualtionThreadWork);
 	}
 }
 
@@ -192,6 +402,9 @@ void JitterManager::MoveResultDataFromGrid(MeasurementGrid* Grid)
 
 	for (size_t i = 0; i < Result.size(); i++)
 	{
+		if (isnan(Grid->TrianglesUserData[i]))
+			Grid->TrianglesUserData[i] = FallbackValue;
+		
 		// We will save all results. Even if they are not correct.
 		PerJitterResult.back().push_back(Grid->TrianglesUserData[i]);
 
@@ -239,6 +452,10 @@ void JitterManager::OnCalculationsStart()
 
 	TIME.BeginTimeStamp("JitterCalculateTotal");
 	JITTER_MANAGER.StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	JITTER_MANAGER.LastProgressUpdatedTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	JITTER_MANAGER.LastApproximationsOfTimeToFinish.clear();
+	JITTER_MANAGER.LastApproximationsOfTimeToFinish.resize(JITTER_MANAGER.CountOfApproximationsOfTimeToFinishToSave);
+	JITTER_MANAGER.CurrentApproximationOfTimeToFinishIndex = 0;
 
 	for (size_t i = 0; i < JITTER_MANAGER.OnCalculationsStartCallbacks.size(); i++)
 	{
@@ -254,6 +471,7 @@ void JitterManager::OnCalculationsEnd()
 
 	JITTER_MANAGER.IgnoreValueFunc = nullptr;
 	JITTER_MANAGER.FallbackValue = 1.0f;
+	JITTER_MANAGER.TotalJitterIndex = 0;
 
 	MeshLayer NewLayer;
 	NewLayer.TrianglesToData = JITTER_MANAGER.Result;

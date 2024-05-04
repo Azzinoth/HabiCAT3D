@@ -76,6 +76,7 @@ private:
 	};
 
 	int THREAD_COUNT = 10;
+	std::vector<GridRasterizationThreadData*> TemporaryThreadDataArray;
 
 	const int RASTERIZATION_MIN_RESOLUTION = 16;
 	const int RASTERIZATION_MAX_RESOLUTION = 4096;

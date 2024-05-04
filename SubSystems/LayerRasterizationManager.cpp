@@ -390,6 +390,13 @@ double LayerRasterizationManager::GetArea(std::vector<glm::dvec3>& Points)
 
 void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 {
+
+	for (size_t i = 0; i < TemporaryThreadDataArray.size(); i++)
+	{
+		delete TemporaryThreadDataArray[i];
+	}
+	TemporaryThreadDataArray.clear();
+
 	Debug_TotalAreaUsed = 0.0;
 
 	for (int i = 0; i < MainThreadGridUpdateTasks.size(); i++)
@@ -965,7 +972,7 @@ void LayerRasterizationManager::PrepareLayerForExport(MeshLayer* LayerToExport, 
 		NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
 	}
 
-	std::vector<GridRasterizationThreadData*> ThreadData;
+	TemporaryThreadDataArray.clear();
 	for (int i = 0; i < LAYER_RASTERIZATION_MANAGER.THREAD_COUNT; i++)
 	{
 		GridRasterizationThreadData* NewThreadData = new GridRasterizationThreadData();
@@ -980,7 +987,7 @@ void LayerRasterizationManager::PrepareLayerForExport(MeshLayer* LayerToExport, 
 			NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
 
 		std::vector<GridUpdateTask>* OutputTasks = new std::vector<GridUpdateTask>();
-		ThreadData.push_back(NewThreadData);
+		TemporaryThreadDataArray.push_back(NewThreadData);
 
 		THREAD_POOL.Execute(GridRasterizationThread, NewThreadData, OutputTasks, GatherGridRasterizationThreadWork);
 	}

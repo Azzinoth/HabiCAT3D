@@ -310,7 +310,7 @@ void UIManager::Render(bool bScreenshotMode)
 		ImGui::OpenPopup("Calculating...");
 	}
 
-	ImGui::SetNextWindowSize(ImVec2(300, 50));
+	ImGui::SetNextWindowSize(ImVec2(300, 65));
 	if (ImGui::BeginPopupModal("Calculating...", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		int WindowW = 0;
@@ -320,9 +320,14 @@ void UIManager::Render(bool bScreenshotMode)
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		UpdateProgressModalPopupCurrentValue();
 		std::string ProgressText = "Progress: " + std::to_string(ProgressModalPopupCurrentValue * 100.0f);
-		ProgressText += " %";
+		ProgressText += " %%";
 		ImGui::SetCursorPosX(90);
 		ImGui::Text(ProgressText.c_str());
+
+		std::string TimeToFinish = "Time left: " + JITTER_MANAGER.GetTimeToFinishFormated();
+		int TextWidth = ImGui::CalcTextSize(TimeToFinish.c_str()).x;
+		ImGui::SetCursorPosX(300 / 2.0f - TextWidth / 2.0f);
+		ImGui::Text(TimeToFinish.c_str());
 
 		if (bShouldCloseProgressPopup)
 			ImGui::CloseCurrentPopup();
@@ -2099,7 +2104,7 @@ void UIManager::UpdateProgressModalPopupCurrentValue()
 {
 	if (bJitterCalculationsInProgress)
 	{
-		ProgressModalPopupCurrentValue = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
+		ProgressModalPopupCurrentValue = JITTER_MANAGER.GetProgress();
 	}
 	else if (bLayerRasterizationCalculationsInProgress)
 	{

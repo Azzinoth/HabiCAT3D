@@ -138,12 +138,12 @@ class ComplexityMetricInfo
 
 	int CurrentLayerIndex = -1;
 
-	float TotalArea = 0.0f;
+	double TotalArea = 0.0;
 	glm::vec3 AverageNormal = glm::vec3();
 public:
 	ComplexityMetricInfo();
 
-	float GetTotalArea();
+	double GetTotalArea();
 
 	std::vector<int> TriangleSelected;
 
@@ -160,8 +160,6 @@ public:
 		
 	glm::vec3 GetAverageNormal();
 	void UpdateAverageNormal();
-
-	static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
 
 	std::vector<MeshLayer> Layers;
 

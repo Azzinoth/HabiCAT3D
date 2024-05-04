@@ -115,8 +115,6 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 	if (CurrentNode->TrianglesInCell.empty())
 		return;
 
-	TIME.BeginTimeStamp("CalculateOneNodeRugosity time");
-
 	float TotalArea = 0.0f;
 	for (size_t l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 	{
@@ -160,9 +158,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 					}
 				}
 
-
 				CGAL::convex_hull_2(ProjectedPoints.begin(), ProjectedPoints.end(), std::back_inserter(ConvexHullOfProjectedPoints));
-
 
 				Polygon_2 Polygon;
 				for (const auto& CurrentPoint : ConvexHullOfProjectedPoints)
@@ -271,12 +267,12 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 			{
 				std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[l]];
 
-				glm::vec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
-				glm::vec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
-				glm::vec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
+				glm::dvec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
+				glm::dvec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
+				glm::dvec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
 
-				const double ProjectionArea = GEOMETRY.CalculateTriangleArea(AProjection, BProjection, CProjection);
-				const double OriginalArea = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]];
+				double ProjectionArea = GEOMETRY.CalculateTriangleArea(AProjection, BProjection, CProjection);
+				double OriginalArea = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]];
 				Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
 
 				if (OriginalArea == 0.0 || ProjectionArea == 0.0 || OriginalArea < FLT_EPSILON || ProjectionArea < FLT_EPSILON)
@@ -542,6 +538,7 @@ void RugosityLayerProducer::OnRugosityCalculationsStart()
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
+	JITTER_MANAGER.SetFallbackValue(1.0f);
 	RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = true;
 
 	TIME.BeginTimeStamp("CalculateRugorsityTotal");
@@ -574,7 +571,7 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 
 	NewLayer.DebugInfo->AddEntry("Algorithm used", AlgorithmUsed);
 
-	if (AlgorithmUsed == "Min Rugosity")
+	if (AlgorithmUsed == "Min Rugosity(default)")
 		NewLayer.DebugInfo->AddEntry("Orientation set name", RUGOSITY_LAYER_PRODUCER.GetOrientationSetForMinRugosityName());
 	
 	std::string DeleteOutliers = "No";
