@@ -12,7 +12,7 @@ namespace FocalEngine
 	{
 		glm::dvec3 PointOnPlane;
 		glm::dvec3 Normal;
-		float Distance = 0.0f;
+		double Distance = 0.0;
 
 		FEPlane(const glm::dvec3 PointOnPlane, const glm::dvec3 Normal)
 		{
@@ -21,6 +21,7 @@ namespace FocalEngine
 
 			// Distance is the length of the perpendicular line from the origin to the plane.
 			double PlaneD = glm::length(glm::dot(PointOnPlane, Normal));
+			Distance = PlaneD;
 		}
 
 		glm::vec3 ProjectPoint(const glm::dvec3& Point) const
@@ -75,6 +76,8 @@ namespace FocalEngine
 
 		void RenderDebugInfoForSelectedNode(MeasurementGrid* Grid);
 		float GetLastTimeTookForCalculation();
+
+		bool bUseCGALInMin = false;
 	private:
 		SINGLETON_PRIVATE_PART(RugosityLayerProducer)
 

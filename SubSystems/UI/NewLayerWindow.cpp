@@ -367,6 +367,8 @@ void NewLayerWindow::RenderRugosityLayerSettings()
 			}
 			ImGui::EndCombo();
 		}
+
+		ImGui::Checkbox("Use CGAL in Min Rugosity", &RUGOSITY_LAYER_PRODUCER.bUseCGALInMin);
 	}
 
 	if (!bRunOnWholeModel)

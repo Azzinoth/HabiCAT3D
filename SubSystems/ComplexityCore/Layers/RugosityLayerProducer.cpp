@@ -263,17 +263,38 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 		else
 		{
 			std::vector<float> Rugosities;
+			Point_3 PointA(0.0f, 0.0f, 0.0f);
+			Plane_3 PlaneToProjectOnto(PointA, Vector_3(PlaneNormal.x, PlaneNormal.y, PlaneNormal.z));
+
 			for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 			{
 				std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[l]];
 
-				glm::dvec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
-				glm::dvec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
-				glm::dvec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
+				double ProjectionArea = 0.0;
+				double OriginalArea = 0.0;
 
-				double ProjectionArea = GEOMETRY.CalculateTriangleArea(AProjection, BProjection, CProjection);
-				double OriginalArea = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]];
-				Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
+				if (!RUGOSITY_LAYER_PRODUCER.bUseCGALInMin)
+				{
+					glm::dvec3 AProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[0]);
+					glm::dvec3 BProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[1]);
+					glm::dvec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
+
+					ProjectionArea = GEOMETRY.CalculateTriangleArea(AProjection, BProjection, CProjection);
+					OriginalArea = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]];
+					Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
+				}
+				else
+				{
+					std::vector<Point_2> ProjectedPoints;
+					for (size_t j = 0; j < CurrentTriangle.size(); j++)
+					{
+						ProjectedPoints.push_back(RUGOSITY_LAYER_PRODUCER.ProjectPointOntoPlane(Point_3(CurrentTriangle[j].x, CurrentTriangle[j].y, CurrentTriangle[j].z), PlaneToProjectOnto));
+					}
+
+					ProjectionArea = abs(CGAL::to_double(CGAL::area(ProjectedPoints[0], ProjectedPoints[1], ProjectedPoints[2])));
+					OriginalArea = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]];
+					Rugosities.push_back(OriginalArea / ProjectionArea);
+				}
 
 				if (OriginalArea == 0.0 || ProjectionArea == 0.0 || OriginalArea < FLT_EPSILON || ProjectionArea < FLT_EPSILON)
 					Rugosities.back() = 1.0f;
