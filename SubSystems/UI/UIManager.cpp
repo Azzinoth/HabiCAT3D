@@ -325,7 +325,7 @@ void UIManager::Render(bool bScreenshotMode)
 		ImGui::Text(ProgressText.c_str());
 
 		std::string TimeToFinish = "Time left: " + JITTER_MANAGER.GetTimeToFinishFormated();
-		int TextWidth = ImGui::CalcTextSize(TimeToFinish.c_str()).x;
+		int TextWidth = static_cast<int>(ImGui::CalcTextSize(TimeToFinish.c_str()).x);
 		ImGui::SetCursorPosX(300 / 2.0f - TextWidth / 2.0f);
 		ImGui::Text(TimeToFinish.c_str());
 
@@ -1053,7 +1053,7 @@ void UIManager::RenderHistogramWindow()
 
 			glm::vec2 MinValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
 			glm::vec2 MaxValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
-			float PercentageOfAreaSelected = (MaxValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f) - (MinValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f);
+			float PercentageOfAreaSelected = static_cast<float>((MaxValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0) - (MinValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0));
 
 			ImGui::SetCursorPos(ImVec2(200.0f, 33.0f));
 			std::string CurrentText = "Selected area: " + TruncateAfterDot(std::to_string(PercentageOfAreaSelected), 3) + " %%";
@@ -1198,7 +1198,7 @@ void UIManager::RenderAboutWindow()
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
-		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 03\\19\\2024";
+		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 05\\09\\2024";
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());

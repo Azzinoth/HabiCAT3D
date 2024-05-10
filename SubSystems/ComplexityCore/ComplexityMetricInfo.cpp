@@ -8,7 +8,7 @@ double ComplexityMetricInfo::GetTotalArea()
 	return TotalArea;
 }
 
-void ComplexityMetricInfo::FillTrianglesData(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
+void ComplexityMetricInfo::FillTrianglesData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
 {
 	MeshData.Vertices = Vertices;
 	MeshData.Colors = Colors;
@@ -23,38 +23,40 @@ void ComplexityMetricInfo::FillTrianglesData(std::vector<float>& Vertices, std::
 	TrianglesCentroids.clear();
 	TotalArea = 0.0;
 
-	std::vector<glm::vec3> Triangle;
+	std::vector<glm::dvec3> Triangle;
 	Triangle.resize(3);
+	std::vector<glm::vec3> TriangleNormal;
+	TriangleNormal.resize(3);
 
 	for (size_t i = 0; i < Indices.size(); i += 3)
 	{
 		int VertexPosition = Indices[i] * 3;
-		Triangle[0] = glm::vec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
+		Triangle[0] = glm::dvec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
 
 		VertexPosition = Indices[i + 1] * 3;
-		Triangle[1] = glm::vec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
+		Triangle[1] = glm::dvec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
 
 		VertexPosition = Indices[i + 2] * 3;
-		Triangle[2] = glm::vec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
+		Triangle[2] = glm::dvec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
 
 		Triangles.push_back(Triangle);
 		TrianglesArea.push_back(GEOMETRY.CalculateTriangleArea(Triangle[0], Triangle[1], Triangle[2]));
-		TotalArea += static_cast<float>(TrianglesArea.back());
+		TotalArea += TrianglesArea.back();
 
-		TrianglesCentroids.push_back((Triangle[0] + Triangle[1] + Triangle[2]) / 3.0f);
+		TrianglesCentroids.push_back((Triangle[0] + Triangle[1] + Triangle[2]) / 3.0);
 
 		if (!Normals.empty())
 		{
 			VertexPosition = Indices[i] * 3;
-			Triangle[0] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
+			TriangleNormal[0] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
 
 			VertexPosition = Indices[i + 1] * 3;
-			Triangle[1] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
+			TriangleNormal[1] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
 
 			VertexPosition = Indices[i + 2] * 3;
-			Triangle[2] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
+			TriangleNormal[2] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
 
-			TrianglesNormals.push_back(Triangle);
+			TrianglesNormals.push_back(TriangleNormal);
 		}
 	}
 
@@ -198,12 +200,6 @@ void MeshLayer::FillRawData()
 {
 	if (ParentComplexityMetricData == nullptr || TrianglesToData.empty())
 		return;
-
-	std::vector<float> PositionsVector;
-	for (size_t i = 0; i < ParentComplexityMetricData->MeshData.Vertices.size(); i++)
-	{
-		PositionsVector.push_back(ParentComplexityMetricData->MeshData.Vertices[i]);
-	}
 
 	std::vector<int> IndexVector;
 	for (size_t i = 0; i < ParentComplexityMetricData->MeshData.Indices.size(); i++)

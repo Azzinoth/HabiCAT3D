@@ -273,7 +273,7 @@ double FractalDimensionLayerProducer::RunOnAllInternalNodesWithTriangles(GridNod
 		// Iterate through all the triangles
 		for (size_t j = 0; j < OuterNode->TrianglesInCell.size(); j++)
 		{
-			std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[OuterNode->TrianglesInCell[j]];
+			std::vector<glm::dvec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[OuterNode->TrianglesInCell[j]];
 
 			// Calculate the grid cells that the triangle intersects or is contained in
 			FEAABB TriangleBBox = FEAABB(CurrentTriangle);

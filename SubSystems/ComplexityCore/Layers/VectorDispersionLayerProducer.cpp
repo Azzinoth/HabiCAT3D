@@ -116,7 +116,7 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	{
 		const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
 
-		std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
+		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
 			TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);

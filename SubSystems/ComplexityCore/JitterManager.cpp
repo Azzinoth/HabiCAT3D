@@ -110,7 +110,7 @@ void JitterManager::GatherCalcualtionThreadWork(void* OutputData)
 		float TimePerStep = float(TimeDifferenceInMS) / float(JITTER_MANAGER.TotalJitterIndex);
 
 		// For smoothing the time to finish.
-		JITTER_MANAGER.LastApproximationsOfTimeToFinish[JITTER_MANAGER.CurrentApproximationOfTimeToFinishIndex] = TimePerStep * StepsLeft;
+		JITTER_MANAGER.LastApproximationsOfTimeToFinish[JITTER_MANAGER.CurrentApproximationOfTimeToFinishIndex] = static_cast<uint64_t>(TimePerStep * StepsLeft);
 		
 		JITTER_MANAGER.CurrentApproximationOfTimeToFinishIndex++;
 		if (JITTER_MANAGER.CurrentApproximationOfTimeToFinishIndex >= JITTER_MANAGER.LastApproximationsOfTimeToFinish.size())
@@ -126,7 +126,7 @@ void JitterManager::GatherCalcualtionThreadWork(void* OutputData)
 
 int JitterManager::GetTimeToFinishInSeconds()
 {
-	return JITTER_MANAGER.ApproximateTimeToFinishInMS / 1000;
+	return static_cast<int>(JITTER_MANAGER.ApproximateTimeToFinishInMS / 1000);
 }
 
 std::string JitterManager::GetTimeToFinishFormated()
@@ -292,7 +292,9 @@ void JitterManager::RunNextJitter()
 	THREAD_COUNT = THREAD_POOL.GetThreadCount() * 10;
 	// It shouuld be based on complexity of the algorithm
 	// not only triangle count.
-	THREAD_COUNT = TriangleCount / 10000.0;
+	THREAD_COUNT = static_cast<int>(TriangleCount / 10000.0);
+	if (THREAD_COUNT < 1)
+		THREAD_COUNT = 1;
 	
 	int NumberOfTrianglesPerThread = static_cast<int>(TriangleCount / THREAD_COUNT);
 
@@ -422,7 +424,6 @@ void JitterManager::MoveResultDataFromGrid(MeasurementGrid* Grid)
 			Result[i] += Grid->TrianglesUserData[i];
 			CorrectValuesCounters[i]++;
 		}
-		
 	}
 
 	if (JITTER_MANAGER.JitterDoneCount == JITTER_MANAGER.JitterToDoCount)

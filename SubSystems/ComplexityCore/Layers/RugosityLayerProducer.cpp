@@ -151,7 +151,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 					if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
 						continue;
 
-					std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[i]];
+					std::vector<glm::dvec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[i]];
 					for (size_t j = 0; j < CurrentTriangle.size(); j++)
 					{
 						ProjectedPoints.push_back(RUGOSITY_LAYER_PRODUCER.ProjectPointOntoPlane(Point_3(CurrentTriangle[j].x, CurrentTriangle[j].y, CurrentTriangle[j].z), PlaneToProjectOnto));
@@ -175,7 +175,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 					if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
 						continue;
 
-					std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[i]];
+					std::vector<glm::dvec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[i]];
 
 					Polygon_2 TempTriangle;
 					
@@ -268,7 +268,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 
 			for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 			{
-				std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[l]];
+				std::vector<glm::dvec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[l]];
 
 				double ProjectionArea = 0.0;
 				double OriginalArea = 0.0;
@@ -285,15 +285,24 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 				}
 				else
 				{
-					std::vector<Point_2> ProjectedPoints;
-					for (size_t j = 0; j < CurrentTriangle.size(); j++)
-					{
-						ProjectedPoints.push_back(RUGOSITY_LAYER_PRODUCER.ProjectPointOntoPlane(Point_3(CurrentTriangle[j].x, CurrentTriangle[j].y, CurrentTriangle[j].z), PlaneToProjectOnto));
-					}
-
-					ProjectionArea = abs(CGAL::to_double(CGAL::area(ProjectedPoints[0], ProjectedPoints[1], ProjectedPoints[2])));
 					OriginalArea = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[CurrentNode->TrianglesInCell[l]];
-					Rugosities.push_back(OriginalArea / ProjectionArea);
+
+					try
+					{
+						std::vector<Point_2> ProjectedPoints;
+						for (size_t j = 0; j < CurrentTriangle.size(); j++)
+						{
+							ProjectedPoints.push_back(RUGOSITY_LAYER_PRODUCER.ProjectPointOntoPlane(Point_3(CurrentTriangle[j].x, CurrentTriangle[j].y, CurrentTriangle[j].z), PlaneToProjectOnto));
+						}
+
+						ProjectionArea = abs(CGAL::to_double(CGAL::area(ProjectedPoints[0], ProjectedPoints[1], ProjectedPoints[2])));
+					}
+					catch (...)
+					{
+						ProjectionArea = OriginalArea;
+					}
+					
+					Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
 				}
 
 				if (OriginalArea == 0.0 || ProjectionArea == 0.0 || OriginalArea < FLT_EPSILON || ProjectionArea < FLT_EPSILON)
@@ -324,7 +333,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 
 	if (RUGOSITY_LAYER_PRODUCER.bUseCGALVariant)
 	{
-		std::vector<float> FEVerticesFinal;
+		std::vector<double> FEVerticesFinal;
 		std::vector<int> FEIndicesFinal;
 
 		for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
@@ -395,7 +404,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 	// ******* Getting average normal *******
 	for (size_t l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 	{
-		std::vector<glm::vec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[l]];
+		std::vector<glm::dvec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentNode->TrianglesInCell[l]];
 		std::vector<glm::vec3> CurrentTriangleNormals = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[CurrentNode->TrianglesInCell[l]];
 
 		if (RUGOSITY_LAYER_PRODUCER.bWeightedNormals)
@@ -654,7 +663,7 @@ void RugosityLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid
 	{
 		const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
 
-		std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
+		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
 			TranformedTrianglePoints[j] = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);

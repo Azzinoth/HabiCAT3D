@@ -65,7 +65,4 @@ private:
     };
 
     void GridFillingThread(void* InputData, void* OutputData);
-    static void GatherGridFillingThreadWork(void* OutputData);
-
-    void AfterAllGridFillingThreadFinished();
 };

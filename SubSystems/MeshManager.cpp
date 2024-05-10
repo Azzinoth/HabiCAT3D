@@ -19,31 +19,31 @@ MeshManager::~MeshManager() {}
 
 FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
-	FEMesh* result = nullptr;
-	FEObjLoader& objLoader = FEObjLoader::getInstance();
-	objLoader.ForceOneMesh(bForceOneMesh);
-	objLoader.ForcePositionNormalization(true);
-	objLoader.UseDoublePrecisionForReadingCoordinates(true);
-	objLoader.DoubleVertexOnSeams(false);
-	objLoader.ReadFile(FileName);
+	FEMesh* Result = nullptr;
+	FEObjLoader& OBJLoader = FEObjLoader::getInstance();
+	OBJLoader.ForceOneMesh(bForceOneMesh);
+	OBJLoader.ForcePositionNormalization(true);
+	OBJLoader.UseDoublePrecisionForReadingCoordinates(true);
+	OBJLoader.DoubleVertexOnSeams(false);
+	OBJLoader.ReadFile(FileName);
 
-	std::vector<FERawOBJData*>* LoadedObjects = objLoader.GetLoadedObjects();
+	std::vector<FERawOBJData*>* LoadedObjects = OBJLoader.GetLoadedObjects();
 	FERawOBJData* FirstObject = LoadedObjects->size() > 0 ? LoadedObjects->at(0) : nullptr;
 
 	if (FirstObject != nullptr)
 	{
-		result = RESOURCE_MANAGER.RawDataToMesh(FirstObject->FVerC.data(), int(FirstObject->FVerC.size()),
+		Result = RESOURCE_MANAGER.RawDataToMesh(FirstObject->FVerC.data(), int(FirstObject->FVerC.size()),
 												FirstObject->FTexC.data(), int(FirstObject->FTexC.size()),
 												FirstObject->FNorC.data(), int(FirstObject->FNorC.size()),
 												FirstObject->FTanC.data(), int(FirstObject->FTanC.size()),
 												FirstObject->FInd.data(), int(FirstObject->FInd.size()),
-												FirstObject->fColorsC.data(), int(FirstObject->fColorsC.size()),
+												FirstObject->FColorsC.data(), int(FirstObject->FColorsC.size()),
 												FirstObject->MatIDs.data(), int(FirstObject->MatIDs.size()), int(FirstObject->MaterialRecords.size()), "");
 	
-		COMPLEXITY_METRIC_MANAGER.Init(FirstObject->FVerC, FirstObject->fColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
+		COMPLEXITY_METRIC_MANAGER.Init(FirstObject->DVerC, FirstObject->FColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
 	}
 	
-	return result;
+	return Result;
 }
 
 FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
@@ -72,7 +72,11 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	File.read(Buffer, 4);
 	const int VertexCount = *(int*)Buffer;
-	ArraySize = long long(VertexCount) * long long(4);
+
+	int BytesPerVertex = 8;
+	if (Version < 0.87)
+		BytesPerVertex = 4;
+	ArraySize = long long(VertexCount) * long long(BytesPerVertex);
 	char* VertexBuffer = new char[ArraySize];
 	File.read(VertexBuffer, ArraySize);
 
@@ -171,19 +175,47 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	File.close();
 
-	FEMesh* NewMesh = RESOURCE_MANAGER.RawDataToMesh((float*)VertexBuffer, VertexCount,
-													 (float*)TexBuffer, TexCout,
-													 (float*)NormBuffer, NormCout,
-													 (float*)TangBuffer, TangCout,
-													 (int*)IndexBuffer, IndexCout,
-													 (float*)ColorBuffer, ColorCount,
-													 nullptr, 0, 0, "");
-
-	std::vector<float> FEVertices;
-	FEVertices.resize(VertexCount);
-	for (size_t i = 0; i < VertexCount; i++)
+	std::vector<double> FEVertices;
+	FEMesh* NewMesh = nullptr;
+	if (Version < 0.87)
 	{
-		FEVertices[i] = ((float*)VertexBuffer)[i];
+		NewMesh = RESOURCE_MANAGER.RawDataToMesh((float*)VertexBuffer, VertexCount,
+												 (float*)TexBuffer, TexCout,
+												 (float*)NormBuffer, NormCout,
+												 (float*)TangBuffer, TangCout,
+												 (int*)IndexBuffer, IndexCout,
+												 (float*)ColorBuffer, ColorCount,
+												 nullptr, 0, 0, "");
+
+		FEVertices.resize(VertexCount);
+		for (size_t i = 0; i < VertexCount; i++)
+		{
+			FEVertices[i] = ((float*)VertexBuffer)[i];
+		}
+	}
+	else
+	{
+		std::vector<float> FEFloatVertices;
+		FEFloatVertices.resize(VertexCount);
+		for (size_t i = 0; i < VertexCount; i++)
+		{
+			FEFloatVertices[i] = static_cast<float>(((double*)VertexBuffer)[i]);
+		}
+
+
+		NewMesh = RESOURCE_MANAGER.RawDataToMesh((float*)FEFloatVertices.data(), VertexCount,
+												 (float*)TexBuffer, TexCout,
+												 (float*)NormBuffer, NormCout,
+												 (float*)TangBuffer, TangCout,
+												 (int*)IndexBuffer, IndexCout,
+												 (float*)ColorBuffer, ColorCount,
+												 nullptr, 0, 0, "");
+
+		FEVertices.resize(VertexCount);
+		for (size_t i = 0; i < VertexCount; i++)
+		{
+			FEVertices[i] = ((double*)VertexBuffer)[i];
+		}
 	}
 
 	std::vector<float> FEColors;
@@ -364,15 +396,15 @@ bool MeshManager::SelectTriangle(glm::dvec3 MouseRay)
 	if (ActiveMesh == nullptr || ActiveEntity == nullptr)
 		return false;
 
-	float CurrentDistance = 0.0f;
-	float LastDistance = 9999.0f;
+	double CurrentDistance = 0.0;
+	double LastDistance = 9999.0;
 
 	int TriangeIndex = -1;
 	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
 
 	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
 	{
-		std::vector<glm::vec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
+		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
 			TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
@@ -401,18 +433,18 @@ glm::vec3 MeshManager::IntersectTriangle(glm::dvec3 MouseRay)
 	if (ActiveMesh == nullptr || ActiveEntity == nullptr)
 		return glm::vec3(0.0f);
 
-	float CurrentDistance = 0.0f;
-	float LastDistance = 9999.0f;
+	double CurrentDistance = 0.0;
+	double LastDistance = 9999.0;
 
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
 	{
-		std::vector<glm::vec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
+		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
 			TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
-		glm::vec3 HitPosition;
+		glm::dvec3 HitPosition;
 		const bool bHit = GEOMETRY.IsRayIntersectingTriangle(ENGINE.GetCamera()->GetPosition(), MouseRay, TranformedTrianglePoints, CurrentDistance, &HitPosition);
 
 		if (bHit && CurrentDistance < LastDistance)
@@ -442,7 +474,7 @@ bool MeshManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
 	MeasuredRugosityAreaRadius = Radius;
 	MeasuredRugosityAreaCenter = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]], 1.0f);
 
-	const glm::vec3 FirstSelectedTriangleCentroid = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
+	const glm::dvec3 FirstSelectedTriangleCentroid = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
 
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
 	{

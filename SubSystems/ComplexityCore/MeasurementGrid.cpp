@@ -191,36 +191,26 @@ void MeasurementGrid::GridFillingThread(void* InputData, void* OutputData)
 	}
 }
 
-void GatherGridFillingThreadWork(void* OutputData)
-{
-
-}
-
 void MeasurementGrid::FillCellsWithTriangleInfo()
 {
 	TIME.BeginTimeStamp("Fill cells with triangle info");
 
-
 	if (bUseingMultiThreading)
 	{
-		int THREAD_COUNT = THREAD_POOL.GetThreadCount();
-
-
-		int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() / THREAD_COUNT);
-
-		if (THREAD_COUNT > NumberOfTrianglesPerThread)
+		int LocalThreadCount = THREAD_POOL.GetThreadCount();
+		int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() / LocalThreadCount);
+		
+		if (LocalThreadCount > NumberOfTrianglesPerThread)
 		{
-			THREAD_COUNT = 1;
+			LocalThreadCount = 1;
 			NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
 		}
 
-		// Alternative
-		std::vector<std::thread> threads(THREAD_COUNT);
-
+		std::vector<std::string> ThreadIDs;
 		std::vector<GridThreadData*> ThreadData;
 		std::vector<std::vector<GridUpdateTask>*> AllOutputTasks;
 
-		for (int i = 0; i < THREAD_COUNT; i++)
+		for (int i = 0; i < LocalThreadCount; i++)
 		{
 			GridThreadData* NewThreadData = new GridThreadData();
 			ThreadData.push_back(NewThreadData);
@@ -229,7 +219,7 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 			if (i == 0)
 				NewThreadData->FirstIndexInTriangleArray = 0;
 
-			if (i == THREAD_COUNT - 1)
+			if (i == LocalThreadCount - 1)
 				NewThreadData->LastIndexInTriangleArray = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() - 1);
 			else
 				NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
@@ -237,17 +227,20 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 			std::vector<GridUpdateTask>* OutputTasks = new std::vector<GridUpdateTask>();
 			AllOutputTasks.push_back(OutputTasks);
 
-			threads[i] = std::thread([=]() {
+			ThreadIDs.push_back(THREAD_POOL.CreateLightThread());
+			THREAD_POOL.ExecuteLightThread(ThreadIDs.back(), [=]() {
 				GridFillingThread(NewThreadData, OutputTasks);
 			});
-
-			//THREAD_POOL.Execute(GridFillingThread, NewThreadData, OutputTasks, GatherGridFillingThreadWork);
 		}
 
-		// Wait for all threads to finish
-		for (auto& thread : threads)
+		for (size_t i = 0; i < ThreadIDs.size(); i++)
 		{
-			thread.join();
+			THREAD_POOL.WaitForLightThread(ThreadIDs[i]);
+		}
+
+		for (size_t i = 0; i < ThreadIDs.size(); i++)
+		{
+			THREAD_POOL.RemoveLightThread(ThreadIDs[i]);
 		}
 
 		for (size_t i = 0; i < ThreadData.size(); i++)
@@ -460,7 +453,7 @@ void MeasurementGrid::AddLinesOfGrid()
 						{
 							const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[Data[i][j][k].TrianglesInCell[l]];
 
-							std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
+							std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 							for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 							{
 								TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
