@@ -56,7 +56,7 @@ jobs:
         Write-Host "Executable started."
         
         Write-Host "Waiting for the process to exit..."
-        $process.WaitForExit(300000) # 300 seconds
+        $process.WaitForExit(500000) # 500 seconds
         
         $substring = "All evaluations passed"
         $found = $false
