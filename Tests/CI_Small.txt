@@ -3,85 +3,85 @@
 -load filepath="staghornOriginal.obj"
 
 -complexity type=HEIGHT
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.0 tolerance=0.00
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=3.179 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=5.02 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.000000 tolerance=0.00
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=2.611966 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=4.009814 tolerance=0.01
 
 -complexity type=AREA
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.0 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.003 tolerance=0.0001
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.142 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.000004 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.003049 tolerance=0.0001
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.142628 tolerance=0.01
 
 -complexity type=TRIANGLE_EDGE
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.011 tolerance=0.001
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.098 tolerance=0.001
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.88 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.011738 tolerance=0.001
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.098214 tolerance=0.001
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.881651 tolerance=0.01
 
 -complexity type=TRIANGLE_EDGE triangle_edges_mode=MIN_LEHGTH
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.00 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.058 tolerance=0.001
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.53 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.000332 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.058015 tolerance=0.001
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.539827 tolerance=0.01
 
 -complexity type=TRIANGLE_EDGE triangle_edges_mode=MEAN_LEHGTH
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.00 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.0788 tolerance=0.001
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.67 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.009831 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.078864 tolerance=0.001
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.674815 tolerance=0.01
 
 -complexity type=TRIANGLE_COUNT
 -evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.939161 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=20.660200 tolerance=0.001
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=20.660206 tolerance=0.001
 -evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=74.104546 tolerance=0.01
 
 -complexity type=RUGOSITY rugosity_algorithm=AVERAGE rugosity_delete_outliers="true" jitter_quality=1
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.007396 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.941885 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=8.965695 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.004807 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.832891 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=8.467786 tolerance=0.01
 
 -complexity type=RUGOSITY rugosity_algorithm=AVERAGE rugosity_delete_outliers="true" jitter_quality=25
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.007426 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.964095 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=6.419599 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.004997 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.849301 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=6.043895 tolerance=0.01
 
 -complexity type=RUGOSITY rugosity_algorithm=AVERAGE rugosity_delete_outliers="true"
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.007631 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.969468 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=6.076324 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.005039 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.852519 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=5.601521 tolerance=0.01
 
 -complexity type=RUGOSITY rugosity_algorithm=MIN rugosity_min_algorithm_quality=1
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.007631 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.969468 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=6.076324 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.005039 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.852519 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=5.601521 tolerance=0.01
 
 -complexity type=RUGOSITY rugosity_algorithm=MIN rugosity_min_algorithm_quality=33
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.007631 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.322294 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=2.452940 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=1.004858 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=1.317108 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=2.475087 tolerance=0.01
 
 -complexity type=VECTOR_DISPERSION relative_resolution=0.1
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.245438 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.701468 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.985382 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.116681 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.654502 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.986809 tolerance=0.01
 
 -complexity type=VECTOR_DISPERSION
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.125527 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.552344 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.976169 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.045076 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.467445 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.975791 tolerance=0.01
 
 -complexity type=VECTOR_DISPERSION relative_resolution=0.8
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.499077 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.838106 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.96 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=0.436894 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=0.826791 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=0.979082 tolerance=0.01
 
 -complexity type=FRACTAL_DIMENSION relative_resolution=0.65
--evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=2.00 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=2.149 tolerance=0.01
--evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=2.26 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MIN_LAYER_VALUE expected_value=2.002888 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=2.149151 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=2.266320 tolerance=0.01
 
 -complexity type=FRACTAL_DIMENSION run_on_whole_model=true
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=2.1904 tolerance=0.001
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=2.190481 tolerance=0.001
 
 -complexity type=COMPARE compare_first_layer_index=6 compare_second_layer_index=7 compare_normalize=true
--evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=-0.12 tolerance=0.01
+-evaluation type=COMPLEXITY subtype=MEAN_LAYER_VALUE expected_value=-0.115076 tolerance=0.01
 
 -save filepath="Results.rug"
 
