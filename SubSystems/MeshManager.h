@@ -309,7 +309,7 @@ vec3 hsv2rgb(vec3 c) {
 void main(void)
 {
 	float diffuseFactor = max(dot(FS_IN.vertexNormal, lightDirection), 0.15);
-	vec3 ambientColor = vec3(1.0f, 1.0f, 1.0f) * AmbientFactor; // vec3(0.55f, 0.73f, 0.87f)
+	vec3 ambientColor = vec3(1.0f, 1.0f, 1.0f) * AmbientFactor;
 
 	vec3 firstRugosityLayer = getCorrectColor();
 	vec3 finalBaseColor = firstRugosityLayer;

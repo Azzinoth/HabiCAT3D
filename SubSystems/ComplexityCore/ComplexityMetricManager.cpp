@@ -6,7 +6,7 @@ ComplexityMetricManager* ComplexityMetricManager::Instance = nullptr;
 ComplexityMetricManager::ComplexityMetricManager() {}
 ComplexityMetricManager::~ComplexityMetricManager() {}
 
-void ComplexityMetricManager::Init(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
+void ComplexityMetricManager::Init(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
 {
 	if (ActiveComplexityMetricInfo != nullptr)
 		delete ActiveComplexityMetricInfo;
@@ -34,7 +34,7 @@ void ComplexityMetricManager::ImportOBJ(const char* FileName, bool bForceOneMesh
 
 	if (FirstObject != nullptr)
 	{
-		COMPLEXITY_METRIC_MANAGER.Init(FirstObject->FVerC, FirstObject->fColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
+		COMPLEXITY_METRIC_MANAGER.Init(FirstObject->DVerC, FirstObject->FColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
 	}
 
 	for (size_t i = 0; i < ClientLoadCallbacks.size(); i++)
@@ -71,7 +71,7 @@ void ComplexityMetricManager::SaveToRUGFile(std::string FilePath)
 
 	int Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Vertices.size());
 	File.write((char*)&Count, sizeof(int));
-	File.write((char*)ActiveComplexityMetricInfo->MeshData.Vertices.data(), sizeof(float) * Count);
+	File.write((char*)ActiveComplexityMetricInfo->MeshData.Vertices.data(), sizeof(double) * Count);
 
 	Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Colors.size());
 	File.write((char*)&Count, sizeof(int));

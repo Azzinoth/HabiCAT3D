@@ -17,25 +17,25 @@ MeshLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
 	{
-		float Edge0Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][0], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][1]);
-		float Edge1Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][1], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][2]);
-		float Edge2Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][2], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][0]);
+		double Edge0Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][0], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][1]);
+		double Edge1Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][1], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][2]);
+		double Edge2Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][2], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][0]);
 
 		if (Mode == 0)
 		{
-			Result.TrianglesToData.push_back(std::max(Edge0Length, std::max(Edge1Length, Edge2Length)));
+			Result.TrianglesToData.push_back(static_cast<float>(std::max(Edge0Length, std::max(Edge1Length, Edge2Length))));
 		}
 		else if (Mode == 1)
 		{
-			Result.TrianglesToData.push_back(std::min(Edge0Length, std::min(Edge1Length, Edge2Length)));
+			Result.TrianglesToData.push_back(static_cast<float>(std::min(Edge0Length, std::min(Edge1Length, Edge2Length))));
 		}
 		else if (Mode == 2)
 		{
-			Result.TrianglesToData.push_back((Edge0Length + Edge1Length + Edge2Length) / 3.0f);
+			Result.TrianglesToData.push_back(static_cast<float>((Edge0Length + Edge1Length + Edge2Length) / 3.0));
 		}
 		else
 		{
-			Result.TrianglesToData.push_back((Edge0Length + Edge1Length + Edge2Length) / 3.0f);
+			Result.TrianglesToData.push_back(static_cast<float>((Edge0Length + Edge1Length + Edge2Length) / 3.0));
 		}
 	}
 	

@@ -41,4 +41,28 @@ struct MeasurementGrid
     void UpdateRenderedLines();
     void RunOnAllNodes(std::function<void(GridNode* currentNode)> Func);
     void AddLinesOfGrid();
+
+private:
+    void InitializeSegment(size_t beginIndex, size_t endIndex, size_t Dimensions, FEAABB GridAABB, float CellSize);
+
+    bool bUseingMultiThreading = true;
+
+    struct GridThreadData
+    {
+        int FirstIndexInTriangleArray;
+        int LastIndexInTriangleArray;
+    };
+
+    struct GridUpdateTask
+    {
+        int FirstIndex = -1;
+        int SecondIndex = -1;
+        int ThirdIndex = -1;
+        int TriangleIndexToAdd = -1;
+
+        GridUpdateTask::GridUpdateTask(int FirstIndex, int SecondIndex, int ThirdIndex, int TriangleIndexToAdd)
+            : FirstIndex(FirstIndex), SecondIndex(SecondIndex), ThirdIndex(ThirdIndex), TriangleIndexToAdd(TriangleIndexToAdd) {}
+    };
+
+    void GridFillingThread(void* InputData, void* OutputData);
 };

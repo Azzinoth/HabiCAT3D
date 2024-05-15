@@ -390,6 +390,13 @@ double LayerRasterizationManager::GetArea(std::vector<glm::dvec3>& Points)
 
 void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 {
+
+	for (size_t i = 0; i < TemporaryThreadDataArray.size(); i++)
+	{
+		delete TemporaryThreadDataArray[i];
+	}
+	TemporaryThreadDataArray.clear();
+
 	Debug_TotalAreaUsed = 0.0;
 
 	for (int i = 0; i < MainThreadGridUpdateTasks.size(); i++)
@@ -965,7 +972,7 @@ void LayerRasterizationManager::PrepareLayerForExport(MeshLayer* LayerToExport, 
 		NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
 	}
 
-	std::vector<GridRasterizationThreadData*> ThreadData;
+	TemporaryThreadDataArray.clear();
 	for (int i = 0; i < LAYER_RASTERIZATION_MANAGER.THREAD_COUNT; i++)
 	{
 		GridRasterizationThreadData* NewThreadData = new GridRasterizationThreadData();
@@ -980,7 +987,7 @@ void LayerRasterizationManager::PrepareLayerForExport(MeshLayer* LayerToExport, 
 			NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
 
 		std::vector<GridUpdateTask>* OutputTasks = new std::vector<GridUpdateTask>();
-		ThreadData.push_back(NewThreadData);
+		TemporaryThreadDataArray.push_back(NewThreadData);
 
 		THREAD_POOL.Execute(GridRasterizationThread, NewThreadData, OutputTasks, GatherGridRasterizationThreadWork);
 	}
@@ -1087,17 +1094,12 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(size_t GridX, size
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[TriangleIndex] == 0.0)
 		return Result;
 
-	std::vector<glm::dvec3> CurrentTriangleDouble;
-	CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[0].x, CurrentTriangle[0].y, CurrentTriangle[0].z));
-	CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[1].x, CurrentTriangle[1].y, CurrentTriangle[1].z));
-	CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[2].x, CurrentTriangle[2].y, CurrentTriangle[2].z));
-
 	if (bUsingCGAL)
 	{
 		// Define a triangle
-		Point_3 PointA(CurrentTriangleDouble[0].x, CurrentTriangleDouble[0].y, CurrentTriangleDouble[0].z);
-		Point_3 PointB(CurrentTriangleDouble[1].x, CurrentTriangleDouble[1].y, CurrentTriangleDouble[1].z);
-		Point_3 PointC(CurrentTriangleDouble[2].x, CurrentTriangleDouble[2].y, CurrentTriangleDouble[2].z);
+		Point_3 PointA(CurrentTriangle[0].x, CurrentTriangle[0].y, CurrentTriangle[0].z);
+		Point_3 PointB(CurrentTriangle[1].x, CurrentTriangle[1].y, CurrentTriangle[1].z);
+		Point_3 PointC(CurrentTriangle[2].x, CurrentTriangle[2].y, CurrentTriangle[2].z);
 		Triangle_3 Triangle(PointA, PointB, PointC);
 
 		// Define an AABB
@@ -1107,8 +1109,8 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(size_t GridX, size
 		// Compute the intersection between the triangle and the AABB
 		auto CGALIntersection = CGAL::intersection(Triangle, AABB);
 
-		glm::dvec3 Edge_0 = CurrentTriangleDouble[2] - CurrentTriangleDouble[1];
-		glm::dvec3 Edge_1 = CurrentTriangleDouble[2] - CurrentTriangleDouble[0];
+		glm::dvec3 Edge_0 = CurrentTriangle[2] - CurrentTriangle[1];
+		glm::dvec3 Edge_1 = CurrentTriangle[2] - CurrentTriangle[0];
 
 		glm::dvec3 Normal = glm::normalize(glm::cross(Edge_1, Edge_0));
 		if (isnan(Normal.x) || isnan(Normal.y) || isnan(Normal.z))
@@ -1172,19 +1174,19 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(size_t GridX, size
 	}
 	else
 	{
-		std::vector<glm::dvec3> IntersectionPoints = GEOMETRY.GetIntersectionPoints(Grid[GridX][GridY].AABB, CurrentTriangleDouble);
+		std::vector<glm::dvec3> IntersectionPoints = GEOMETRY.GetIntersectionPoints(Grid[GridX][GridY].AABB, CurrentTriangle);
 
-		for (size_t i = 0; i < CurrentTriangleDouble.size(); i++)
+		for (size_t i = 0; i < CurrentTriangle.size(); i++)
 		{
-			if (Grid[GridX][GridY].AABB.ContainsPoint(CurrentTriangleDouble[i]))
+			if (Grid[GridX][GridY].AABB.ContainsPoint(CurrentTriangle[i]))
 			{
 				bool bAlreadyExists = false;
 				int PointsThatAreNotSame = 0;
 				for (size_t j = 0; j < IntersectionPoints.size(); j++)
 				{
-					if (abs(IntersectionPoints[j] - CurrentTriangleDouble[i]).x > glm::dvec3(DBL_EPSILON).x ||
-						abs(IntersectionPoints[j] - CurrentTriangleDouble[i]).y > glm::dvec3(DBL_EPSILON).y ||
-						abs(IntersectionPoints[j] - CurrentTriangleDouble[i]).z > glm::dvec3(DBL_EPSILON).z)
+					if (abs(IntersectionPoints[j] - CurrentTriangle[i]).x > glm::dvec3(DBL_EPSILON).x ||
+						abs(IntersectionPoints[j] - CurrentTriangle[i]).y > glm::dvec3(DBL_EPSILON).y ||
+						abs(IntersectionPoints[j] - CurrentTriangle[i]).z > glm::dvec3(DBL_EPSILON).z)
 					{
 						PointsThatAreNotSame++;
 					}
@@ -1383,7 +1385,7 @@ void LayerRasterizationManager::DebugRenderGrid()
 					{
 						const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[Grid[i][j].TrianglesInCell[k]];
 
-						std::vector<glm::vec3> TranformedTrianglePoints = CurrentTriangle;
+						std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 						for (size_t l = 0; l < TranformedTrianglePoints.size(); l++)
 						{
 							TranformedTrianglePoints[l] = MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[l], 1.0f);
@@ -1449,24 +1451,19 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 		if (CurrentTriangle.size() != 3)
 			continue;
 
-		std::vector<glm::dvec3> CurrentTriangleDouble;
-		CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[0].x, CurrentTriangle[0].y, CurrentTriangle[0].z));
-		CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[1].x, CurrentTriangle[1].y, CurrentTriangle[1].z));
-		CurrentTriangleDouble.push_back(glm::dvec3(CurrentTriangle[2].x, CurrentTriangle[2].y, CurrentTriangle[2].z));
+		std::vector<glm::dvec3> IntersectionPoints = GEOMETRY.GetIntersectionPoints(Grid[X][Y].AABB, CurrentTriangle);
 
-		std::vector<glm::dvec3> IntersectionPoints = GEOMETRY.GetIntersectionPoints(Grid[X][Y].AABB, CurrentTriangleDouble);
-
-		for (size_t l = 0; l < CurrentTriangleDouble.size(); l++)
+		for (size_t l = 0; l < CurrentTriangle.size(); l++)
 		{
-			if (Grid[X][Y].AABB.ContainsPoint(CurrentTriangleDouble[l]))
+			if (Grid[X][Y].AABB.ContainsPoint(CurrentTriangle[l]))
 			{
 				bool bAlreadyExists = false;
 				int PointsThatAreNotSame = 0;
 				for (size_t q = 0; q < IntersectionPoints.size(); q++)
 				{
-					if (abs(IntersectionPoints[q] - CurrentTriangleDouble[l]).x > glm::dvec3(DBL_EPSILON).x ||
-						abs(IntersectionPoints[q] - CurrentTriangleDouble[l]).y > glm::dvec3(DBL_EPSILON).y ||
-						abs(IntersectionPoints[q] - CurrentTriangleDouble[l]).z > glm::dvec3(DBL_EPSILON).z)
+					if (abs(IntersectionPoints[q] - CurrentTriangle[l]).x > glm::dvec3(DBL_EPSILON).x ||
+						abs(IntersectionPoints[q] - CurrentTriangle[l]).y > glm::dvec3(DBL_EPSILON).y ||
+						abs(IntersectionPoints[q] - CurrentTriangle[l]).z > glm::dvec3(DBL_EPSILON).z)
 					{
 						PointsThatAreNotSame++;
 					}

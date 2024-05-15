@@ -3,12 +3,12 @@ using namespace FocalEngine;
 
 ComplexityMetricInfo::ComplexityMetricInfo() {}
 
-float ComplexityMetricInfo::GetTotalArea()
+double ComplexityMetricInfo::GetTotalArea()
 {
 	return TotalArea;
 }
 
-void ComplexityMetricInfo::FillTrianglesData(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
+void ComplexityMetricInfo::FillTrianglesData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
 {
 	MeshData.Vertices = Vertices;
 	MeshData.Colors = Colors;
@@ -21,40 +21,42 @@ void ComplexityMetricInfo::FillTrianglesData(std::vector<float>& Vertices, std::
 	TrianglesNormals.clear();
 	TrianglesArea.clear();
 	TrianglesCentroids.clear();
-	TotalArea = 0;
+	TotalArea = 0.0;
 
-	std::vector<glm::vec3> Triangle;
+	std::vector<glm::dvec3> Triangle;
 	Triangle.resize(3);
+	std::vector<glm::vec3> TriangleNormal;
+	TriangleNormal.resize(3);
 
 	for (size_t i = 0; i < Indices.size(); i += 3)
 	{
 		int VertexPosition = Indices[i] * 3;
-		Triangle[0] = glm::vec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
+		Triangle[0] = glm::dvec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
 
 		VertexPosition = Indices[i + 1] * 3;
-		Triangle[1] = glm::vec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
+		Triangle[1] = glm::dvec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
 
 		VertexPosition = Indices[i + 2] * 3;
-		Triangle[2] = glm::vec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
+		Triangle[2] = glm::dvec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
 
 		Triangles.push_back(Triangle);
-		TrianglesArea.push_back(TriangleArea(Triangle[0], Triangle[1], Triangle[2]));
-		TotalArea += static_cast<float>(TrianglesArea.back());
+		TrianglesArea.push_back(GEOMETRY.CalculateTriangleArea(Triangle[0], Triangle[1], Triangle[2]));
+		TotalArea += TrianglesArea.back();
 
-		TrianglesCentroids.push_back((Triangle[0] + Triangle[1] + Triangle[2]) / 3.0f);
+		TrianglesCentroids.push_back((Triangle[0] + Triangle[1] + Triangle[2]) / 3.0);
 
 		if (!Normals.empty())
 		{
 			VertexPosition = Indices[i] * 3;
-			Triangle[0] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
+			TriangleNormal[0] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
 
 			VertexPosition = Indices[i + 1] * 3;
-			Triangle[1] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
+			TriangleNormal[1] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
 
 			VertexPosition = Indices[i + 2] * 3;
-			Triangle[2] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
+			TriangleNormal[2] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
 
-			TrianglesNormals.push_back(Triangle);
+			TrianglesNormals.push_back(TriangleNormal);
 		}
 	}
 
@@ -65,23 +67,23 @@ void ComplexityMetricInfo::UpdateAverageNormal()
 {
 	AverageNormal = glm::vec3();
 
-	std::vector<float> OriginalAreas;
-	float TotalArea = 0.0f;
+	std::vector<double> OriginalAreas;
+	double TotalArea = 0.0;
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
-		const double originalArea = TriangleArea(Triangles[i][0], Triangles[i][1], Triangles[i][2]);
-		OriginalAreas.push_back(static_cast<float>(originalArea));
-		TotalArea += static_cast<float>(originalArea);
+		const double OriginalArea = GEOMETRY.CalculateTriangleArea(Triangles[i][0], Triangles[i][1], Triangles[i][2]);
+		OriginalAreas.push_back(OriginalArea);
+		TotalArea += OriginalArea;
 	}
 
 	// ******* Geting average normal *******
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
-		const float currentTriangleCoef = OriginalAreas[i] / TotalArea;
+		double CurrentTriangleCoef = OriginalAreas[i] / TotalArea;
 
-		AverageNormal += TrianglesNormals[i][0] * currentTriangleCoef;
-		AverageNormal += TrianglesNormals[i][1] * currentTriangleCoef;
-		AverageNormal += TrianglesNormals[i][2] * currentTriangleCoef;
+		AverageNormal += TrianglesNormals[i][0] * static_cast<float>(CurrentTriangleCoef);
+		AverageNormal += TrianglesNormals[i][1] * static_cast<float>(CurrentTriangleCoef);
+		AverageNormal += TrianglesNormals[i][2] * static_cast<float>(CurrentTriangleCoef);
 	}
 
 	AverageNormal = glm::normalize(AverageNormal);
@@ -90,25 +92,6 @@ void ComplexityMetricInfo::UpdateAverageNormal()
 glm::vec3 ComplexityMetricInfo::GetAverageNormal()
 {
 	return AverageNormal;
-}
-
-double ComplexityMetricInfo::TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC)
-{
-	const double x1 = PointA.x;
-	const double x2 = PointB.x;
-	const double x3 = PointC.x;
-
-	const double y1 = PointA.y;
-	const double y2 = PointB.y;
-	const double y3 = PointC.y;
-
-	const double z1 = PointA.z;
-	const double z2 = PointB.z;
-	const double z3 = PointC.z;
-
-	return 0.5 * sqrt(pow(x2 * y1 - x3 * y1 - x1 * y2 + x3 * y2 + x1 * y3 - x2 * y3, 2.0) +
-					  pow((x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3), 2.0) +
-					  pow((y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3), 2.0));
 }
 
 void ComplexityMetricInfo::AddLayer(std::vector<float> TrianglesToData)
@@ -217,12 +200,6 @@ void MeshLayer::FillRawData()
 {
 	if (ParentComplexityMetricData == nullptr || TrianglesToData.empty())
 		return;
-
-	std::vector<float> PositionsVector;
-	for (size_t i = 0; i < ParentComplexityMetricData->MeshData.Vertices.size(); i++)
-	{
-		PositionsVector.push_back(ParentComplexityMetricData->MeshData.Vertices[i]);
-	}
 
 	std::vector<int> IndexVector;
 	for (size_t i = 0; i < ParentComplexityMetricData->MeshData.Indices.size(); i++)

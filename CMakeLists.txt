@@ -9,6 +9,8 @@ project(HabiCAT3D LANGUAGES CXX)
 
 set(CMAKE_CXX_FLAGS_DEBUG "/MP /Zi /MDd /INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF /Od")
 set(CMAKE_CXX_FLAGS_RELEASE "/MP")
+# Set the stack reserve size to 10 MB
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:10485760")
 
 # Because of we are catching CGAL exceptions in the loop, we need to enable this flag
 if(MSVC)

@@ -430,6 +430,8 @@ public:
 	int GetJitterDoneCount();
 	int GetJitterToDoCount();
 
+	float GetProgress();
+
 	std::vector<std::vector<float>> GetPerJitterResult();
 
 	MeasurementGrid* GetLastUsedGrid();
@@ -472,15 +474,23 @@ public:
 	std::vector<float> ProduceStandardDeviationData();
 
 	FEAABB GetAABBForJitteredGrid(GridInitData_Jitter* Settings, float CurrentResolutionInM);
+	int GetTimeToFinishInSeconds();
+	std::string GetTimeToFinishFormated();
 private:
 	SINGLETON_PRIVATE_PART(JitterManager)
 
 	MeasurementGrid* LastUsedGrid = nullptr;
+
 	std::vector<GridInitData_Jitter> LastUsedJitterSettings;
 	std::function<void(GridNode* currentNode)> CurrentFunc;
 		
 	int JitterDoneCount = 0;
+	int CurrentJitterIndex = 0;
+	int TotalJitterIndex = 0;
+	int THREAD_COUNT = 0;
+	int JitterThreadFinishedCount = 0;
 	int JitterToDoCount = 4;
+	std::vector<float> CurrentlyUsedShifts;
 	int DebugJitterToDoCount = -1;
 	int GetDebugJitterToDoCount();
 	void SetDebugJitterToDoCount(int NewValue);
@@ -519,6 +529,28 @@ private:
 	uint64_t StartTime;
 
 	float FindStandardDeviation(std::vector<float> DataPoints);
+
+	bool bUseingAlternativeMultiThreading = true;
+
+	struct CalculationThreadData
+	{
+		int BeginIndex;
+		int EndIndex;
+
+		std::vector<GridNode*> Nodes;
+	};
+
+	static void CalcualtionThread(void* InputData, void* OutputData);
+	void AfterAllCurrentJitterThreadsFinished();
+	static void GatherCalcualtionThreadWork(void* OutputData);
+
+	void RunNextJitter();
+
+	uint64_t LastProgressUpdatedTime;
+	std::vector<uint64_t> LastApproximationsOfTimeToFinish;
+	const int CountOfApproximationsOfTimeToFinishToSave = 10;
+	size_t CurrentApproximationOfTimeToFinishIndex = 0;
+	uint64_t ApproximateTimeToFinishInMS;
 };
 
 #define JITTER_MANAGER JitterManager::getInstance()

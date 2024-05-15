@@ -118,7 +118,7 @@ public:
 // For purposes of complexity metric storing of all of raw data is redundant,but it is needed for saving RUG file.
 struct RawMeshData
 {
-	std::vector<float> Vertices;
+	std::vector<double> Vertices;
 	std::vector<float> Colors;
 	std::vector<float> UVs;
 	std::vector<float> Tangents;
@@ -138,30 +138,26 @@ class ComplexityMetricInfo
 
 	int CurrentLayerIndex = -1;
 
-	float TotalArea = 0.0f;
+	double TotalArea = 0.0;
 	glm::vec3 AverageNormal = glm::vec3();
 public:
 	ComplexityMetricInfo();
 
-	float GetTotalArea();
+	double GetTotalArea();
 
 	std::vector<int> TriangleSelected;
 
 	RawMeshData MeshData;
-
-	std::vector<std::vector<glm::vec3>> Triangles;
+	std::vector<std::vector<glm::dvec3>> Triangles;
 	std::vector<double> TrianglesArea;
 		
 	std::vector<std::vector<glm::vec3>> TrianglesNormals;
-	std::vector<glm::vec3> TrianglesCentroids;
+	std::vector<glm::dvec3> TrianglesCentroids;
 
-	void FillTrianglesData(std::vector<float>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
-
+	void FillTrianglesData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
 		
 	glm::vec3 GetAverageNormal();
 	void UpdateAverageNormal();
-
-	static double TriangleArea(glm::dvec3 PointA, glm::dvec3 PointB, glm::dvec3 PointC);
 
 	std::vector<MeshLayer> Layers;
 

@@ -248,7 +248,7 @@ void ComplexityJob::WaitForJitterManager()
 {
 	while (JITTER_MANAGER.GetJitterDoneCount() != JITTER_MANAGER.GetJitterToDoCount())
 	{
-		float Progress = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
+		float Progress = JITTER_MANAGER.GetProgress();
 		std::cout << "\rProgress: " << std::to_string(Progress * 100.0f) << " %" << std::flush;
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -302,7 +302,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 
 	if (!SetGridResolution())
 	{
-		std::string ErrorMessage = "Error: Invalid resolution value. Given value is - " + std::to_string(Settings.ResolutionInM) + ". Bur value should be between " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " and " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + ".";
+		std::string ErrorMessage = "Error: Invalid resolution value. Given value is - " + std::to_string(Settings.ResolutionInM) + ". But value should be between " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " and " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + ".";
 		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 		return false;
 	}

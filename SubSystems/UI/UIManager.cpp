@@ -310,7 +310,7 @@ void UIManager::Render(bool bScreenshotMode)
 		ImGui::OpenPopup("Calculating...");
 	}
 
-	ImGui::SetNextWindowSize(ImVec2(300, 50));
+	ImGui::SetNextWindowSize(ImVec2(300, 65));
 	if (ImGui::BeginPopupModal("Calculating...", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		int WindowW = 0;
@@ -320,9 +320,14 @@ void UIManager::Render(bool bScreenshotMode)
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		UpdateProgressModalPopupCurrentValue();
 		std::string ProgressText = "Progress: " + std::to_string(ProgressModalPopupCurrentValue * 100.0f);
-		ProgressText += " %";
+		ProgressText += " %%";
 		ImGui::SetCursorPosX(90);
 		ImGui::Text(ProgressText.c_str());
+
+		std::string TimeToFinish = "Time left: " + JITTER_MANAGER.GetTimeToFinishFormated();
+		int TextWidth = static_cast<int>(ImGui::CalcTextSize(TimeToFinish.c_str()).x);
+		ImGui::SetCursorPosX(300 / 2.0f - TextWidth / 2.0f);
+		ImGui::Text(TimeToFinish.c_str());
 
 		if (bShouldCloseProgressPopup)
 			ImGui::CloseCurrentPopup();
@@ -1048,7 +1053,7 @@ void UIManager::RenderHistogramWindow()
 
 			glm::vec2 MinValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
 			glm::vec2 MaxValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
-			float PercentageOfAreaSelected = (MaxValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f) - (MinValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0f);
+			float PercentageOfAreaSelected = static_cast<float>((MaxValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0) - (MinValueDistribution.x / COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetTotalArea() * 100.0));
 
 			ImGui::SetCursorPos(ImVec2(200.0f, 33.0f));
 			std::string CurrentText = "Selected area: " + TruncateAfterDot(std::to_string(PercentageOfAreaSelected), 3) + " %%";
@@ -1193,7 +1198,7 @@ void UIManager::RenderAboutWindow()
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
-		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 03\\19\\2024";
+		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 05\\09\\2024";
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
@@ -2099,7 +2104,7 @@ void UIManager::UpdateProgressModalPopupCurrentValue()
 {
 	if (bJitterCalculationsInProgress)
 	{
-		ProgressModalPopupCurrentValue = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
+		ProgressModalPopupCurrentValue = JITTER_MANAGER.GetProgress();
 	}
 	else if (bLayerRasterizationCalculationsInProgress)
 	{
