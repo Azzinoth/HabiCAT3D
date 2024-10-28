@@ -1,8 +1,6 @@
 #include "ConsoleJobManager.h"
 using namespace FocalEngine;
 
-ConsoleJobManager* ConsoleJobManager::Instance = nullptr;
-
 ConsoleJobManager::ConsoleJobManager()
 {
 	ConsoleJobSettingsInfo CurrentSettingInfo;
@@ -190,7 +188,7 @@ std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineActi
 		{
 			std::string FilePath = ActionToParse.Settings["filepath"];
 
-			if (FILE_SYSTEM.CheckFile(FilePath.c_str()))
+			if (FILE_SYSTEM.DoesFileExist(FilePath.c_str()))
 			{
 				std::ifstream File(FilePath);
 				std::string Line;

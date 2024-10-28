@@ -19,4 +19,4 @@ private:
 	std::vector<float> Normalize(std::vector<float> Original);
 };
 
-#define COMPARE_LAYER_PRODUCER CompareLayerProducer::getInstance()
+#define COMPARE_LAYER_PRODUCER CompareLayerProducer::GetInstance()

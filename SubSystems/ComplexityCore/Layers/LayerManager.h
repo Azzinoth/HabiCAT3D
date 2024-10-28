@@ -24,4 +24,4 @@ private:
 	std::vector<std::function<void()>> ClientAfterActiveLayerChangedCallbacks;
 };
 
-#define LAYER_MANAGER LayerManager::getInstance()
+#define LAYER_MANAGER LayerManager::GetInstance()

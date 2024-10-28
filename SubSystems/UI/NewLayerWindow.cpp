@@ -1,7 +1,5 @@
 #include "NewLayerWindow.h"
 
-NewLayerWindow* NewLayerWindow::Instance = nullptr;
-
 NewLayerWindow::NewLayerWindow()
 {
 	LayerTypesNames.push_back("Height");

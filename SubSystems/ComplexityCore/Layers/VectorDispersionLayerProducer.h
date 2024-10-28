@@ -28,4 +28,4 @@ private:
 	static void(*OnCalculationsEndCallbackImpl)(MeshLayer);
 };
 
-#define VECTOR_DISPERSION_LAYER_PRODUCER VectorDispersionLayerProducer::getInstance()
+#define VECTOR_DISPERSION_LAYER_PRODUCER VectorDispersionLayerProducer::GetInstance()

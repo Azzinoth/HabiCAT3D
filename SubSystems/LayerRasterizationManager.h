@@ -150,4 +150,4 @@ private:
 	void GDALCopyProjectionAndGeoTransform(GDALDataset* DataSetToChange, std::string ExampleFile);
 };
 
-#define LAYER_RASTERIZATION_MANAGER LayerRasterizationManager::getInstance()
+#define LAYER_RASTERIZATION_MANAGER LayerRasterizationManager::GetInstance()

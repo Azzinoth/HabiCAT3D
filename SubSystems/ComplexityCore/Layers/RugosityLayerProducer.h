@@ -114,5 +114,5 @@ namespace FocalEngine
 		uint64_t StartTime;
 	};
 
-	#define RUGOSITY_LAYER_PRODUCER RugosityLayerProducer::getInstance()
+	#define RUGOSITY_LAYER_PRODUCER RugosityLayerProducer::GetInstance()
 }

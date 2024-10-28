@@ -26,4 +26,4 @@ private:
 	std::string GetCurrentWorkingDirectory();
 };
 
-#define SCREENSHOT_MANAGER ScreenshotManager::getInstance()
+#define SCREENSHOT_MANAGER ScreenshotManager::GetInstance()

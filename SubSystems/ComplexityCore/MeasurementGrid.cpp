@@ -366,8 +366,8 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 				if (!Data[i][j][k].bWasRenderedLastFrame)
 					continue;
 
-				FEAABB FinalAABB = Data[i][j][k].AABB.Transform(TransformMat).Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix());
-				if (FinalAABB.RayIntersect(ENGINE.GetCamera()->GetPosition(), ENGINE.ConstructMouseRay(), DistanceToCell))
+				FEAABB FinalAABB = Data[i][j][k].AABB.Transform(TransformMat).Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetWorldMatrix());
+				if (FinalAABB.RayIntersect(MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE), MAIN_SCENE_MANAGER.GetMouseRayDirection(), DistanceToCell))
 				{
 					if (LastDistanceToCell > DistanceToCell)
 					{
@@ -443,7 +443,7 @@ void MeasurementGrid::AddLinesOfGrid()
 					if (Data[i][j][k].bSelected)
 						Color = glm::vec3(0.9f, 0.1f, 0.1f);
 
-					LINE_RENDERER.RenderAABB(Data[i][j][k].AABB.Transform(MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix()), Color);
+					LINE_RENDERER.RenderAABB(Data[i][j][k].AABB.Transform(MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
 
 					Data[i][j][k].bWasRenderedLastFrame = true;
 
@@ -456,7 +456,7 @@ void MeasurementGrid::AddLinesOfGrid()
 							std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 							for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 							{
-								TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+								TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 							}
 
 							LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));

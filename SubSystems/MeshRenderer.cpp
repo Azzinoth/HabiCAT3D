@@ -1,8 +1,6 @@
 #include "MeshRenderer.h"
 using namespace FocalEngine;
 
-MeshRenderer* MeshRenderer::Instance = nullptr;
-
 MeshRenderer::MeshRenderer() {}
 MeshRenderer::~MeshRenderer() {}
 
@@ -49,12 +47,12 @@ void MeshRenderer::RenderFEMesh(FEMesh* Mesh)
 		MESH_MANAGER.CustomMeshShader->UpdateParameterData("MeasuredRugosityAreaRadius", -1.0f);
 	}
 
-	MESH_MANAGER.ActiveEntity->SetVisibility(true);
+	MESH_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetVisibility(true);
 	FE_GL_ERROR(glBindVertexArray(MESH_MANAGER.ActiveMesh->GetVaoID()));
 
 	if (MESH_MANAGER.ActiveMesh->GetColorCount() > 0) FE_GL_ERROR(glEnableVertexAttribArray(1));
 	if (MESH_MANAGER.GetFirstLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(7));
 	if (MESH_MANAGER.GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
-	RENDERER.RenderEntityForward(MESH_MANAGER.ActiveEntity, ENGINE.GetCamera(), false);
-	MESH_MANAGER.ActiveEntity->SetVisibility(false);
+	RENDERER.RenderGameModelComponentForward(MESH_MANAGER.ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera(), false);
+	MESH_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetVisibility(false);
 }

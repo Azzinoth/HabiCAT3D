@@ -36,6 +36,15 @@ file(RELATIVE_PATH RELATIVE_PATH_TO_ENGINE_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}" 
 set(ENGINE_FOLDER "${RELATIVE_PATH_TO_ENGINE_FOLDER}")
 configure_file(${ENGINE_FOLDER}/ResourceManager/Config.h.in ${ENGINE_FOLDER}/ResourceManager/Config.h @ONLY)
 
+if(USE_STATIC_RUNTIME)
+    # Add standard FocalEngine native scripts
+    # TODO: This should be done in the FocalEngine project, or make it simpler to add it user projects
+    file(GLOB Unpacked_NativeScript_2B7956623302254F620A675F_SRC
+	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/2B7956623302254F620A675F/FirstScript.h"
+	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/2B7956623302254F620A675F/FirstScript.cpp"
+    )
+endif()
+
 # *************** SUB_SYSTEM ***************
 
 file(GLOB SubSystems_SRC
@@ -121,18 +130,28 @@ file(GLOB SubSystems_ConsoleJobs_SRC
 	"SubSystems/ConsoleJobs/ConsoleJobManager.cpp"
 )
 
-file(GLOB source_SRC
-	"EngineInclude.h"
+set(MAIN_SOURCE_FILES "")
+list(APPEND MAIN_SOURCE_FILES
+    "EngineInclude.h"
+	"EngineInclude.cpp"
 	"main.cpp"
 	"HabiCAT3D.rc"
 )
+
+set(EXTRACTED_NATIVE_SCRIPTS "")
+if(USE_STATIC_RUNTIME)
+	list(APPEND EXTRACTED_NATIVE_SCRIPTS
+		${Unpacked_NativeScript_2B7956623302254F620A675F_SRC}
+	)
+endif()
 
 link_directories(${GLEW_LIB_DIR})
 link_directories(${GLFW_LIB_DIR})
 
 # add the executable
 add_executable(HabiCAT3D WIN32
-					     ${source_SRC}
+					     ${MAIN_SOURCE_FILES}
+						 ${EXTRACTED_NATIVE_SCRIPTS}
 					     # *************** SUB_SYSTEM ***************
 					     ${SubSystems_SRC}
 					     ${SubSystems_Layers_SRC}
@@ -148,7 +167,10 @@ target_link_libraries(HabiCAT3D
 		${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/gdal_i.lib
 )
 
-source_group("Source Files" FILES ${source_SRC})
+source_group("Source Files" FILES ${MAIN_SOURCE_FILES})
+if(USE_STATIC_RUNTIME)
+	source_group("Source Files/FocalEngine/2B7956623302254F620A675F" FILES ${EXTRACTED_NATIVE_SCRIPTS})
+endif()
 # *************** SUB_SYSTEM ***************
 source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
 source_group("Source Files/SubSystems/ComplexityCore" FILES ${SubSystems_ComplexityCore_SRC})

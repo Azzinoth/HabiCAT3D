@@ -553,4 +553,4 @@ private:
 	uint64_t ApproximateTimeToFinishInMS;
 };
 
-#define JITTER_MANAGER JitterManager::getInstance()
+#define JITTER_MANAGER JitterManager::GetInstance()

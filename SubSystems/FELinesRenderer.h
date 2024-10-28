@@ -74,4 +74,4 @@ private:
 	int PointsToRender = 0;
 };
 
-#define LINE_RENDERER FELinesRenderer::getInstance()
+#define LINE_RENDERER FELinesRenderer::GetInstance()

@@ -17,3 +17,21 @@ static auto GetTurboColorMap = [](float NormalizedValue) -> glm::vec3 {
 					 static_cast<float>(turbo_srgb_floats[Index][1]),
 					 static_cast<float>(turbo_srgb_floats[Index][2]));
 };
+
+class MainSceneManager
+{
+public:
+	SINGLETON_PUBLIC_PART(MainSceneManager)
+
+	FEScene* GetMainScene();
+	FEEntity* GetMainCamera();
+
+	glm::dvec3 GetMouseRayDirection();
+private:
+	SINGLETON_PRIVATE_PART(MainSceneManager)
+
+	FEScene* MainScene;
+	FEEntity* MainCamera;
+};
+
+#define MAIN_SCENE_MANAGER MainSceneManager::GetInstance()

@@ -3,27 +3,6 @@ using namespace FocalEngine;
 
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
 
-void SwapCamera(bool bModelCamera)
-{
-	if (bModelCamera)
-	{
-		FEModelViewCamera* NewCamera = new FEModelViewCamera("New ModelViewCamera");
-		NewCamera->SetAspectRatio(static_cast<float>(ENGINE.GetRenderTargetWidth()) / static_cast<float>(ENGINE.GetRenderTargetHeight()));
-
-		NewCamera->SetTrackingObjectPosition(glm::vec3(0.0f));
-		ENGINE.SetCamera(NewCamera);
-	}
-	else
-	{
-		FEFreeCamera* NewCamera = new FEFreeCamera("mainCamera");
-		NewCamera->SetAspectRatio(static_cast<float>(ENGINE.GetRenderTargetWidth()) / static_cast<float>(ENGINE.GetRenderTargetHeight()));
-
-		ENGINE.SetCamera(NewCamera);
-	}
-
-	ENGINE.GetCamera()->SetIsInputActive(false);
-}
-
 double MouseX;
 double MouseY;
 
@@ -47,38 +26,23 @@ void DropCallback(int Count, const char** Paths)
 	}
 }
 
-void ScrollCall(double Xoffset, double Yoffset)
-{
-	if (MESH_MANAGER.ActiveMesh == nullptr)
-		return;
-
-	FEBasicCamera* CurrentCamera = ENGINE.GetCamera();
-	if (CurrentCamera->GetCameraType() == 2)
-	{
-		FEModelViewCamera* ModelViewCamera = reinterpret_cast<FEModelViewCamera*>(CurrentCamera);
-		if (!ImGui::GetIO().WantCaptureMouse)
-			ModelViewCamera->SetDistanceToModel(ModelViewCamera->GetDistanceToModel() + Yoffset * MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 0.05f);
-	}
-}
-
 void AfterMeshLoads()
 {
 	if (MESH_MANAGER.ActiveEntity != nullptr)
 	{
 		MESH_MANAGER.ClearBuffers();
 
-		SCENE.DeleteEntity(MESH_MANAGER.ActiveEntity->GetObjectID());
+		MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(MESH_MANAGER.ActiveEntity->GetObjectID());
 		MESH_MANAGER.ActiveEntity = nullptr;
 	}
 
 	FEGameModel* NewGameModel = RESOURCE_MANAGER.CreateGameModel(MESH_MANAGER.ActiveMesh, MESH_MANAGER.CustomMaterial);
-	FEPrefab* NewPrefab = RESOURCE_MANAGER.CreatePrefab(NewGameModel);
-
-	MESH_MANAGER.ActiveEntity = SCENE.AddEntity(NewPrefab);
+	MESH_MANAGER.ActiveEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Main entity");
+	MESH_MANAGER.ActiveEntity->AddComponent<FEGameModelComponent>(NewGameModel);
 
 	if (!APPLICATION.HasConsoleWindow())
 	{
-		MESH_MANAGER.ActiveEntity->Transform.SetPosition(-MESH_MANAGER.ActiveMesh->GetAABB().GetCenter());
+		MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().SetPosition(-MESH_MANAGER.ActiveMesh->GetAABB().GetCenter());
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->SetPosition(-MESH_MANAGER.ActiveMesh->GetAABB().GetCenter());
 	}
 
@@ -89,7 +53,7 @@ void AfterMeshLoads()
 		UI.SetIsModelCamera(true);
 		MESH_MANAGER.CustomMeshShader->UpdateParameterData("lightDirection", glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
 	}
-	
+
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
 }
@@ -113,7 +77,7 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
 		for (size_t i = 0; i < TranformedTrianglePoints.size(); i++)
 		{
-			TranformedTrianglePoints[i] = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
+			TranformedTrianglePoints[i] = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
 		}
 
 		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
@@ -146,7 +110,7 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 			std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[i]];
 			for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 			{
-				TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+				TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 			}
 
 			LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
@@ -207,17 +171,17 @@ void mouseButtonCallback(int button, int action, int mods)
 {
 	if (ImGui::GetIO().WantCaptureMouse)
 	{
-		ENGINE.GetCamera()->SetIsInputActive(false);
+		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
 		return;
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS)
 	{
-		ENGINE.GetCamera()->SetIsInputActive(true);
+		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(true);
 	}
 	else if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_RELEASE)
 	{
-		ENGINE.GetCamera()->SetIsInputActive(false);
+		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
@@ -228,11 +192,11 @@ void mouseButtonCallback(int button, int action, int mods)
 		{
 			if (UI.GetLayerSelectionMode() == 1)
 			{
-				MESH_MANAGER.SelectTriangle(ENGINE.ConstructMouseRay());
+				MESH_MANAGER.SelectTriangle(MAIN_SCENE_MANAGER.GetMouseRayDirection());
 			}
 			else if (UI.GetLayerSelectionMode() == 2)
 			{
-				if (MESH_MANAGER.SelectTrianglesInRadius(ENGINE.ConstructMouseRay(), UI.GetRadiusOfAreaToMeasure()) && UI.GetOutputSelectionToFile())
+				if (MESH_MANAGER.SelectTrianglesInRadius(MAIN_SCENE_MANAGER.GetMouseRayDirection(), UI.GetRadiusOfAreaToMeasure()) && UI.GetOutputSelectionToFile())
 				{
 					OutputSelectedAreaInfoToFile();
 				}
@@ -255,7 +219,7 @@ void mouseButtonCallback(int button, int action, int mods)
 void WindowResizeCallback(int Width, int Height)
 {
 	int W, H;
-	UI.MainWindow->GetSize(&W, &H);
+	APPLICATION.GetMainWindow()->GetSize(&W, &H);
 
 	UI.ApplyStandardWindowsSizeAndPosition();
 	SCREENSHOT_MANAGER.RenderTargetWasResized();
@@ -276,7 +240,7 @@ void AddFontOnSecondFrame()
 		{
 			glfwMakeContextCurrent(APPLICATION.GetMainWindow()->GetGlfwWindow());
 			ImGui::SetCurrentContext(APPLICATION.GetMainWindow()->GetImGuiContext());
-		
+
 			bFontCreated = true;
 			ImGui::GetIO().Fonts->AddFontFromFileTTF("Resources/Cousine-Regular.ttf", 32);
 			ImGui::GetIO().Fonts->Build();
@@ -295,7 +259,7 @@ void ConsoleMainFunction()
 	}
 
 	// To ensure initialisation of JITTER_MANAGER
-	JITTER_MANAGER.getInstance();
+	JITTER_MANAGER.GetInstance();
 
 	while (true)
 	{
@@ -329,9 +293,6 @@ void MainWindowRender()
 		SCREENSHOT_MANAGER.TakeScreenshot();
 		return;
 	}
-
-	if (ENGINE.GetCamera()->GetCameraType() == 1)
-		ENGINE.RenderTargetCenterForCamera(reinterpret_cast<FEFreeCamera*>(ENGINE.GetCamera()));
 
 	if (MESH_MANAGER.ActiveEntity != nullptr)
 	{
@@ -444,25 +405,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		GLFWimage Icon = ConvertIconToGLFWImage(LoadIcon(hInstance, MAKEINTRESOURCE(101)));
 		glfwSetWindowIcon(MainWindow->GetGlfwWindow(), 1, &Icon);
 
-		UI.MainWindow = MainWindow;
-		UI.MainWindow->SetRenderFunction(MainWindowRender);
+		APPLICATION.GetMainWindow()->SetRenderFunction(MainWindowRender);
+		APPLICATION.GetMainWindow()->AddOnDropCallback(DropCallback);
+		APPLICATION.GetMainWindow()->AddOnMouseMoveCallback(MouseMoveCallback);
+		APPLICATION.GetMainWindow()->AddOnMouseButtonCallback(mouseButtonCallback);
+		APPLICATION.GetMainWindow()->AddOnResizeCallback(WindowResizeCallback);
 
-		UI.MainWindow->AddOnDropCallback(DropCallback);
-		UI.MainWindow->AddOnMouseMoveCallback(MouseMoveCallback);
-		UI.MainWindow->AddOnMouseButtonCallback(mouseButtonCallback);
-		UI.MainWindow->AddOnResizeCallback(WindowResizeCallback);
-		UI.MainWindow->AddOnScrollCallback(ScrollCall);
+		FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
 
-		ENGINE.SetClearColor(glm::vec4(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w));
-		RENDERER.SetSkyEnabled(false);
-
-		UI.SwapCameraImpl = SwapCamera;
+		CameraEntity->GetComponent<FECameraComponent>().SetClearColor(glm::vec4(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w));
 
 		MESH_MANAGER.AddLoadCallback(AfterMeshLoads);
 
 		SCREENSHOT_MANAGER.Init();
 
-		ENGINE.GetCamera()->SetIsInputActive(false);
+		// SetIsInputActive
+		CameraEntity->GetComponent<FECameraComponent>().SetActive(false);
 
 		while (ENGINE.IsNotTerminated())
 		{

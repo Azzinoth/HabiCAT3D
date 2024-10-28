@@ -1,7 +1,6 @@
 #include "FractalDimensionLayerProducer.h"
 using namespace FocalEngine;
 
-FractalDimensionLayerProducer* FractalDimensionLayerProducer::Instance = nullptr;
 void(*FractalDimensionLayerProducer::OnCalculationsEndCallbackImpl)(MeshLayer) = nullptr;
 
 FractalDimensionLayerProducer::FractalDimensionLayerProducer()
@@ -129,7 +128,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	double FractalDimension = RunOnAllInternalNodesWithTriangles(CurrentNode, [&](int BoxSizeIndex, FEAABB BoxAABB) {
 		if (BoxSizeIndex == DebugBoxSizeIndex)
 		{
-			FEAABB TransformedBox = BoxAABB.Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetTransformMatrix());
+			FEAABB TransformedBox = BoxAABB.Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetWorldMatrix());
 			LINE_RENDERER.RenderAABB(TransformedBox, glm::vec3(1.0, 0.0, 0.0));
 			DebugBoxCount++;
 		}

@@ -1,8 +1,6 @@
 #include "FELinesRenderer.h"
 using namespace FocalEngine;
 
-FELinesRenderer* FELinesRenderer::Instance = nullptr;
-
 FECustomLine::FECustomLine(glm::vec3 PointA, glm::vec3 PointB, glm::vec3 Color)
 {
 	A = PointA;
@@ -27,8 +25,8 @@ void FELinesRenderer::Render()
 
 	LineShader->Start();
 
-	LineShader->UpdateParameterData("FEViewMatrix", ENGINE.GetCamera()->GetViewMatrix());
-	LineShader->UpdateParameterData("FEProjectionMatrix", ENGINE.GetCamera()->GetProjectionMatrix());
+	LineShader->UpdateParameterData("FEViewMatrix", MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().GetViewMatrix());
+	LineShader->UpdateParameterData("FEProjectionMatrix", MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().GetProjectionMatrix());
 	LineShader->LoadDataToGPU();
 
 	FE_GL_ERROR(glBindVertexArray(LineVAO));

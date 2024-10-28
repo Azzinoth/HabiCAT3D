@@ -4,10 +4,7 @@ namespace FocalEngine
 {
 	struct RugosityMeshLayerDebugInfo;
 }
-
 using namespace FocalEngine;
-
-CompareLayerProducer* CompareLayerProducer::Instance = nullptr;
 
 CompareLayerProducer::CompareLayerProducer() {}
 CompareLayerProducer::~CompareLayerProducer() {}

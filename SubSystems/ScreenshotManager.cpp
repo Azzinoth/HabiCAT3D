@@ -1,8 +1,6 @@
 #include "ScreenshotManager.h"
 using namespace FocalEngine;
 
-ScreenshotManager* ScreenshotManager::Instance = nullptr;
-
 ScreenshotManager::ScreenshotManager() {}
 ScreenshotManager::~ScreenshotManager() {}
 
@@ -135,11 +133,12 @@ void ScreenshotManager::TakeScreenshot()
 	FrameBufferObject->Bind();
 	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-	ENGINE.GetCamera()->Move(10);
+	// FXI ME!
+	//ENGINE.GetCamera()->Move(10);
 
 	if (MESH_MANAGER.ActiveEntity != nullptr)
 	{
-		RENDERER.RenderEntityForward(MESH_MANAGER.ActiveEntity, ENGINE.GetCamera());
+		RENDERER.RenderGameModelComponentForward(MESH_MANAGER.ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera());
 	}
 
 	UI.Render(true);

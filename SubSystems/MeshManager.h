@@ -410,4 +410,4 @@ private:
 	glm::vec3 MeasuredRugosityAreaCenter = glm::vec3(0.0f);
 };
 
-#define MESH_MANAGER MeshManager::getInstance()
+#define MESH_MANAGER MeshManager::GetInstance()

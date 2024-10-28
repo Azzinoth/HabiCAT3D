@@ -1,8 +1,6 @@
 #include "TriangleEdgeLayerProducer.h"
 using namespace FocalEngine;
 
-TriangleEdgeLayerProducer* TriangleEdgeLayerProducer::Instance = nullptr;
-
 TriangleEdgeLayerProducer::TriangleEdgeLayerProducer() {}
 TriangleEdgeLayerProducer::~TriangleEdgeLayerProducer() {}
 

@@ -13,4 +13,4 @@ private:
 	SINGLETON_PRIVATE_PART(AreaLayerProducer)
 };
 
-#define AREA_LAYER_PRODUCER AreaLayerProducer::getInstance()
+#define AREA_LAYER_PRODUCER AreaLayerProducer::GetInstance()

@@ -1,8 +1,6 @@
 #include "MeshManager.h"
 using namespace FocalEngine;
 
-MeshManager* MeshManager::Instance = nullptr;
-
 MeshManager::MeshManager()
 {
 	if (!APPLICATION.HasConsoleWindow())
@@ -20,7 +18,7 @@ MeshManager::~MeshManager() {}
 FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
 	FEMesh* Result = nullptr;
-	FEObjLoader& OBJLoader = FEObjLoader::getInstance();
+	FEObjLoader& OBJLoader = FEObjLoader::GetInstance();
 	OBJLoader.ForceOneMesh(bForceOneMesh);
 	OBJLoader.ForcePositionNormalization(true);
 	OBJLoader.UseDoublePrecisionForReadingCoordinates(true);
@@ -274,7 +272,7 @@ FEMesh* MeshManager::LoadMesh(std::string FileName)
 {
 	FEMesh* Result = nullptr;
 
-	if (!FILE_SYSTEM.CheckFile(FileName.c_str()))
+	if (!FILE_SYSTEM.DoesFileExist(FileName.c_str()))
 		return Result;
 
 	std::string FileExtention = FILE_SYSTEM.GetFileExtension(FileName.c_str());
@@ -407,10 +405,11 @@ bool MeshManager::SelectTriangle(glm::dvec3 MouseRay)
 		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
-			TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+			//TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+			TranformedTrianglePoints[j] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
-		const bool bHit = GEOMETRY.IsRayIntersectingTriangle(ENGINE.GetCamera()->GetPosition(), MouseRay, TranformedTrianglePoints, CurrentDistance);
+		const bool bHit = GEOMETRY.IsRayIntersectingTriangle(MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE), MouseRay, TranformedTrianglePoints, CurrentDistance);
 
 		if (bHit && CurrentDistance < LastDistance)
 		{
@@ -441,17 +440,19 @@ glm::vec3 MeshManager::IntersectTriangle(glm::dvec3 MouseRay)
 		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
-			TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+			//TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+			TranformedTrianglePoints[j] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
 		glm::dvec3 HitPosition;
-		const bool bHit = GEOMETRY.IsRayIntersectingTriangle(ENGINE.GetCamera()->GetPosition(), MouseRay, TranformedTrianglePoints, CurrentDistance, &HitPosition);
+		const bool bHit = GEOMETRY.IsRayIntersectingTriangle(MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE), MouseRay, TranformedTrianglePoints, CurrentDistance, &HitPosition);
 
 		if (bHit && CurrentDistance < LastDistance)
 		{
 			LastDistance = CurrentDistance;
 
-			const glm::mat4 Inverse = glm::inverse(ActiveEntity->Transform.GetTransformMatrix());
+			//const glm::mat4 Inverse = glm::inverse(ActiveEntity->Transform.GetTransformMatrix());
+			const glm::mat4 Inverse = glm::inverse(ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix());
 			return Inverse * glm::vec4(HitPosition, 1.0f);
 		}
 	}
@@ -472,7 +473,8 @@ bool MeshManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
 		return Result;
 
 	MeasuredRugosityAreaRadius = Radius;
-	MeasuredRugosityAreaCenter = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]], 1.0f);
+	//MeasuredRugosityAreaCenter = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]], 1.0f);
+	MeasuredRugosityAreaCenter = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]], 1.0f);
 
 	const glm::dvec3 FirstSelectedTriangleCentroid = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
 

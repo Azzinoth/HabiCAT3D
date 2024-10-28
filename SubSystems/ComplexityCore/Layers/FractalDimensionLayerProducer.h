@@ -44,4 +44,4 @@ private:
 	double RunOnAllInternalNodesWithTriangles(GridNode* OuterNode, std::function<void(int BoxSizeIndex, FEAABB BoxAABB)> FunctionWithAdditionalCode = nullptr);
 };
 
-#define FRACTAL_DIMENSION_LAYER_PRODUCER FractalDimensionLayerProducer::getInstance()
+#define FRACTAL_DIMENSION_LAYER_PRODUCER FractalDimensionLayerProducer::GetInstance()

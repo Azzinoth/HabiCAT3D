@@ -54,4 +54,4 @@ public:
 	std::vector<std::string> GetNewLayerName();
 };
 
-#define NEW_LAYER_WINDOW NewLayerWindow::getInstance()
+#define NEW_LAYER_WINDOW NewLayerWindow::GetInstance()

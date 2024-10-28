@@ -1,7 +1,7 @@
 #include "UIManager.h"
 using namespace FocalEngine;
-UIManager* UIManager::Instance = nullptr;
-void(*UIManager::SwapCameraImpl)(bool) = nullptr;
+
+//void(*UIManager::SwapCameraImpl)(bool) = nullptr;
 
 UIManager::UIManager()
 {
@@ -56,64 +56,223 @@ std::string TruncateAfterDot(std::string FloatingPointNumber, const int DigitCou
 	return FloatingPointNumber;
 }
 
+void ShowToolTip(const char* Text)
+{
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::BeginTooltip();
+		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+		ImGui::TextUnformatted(Text);
+		ImGui::PopTextWrapPos();
+		ImGui::EndTooltip();
+	}
+}
+
 void UIManager::ShowTransformConfiguration(const std::string Name, FETransformComponent* Transform)
 {
+	static float EditWidth = 70.0f;
+	bool bModified = false;
 	// ********************* POSITION *********************
-	glm::vec3 position = Transform->GetPosition();
+	glm::vec3 Position = Transform->GetPosition();
 	ImGui::Text("Position : ");
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##X pos : ") + Name).c_str(), &position[0], 0.1f);
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##X pos : ") + Name).c_str(), &Position[0], 0.1f))
+		bModified = true;
+	ShowToolTip("X position");
 
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##Y pos : ") + Name).c_str(), &position[1], 0.1f);
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##Y pos : ") + Name).c_str(), &Position[1], 0.1f))
+		bModified = true;
+	ShowToolTip("Y position");
 
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##Z pos : ") + Name).c_str(), &position[2], 0.1f);
-	Transform->SetPosition(position);
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##Z pos : ") + Name).c_str(), &Position[2], 0.1f))
+		bModified = true;
+	ShowToolTip("Z position");
+
+	if (bModified)
+		Transform->SetPosition(Position);
+
+	bModified = false;
+
+	// ********************* WORLD POSITION *********************
+	glm::vec3 WorldPosition = Transform->GetPosition(FE_WORLD_SPACE);
+	ImGui::Text("World Position : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##World X pos : ") + Name).c_str(), &WorldPosition[0], 0.1f))
+		bModified = true;
+	ShowToolTip("X position");
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##World Y pos : ") + Name).c_str(), &WorldPosition[1], 0.1f))
+		bModified = true;
+	ShowToolTip("Y position");
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##World Z pos : ") + Name).c_str(), &WorldPosition[2], 0.1f))
+		bModified = true;
+	ShowToolTip("Z position");
+
+	if (bModified)
+		Transform->SetPosition(WorldPosition, FE_WORLD_SPACE);
+
+	bModified = false;
 
 	// ********************* ROTATION *********************
-	glm::vec3 rotation = Transform->GetRotation();
+	glm::vec3 Rotation = Transform->GetRotation();
 	ImGui::Text("Rotation : ");
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##X rot : ") + Name).c_str(), &rotation[0], 0.1f, -360.0f, 360.0f);
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##X rot : ") + Name).c_str(), &Rotation[0], 0.1f, -360.0f, 360.0f))
+		bModified = true;
+	ShowToolTip("X rotation");
 
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##Y rot : ") + Name).c_str(), &rotation[1], 0.1f, -360.0f, 360.0f);
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##Y rot : ") + Name).c_str(), &Rotation[1], 0.1f, -360.0f, 360.0f))
+		bModified = true;
+	ShowToolTip("Y rotation");
 
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##Z rot : ") + Name).c_str(), &rotation[2], 0.1f, -360.0f, 360.0f);
-	Transform->SetRotation(rotation);
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##Z rot : ") + Name).c_str(), &Rotation[2], 0.1f, -360.0f, 360.0f))
+		bModified = true;
+	ShowToolTip("Z rotation");
+
+	if (bModified)
+		Transform->SetRotation(Rotation);
+
+	bModified = false;
+
+	// ********************* WORLD ROTATION *********************
+	glm::vec3 WorldRotation = Transform->GetRotation(FE_WORLD_SPACE);
+	ImGui::Text("World Rotation : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##World X rot : ") + Name).c_str(), &WorldRotation[0], 0.1f, -360.0f, 360.0f))
+		bModified = true;
+	ShowToolTip("X rotation");
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##World Y rot : ") + Name).c_str(), &WorldRotation[1], 0.1f, -360.0f, 360.0f))
+		bModified = true;
+	ShowToolTip("Y rotation");
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##World Z rot : ") + Name).c_str(), &WorldRotation[2], 0.1f, -360.0f, 360.0f))
+		bModified = true;
+	ShowToolTip("Z rotation");
+
+	if (bModified)
+		Transform->SetRotation(WorldRotation, FE_WORLD_SPACE);
+
+	bModified = false;
 
 	// ********************* SCALE *********************
-	bool bTemp = Transform->IsUniformScalingSet();
-	ImGui::Checkbox("Uniform scaling", &bTemp);
-	Transform->SetUniformScaling(bTemp);
-	Transform->IsUniformScalingSet();
+	bool bUniformScaling = Transform->IsUniformScalingSet();
+	ImGui::Checkbox("Uniform scaling", &bUniformScaling);
+	Transform->SetUniformScaling(bUniformScaling);
 
-	glm::vec3 scale = Transform->GetScale();
+	glm::vec3 Scale = Transform->GetScale();
+	float ScaleChangeSpeed = Scale.x * 0.01f;
 	ImGui::Text("Scale : ");
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##X scale : ") + Name).c_str(), &scale[0], 0.01f, 0.01f, 1000.0f);
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##X scale : ") + Name).c_str(), &Scale[0], ScaleChangeSpeed, 0.001f, 1000.0f))
+	{
+		bModified = true;
+		if (bUniformScaling)
+		{
+			Scale[1] = Scale[0];
+			Scale[2] = Scale[0];
+		}
+	}
+	ShowToolTip("X scale");
 
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##Y scale : ") + Name).c_str(), &scale[1], 0.01f, 0.01f, 1000.0f);
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##Y scale : ") + Name).c_str(), &Scale[1], ScaleChangeSpeed, 0.001f, 1000.0f))
+	{
+		bModified = true;
+		if (bUniformScaling)
+		{
+			Scale[0] = Scale[1];
+			Scale[2] = Scale[1];
+		}
+	}
+	ShowToolTip("Y scale");
 
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(50);
-	ImGui::DragFloat((std::string("##Z scale : ") + Name).c_str(), &scale[2], 0.01f, 0.01f, 1000.0f);
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##Z scale : ") + Name).c_str(), &Scale[2], ScaleChangeSpeed, 0.001f, 1000.0f))
+	{
+		bModified = true;
+		if (bUniformScaling)
+		{
+			Scale[0] = Scale[2];
+			Scale[1] = Scale[2];
+		}
+	}
+	ShowToolTip("Z scale");
 
-	glm::vec3 oldScale = Transform->GetScale();
-	Transform->ChangeXScaleBy(scale[0] - oldScale[0]);
-	Transform->ChangeYScaleBy(scale[1] - oldScale[1]);
-	Transform->ChangeZScaleBy(scale[2] - oldScale[2]);
+	if (bModified)
+		Transform->SetScale(Scale);
+
+	bModified = false;
+
+	// ********************* WORLD SCALE *********************
+	glm::vec3 WorldScale = Transform->GetScale(FE_WORLD_SPACE);
+	ScaleChangeSpeed = WorldScale.x * 0.01f;
+	ImGui::Text("World Scale : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##World X scale : ") + Name).c_str(), &WorldScale[0], ScaleChangeSpeed, 0.001f, 1000.0f))
+	{
+		bModified = true;
+		if (bUniformScaling)
+		{
+			WorldScale[1] = WorldScale[0];
+			WorldScale[2] = WorldScale[0];
+		}
+	}
+	ShowToolTip("X scale");
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##World Y scale : ") + Name).c_str(), &WorldScale[1], ScaleChangeSpeed, 0.001f, 1000.0f))
+	{
+		bModified = true;
+		if (bUniformScaling)
+		{
+			WorldScale[0] = WorldScale[1];
+			WorldScale[2] = WorldScale[1];
+		}
+	}
+	ShowToolTip("Y scale");
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(EditWidth);
+	if (ImGui::DragFloat((std::string("##World Z scale : ") + Name).c_str(), &WorldScale[2], ScaleChangeSpeed, 0.001f, 1000.0f))
+	{
+		bModified = true;
+		if (bUniformScaling)
+		{
+			WorldScale[0] = WorldScale[2];
+			WorldScale[1] = WorldScale[2];
+		}
+	}
+	ShowToolTip("Z scale");
+
+	if (bModified)
+		Transform->SetScale(WorldScale, FE_WORLD_SPACE);
 }
 
 void UIManager::ShowCameraTransform()
@@ -121,22 +280,22 @@ void UIManager::ShowCameraTransform()
 	if (!bModelCamera)
 	{
 		// ********* POSITION *********
-		glm::vec3 cameraPosition = ENGINE.GetCamera()->GetPosition();
+		glm::vec3 CameraPosition = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE);
 
 		ImGui::Text("Position : ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##X pos", &cameraPosition[0], 0.1f);
+		ImGui::DragFloat("##X pos", &CameraPosition[0], 0.1f);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##Y pos", &cameraPosition[1], 0.1f);
+		ImGui::DragFloat("##Y pos", &CameraPosition[1], 0.1f);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##Z pos", &cameraPosition[2], 0.1f);
+		ImGui::DragFloat("##Z pos", &CameraPosition[2], 0.1f);
 
-		ENGINE.GetCamera()->SetPosition(cameraPosition);
+		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().SetPosition(CameraPosition, FE_WORLD_SPACE);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
@@ -153,7 +312,7 @@ void UIManager::ShowCameraTransform()
 		}
 
 		// ********* ROTATION *********
-		glm::vec3 CameraRotation = glm::vec3(ENGINE.GetCamera()->GetYaw(), ENGINE.GetCamera()->GetPitch(), ENGINE.GetCamera()->GetRoll());
+		glm::vec3 CameraRotation = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetRotation(FE_WORLD_SPACE);
 
 		ImGui::Text("Rotation : ");
 		ImGui::SameLine();
@@ -175,9 +334,7 @@ void UIManager::ShowCameraTransform()
 			APPLICATION.SetClipboardText(CameraRotationToStr());
 		}
 
-		ENGINE.GetCamera()->SetYaw(CameraRotation[0]);
-		ENGINE.GetCamera()->SetPitch(CameraRotation[1]);
-		ENGINE.GetCamera()->SetRoll(CameraRotation[2]);
+		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().SetRotation(CameraRotation, FE_WORLD_SPACE);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
@@ -186,14 +343,14 @@ void UIManager::ShowCameraTransform()
 			StrToCameraRotation(APPLICATION.GetClipboardText());
 		}
 
-		float CameraSpeed = ENGINE.GetCamera()->GetMovementSpeed();
+		FENativeScriptComponent& NativeScriptComponent = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FENativeScriptComponent>();
+		float CameraSpeed = 0.0f;
+		NativeScriptComponent.GetVariableValue<float>("MovementSpeed", CameraSpeed);
 		ImGui::Text("Camera speed: ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(70);
 		ImGui::DragFloat("##Camera_speed", &CameraSpeed, 0.01f, 0.01f, 100.0f);
-		ENGINE.GetCamera()->SetMovementSpeed(CameraSpeed);
-
-		ENGINE.GetCamera()->UpdateViewMatrix();
+		NativeScriptComponent.SetVariableValue("MovementSpeed", CameraSpeed);
 
 		if (bDeveloperMode)
 		{
@@ -241,6 +398,12 @@ void UIManager::SetDeveloperMode(const bool NewValue)
 
 void UIManager::Render(bool bScreenshotMode)
 {
+	if (APPLICATION.GetMainWindow() == nullptr)
+		return;
+	
+	if (bPreviousFrameWindowWasNull)
+		bPreviousFrameWindowWasNull = false;
+
 	if (bScreenshotMode)
 	{
 		RenderLegend(bScreenshotMode);
@@ -315,7 +478,7 @@ void UIManager::Render(bool bScreenshotMode)
 	{
 		int WindowW = 0;
 		int WindowH = 0;
-		MainWindow->GetSize(&WindowW, &WindowH);
+		APPLICATION.GetMainWindow()->GetSize(&WindowW, &WindowH);
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		UpdateProgressModalPopupCurrentValue();
@@ -338,7 +501,7 @@ void UIManager::Render(bool bScreenshotMode)
 
 std::string UIManager::CameraPositionToStr()
 {
-	const glm::vec3 CameraPosition = ENGINE.GetCamera()->GetPosition();
+	const glm::vec3 CameraPosition = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE);
 	return "( X:" + std::to_string(CameraPosition.x) + " Y:" + std::to_string(CameraPosition.y) + " Z:" + std::to_string(CameraPosition.z) + " )";
 }
 
@@ -401,12 +564,12 @@ void UIManager::StrToCameraPosition(std::string Text)
 
 	const float Z = float(atof(temp.c_str()));
 
-	ENGINE.GetCamera()->SetPosition(glm::vec3(X, Y, Z));
+	MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().SetPosition(glm::vec3(X, Y, Z), FE_WORLD_SPACE);
 }
 
 std::string UIManager::CameraRotationToStr()
 {
-	const glm::vec3 CameraRotation = glm::vec3(ENGINE.GetCamera()->GetYaw(), ENGINE.GetCamera()->GetPitch(), ENGINE.GetCamera()->GetRoll());
+	const glm::vec3 CameraRotation = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetRotation(FE_WORLD_SPACE);
 	return "( X:" + std::to_string(CameraRotation.x) + " Y:" + std::to_string(CameraRotation.y) + " Z:" + std::to_string(CameraRotation.z) + " )";
 }
 
@@ -469,9 +632,7 @@ void UIManager::StrToCameraRotation(std::string Text)
 
 	const float Z = float(atof(temp.c_str()));
 
-	ENGINE.GetCamera()->SetYaw(X);
-	ENGINE.GetCamera()->SetPitch(Y);
-	ENGINE.GetCamera()->SetRoll(Z);
+	MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().SetRotation(glm::vec3(X, Y, Z), FE_WORLD_SPACE);
 }
 
 void UIManager::OnMeshUpdate()
@@ -709,14 +870,14 @@ void UIManager::GetUsableSpaceForLayerList(ImVec2& UsableSpaceStart, ImVec2& Usa
 	ImGuiWindow* LegendWindow = ImGui::FindWindowByName("Heat map legend");
 
 	UsableSpaceStart = ImVec2(0.0f, 0.0f);
-	UsableSpaceEnd = ImVec2(static_cast<float>(MainWindow->GetWidth()), static_cast<float>(MainWindow->GetHeight()));
+	UsableSpaceEnd = ImVec2(static_cast<float>(APPLICATION.GetMainWindow()->GetWidth()), static_cast<float>(APPLICATION.GetMainWindow()->GetHeight()));
 	if (SettingsWindow != nullptr && LegendWindow != nullptr)
 	{
 		UsableSpaceStart.x = LegendWindow->Pos.x + LegendWindow->SizeFull.x;
 		UsableSpaceStart.y = 20;
 
 		UsableSpaceEnd.x = SettingsWindow->Pos.x;
-		UsableSpaceEnd.y = static_cast<float>(MainWindow->GetHeight() - 20);
+		UsableSpaceEnd.y = static_cast<float>(APPLICATION.GetMainWindow()->GetHeight() - 20);
 	}
 }
 
@@ -903,33 +1064,96 @@ void UIManager::RenderLayerChooseWindow()
 	ImGui::End();
 }
 
-void UIManager::SetIsModelCamera(const bool NewValue)
+void UIManager::SwapCamera(bool bModelCamera, glm::vec3 ModelCameraFocusPoint)
 {
-	SwapCameraImpl(NewValue);
+	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
+	if (CameraEntity == nullptr)
+		return;
 
-	FEBasicCamera* CurrentCamera = ENGINE.GetCamera();
-
-	CurrentCamera->Reset();
-	CurrentCamera->SetFarPlane(MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 5.0f);
-
-	int MainWindowW = 0;
-	int MainWindowH = 0;
-	MainWindow->GetSize(&MainWindowW, &MainWindowH);
-	CurrentCamera->SetAspectRatio(float(MainWindowW) / float(MainWindowH));
-
-	if (NewValue)
+	if (bModelCamera)
 	{
-		FEModelViewCamera* ModelCamera = reinterpret_cast<FEModelViewCamera*>(CurrentCamera);
-		ModelCamera->SetDistanceToModel(MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f);
+		std::vector<FEPrefab*> CameraPrefab = RESOURCE_MANAGER.GetPrefabByName("Model view camera prefab");
+		if (CameraPrefab.empty())
+			return;
+
+		std::vector<std::string> EntitiesIDList = CameraPrefab[0]->GetScene()->GetEntityIDList();
+		if (EntitiesIDList.empty())
+			return;
+
+		for (size_t i = 0; i < EntitiesIDList.size(); i++)
+		{
+			FEEntity* CurrentEntity = CameraPrefab[0]->GetScene()->GetEntity(EntitiesIDList[i]);
+			if (CurrentEntity == nullptr)
+				continue;
+
+			if (CurrentEntity->HasComponent<FECameraComponent>() && CurrentEntity->HasComponent<FENativeScriptComponent>())
+			{
+				CameraEntity->RemoveComponent<FENativeScriptComponent>();
+				CameraEntity->AddComponent<FENativeScriptComponent>();
+				NATIVE_SCRIPT_SYSTEM.InitializeScriptComponent(CameraEntity, CurrentEntity->GetComponent<FENativeScriptComponent>().GetModuleID(), "ModelViewCameraController");
+				FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
+				NativeScriptComponent.SetVariableValue("TargetPosition", ModelCameraFocusPoint);
+
+				CameraEntity->GetComponent<FECameraComponent>().SetActive(false);
+				return;
+			}
+		}
 	}
 	else
 	{
-		CurrentCamera->SetPosition(glm::vec3(0.0f, 0.0f, MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f));
-		CurrentCamera->SetYaw(0.0f);
-		CurrentCamera->SetPitch(0.0f);
-		CurrentCamera->SetRoll(0.0f);
+		std::vector<FEPrefab*> CameraPrefab = RESOURCE_MANAGER.GetPrefabByName("Free camera prefab");
+		if (CameraPrefab.empty())
+			return;
 
-		CurrentCamera->SetMovementSpeed(MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() / 5.0f);
+		std::vector<std::string> EntitiesIDList = CameraPrefab[0]->GetScene()->GetEntityIDList();
+		if (EntitiesIDList.empty())
+			return;
+
+		for (size_t i = 0; i < EntitiesIDList.size(); i++)
+		{
+			FEEntity* CurrentEntity = CameraPrefab[0]->GetScene()->GetEntity(EntitiesIDList[i]);
+			if (CurrentEntity == nullptr)
+				continue;
+
+			if (CurrentEntity->HasComponent<FECameraComponent>() && CurrentEntity->HasComponent<FENativeScriptComponent>())
+			{
+				CameraEntity->RemoveComponent<FENativeScriptComponent>();
+				CameraEntity->AddComponent<FENativeScriptComponent>();
+				NATIVE_SCRIPT_SYSTEM.InitializeScriptComponent(CameraEntity, CurrentEntity->GetComponent<FENativeScriptComponent>().GetModuleID(), "FreeCameraController");
+
+				CameraEntity->GetComponent<FECameraComponent>().SetActive(false);
+				return;
+			}
+		}
+	}
+}
+
+void UIManager::SetIsModelCamera(const bool NewValue, glm::vec3 ModelCameraFocusPoint)
+{
+	bChooseCameraFocusPointMode = false;
+
+	SwapCamera(NewValue, ModelCameraFocusPoint);
+
+	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
+	if (CameraEntity == nullptr)
+		return;
+
+	FECameraComponent& CameraComponent = CameraEntity->GetComponent<FECameraComponent>();
+	CameraComponent.SetFarPlane(MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 5.0f);
+
+	if (NewValue)
+	{
+		FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
+		NativeScriptComponent.SetVariableValue("DistanceToModel", MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f);
+	}
+	else
+	{
+		FETransformComponent& TransformComponent = CameraEntity->GetComponent<FETransformComponent>();
+		TransformComponent.SetPosition(glm::vec3(0.0f, 0.0f, MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f));
+		TransformComponent.SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
+
+		FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
+		NativeScriptComponent.SetVariableValue("MovementSpeed", MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() / 5.0f);
 	}
 
 	bModelCamera = NewValue;
@@ -1156,21 +1380,21 @@ void UIManager::SetOutputSelectionToFile(const bool NewValue)
 
 void UIManager::ApplyStandardWindowsSizeAndPosition()
 {
-	ImGuiWindow* window = ImGui::FindWindowByName("Histogram");
-	if (window != nullptr)
+	ImGuiWindow* Window = ImGui::FindWindowByName("Histogram");
+	if (Window != nullptr)
 	{
-		window->SizeFull.x = MainWindow->GetWidth() * 0.5f;
-		window->Pos.x = MainWindow->GetWidth() / 2.0f - window->SizeFull.x / 2.0f;
+		Window->SizeFull.x = APPLICATION.GetMainWindow()->GetWidth() * 0.5f;
+		Window->Pos.x = APPLICATION.GetMainWindow()->GetWidth() / 2.0f - Window->SizeFull.x / 2.0f;
 
-		window->SizeFull.y = MainWindow->GetHeight() * 0.35f;
-		window->Pos.y = MainWindow->GetHeight() - 10.0f - window->SizeFull.y;
+		Window->SizeFull.y = APPLICATION.GetMainWindow()->GetHeight() * 0.35f;
+		Window->Pos.y = APPLICATION.GetMainWindow()->GetHeight() - 10.0f - Window->SizeFull.y;
 	}
 
-	window = ImGui::FindWindowByName("Settings");
-	if (window != nullptr)
+	Window = ImGui::FindWindowByName("Settings");
+	if (Window != nullptr)
 	{
-		window->SizeFull.x = MainWindow->GetWidth() * 0.30f;
-		window->SizeFull.y = MainWindow->GetHeight() * 0.7f;
+		Window->SizeFull.x = APPLICATION.GetMainWindow()->GetWidth() * 0.30f;
+		Window->SizeFull.y = APPLICATION.GetMainWindow()->GetHeight() * 0.7f;
 	}
 }
 
@@ -1194,7 +1418,7 @@ void UIManager::RenderAboutWindow()
 	{
 		int WindowW = 0;
 		int WindowH = 0;
-		MainWindow->GetSize(&WindowW, &WindowH);
+		APPLICATION.GetMainWindow()->GetSize(&WindowW, &WindowH);
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
@@ -1549,6 +1773,29 @@ void UIManager::RenderGeneralSettingsTab()
 	if (ImGui::Checkbox("Model camera", &TempBool))
 	{
 		SetIsModelCamera(TempBool);
+	}
+
+	if (bModelCamera && bChooseCameraFocusPointMode && ImGui::IsMouseReleased(0))
+	{
+		glm::dvec3 IntersectionPoint = MESH_MANAGER.IntersectTriangle(MAIN_SCENE_MANAGER.GetMouseRayDirection());
+
+		IntersectionPoint = glm::dvec3(MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(IntersectionPoint, 1.0));
+		if (IntersectionPoint != glm::dvec3(0.0))
+		{
+			SetIsModelCamera(true, IntersectionPoint);
+		}
+	}
+
+	if (bModelCamera)
+	{
+		if (ImGui::Button("Set point on model as a focus point"))
+			bChooseCameraFocusPointMode = true;
+
+		FENativeScriptComponent& NativeScriptComponent = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FENativeScriptComponent>();
+		float ModelCameraMouseWheelSensitivity = 0.0f;
+		NativeScriptComponent.GetVariableValue<float>("MouseWheelSensitivity", ModelCameraMouseWheelSensitivity);
+		ImGui::DragFloat("Mouse wheel sensitivity", &ModelCameraMouseWheelSensitivity, 0.0001f, 0.000001f, 100.0f);
+		NativeScriptComponent.SetVariableValue("MouseWheelSensitivity", ModelCameraMouseWheelSensitivity);
 	}
 
 	ShowCameraTransform();
@@ -1972,16 +2219,16 @@ void UIManager::RenderSettingsWindow()
 {
 	if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove))
 	{
-		ImGuiWindow* window = ImGui::FindWindowByName("Settings");
-		auto AppW = MainWindow->GetWidth();
-		if (window->Size.x >= MainWindow->GetWidth() * 0.9)
+		ImGuiWindow* ImGuiWindow = ImGui::FindWindowByName("Settings");
+		auto AppW = APPLICATION.GetMainWindow()->GetWidth();
+		if (ImGuiWindow->Size.x >= APPLICATION.GetMainWindow()->GetWidth() * 0.9)
 		{
-			window->Size.x = MainWindow->GetWidth() * 0.3f;
-			window->SizeFull.x = MainWindow->GetWidth() * 0.3f;
+			ImGuiWindow->Size.x = APPLICATION.GetMainWindow()->GetWidth() * 0.3f;
+			ImGuiWindow->SizeFull.x = APPLICATION.GetMainWindow()->GetWidth() * 0.3f;
 		}
 
-		window->Pos.x = MainWindow->GetWidth() - (window->SizeFull.x + 1);
-		window->Pos.y = 20;
+		ImGuiWindow->Pos.x = APPLICATION.GetMainWindow()->GetWidth() - (ImGuiWindow->SizeFull.x + 1);
+		ImGuiWindow->Pos.y = 20;
 		
 
 		if (ImGui::BeginTabBar("##Settings", ImGuiTabBarFlags_None))

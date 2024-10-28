@@ -40,7 +40,7 @@ bool FileLoadJob::Execute(void* InputData, void* OutputData)
 {
 	std::cout << "Initiating file load process for: " << FilePath << std::endl;
 
-	if (!FILE_SYSTEM.CheckFile(FilePath.c_str()))
+	if (!FILE_SYSTEM.DoesFileExist(FilePath.c_str()))
 		return false;
 
 	std::cout << "File found. Loading file: " << FilePath << std::endl;

@@ -1,8 +1,6 @@
 #include "AreaLayerProducer.h"
 using namespace FocalEngine;
 
-AreaLayerProducer* AreaLayerProducer::Instance = nullptr;
-
 AreaLayerProducer::AreaLayerProducer() {}
 AreaLayerProducer::~AreaLayerProducer() {}
 

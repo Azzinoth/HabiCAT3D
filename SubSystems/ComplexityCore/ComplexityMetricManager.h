@@ -35,4 +35,4 @@ private:
 	std::vector<std::function<void()>> ClientLoadCallbacks;
 };
 
-#define COMPLEXITY_METRIC_MANAGER ComplexityMetricManager::getInstance()
+#define COMPLEXITY_METRIC_MANAGER ComplexityMetricManager::GetInstance()

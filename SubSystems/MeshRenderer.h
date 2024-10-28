@@ -13,4 +13,4 @@ private:
 	SINGLETON_PRIVATE_PART(MeshRenderer)
 };
 
-#define MESH_RENDERER MeshRenderer::getInstance()
+#define MESH_RENDERER MeshRenderer::GetInstance()

@@ -13,4 +13,4 @@ private:
 	SINGLETON_PRIVATE_PART(TriangleEdgeLayerProducer)
 };
 
-#define TRIANGLE_EDGE_LAYER_PRODUCER TriangleEdgeLayerProducer::getInstance()
+#define TRIANGLE_EDGE_LAYER_PRODUCER TriangleEdgeLayerProducer::GetInstance()

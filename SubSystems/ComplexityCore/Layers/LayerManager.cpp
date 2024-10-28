@@ -1,8 +1,6 @@
 #include "LayerManager.h"
 using namespace FocalEngine;
 
-LayerManager* LayerManager::Instance = nullptr;
-
 LayerManager::LayerManager() {}
 LayerManager::~LayerManager() {}
 

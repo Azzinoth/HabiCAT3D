@@ -9,8 +9,6 @@ class UIManager
 public:
 	SINGLETON_PUBLIC_PART(UIManager)
 
-	FEWindow* MainWindow = nullptr;
-
 	void ShowTransformConfiguration(std::string Name, FETransformComponent* Transform);
 	void ShowCameraTransform();
 
@@ -36,9 +34,10 @@ public:
 	int GetLayerSelectionMode();
 	void SetLayerSelectionMode(int NewValue);
 
-	void SetIsModelCamera(bool NewValue);
+	void SetIsModelCamera(bool NewValue, glm::vec3 ModelCameraFocusPoint = glm::vec3(0.0f));
 
-	static void(*SwapCameraImpl)(bool);
+	//static void(*SwapCameraImpl)(bool);
+	void SwapCamera(bool bModelCamera, glm::vec3 ModelCameraFocusPoint = glm::vec3(0.0f));
 
 	bool GetOutputSelectionToFile();
 	void SetOutputSelectionToFile(bool NewValue);
@@ -63,11 +62,15 @@ public:
 private:
 	SINGLETON_PRIVATE_PART(UIManager)
 
+		bool bPreviousFrameWindowWasNull = true;
+
 	bool bWireframeMode = false;
 	float TimeTookToJitter = 0.0f;
 
 	bool bDeveloperMode = false;
 	bool bModelCamera = true;
+	//float ModelCameraMouseWheelSensitivity = 0.05f;
+	bool bChooseCameraFocusPointMode = false;
 
 	bool bShouldOpenProgressPopup = false;
 	bool bShouldCloseProgressPopup = true;
@@ -87,7 +90,7 @@ private:
 	bool bHistogramPixelBins = false;
 	void UpdateHistogramData(MeshLayer* FromLayer, int NewBinCount);
 	void RenderHistogramWindow();
-		
+
 	bool bJitterCalculationsInProgress = false;
 	static void OnJitterCalculationsStart();
 	static void OnJitterCalculationsEnd(MeshLayer NewLayer);
@@ -123,7 +126,6 @@ private:
 
 	bool MeshAndCurrentLayerIsValid();
 
-	
 	float ProgressModalPopupCurrentValue = 0.0f;
 	void UpdateProgressModalPopupCurrentValue();
 
@@ -133,4 +135,4 @@ private:
 	void RasterizationSettingsUI();
 };
 
-#define UI UIManager::getInstance()
+#define UI UIManager::GetInstance()

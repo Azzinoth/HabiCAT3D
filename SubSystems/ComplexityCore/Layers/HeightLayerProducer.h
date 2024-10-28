@@ -13,4 +13,4 @@ private:
 	SINGLETON_PRIVATE_PART(HeightLayerProducer)
 };
 
-#define HEIGHT_LAYER_PRODUCER HeightLayerProducer::getInstance()
+#define HEIGHT_LAYER_PRODUCER HeightLayerProducer::GetInstance()

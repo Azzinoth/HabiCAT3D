@@ -1,8 +1,6 @@
 #include "ComplexityMetricManager.h"
 using namespace FocalEngine;
 
-ComplexityMetricManager* ComplexityMetricManager::Instance = nullptr;
-
 ComplexityMetricManager::ComplexityMetricManager() {}
 ComplexityMetricManager::~ComplexityMetricManager() {}
 
@@ -22,7 +20,7 @@ void ComplexityMetricManager::AddLoadCallback(std::function<void()> Func)
 
 void ComplexityMetricManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
-	FEObjLoader& ObjLoader = FEObjLoader::getInstance();
+	FEObjLoader& ObjLoader = FEObjLoader::GetInstance();
 	ObjLoader.ForceOneMesh(bForceOneMesh);
 	ObjLoader.ForcePositionNormalization(true);
 	ObjLoader.UseDoublePrecisionForReadingCoordinates(true);

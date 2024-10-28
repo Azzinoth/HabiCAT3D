@@ -1,8 +1,6 @@
 #include "TriangleCountLayerProducer.h"
 using namespace FocalEngine;
 
-TriangleCountLayerProducer* TriangleCountLayerProducer::Instance = nullptr;
-
 TriangleCountLayerProducer::TriangleCountLayerProducer()
 {
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);

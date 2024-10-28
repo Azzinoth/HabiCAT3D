@@ -44,4 +44,4 @@ private:
 	bool bOutputLogToFile = false;
 };
 
-#define CONSOLE_JOB_MANAGER ConsoleJobManager::getInstance()
+#define CONSOLE_JOB_MANAGER ConsoleJobManager::GetInstance()

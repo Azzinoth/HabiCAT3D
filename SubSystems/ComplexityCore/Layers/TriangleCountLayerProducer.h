@@ -17,4 +17,4 @@ private:
 	bool bWaitForJitterResult = false;
 };
 
-#define TRIANGLE_COUNT_LAYER_PRODUCER TriangleCountLayerProducer::getInstance()
+#define TRIANGLE_COUNT_LAYER_PRODUCER TriangleCountLayerProducer::GetInstance()

@@ -1,7 +1,6 @@
 #include "VectorDispersionLayerProducer.h"
 using namespace FocalEngine;
 
-VectorDispersionLayerProducer* VectorDispersionLayerProducer::Instance = nullptr;
 void(*VectorDispersionLayerProducer::OnCalculationsEndCallbackImpl)(MeshLayer) = nullptr;
 
 VectorDispersionLayerProducer::VectorDispersionLayerProducer()
@@ -119,7 +118,7 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
-			TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+			TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
 		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
