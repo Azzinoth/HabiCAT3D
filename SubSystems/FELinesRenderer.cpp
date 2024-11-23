@@ -25,9 +25,9 @@ void FELinesRenderer::Render()
 
 	LineShader->Start();
 
-	LineShader->UpdateParameterData("FEViewMatrix", MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().GetViewMatrix());
-	LineShader->UpdateParameterData("FEProjectionMatrix", MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().GetProjectionMatrix());
-	LineShader->LoadDataToGPU();
+	LineShader->UpdateUniformData("FEViewMatrix", MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().GetViewMatrix());
+	LineShader->UpdateUniformData("FEProjectionMatrix", MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().GetProjectionMatrix());
+	LineShader->LoadUniformsDataToGPU();
 
 	FE_GL_ERROR(glBindVertexArray(LineVAO));
 	FE_GL_ERROR(glEnableVertexAttribArray(0));

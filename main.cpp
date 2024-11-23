@@ -51,7 +51,7 @@ void AfterMeshLoads()
 	if (!APPLICATION.HasConsoleWindow())
 	{
 		UI.SetIsModelCamera(true);
-		MESH_MANAGER.CustomMeshShader->UpdateParameterData("lightDirection", glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
+		MESH_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
 	}
 
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())

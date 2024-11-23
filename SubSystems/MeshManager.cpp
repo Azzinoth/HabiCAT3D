@@ -6,7 +6,7 @@ MeshManager::MeshManager()
 	if (!APPLICATION.HasConsoleWindow())
 	{
 		CustomMeshShader = RESOURCE_MANAGER.CreateShader("MainMeshShader", CustomMesh_VS, CustomMesh_FS);
-		CustomMeshShader->UpdateParameterData("lightDirection", glm::vec3(0.0, 1.0, 0.2));
+		CustomMeshShader->UpdateUniformData("lightDirection", glm::vec3(0.0, 1.0, 0.2));
 
 		CustomMaterial = RESOURCE_MANAGER.CreateMaterial("MainMeshMaterial");
 		CustomMaterial->Shader = CustomMeshShader;
