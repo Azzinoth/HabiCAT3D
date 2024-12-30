@@ -128,29 +128,6 @@ int JitterManager::GetTimeToFinishInSeconds()
 	return static_cast<int>(JITTER_MANAGER.ApproximateTimeToFinishInMS / 1000);
 }
 
-std::string JitterManager::GetTimeToFinishFormated()
-{
-	auto Duration = std::chrono::milliseconds(JITTER_MANAGER.ApproximateTimeToFinishInMS);
-
-	auto Hours = std::chrono::duration_cast<std::chrono::hours>(Duration);
-	Duration -= Hours;
-
-	auto Minutes = std::chrono::duration_cast<std::chrono::minutes>(Duration);
-	Duration -= Minutes;
-
-	auto Seconds = std::chrono::duration_cast<std::chrono::seconds>(Duration);
-
-	std::string Result;
-	if (Hours.count() > 0)
-		Result += std::to_string(Hours.count()) + " hours ";
-	if (Minutes.count() > 0)
-		Result += std::to_string(Minutes.count()) + " minutes ";
-	if (Seconds.count() > 0)
-		Result += std::to_string(Seconds.count()) + " seconds";
-
-	return Result;
-}
-
 void JitterManager::AfterAllCurrentJitterThreadsFinished()
 {
 	JITTER_MANAGER.JitterDoneCount++;
@@ -479,7 +456,9 @@ void JitterManager::OnCalculationsEnd()
 	NewLayer.DebugInfo = new MeshLayerDebugInfo();
 	NewLayer.DebugInfo->Type = "JitterMeshLayerDebugInfo";
 	NewLayer.DebugInfo->AddEntry("Start time", JITTER_MANAGER.StartTime);
-	NewLayer.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+	uint64_t EndTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	NewLayer.DebugInfo->AddEntry("End time", EndTime);
+	NewLayer.DebugInfo->AddEntry("Time taken", TIME.TimeToFormattedString(EndTime - JITTER_MANAGER.StartTime));
 	NewLayer.DebugInfo->AddEntry("Jitter count", JITTER_MANAGER.JitterDoneCount);
 	NewLayer.DebugInfo->AddEntry("Resolution used", std::to_string(JITTER_MANAGER.ResolutonInM) + " m.");
 

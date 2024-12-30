@@ -408,6 +408,9 @@ private:
 
 	float MeasuredRugosityAreaRadius = -1.0f;
 	glm::vec3 MeasuredRugosityAreaCenter = glm::vec3(0.0f);
+
+public:
+	void UpdateUniforms();
 };
 
 #define MESH_MANAGER MeshManager::GetInstance()

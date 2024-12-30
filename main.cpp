@@ -298,14 +298,37 @@ void MainWindowRender()
 	{
 		if (UI.GetWireFrameMode())
 		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			MESH_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(true);
 		}
 		else
 		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			MESH_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(false);
 		}
 
-		MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
+		// RenderFEMesh
+		MESH_MANAGER.UpdateUniforms();
+
+		// Unnecessary part
+		MESH_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetVisibility(true);
+
+		// This part should be done by Engine.
+		FE_GL_ERROR(glBindVertexArray(MESH_MANAGER.ActiveMesh->GetVaoID()));
+
+		if (MESH_MANAGER.ActiveMesh->GetColorCount() > 0) FE_GL_ERROR(glEnableVertexAttribArray(1));
+		if (MESH_MANAGER.GetFirstLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(7));
+		if (MESH_MANAGER.GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
+		// This part should be done by Engine END.
+
+		// That should happen in Engine. In RenderingPipeline.
+		//RENDERER.RenderGameModelComponentForward(MESH_MANAGER.ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera(), false);
+
+
+		// Unnecessary part
+		//MESH_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetVisibility(false);
+
+		//MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
+
+		// RenderFEMesh END
 	}
 
 	LINE_RENDERER.Render();
@@ -348,6 +371,21 @@ GLFWimage ConvertIconToGLFWImage(HICON Icon)
 	DeleteObject(IconInfo.hbmMask);
 
 	return Result;
+}
+
+FEEntity* TestEntity = nullptr;
+void CreateTestEntity()
+{
+	FEMesh* SphereMesh = RESOURCE_MANAGER.GetMesh("7F251E3E0D08013E3579315F");
+
+	FEMaterial* GreenMaterial = RESOURCE_MANAGER.CreateMaterial();
+	GreenMaterial->Shader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
+	GreenMaterial->SetBaseColor(glm::vec3(0.0f, 1.0f, 0.0f));
+	FEGameModel* GreenSphereGameModel = RESOURCE_MANAGER.CreateGameModel(SphereMesh, GreenMaterial);
+
+	TestEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Test entity");
+	TestEntity->AddComponent<FEGameModelComponent>(GreenSphereGameModel);
+	TestEntity->GetComponent<FETransformComponent>().SetPosition(glm::vec3(0.0f, 5.0f, 0.0f));
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -398,7 +436,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	else
 	{
 		ENGINE.InitWindow(1280, 720, "HabiCAT3D");
-		ENGINE.ActivateSimplifiedRenderingMode();
 		// If I will directly assign result of APPLICATION.AddWindow to UI.MainWindow, then in Release build with full optimization app will crash, because of execution order.
 		FEWindow* MainWindow = APPLICATION.GetMainWindow();
 
@@ -412,15 +449,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		APPLICATION.GetMainWindow()->AddOnResizeCallback(WindowResizeCallback);
 
 		FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
-
-		CameraEntity->GetComponent<FECameraComponent>().SetClearColor(glm::vec4(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w));
+		CAMERA_SYSTEM.SetCameraRenderingPipeline(CameraEntity, FERenderingPipeline::Forward_Simplified);
+		FECameraComponent& CameraComponent = CameraEntity->GetComponent<FECameraComponent>();
+		CameraComponent.SetClearColor(glm::vec4(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w));
+		CameraComponent.SetNearPlane(0.1f);
+		CameraComponent.SetActive(false);
 
 		MESH_MANAGER.AddLoadCallback(AfterMeshLoads);
 
 		SCREENSHOT_MANAGER.Init();
 
-		// SetIsInputActive
-		CameraEntity->GetComponent<FECameraComponent>().SetActive(false);
+		//CreateTestEntity();
 
 		while (ENGINE.IsNotTerminated())
 		{

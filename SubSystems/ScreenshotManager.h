@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MeshRenderer.h"
+#include "UI/UIManager.h"
 using namespace FocalEngine;
 
 class ScreenshotManager

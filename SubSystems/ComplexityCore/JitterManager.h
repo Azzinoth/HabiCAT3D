@@ -475,7 +475,6 @@ public:
 
 	FEAABB GetAABBForJitteredGrid(GridInitData_Jitter* Settings, float CurrentResolutionInM);
 	int GetTimeToFinishInSeconds();
-	std::string GetTimeToFinishFormated();
 private:
 	SINGLETON_PRIVATE_PART(JitterManager)
 

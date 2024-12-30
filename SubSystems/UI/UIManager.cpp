@@ -487,7 +487,7 @@ void UIManager::Render(bool bScreenshotMode)
 		ImGui::SetCursorPosX(90);
 		ImGui::Text(ProgressText.c_str());
 
-		std::string TimeToFinish = "Time left: " + JITTER_MANAGER.GetTimeToFinishFormated();
+		std::string TimeToFinish = "Time left: " + TIME.TimeToFormattedString(JITTER_MANAGER.ApproximateTimeToFinishInMS, FE_TIME_RESOLUTION_MILLISECONDS);
 		int TextWidth = static_cast<int>(ImGui::CalcTextSize(TimeToFinish.c_str()).x);
 		ImGui::SetCursorPosX(300 / 2.0f - TextWidth / 2.0f);
 		ImGui::Text(TimeToFinish.c_str());
