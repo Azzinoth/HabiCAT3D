@@ -78,6 +78,17 @@ cmake CMakeLists.txt
 ```
 After running these commands, you should have a Visual Studio project that is ready to be compiled.
 
+## Citing this work
+Paper link: https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2025.1449332
+
+If you use this code in your research, please cite:
+
+> **Beregovyi Kindrat, Dijkstra Jennifer, & Butkiewicz, Thomas (2025). Calculating 3D rugosity maps for complex habitat scans. Frontiers in Marine Science, 12, 1449332.**
+
+## Acknowledgements
+
+This research was made possible through the support of NOAA Grant NA20NOS4000196.
+
 ## Third Party Licenses
 
 This project uses the following third-party libraries:
