@@ -4,6 +4,12 @@
 #include "../ComplexityCore/Layers/LayerManager.h"
 #include "../LayerRasterizationManager.h"
 
+const COMDLG_FILTERSPEC MODEL_EXPORT_FILE_FILTER[] =
+{
+	{ L"3D Model file (*.obj)", L"*.obj" }
+};
+
+
 class UIManager
 {
 public:
@@ -59,6 +65,8 @@ public:
 	void SetUseTransparentBackground(bool NewValue);
 
 	bool IsProgressModalPopupOpen();
+
+	bool ExportOBJ(std::string FilePath, int LayerIndex);
 private:
 	SINGLETON_PRIVATE_PART(UIManager)
 

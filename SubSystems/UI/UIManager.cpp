@@ -2211,8 +2211,91 @@ void UIManager::RenderExportTab()
 	}
 
 	ImGui::Separator();
+	ImGui::Text("Export model with selected layer(as vertex color):");
+	if (ImGui::Button("Export to file..."))
+	{
+		std::string FilePath;
+		FILE_SYSTEM.ShowFileSaveDialog(FilePath, MODEL_EXPORT_FILE_FILTER, 1);
+
+		ExportOBJ(FilePath, LAYER_MANAGER.GetActiveLayerIndex());
+	}
+
+	ImGui::Separator();
 	ImGui::Text("Export layer as image:");
 	RasterizationSettingsUI();
+}
+
+bool UIManager::ExportOBJ(std::string FilePath, int LayerIndex)
+{
+	if (FilePath.empty())
+		return false;
+
+	if (FilePath.find(".obj") == std::string::npos)
+		FilePath += ".obj";
+
+	// If LayerIndex is -1, export just model without any layers.
+	if (LayerIndex < 0)
+	{
+		return RESOURCE_MANAGER.ExportFEMeshToOBJ(MESH_MANAGER.ActiveMesh, FilePath.c_str());
+	}
+	else // Export model with layer.
+	{
+		if (LayerIndex >= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+			return false;
+
+		// To export model with layer, we need to create a new mesh with vertex colors as layer data.
+		RawMeshData& MeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData;
+		MeshLayer* Layer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex];
+
+		std::vector<float> ColorData;
+		ColorData.resize(MeshData.Vertices.size());
+		for (size_t i = 0; i < Layer->TrianglesToData.size(); i++)
+		{
+			float CompexityValueForTriangle = Layer->TrianglesToData[i];
+			float NormalizedValue = (CompexityValueForTriangle - Layer->GetMin()) / (Layer->MaxVisible - Layer->GetMin());
+			if (NormalizedValue > 1.0f)
+				NormalizedValue = 1.0f;
+			else if (NormalizedValue < 0.0f)
+				NormalizedValue = 0.0f;
+
+			glm::vec3 Color = GetTurboColorMap(NormalizedValue);
+
+			int FirstVertexIndex = MeshData.Indices[i * 3] * 3;
+			ColorData[FirstVertexIndex] = Color.x;
+			ColorData[FirstVertexIndex + 1] = Color.y;
+			ColorData[FirstVertexIndex + 2] = Color.z;
+
+			int SecondVertexIndex = MeshData.Indices[i * 3 + 1] * 3;
+			ColorData[SecondVertexIndex] = Color.x;
+			ColorData[SecondVertexIndex + 1] = Color.y;
+			ColorData[SecondVertexIndex + 2] = Color.z;
+
+			int ThirdVertexIndex = MeshData.Indices[i * 3 + 2] * 3;
+			ColorData[ThirdVertexIndex] = Color.x;
+			ColorData[ThirdVertexIndex + 1] = Color.y;
+			ColorData[ThirdVertexIndex + 2] = Color.z;
+		}
+
+		std::vector<float> TemporaryVertices; TemporaryVertices.resize(MeshData.Vertices.size());
+		for (size_t i = 0; i < MeshData.Vertices.size(); i++)
+			TemporaryVertices[i] = MeshData.Vertices[i];
+		
+		FEMesh* NewMesh = RESOURCE_MANAGER.RawDataToMesh(TemporaryVertices.data(), TemporaryVertices.size(),
+														 MeshData.UVs.data(), MeshData.UVs.size(),
+														 MeshData.Normals.data(), MeshData.Normals.size(),
+														 MeshData.Tangents.data(), MeshData.Tangents.size(),
+														 MeshData.Indices.data(), MeshData.Indices.size(),
+														 ColorData.data(), ColorData.size(),
+														 nullptr, 0, 0,
+														 "Exported model with layer");
+			
+		bool bResult = RESOURCE_MANAGER.ExportFEMeshToOBJ(NewMesh, FilePath.c_str());
+		RESOURCE_MANAGER.DeleteFEMesh(NewMesh);
+
+		return bResult;
+	}
+
+	return false;
 }
 
 void UIManager::RenderSettingsWindow()
