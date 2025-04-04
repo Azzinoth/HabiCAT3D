@@ -36,7 +36,7 @@ FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 												FirstObject->FTanC.data(), int(FirstObject->FTanC.size()),
 												FirstObject->FInd.data(), int(FirstObject->FInd.size()),
 												FirstObject->FColorsC.data(), int(FirstObject->FColorsC.size()),
-												FirstObject->MatIDs.data(), int(FirstObject->MatIDs.size()), int(FirstObject->MaterialRecords.size()), "");
+												FirstObject->MaterialIDs.data(), int(FirstObject->MaterialIDs.size()), int(FirstObject->MaterialRecords.size()), "");
 	
 		COMPLEXITY_METRIC_MANAGER.Init(FirstObject->DVerC, FirstObject->FColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
 	}
@@ -275,17 +275,28 @@ FEMesh* MeshManager::LoadMesh(std::string FileName)
 	if (!FILE_SYSTEM.DoesFileExist(FileName.c_str()))
 		return Result;
 
-	std::string FileExtention = FILE_SYSTEM.GetFileExtension(FileName.c_str());
+	std::string FileExtension = FILE_SYSTEM.GetFileExtension(FileName.c_str());
 	// Convert to lower case.
-	std::transform(FileExtention.begin(), FileExtention.end(), FileExtention.begin(), [](const unsigned char C) { return std::tolower(C); });
+	std::transform(FileExtension.begin(), FileExtension.end(), FileExtension.begin(), [](const unsigned char C) { return std::tolower(C); });
 
-	if (FileExtention == ".obj")
+	if (FileExtension == ".obj")
 	{
 		Result = ImportOBJ(FileName.c_str(), true);
 	}
-	else if (FileExtention == ".rug")
+	else if (FileExtension == ".rug")
 	{
 		Result = LoadRUGMesh(FileName);
+	}
+	else if (FileExtension == ".ply")
+	{
+		FEObject* LoadedObject = RESOURCE_MANAGER.ImportPLYFile(FileName);
+		if (LoadedObject->GetType() == FE_POINT_CLOUD)
+		{
+			FEPointCloud* PointCloud = static_cast<FEPointCloud*>(LoadedObject);
+			FEEntity* PointCloudEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Point cloud entity");
+			PointCloudEntity->AddComponent<FEPointCloudComponent>(PointCloud);
+			PointCloud->SetAdvancedRenderingEnabled(true);
+		}
 	}
 
 	if (Result == nullptr)

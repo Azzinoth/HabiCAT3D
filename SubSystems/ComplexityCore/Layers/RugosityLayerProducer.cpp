@@ -124,7 +124,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 
 	auto CalculateCellRugosity = [&](const glm::vec3 PointOnPlane, const glm::vec3 PlaneNormal) {
 		double Result = 0.0;
-		const FEPlane* ProjectionPlane = new FEPlane(PointOnPlane, PlaneNormal);
+		const CustomPlane* ProjectionPlane = new CustomPlane(PointOnPlane, PlaneNormal);
 #ifdef CGAL_FOR_PROJECTION
 		Point_3 point_on_plane(0.0, 0.0, 0.0);
 		Vector_3 plane_normal(PlaneNormal.x, PlaneNormal.y, PlaneNormal.z);

@@ -8,13 +8,13 @@ namespace FocalEngine
 {
 #include "SphereVectors.h"
 
-	struct FEPlane
+	struct CustomPlane
 	{
 		glm::dvec3 PointOnPlane;
 		glm::dvec3 Normal;
 		double Distance = 0.0;
 
-		FEPlane(const glm::dvec3 PointOnPlane, const glm::dvec3 Normal)
+		CustomPlane(const glm::dvec3 PointOnPlane, const glm::dvec3 Normal)
 		{
 			this->PointOnPlane = PointOnPlane;
 			this->Normal = Normal;
