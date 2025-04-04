@@ -72,7 +72,7 @@ ExportLayerAsImageJob* ExportLayerAsImageJob::CreateInstance(CommandLineAction A
 
 	if (ActionToParse.Settings.find("persent_of_area_that_would_be_red") != ActionToParse.Settings.end())
 	{
-		Result->SetPersentOfAreaThatWouldBeRed(std::stof(ActionToParse.Settings["persent_of_area_that_would_be_red"]));
+		Result->SetPercentOfAreaThatWouldBeRed(std::stof(ActionToParse.Settings["persent_of_area_that_would_be_red"]));
 	}
 
 	return Result;
@@ -200,14 +200,14 @@ void ExportLayerAsImageJob::SetForceProjectionVector(glm::vec3 NewValue)
 	ForceProjectionVector = NewValue;
 }
 
-float ExportLayerAsImageJob::GetPersentOfAreaThatWouldBeRed()
+float ExportLayerAsImageJob::GetPercentOfAreaThatWouldBeRed()
 {
-	return PersentOfAreaThatWouldBeRed;
+	return PercentOfAreaThatWouldBeRed;
 }
 
-void ExportLayerAsImageJob::SetPersentOfAreaThatWouldBeRed(float NewValue)
+void ExportLayerAsImageJob::SetPercentOfAreaThatWouldBeRed(float NewValue)
 {
-	PersentOfAreaThatWouldBeRed = NewValue;
+	PercentOfAreaThatWouldBeRed = NewValue;
 }
 
 int ExportLayerAsImageJob::GetLayerIndex()
@@ -284,7 +284,7 @@ bool ExportLayerAsImageJob::Execute(void* InputData, void* OutputData)
 	}
 	LAYER_RASTERIZATION_MANAGER.SetResolutionInMeters(ResolutionInMeters);
 
-	LAYER_RASTERIZATION_MANAGER.SetCumulativeModePersentOfAreaThatWouldBeRed(GetPersentOfAreaThatWouldBeRed());
+	LAYER_RASTERIZATION_MANAGER.SetCumulativeModePercentOfAreaThatWouldBeRed(GetPercentOfAreaThatWouldBeRed());
 
 	LAYER_RASTERIZATION_MANAGER.PrepareLayerForExport(LayerToExport, GetForceProjectionVector());
 

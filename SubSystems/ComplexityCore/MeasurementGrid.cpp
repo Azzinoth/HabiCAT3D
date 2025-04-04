@@ -66,7 +66,7 @@ void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionIn
 	}
 
 	Data.resize(Dimensions);
-	if (bUseingMultiThreading)
+	if (bUsingMultiThreading)
 	{
 		size_t numThreads = std::thread::hardware_concurrency();
 		// Using dedicated threads instead of the thread pool to make less changes to the existing code
@@ -195,7 +195,7 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 {
 	TIME.BeginTimeStamp("Fill cells with triangle info");
 
-	if (bUseingMultiThreading)
+	if (bUsingMultiThreading)
 	{
 		int LocalThreadCount = THREAD_POOL.GetThreadCount();
 		int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() / LocalThreadCount);

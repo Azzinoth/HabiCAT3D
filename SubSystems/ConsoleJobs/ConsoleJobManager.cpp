@@ -38,7 +38,7 @@ void ConsoleJobManager::ExecuteJob(ConsoleJob* Job)
 {
 	void* InputData = nullptr;
 	if (Job->Type == "EVALUATION_JOB" && bConvertEvaluationToUsableScript)
-		InputData = (void*)(&SavedConvertionsOfEvaluationToUsableScript);
+		InputData = (void*)(&SavedConversionsOfEvaluationToUsableScript);
 
 	if (Job->Type == "GLOBAL_SETTINGS_JOB")
 	{
@@ -165,15 +165,15 @@ void ConsoleJobManager::OnAllJobsFinished()
 
 	if (bConvertEvaluationToUsableScript)
 	{
-		std::cout << "Requested convertions of evaluations to usable scripts with actual values:" << std::endl;
-		for (const auto& Script : SavedConvertionsOfEvaluationToUsableScript)
+		std::cout << "Requested conversions of evaluations to usable scripts with actual values:" << std::endl;
+		for (const auto& Script : SavedConversionsOfEvaluationToUsableScript)
 		{
 			ConsoleJob::OutputConsoleTextWithColor(Script, 0, 255, 255);
 		}
 		std::cout << std::endl;
 	}
 
-	SavedConvertionsOfEvaluationToUsableScript.clear();
+	SavedConversionsOfEvaluationToUsableScript.clear();
 }
 
 std::vector<ConsoleJob*> ConsoleJobManager::ConvertCommandAction(CommandLineAction ActionToParse)

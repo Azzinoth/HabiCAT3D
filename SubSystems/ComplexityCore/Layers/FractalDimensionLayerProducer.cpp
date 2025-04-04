@@ -246,12 +246,12 @@ double FractalDimensionLayerProducer::RunOnAllInternalNodesWithTriangles(GridNod
 		return 0.0;
 
 	// Generate a sequence of box sizes
-	double VozelSize = OuterNode->AABB.GetMax()[0] - OuterNode->AABB.GetMin()[0];
+	double VoxelSize = OuterNode->AABB.GetMax()[0] - OuterNode->AABB.GetMin()[0];
 
 	std::vector<double> DivisionFactors = { 32.0, 16.0, 8.0, 4.0 };
 	std::vector<double> BoxSizes;
 	for (size_t i = 0; i < DivisionFactors.size(); i++)
-		BoxSizes.push_back(VozelSize / DivisionFactors[i]);
+		BoxSizes.push_back(VoxelSize / DivisionFactors[i]);
 
 	std::vector<double> LogInverseSizes;
 	std::vector<double> LogCounts;

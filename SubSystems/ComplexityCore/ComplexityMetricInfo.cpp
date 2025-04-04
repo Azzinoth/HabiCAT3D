@@ -76,7 +76,7 @@ void ComplexityMetricInfo::UpdateAverageNormal()
 		TotalArea += OriginalArea;
 	}
 
-	// ******* Geting average normal *******
+	// ******* Getting average normal *******
 	for (size_t i = 0; i < Triangles.size(); i++)
 	{
 		double CurrentTriangleCoef = OriginalAreas[i] / TotalArea;
@@ -175,10 +175,10 @@ void MeshLayer::CalculateInitData()
 
 	std::vector<float> SortedData = TrianglesToData;
 	std::sort(SortedData.begin(), SortedData.end());
-	int MaxVisiableIndex = static_cast<int>(SortedData.size() * 0.85);
+	int MaxVisibleIndex = static_cast<int>(SortedData.size() * 0.85);
 
 	MinVisible = Min;
-	MaxVisible = SortedData[MaxVisiableIndex];
+	MaxVisible = SortedData[MaxVisibleIndex];
 
 	if (!TrianglesToData.empty())
 	{

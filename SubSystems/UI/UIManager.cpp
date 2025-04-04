@@ -2024,24 +2024,24 @@ void UIManager::RasterizationSettingsUI()
 
 	if (LAYER_RASTERIZATION_MANAGER.GetGridRasterizationMode() == LayerRasterizationManager::GridRasterizationMode::Cumulative)
 	{
-		static bool bAutomaticPersentOfAreaThatWouldBeRed = true;
-		if (ImGui::Checkbox("Automatic outliers suppression", &bAutomaticPersentOfAreaThatWouldBeRed))
+		static bool bAutomaticPercentOfAreaThatWouldBeRed = true;
+		if (ImGui::Checkbox("Automatic outliers suppression", &bAutomaticPercentOfAreaThatWouldBeRed))
 		{
-			if (bAutomaticPersentOfAreaThatWouldBeRed)
+			if (bAutomaticPercentOfAreaThatWouldBeRed)
 			{
 				bNeedUpdate = true;
 				LAYER_RASTERIZATION_MANAGER.ActivateAutomaticOutliersSuppression();
 			}
 		}
 
-		if (bAutomaticPersentOfAreaThatWouldBeRed)
+		if (bAutomaticPercentOfAreaThatWouldBeRed)
 			ImGui::BeginDisabled();
 
-		TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModePersentOfAreaThatWouldBeRed();
+		TempFloat = LAYER_RASTERIZATION_MANAGER.GetCumulativeModePercentOfAreaThatWouldBeRed();
 		static bool bSliderThresholdValueChanged = false;
 		static float SliderThresholdNewValue = 0.0f;
-		ImGui::Text("Choose persent of area that would be above color scale threshold(red): ");
-		if (ImGui::SliderFloat("##Persent of area that would be above color scale threshold(red)", &TempFloat, 0.0f, 99.9f))
+		ImGui::Text("Choose percent of area that would be above color scale threshold(red): ");
+		if (ImGui::SliderFloat("##Percent of area that would be above color scale threshold(red)", &TempFloat, 0.0f, 99.9f))
 		{
 			bSliderThresholdValueChanged = true;
 			SliderThresholdNewValue = TempFloat;
@@ -2051,10 +2051,10 @@ void UIManager::RasterizationSettingsUI()
 		{
 			bNeedUpdate = true;
 			bSliderThresholdValueChanged = false;
-			LAYER_RASTERIZATION_MANAGER.SetCumulativeModePersentOfAreaThatWouldBeRed(SliderThresholdNewValue);
+			LAYER_RASTERIZATION_MANAGER.SetCumulativeModePercentOfAreaThatWouldBeRed(SliderThresholdNewValue);
 		}
 
-		if (bAutomaticPersentOfAreaThatWouldBeRed)
+		if (bAutomaticPercentOfAreaThatWouldBeRed)
 			ImGui::EndDisabled();
 	}
 
@@ -2278,14 +2278,14 @@ bool UIManager::ExportOBJ(std::string FilePath, int LayerIndex)
 
 		std::vector<float> TemporaryVertices; TemporaryVertices.resize(MeshData.Vertices.size());
 		for (size_t i = 0; i < MeshData.Vertices.size(); i++)
-			TemporaryVertices[i] = MeshData.Vertices[i];
+			TemporaryVertices[i] = static_cast<float>(MeshData.Vertices[i]);
 		
-		FEMesh* NewMesh = RESOURCE_MANAGER.RawDataToMesh(TemporaryVertices.data(), TemporaryVertices.size(),
-														 MeshData.UVs.data(), MeshData.UVs.size(),
-														 MeshData.Normals.data(), MeshData.Normals.size(),
-														 MeshData.Tangents.data(), MeshData.Tangents.size(),
-														 MeshData.Indices.data(), MeshData.Indices.size(),
-														 ColorData.data(), ColorData.size(),
+		FEMesh* NewMesh = RESOURCE_MANAGER.RawDataToMesh(TemporaryVertices.data(), static_cast<int>(TemporaryVertices.size()),
+														 MeshData.UVs.data(), static_cast<int>(MeshData.UVs.size()),
+														 MeshData.Normals.data(), static_cast<int>(MeshData.Normals.size()),
+														 MeshData.Tangents.data(), static_cast<int>(MeshData.Tangents.size()),
+														 MeshData.Indices.data(), static_cast<int>(MeshData.Indices.size()),
+														 ColorData.data(), static_cast<int>(ColorData.size()),
 														 nullptr, 0, 0,
 														 "Exported model with layer");
 			

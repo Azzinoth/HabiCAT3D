@@ -20,7 +20,7 @@ void ScreenshotManager::Init()
 	CreateFB();
 }
 
-int ScreenshotManager::FindHigestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List)
+int ScreenshotManager::FindHighestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List)
 {
 	int Result = 0;
 	std::transform(Prefix.begin(), Prefix.end(), Prefix.begin(), [](const unsigned char C) { return std::tolower(C); });
@@ -99,7 +99,7 @@ std::string ScreenshotManager::SuitableNewFileName(std::string Base, std::string
 	std::string Result = Base;
 
 	std::vector<std::string> FileNameList = GetFileList(GetCurrentWorkingDirectory().c_str());
-	int IndexToAdd = FindHigestIntPostfix(Base, "_", FileNameList);
+	int IndexToAdd = FindHighestIntPostfix(Base, "_", FileNameList);
 
 	if (IndexToAdd == 0)
 	{

@@ -355,7 +355,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 			FEIndicesFinal.push_back(l * 3 + 2);
 		}
 
-		// Formating data to CGAL format.
+		// Formatting data to CGAL format.
 		std::vector<Polygon_3> CGALFaces;
 		CGALFaces.resize(FEIndicesFinal.size() / 3);
 		int count = 0;

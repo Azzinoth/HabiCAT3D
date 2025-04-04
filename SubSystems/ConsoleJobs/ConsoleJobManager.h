@@ -39,7 +39,7 @@ private:
 	void OutputEvaluationResults();
 
 	bool bConvertEvaluationToUsableScript = false;
-	std::vector<std::string> SavedConvertionsOfEvaluationToUsableScript;
+	std::vector<std::string> SavedConversionsOfEvaluationToUsableScript;
 
 	bool bOutputLogToFile = false;
 };

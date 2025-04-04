@@ -50,9 +50,9 @@ public:
 	// No jitter, just whole model as input
 	void SetRunOnWholeModel(bool NewValue);
 
-	// Posible values: AVERAGE, MIN, LSF(CGAL)
+	// Possible values: AVERAGE, MIN, LSF(CGAL)
 	std::string GetRugosity_Algorithm();
-	// Posible values: AVERAGE, MIN, LSF(CGAL)
+	// Possible values: AVERAGE, MIN, LSF(CGAL)
 	void SetRugosity_Algorithm(std::string NewValue);
 
 	// Number of reference planes, more planes better results, but slower
@@ -73,14 +73,14 @@ public:
 	bool IsRugosity_DeleteOutliers();
 	void SetRugosity_DeleteOutliers(bool NewValue);
 
-	// Should app filter values that are less that 2.0
+	// Should app filter values that are less than 2.0
 	bool GetFractalDimension_ShouldFilterValues();
-	// Should app filter values that are less that 2.0
+	// Should app filter values that are less than 2.0
 	void SetFractalDimension_ShouldFilterValues(bool NewValue);
 
-	// Posible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
+	// Possible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
 	std::string GetTriangleEdges_Mode();
-	// Posible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
+	// Possible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
 	void SetTriangleEdges_Mode(std::string NewValue);
 
 	bool IsStandardDeviationNeeded();

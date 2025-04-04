@@ -32,9 +32,9 @@ void JitterManager::OnMeshUpdate()
 	const float MaxMeshAABBSize = FinalAABB.GetLongestAxisLength();
 
 	JITTER_MANAGER.LowestPossibleResolution = MaxMeshAABBSize / 120;
-	JITTER_MANAGER.HigestPossibleResolution = MaxMeshAABBSize / 9;
+	JITTER_MANAGER.HighestPossibleResolution = MaxMeshAABBSize / 9;
 
-	JITTER_MANAGER.ResolutonInM = JITTER_MANAGER.LowestPossibleResolution;
+	JITTER_MANAGER.ResolutionInM = JITTER_MANAGER.LowestPossibleResolution;
 
 	delete JITTER_MANAGER.LastUsedGrid;
 	JITTER_MANAGER.LastUsedGrid = nullptr;
@@ -42,17 +42,17 @@ void JitterManager::OnMeshUpdate()
 
 float JitterManager::GetResolutionInM()
 {
-	return ResolutonInM;
+	return ResolutionInM;
 }
 
-void JitterManager::SetResolutionInM(float NewResolutonInM)
+void JitterManager::SetResolutionInM(float NewResolutionInM)
 {
-	if (NewResolutonInM < LowestPossibleResolution)
-		NewResolutonInM = LowestPossibleResolution;
-	if (NewResolutonInM > HigestPossibleResolution)
-		NewResolutonInM = HigestPossibleResolution;
+	if (NewResolutionInM < LowestPossibleResolution)
+		NewResolutionInM = LowestPossibleResolution;
+	if (NewResolutionInM > HighestPossibleResolution)
+		NewResolutionInM = HighestPossibleResolution;
 
-	ResolutonInM = NewResolutonInM;
+	ResolutionInM = NewResolutionInM;
 }
 
 float JitterManager::GetLowestPossibleResolution()
@@ -60,9 +60,9 @@ float JitterManager::GetLowestPossibleResolution()
 	return LowestPossibleResolution;
 }
 
-float JitterManager::GetHigestPossibleResolution()
+float JitterManager::GetHighestPossibleResolution()
 {
-	return HigestPossibleResolution;
+	return HighestPossibleResolution;
 }
 
 int JitterManager::GetJitterDoneCount()
@@ -75,7 +75,7 @@ int JitterManager::GetJitterToDoCount()
 	return JitterToDoCount;
 }
 
-void JitterManager::CalcualtionThread(void* InputData, void* OutputData)
+void JitterManager::CalculationThread(void* InputData, void* OutputData)
 {
 	CalculationThreadData* Input = reinterpret_cast<CalculationThreadData*>(InputData);
 	for (size_t i = 0; i < Input->Nodes.size(); i++)
@@ -84,7 +84,7 @@ void JitterManager::CalcualtionThread(void* InputData, void* OutputData)
 	}
 }
 
-void JitterManager::GatherCalcualtionThreadWork(void* OutputData)
+void JitterManager::GatherCalculationThreadWork(void* OutputData)
 {
 	JITTER_MANAGER.JitterThreadFinishedCount++;
 	JITTER_MANAGER.TotalJitterIndex++;
@@ -179,7 +179,7 @@ void JitterManager::CalculateWithGridJitterAsync(std::function<void(GridNode* Cu
 	LastUsedJitterSettings.clear();
 	LastUsedJitterSettings.resize(JitterToDoCount);
 
-	if (!bUseingAlternativeMultiThreading)
+	if (!bUsingAlternativeMultiThreading)
 	{
 		for (size_t i = 0; i < JitterToDoCount; i++)
 		{
@@ -209,7 +209,7 @@ void JitterManager::CalculateWithGridJitterAsync(std::function<void(GridNode* Cu
 float JitterManager::GetProgress()
 {
 	float Result = 0.0f;
-	if (!bUseingAlternativeMultiThreading)
+	if (!bUsingAlternativeMultiThreading)
 	{
 		Result = float(JITTER_MANAGER.GetJitterDoneCount()) / float(JITTER_MANAGER.GetJitterToDoCount());
 	}
@@ -266,7 +266,7 @@ void JitterManager::RunNextJitter()
 	NodesWithTrianglesCount = static_cast<int>(NodesWithData.size());
 
 	THREAD_COUNT = THREAD_POOL.GetThreadCount() * 10;
-	// It shouuld be based on complexity of the algorithm
+	// It should be based on complexity of the algorithm
 	// not only triangle count.
 	THREAD_COUNT = static_cast<int>(TriangleCount / 10000.0);
 	if (THREAD_COUNT < 1)
@@ -307,7 +307,7 @@ void JitterManager::RunNextJitter()
 		}
 
 		ThreadData.push_back(NewThreadData);
-		THREAD_POOL.Execute(CalcualtionThread, NewThreadData, nullptr, GatherCalcualtionThreadWork);
+		THREAD_POOL.Execute(CalculationThread, NewThreadData, nullptr, GatherCalculationThreadWork);
 	}
 }
 
@@ -331,8 +331,8 @@ void JitterManager::RunCalculationOnGridAsync(void* InputData, void* OutputData)
 	GridInitData_Jitter* Input = reinterpret_cast<GridInitData_Jitter*>(InputData);
 	MeasurementGrid* Output = reinterpret_cast<MeasurementGrid*>(OutputData);
 
-	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(Input, JITTER_MANAGER.ResolutonInM);
-	Output->Init(0, FinalAABB, JITTER_MANAGER.ResolutonInM);
+	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(Input, JITTER_MANAGER.ResolutionInM);
+	Output->Init(0, FinalAABB, JITTER_MANAGER.ResolutionInM);
 
 	Output->FillCellsWithTriangleInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");
@@ -460,7 +460,7 @@ void JitterManager::OnCalculationsEnd()
 	NewLayer.DebugInfo->AddEntry("End time", EndTime);
 	NewLayer.DebugInfo->AddEntry("Time taken", TIME.TimeToFormattedString(EndTime - JITTER_MANAGER.StartTime));
 	NewLayer.DebugInfo->AddEntry("Jitter count", JITTER_MANAGER.JitterDoneCount);
-	NewLayer.DebugInfo->AddEntry("Resolution used", std::to_string(JITTER_MANAGER.ResolutonInM) + " m.");
+	NewLayer.DebugInfo->AddEntry("Resolution used", std::to_string(JITTER_MANAGER.ResolutionInM) + " m.");
 
 	JITTER_MANAGER.LastTimeTookForCalculation = float(TIME.EndTimeStamp("JitterCalculateTotal"));
 
@@ -541,7 +541,7 @@ void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* CurrentNo
 	CurrentFunc = Func;
 
 	JitterToDoCount = 1;
-	ResolutonInM = -1.0f;
+	ResolutionInM = -1.0f;
 
 	LastUsedJitterSettings.clear();
 	LastUsedJitterSettings.resize(1);
@@ -569,7 +569,7 @@ void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* CurrentNo
 	RunCalculationOnWholeModel(OutputData);
 	AfterCalculationFinishGridCallback(OutputData);
 
-	ResolutonInM = JITTER_MANAGER.GetLowestPossibleResolution();
+	ResolutionInM = JITTER_MANAGER.GetLowestPossibleResolution();
 }
 
 void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)

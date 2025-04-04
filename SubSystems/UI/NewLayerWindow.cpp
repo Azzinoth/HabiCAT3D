@@ -224,7 +224,7 @@ void NewLayerWindow::RenderCellSizeSettings()
 	{
 		ImGui::Text("Grid size:");
 		ImGui::RadioButton(("Small (Grid size - " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " m)").c_str(), &FeaturesSizeSelectionMode, 0);
-		ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m)").c_str(), &FeaturesSizeSelectionMode, 1);
+		ImGui::RadioButton(("Large (Grid size - " + std::to_string(JITTER_MANAGER.GetHighestPossibleResolution()) + " m)").c_str(), &FeaturesSizeSelectionMode, 1);
 		ImGui::RadioButton("Custom", &FeaturesSizeSelectionMode, 3);
 
 		if (FeaturesSizeSelectionMode == 0)
@@ -233,19 +233,19 @@ void NewLayerWindow::RenderCellSizeSettings()
 		}
 		else if (FeaturesSizeSelectionMode == 1)
 		{
-			JITTER_MANAGER.SetResolutionInM(JITTER_MANAGER.GetHigestPossibleResolution());
+			JITTER_MANAGER.SetResolutionInM(JITTER_MANAGER.GetHighestPossibleResolution());
 		}
 		else
 		{
 			ImGui::Text(("For current mesh \n Min value : "
 				+ std::to_string(JITTER_MANAGER.GetLowestPossibleResolution())
 				+ " m \n Max value : "
-				+ std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + " m").c_str());
+				+ std::to_string(JITTER_MANAGER.GetHighestPossibleResolution()) + " m").c_str());
 
 			ImGui::SetNextItemWidth(128);
-			float TempResoluton = JITTER_MANAGER.GetResolutionInM();
-			ImGui::DragFloat("##ResolutonInM", &TempResoluton, 0.01f);
-			JITTER_MANAGER.SetResolutionInM(TempResoluton);
+			float TempResolution = JITTER_MANAGER.GetResolutionInM();
+			ImGui::DragFloat("##ResolutionInM", &TempResolution, 0.01f);
+			JITTER_MANAGER.SetResolutionInM(TempResolution);
 		}
 
 		ImGui::Text("Jitter quality(higher quality, slower calculations): ");
@@ -561,7 +561,7 @@ void NewLayerWindow::OnModeChanged(int OldMode)
 		case 6:
 		{
 			FeaturesSizeSelectionMode = 3;
-			double StartingResolution = JITTER_MANAGER.GetLowestPossibleResolution() + (JITTER_MANAGER.GetHigestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution()) / 2.0f;
+			double StartingResolution = JITTER_MANAGER.GetLowestPossibleResolution() + (JITTER_MANAGER.GetHighestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution()) / 2.0f;
 			JITTER_MANAGER.SetResolutionInM(static_cast<float>(StartingResolution));
 
 			break;

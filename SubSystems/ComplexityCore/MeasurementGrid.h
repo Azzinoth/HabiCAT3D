@@ -45,7 +45,7 @@ struct MeasurementGrid
 private:
     void InitializeSegment(size_t beginIndex, size_t endIndex, size_t Dimensions, FEAABB GridAABB, float CellSize);
 
-    bool bUseingMultiThreading = true;
+    bool bUsingMultiThreading = true;
 
     struct GridThreadData
     {

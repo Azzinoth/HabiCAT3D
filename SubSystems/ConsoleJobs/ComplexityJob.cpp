@@ -266,7 +266,7 @@ bool ComplexityJob::SetGridResolution()
 
 	if (Settings.ResolutionInM != 0.0f &&
 		Settings.ResolutionInM >= JITTER_MANAGER.GetLowestPossibleResolution() &&
-		Settings.ResolutionInM <= JITTER_MANAGER.GetHigestPossibleResolution())
+		Settings.ResolutionInM <= JITTER_MANAGER.GetHighestPossibleResolution())
 	{
 		JITTER_MANAGER.SetResolutionInM(Settings.ResolutionInM);
 		return true;
@@ -274,7 +274,7 @@ bool ComplexityJob::SetGridResolution()
 
 	if (Settings.ResolutionInM == 0.0f && Settings.RelativeResolution != 0.0f)
 	{
-		float Range = JITTER_MANAGER.GetHigestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution();
+		float Range = JITTER_MANAGER.GetHighestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution();
 		JITTER_MANAGER.SetResolutionInM(JITTER_MANAGER.GetLowestPossibleResolution() + Range * Settings.RelativeResolution);
 		return true;
 	}
@@ -302,7 +302,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 
 	if (!SetGridResolution())
 	{
-		std::string ErrorMessage = "Error: Invalid resolution value. Given value is - " + std::to_string(Settings.ResolutionInM) + ". But value should be between " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " and " + std::to_string(JITTER_MANAGER.GetHigestPossibleResolution()) + ".";
+		std::string ErrorMessage = "Error: Invalid resolution value. Given value is - " + std::to_string(Settings.ResolutionInM) + ". But value should be between " + std::to_string(JITTER_MANAGER.GetLowestPossibleResolution()) + " and " + std::to_string(JITTER_MANAGER.GetHighestPossibleResolution()) + ".";
 		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 		return false;
 	}
@@ -518,13 +518,13 @@ void ComplexityJobSettings::SetRunOnWholeModel(bool NewValue)
 	bRunOnWholeModel = NewValue;
 }
 
-// Posible values: AVERAGE, MIN, LSF(CGAL)
+// Possible values: AVERAGE, MIN, LSF(CGAL)
 std::string ComplexityJobSettings::GetRugosity_Algorithm()
 {
 	return Rugosity_Algorithm;
 }
 
-// Posible values: AVERAGE, MIN, LSF(CGAL)
+// Possible values: AVERAGE, MIN, LSF(CGAL)
 void ComplexityJobSettings::SetRugosity_Algorithm(std::string NewValue)
 {
 	if (NewValue != "AVERAGE" && NewValue != "MIN" && NewValue != "LSF(CGAL)")
@@ -580,25 +580,25 @@ void ComplexityJobSettings::SetRugosity_DeleteOutliers(bool NewValue)
 	bRugosity_DeleteOutliers = NewValue;
 }
 
-// Should app filter values that are less that 2.0
+// Should app filter values that are less than 2.0
 bool ComplexityJobSettings::GetFractalDimension_ShouldFilterValues()
 {
 	return bFractalDimension_FilterValues;
 }
 
-// Should app filter values that are less that 2.0
+// Should app filter values that are less than 2.0
 void ComplexityJobSettings::SetFractalDimension_ShouldFilterValues(bool NewValue)
 {
 	bFractalDimension_FilterValues = NewValue;
 }
 
-// Posible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
+// Possible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
 std::string ComplexityJobSettings::GetTriangleEdges_Mode()
 {
 	return TriangleEdges_Mode;
 }
 
-// Posible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
+// Possible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
 void ComplexityJobSettings::SetTriangleEdges_Mode(std::string NewValue)
 {
 	if (NewValue != "MAX_LEHGTH" && NewValue != "MIN_LEHGTH" && NewValue != "MEAN_LEHGTH")

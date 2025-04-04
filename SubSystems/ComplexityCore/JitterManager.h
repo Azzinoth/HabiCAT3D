@@ -422,10 +422,10 @@ public:
 	void SetOnCalculationsEndCallback(std::function<void(MeshLayer CurrentMeshLayer)> Func);
 
 	float GetResolutionInM();
-	void SetResolutionInM(float NewResolutonInM);
+	void SetResolutionInM(float NewResolutionInM);
 
 	float GetLowestPossibleResolution();
-	float GetHigestPossibleResolution();
+	float GetHighestPossibleResolution();
 
 	int GetJitterDoneCount();
 	int GetJitterToDoCount();
@@ -440,10 +440,10 @@ public:
 	/**
 	* @brief Sets the function that determines whether a calculated value should be ignored.
 	*
-	* This function is called for each calculated value in each jitter. If it returns truef, the value is ignored.
-	* If it returns falsef, the value is used to calculate all jitter combined result array.
+	* This function is called for each calculated value in each jitter. If it returns true, the value is ignored.
+	* If it returns false, the value is used to calculate all jitter combined result array.
 	* 
-	* After each calculationf, this function will reset to ensure the default behavior is applied.
+	* After each calculation, this function will reset to ensure the default behavior is applied.
 	*
 	* @param func The desired function.
 	*/
@@ -453,11 +453,11 @@ public:
 	* @brief Sets the fallback value for the result array.
 	*
 	* This value is used for an element in the result array only if all its
-	* calculated values are ignored. By providing a fallbackf, we ensure that
-	* the result array has a consistent value in such scenariosf, preventing
+	* calculated values are ignored. By providing a fallback, we ensure that
+	* the result array has a consistent value in such scenarios, preventing
 	* potential issues from uninitialized or unpredictable data.
 	* 
-	* After each calculationf, this value will be reset to 1.0f to ensure that the default behavior is used.
+	* After each calculation, this value will be reset to 1.0f to ensure that the default behavior is used.
 	*
 	* @param NewValue The desired fallback value.
 	*/
@@ -496,9 +496,9 @@ private:
 	std::vector<std::string> JitterVectorSetNames;
 	std::string CurrentJitterVectorSetName = "55";
 
-	float ResolutonInM = 1.0f;
+	float ResolutionInM = 1.0f;
 	float LowestPossibleResolution = -1.0f;
-	float HigestPossibleResolution = -1.0f;
+	float HighestPossibleResolution = -1.0f;
 
 	float ShiftX = 0.0f;
 	float ShiftY = 0.0f;
@@ -529,7 +529,7 @@ private:
 
 	float FindStandardDeviation(std::vector<float> DataPoints);
 
-	bool bUseingAlternativeMultiThreading = true;
+	bool bUsingAlternativeMultiThreading = true;
 
 	struct CalculationThreadData
 	{
@@ -539,9 +539,9 @@ private:
 		std::vector<GridNode*> Nodes;
 	};
 
-	static void CalcualtionThread(void* InputData, void* OutputData);
+	static void CalculationThread(void* InputData, void* OutputData);
 	void AfterAllCurrentJitterThreadsFinished();
-	static void GatherCalcualtionThreadWork(void* OutputData);
+	static void GatherCalculationThreadWork(void* OutputData);
 
 	void RunNextJitter();
 

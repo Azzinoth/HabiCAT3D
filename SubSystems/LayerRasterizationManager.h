@@ -34,8 +34,8 @@ public:
 	glm::vec3 GetProjectionVector();
 	float GetProgress();
 
-	float GetCumulativeModePersentOfAreaThatWouldBeRed();
-	void SetCumulativeModePersentOfAreaThatWouldBeRed(float NewValue);
+	float GetCumulativeModePercentOfAreaThatWouldBeRed();
+	void SetCumulativeModePercentOfAreaThatWouldBeRed(float NewValue);
 	void ActivateAutomaticOutliersSuppression();
 
 	// Callback setters
@@ -96,7 +96,7 @@ private:
 	float CurrentResolutionInMeters = 1.0f;
 	GridRasterizationMode Mode = GridRasterizationMode::Max;
 	glm::vec3 CurrentProjectionVector = glm::vec3(0.0f);
-	float PersentOfAreaThatWouldBeRed = 5.0f;
+	float PercentOfAreaThatWouldBeRed = 5.0f;
 	
 	// Used if console mode is activated
 	std::vector<unsigned char> FinalImageRawData;

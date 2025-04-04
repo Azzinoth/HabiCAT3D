@@ -551,7 +551,7 @@ void LayerRasterizationManager::PrepareRawImageData()
 			}
 		}
 
-		MaxForColorMap = JITTER_MANAGER.GetValueThatHaveAtLeastThisPercentOfArea(FlattenGridValues, FlattenGridArea, PersentOfAreaThatWouldBeRed / 100.0f);
+		MaxForColorMap = JITTER_MANAGER.GetValueThatHaveAtLeastThisPercentOfArea(FlattenGridValues, FlattenGridArea, PercentOfAreaThatWouldBeRed / 100.0f);
 
 		if (MaxForColorMap <= MinForColorMap)
 			MaxForColorMap = MinForColorMap + FLT_EPSILON * 4;
@@ -1009,17 +1009,17 @@ int LayerRasterizationManager::GetGridResolution()
 	return CurrentResolution;
 }
 
-float LayerRasterizationManager::GetCumulativeModePersentOfAreaThatWouldBeRed()
+float LayerRasterizationManager::GetCumulativeModePercentOfAreaThatWouldBeRed()
 {
-	return PersentOfAreaThatWouldBeRed;
+	return PercentOfAreaThatWouldBeRed;
 }
 
-void LayerRasterizationManager::SetCumulativeModePersentOfAreaThatWouldBeRed(float NewValue)
+void LayerRasterizationManager::SetCumulativeModePercentOfAreaThatWouldBeRed(float NewValue)
 {
 	if (NewValue < 0.0f || NewValue > 99.99f)
 		return;
 
-	PersentOfAreaThatWouldBeRed = NewValue;
+	PercentOfAreaThatWouldBeRed = NewValue;
 }
 
 void LayerRasterizationManager::OnCalculationsStart()
@@ -1513,7 +1513,7 @@ glm::uvec2 LayerRasterizationManager::GetResolutionInPixelsBasedOnResolutionInMe
 		return Result;
 
 	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
-	unsigned int CountOfCellToCoverAABB = 0;
+	unsigned int CountOfCellsToCoverAABB = 0;
 	float UsableSize = 0.0f;
 
 	if (ProjectionVector.x > 0.0)
@@ -1529,9 +1529,9 @@ glm::uvec2 LayerRasterizationManager::GetResolutionInPixelsBasedOnResolutionInMe
 		UsableSize = glm::max(MeshAABB.GetSize().x, MeshAABB.GetSize().y);
 	}
 
-	CountOfCellToCoverAABB = static_cast<unsigned int>(UsableSize / ResolutionInMeters);
-	CountOfCellToCoverAABB += 1;
-	Result = glm::uvec2(CountOfCellToCoverAABB, CountOfCellToCoverAABB);
+	CountOfCellsToCoverAABB = static_cast<unsigned int>(UsableSize / ResolutionInMeters);
+	CountOfCellsToCoverAABB += 1;
+	Result = glm::uvec2(CountOfCellsToCoverAABB, CountOfCellsToCoverAABB);
 
 	return Result;
 }
@@ -1584,7 +1584,7 @@ float LayerRasterizationManager::GetResolutionInMetersBasedOnResolutionInPixels(
 
 void LayerRasterizationManager::ActivateAutomaticOutliersSuppression()
 {
-	SetCumulativeModePersentOfAreaThatWouldBeRed(5.0f);
+	SetCumulativeModePercentOfAreaThatWouldBeRed(5.0f);
 }
 
 int LayerRasterizationManager::GetResolutionInPixelsThatWouldGiveSuchResolutionInMeters(float Meters)

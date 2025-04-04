@@ -15,7 +15,7 @@ class ExportLayerAsImageJob : public ConsoleJob
 	float ResolutionInM = 0.0f;
 	int ResolutionInPixels = 0;
 	glm::vec3 ForceProjectionVector = glm::vec3(0.0f);
-	float PersentOfAreaThatWouldBeRed = 5.0f;
+	float PercentOfAreaThatWouldBeRed = 5.0f;
 
 	int LayerIndex = -1;
 
@@ -43,8 +43,8 @@ public:
 	glm::vec3 GetForceProjectionVector();
 	void SetForceProjectionVector(glm::vec3 NewValue);
 
-	float GetPersentOfAreaThatWouldBeRed();
-	void SetPersentOfAreaThatWouldBeRed(float NewValue);
+	float GetPercentOfAreaThatWouldBeRed();
+	void SetPercentOfAreaThatWouldBeRed(float NewValue);
 
 	int GetLayerIndex();
 	void SetLayerIndex(int NewValue);

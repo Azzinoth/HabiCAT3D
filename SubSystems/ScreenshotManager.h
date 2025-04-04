@@ -18,7 +18,7 @@ private:
 	void CreateFB();
 	void UpdateFB();
 
-	int FindHigestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List);
+	int FindHighestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List);
 	std::string SuitableNewFileName(std::string Base, std::string Extension);
 
 	bool IsFolder(const char* Path);
