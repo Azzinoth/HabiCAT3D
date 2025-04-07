@@ -141,6 +141,8 @@ if(USE_STATIC_RUNTIME)
 	list(APPEND EXTRACTED_NATIVE_SCRIPTS
 		${Unpacked_NativeScript_2B7956623302254F620A675F_SRC}
 	)
+
+    add_definitions(-DGLEW_STATIC)
 endif()
 
 link_directories(${GLEW_LIB_DIR})
