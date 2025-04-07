@@ -190,3 +190,11 @@ include_directories(
 	"ThirdParty/GDAL/port"
 	"ThirdParty/"
 )
+
+if(LASZIP_FINAL_DLL)
+	add_custom_command(TARGET HabiCAT3D POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${LASZIP_FINAL_DLL}
+        "$<TARGET_FILE_DIR:HabiCAT3D>"
+	)
+endif()

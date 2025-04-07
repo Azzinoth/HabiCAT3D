@@ -298,6 +298,13 @@ FEMesh* MeshManager::LoadMesh(std::string FileName)
 			PointCloud->SetAdvancedRenderingEnabled(true);
 		}
 	}
+	else if (FileExtension == ".las" || FileExtension == ".laz")
+	{
+		FEPointCloud* PointCloud = RESOURCE_MANAGER.ImportPointCloud(FileName);
+		FEEntity* PointCloudEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Point cloud entity");
+		PointCloudEntity->AddComponent<FEPointCloudComponent>(PointCloud);
+		PointCloud->SetAdvancedRenderingEnabled(true);
+	}
 
 	if (Result == nullptr)
 	{
