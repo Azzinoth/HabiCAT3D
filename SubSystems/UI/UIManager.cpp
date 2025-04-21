@@ -343,6 +343,20 @@ void UIManager::ShowCameraTransform()
 			StrToCameraRotation(APPLICATION.GetClipboardText());
 		}
 
+		float NearPlane = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().GetNearPlane();
+		ImGui::Text("Near plane: ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##Near plane", &NearPlane, 0.01f, 0.01f, 100.0f);
+		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetNearPlane(NearPlane);
+
+		float FarPlane = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().GetFarPlane();
+		ImGui::Text("Far plane: ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##Far plane", &FarPlane, 0.01f, 0.01f, 100000.0f);
+		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetFarPlane(FarPlane);
+
 		FENativeScriptComponent& NativeScriptComponent = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FENativeScriptComponent>();
 		float CameraSpeed = 0.0f;
 		NativeScriptComponent.GetVariableValue<float>("MovementSpeed", CameraSpeed);
