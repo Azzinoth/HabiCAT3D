@@ -329,6 +329,95 @@ void MainWindowRender()
 		//MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
 
 		// RenderFEMesh END
+
+		bool bVRMode = ENGINE.IsVREnabled();
+		if (ImGui::Checkbox("Enter VR mode", &bVRMode))
+		{
+			if (bVRMode)
+			{
+				if (ENGINE.EnableVR())
+				{
+
+					/*std::string ActiveRuntime = FEOpenXR_CORE.GetActiveRuntimeInfo();
+					std::vector<FEOpenXRExtensionInfo> ExtensionsInfo = FEOpenXR_CORE.GetAvailableExtensionsInfo();
+
+					int y = 0;
+					y++;*/
+
+					//glm::vec2 VRResolution = OpenXR_MANAGER.EyeResolution();
+					//POINT_MANAGER.RenderTargetResize(static_cast<int>(VRResolution.x), static_cast<int>(VRResolution.y));
+
+					//AddVirtualUI();
+				}
+
+			}
+			else
+			{
+				ENGINE.DisableVR();
+
+				//POINT_MANAGER.RenderTargetResize(static_cast<int>(ENGINE.GetRenderTargetWidth()), static_cast<int>(ENGINE.GetRenderTargetHeight()));
+			}
+		}
+
+		if (bVRMode)
+		{
+			FEEntity* VRRigEntity = OpenXR_MANAGER.GetVRRigEntity();
+			if (VRRigEntity != nullptr)
+			{
+				FETransformComponent& VRRigTransform = VRRigEntity->GetComponent<FETransformComponent>();
+				glm::vec3 VRRigPosition = VRRigTransform.GetPosition();
+
+				ImGui::Text("VRRig Position : ");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(70);
+				ImGui::DragFloat("##X Left Controller", &VRRigPosition[0], 0.01f);
+
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(70);
+				ImGui::DragFloat("##Y Left Controller", &VRRigPosition[1], 0.01f);
+
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(70);
+				ImGui::DragFloat("##Z Left Controller", &VRRigPosition[2], 0.01f);
+
+				VRRigTransform.SetPosition(VRRigPosition);
+			}
+
+			glm::vec3 ControllerPosition = FEOpenXR_INPUT.GetLeftControllerPosition();
+			ImGui::Text("Left Controller Position : ");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##X Left Controller", &ControllerPosition[0], 0.01f);
+
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##Y Left Controller", &ControllerPosition[1], 0.01f);
+
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##Z Left Controller", &ControllerPosition[2], 0.01f);
+
+
+			ControllerPosition = FEOpenXR_INPUT.GetRightControllerPosition();
+
+			ImGui::Text("Right Controller Position : ");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##X Right Controller", &ControllerPosition[0], 0.01f);
+
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##Y Right Controller", &ControllerPosition[1], 0.01f);
+
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##Z Right Controller", &ControllerPosition[2], 0.01f);
+
+			if (ImGui::Button("Haptic"))
+			{
+				FEOpenXR_INPUT.TriggerHapticFeedback(0.5f, 0.5f, 0.5f, false);
+			}
+		}
 	}
 
 	LINE_RENDERER.Render();
