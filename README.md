@@ -53,7 +53,7 @@ Designed for ecologists and researchers, this tool facilitates the analysis, exp
 [Quick start guide for CLI mode.](https://github.com/Azzinoth/HabiCAT3D/tree/media/Quick%20Start%20Guide/Quick%20start%20guide(CLI).md)
 
 ## How To Get
-- **Download ready-to-use application:**
+- **Download ready-to-use application:** [Latest release](https://github.com/Azzinoth/HabiCAT3D/releases/tag/v0.87.1)
 - **Download source code and compile:** Look for instructions below.
 
 ## How to compile
@@ -77,6 +77,19 @@ git submodule update --init --recursive
 cmake CMakeLists.txt
 ```
 After running these commands, you should have a Visual Studio project that is ready to be compiled.
+
+## Citing this work
+Paper link: https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2025.1449332
+
+If you use this code in your research, please cite:
+
+> **Beregovyi Kindrat, Dijkstra Jennifer, & Butkiewicz, Thomas (2025). Calculating 3D rugosity maps for complex habitat scans. Frontiers in Marine Science, 12, 1449332.**
+
+## Acknowledgements
+
+This research was made possible through the support of NOAA Grant NA20NOS4000196.
+
+This is a project of [Data Visualization Research Lab](https://ccom.unh.edu/vislab) within the [Center for Coastal and Ocean Mapping](https://ccom.unh.edu) at the [University of New Hampshire](https://unh.edu).
 
 ## Third Party Licenses
 
