@@ -89,6 +89,8 @@ If you use this code in your research, please cite:
 
 This research was made possible through the support of NOAA Grant NA20NOS4000196.
 
+This is a project of [Data Visualization Research Lab](https://ccom.unh.edu/vislab) within the [Center for Coastal and Ocean Mapping](https://ccom.unh.edu) at the [University of New Hampshire](https://unh.edu).
+
 ## Third Party Licenses
 
 This project uses the following third-party libraries:
