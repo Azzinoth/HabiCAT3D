@@ -53,7 +53,7 @@ Designed for ecologists and researchers, this tool facilitates the analysis, exp
 [Quick start guide for CLI mode.](https://github.com/Azzinoth/HabiCAT3D/tree/media/Quick%20Start%20Guide/Quick%20start%20guide(CLI).md)
 
 ## How To Get
-- **Download ready-to-use application:**
+- **Download ready-to-use application:** [Latest release](https://github.com/Azzinoth/HabiCAT3D/releases/tag/v0.87.1)
 - **Download source code and compile:** Look for instructions below.
 
 ## How to compile
