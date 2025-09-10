@@ -50,7 +50,7 @@ public:
 
 	void ApplyStandardWindowsSizeAndPosition();
 
-	glm::dvec2 LayerValuesAreaDistribution(MeshLayer* Layer, float Value);
+	glm::dvec2 LayerValuesAreaDistribution(DataLayer* Layer, float Value);
 
 	float GetAmbientLightFactor();
 	void SetAmbientLightFactor(float NewValue);
@@ -96,12 +96,12 @@ private:
 	FEArrowScroller HistogramSelectRegionMax;
 	bool bHistogramSelectRegionMode = false;
 	bool bHistogramPixelBins = false;
-	void UpdateHistogramData(MeshLayer* FromLayer, int NewBinCount);
+	void UpdateHistogramData(DataLayer* FromLayer, int NewBinCount);
 	void RenderHistogramWindow();
 
 	bool bJitterCalculationsInProgress = false;
 	static void OnJitterCalculationsStart();
-	static void OnJitterCalculationsEnd(MeshLayer NewLayer);
+	static void OnJitterCalculationsEnd(DataLayer NewLayer);
 
 	bool bOutputSelectionToFile = false;
 

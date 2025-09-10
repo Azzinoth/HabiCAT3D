@@ -8,7 +8,7 @@ class LayerManager
 public:
 	SINGLETON_PUBLIC_PART(LayerManager)
 
-	MeshLayer* GetActiveLayer();
+	DataLayer* GetActiveLayer();
 
 	std::string SuitableNewLayerCaption(std::string Base);
 

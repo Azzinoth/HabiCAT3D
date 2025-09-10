@@ -363,9 +363,12 @@ public:
 	FEShader* CustomMeshShader = nullptr;
 	FEMaterial* CustomMaterial = nullptr;
 
-	FEMesh* LoadMesh(std::string FileName);
+	FEMesh* LoadResource(std::string FileName);
 	FEMesh* ActiveMesh = nullptr;
 	FEEntity* ActiveEntity = nullptr;
+
+	FEPointCloud* CurrentPointCloud = nullptr;
+	FEEntity* CurrentPointCloudEntity = nullptr;
 
 	void AddLoadCallback(std::function<void()> Func);
 	void SaveRUGMesh(FEMesh* Mesh);

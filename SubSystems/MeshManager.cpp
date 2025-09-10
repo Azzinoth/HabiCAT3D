@@ -114,7 +114,7 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 
 	File.read(Buffer, 4);
 	const int LayerCount = *(int*)Buffer;
-	std::vector<MeshLayer> Layers;
+	std::vector<DataLayer> Layers;
 	Layers.resize(LayerCount);
 
 	for (size_t i = 0; i < Layers.size(); i++)
@@ -134,19 +134,19 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 		Layers[i].SetCaption(FILE_SYSTEM.ReadFEString(File));
 		Layers[i].SetNote(FILE_SYSTEM.ReadFEString(File));
 
-		// TrianglesToData
+		// ElementsToData
 		File.read(Buffer, 4);
-		const int TrianglesToDataCout = *(int*)Buffer;
+		const int ElementsToDataCout = *(int*)Buffer;
 		std::vector<float> TrianglesData;
-		Layers[i].TrianglesToData.resize(TrianglesToDataCout);
-		File.read((char*)Layers[i].TrianglesToData.data(), TrianglesToDataCout * 4);
+		Layers[i].ElementsToData.resize(ElementsToDataCout);
+		File.read((char*)Layers[i].ElementsToData.data(), ElementsToDataCout * 4);
 
 		// Debug info.
 		File.read(Buffer, 4);
 		const int DebugInfoPresent = *(int*)Buffer;
 		if (DebugInfoPresent)
 		{
-			Layers[i].DebugInfo = new MeshLayerDebugInfo();
+			Layers[i].DebugInfo = new DataLayerDebugInfo();
 			Layers[i].DebugInfo->FromFile(File);
 		}
 	}
@@ -268,16 +268,17 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 	return NewMesh;
 }
 
-FEMesh* MeshManager::LoadMesh(std::string FileName)
+FEMesh* MeshManager::LoadResource(std::string FileName)
 {
 	FEMesh* Result = nullptr;
-
 	if (!FILE_SYSTEM.DoesFileExist(FileName.c_str()))
 		return Result;
 
 	std::string FileExtension = FILE_SYSTEM.GetFileExtension(FileName.c_str());
 	// Convert to lower case.
-	std::transform(FileExtension.begin(), FileExtension.end(), FileExtension.begin(), [](const unsigned char C) { return std::tolower(C); });
+	std::transform(FileExtension.begin(), FileExtension.end(), FileExtension.begin(), [](const unsigned char Character) {
+		return std::tolower(Character);
+	});
 
 	if (FileExtension == ".obj")
 	{
@@ -292,23 +293,55 @@ FEMesh* MeshManager::LoadMesh(std::string FileName)
 		FEObject* LoadedObject = RESOURCE_MANAGER.ImportPLYFile(FileName);
 		if (LoadedObject->GetType() == FE_POINT_CLOUD)
 		{
-			FEPointCloud* PointCloud = static_cast<FEPointCloud*>(LoadedObject);
-			FEEntity* PointCloudEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Point cloud entity");
-			PointCloudEntity->AddComponent<FEPointCloudComponent>(PointCloud);
-			PointCloud->SetAdvancedRenderingEnabled(true);
+			if (CurrentPointCloudEntity != nullptr)
+			{
+				MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(CurrentPointCloudEntity);
+				CurrentPointCloudEntity = nullptr;
+			}
+				
+			if (CurrentPointCloud != nullptr)
+			{
+				RESOURCE_MANAGER.DeleteFEPointCloud(CurrentPointCloud);
+				CurrentPointCloud = nullptr;
+			}
+
+			CurrentPointCloud = static_cast<FEPointCloud*>(LoadedObject);
+			CurrentPointCloudEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Point cloud entity");
+			CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(CurrentPointCloud);
+			CurrentPointCloud->SetAdvancedRenderingEnabled(true);
+
+			COMPLEXITY_METRIC_MANAGER.InitializePointCloudData(CurrentPointCloud);
 		}
 	}
 	else if (FileExtension == ".las" || FileExtension == ".laz")
 	{
 		FEPointCloud* PointCloud = RESOURCE_MANAGER.ImportPointCloud(FileName);
-		FEEntity* PointCloudEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Point cloud entity");
-		PointCloudEntity->AddComponent<FEPointCloudComponent>(PointCloud);
-		PointCloud->SetAdvancedRenderingEnabled(true);
+		if (PointCloud != nullptr)
+		{
+			if (CurrentPointCloudEntity != nullptr)
+			{
+				MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(CurrentPointCloudEntity);
+				CurrentPointCloudEntity = nullptr;
+			}
+
+			if (CurrentPointCloud != nullptr)
+			{
+				RESOURCE_MANAGER.DeleteFEPointCloud(CurrentPointCloud);
+				CurrentPointCloud = nullptr;
+			}
+
+			CurrentPointCloud = PointCloud;
+			CurrentPointCloudEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Point cloud entity");
+			CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(CurrentPointCloud);
+			CurrentPointCloud->SetAdvancedRenderingEnabled(true);
+
+			COMPLEXITY_METRIC_MANAGER.InitializePointCloudData(CurrentPointCloud);
+		}
 	}
 
 	if (Result == nullptr)
 	{
-		LOG.Add("Failed to load mesh with path: " + FileName);
+		LOG.Add("Failed to load resource with path: " + FileName);
 		return Result;
 	}
 

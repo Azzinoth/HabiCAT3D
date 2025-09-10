@@ -1,7 +1,7 @@
 #include "FractalDimensionLayerProducer.h"
 using namespace FocalEngine;
 
-void(*FractalDimensionLayerProducer::OnCalculationsEndCallbackImpl)(MeshLayer) = nullptr;
+void(*FractalDimensionLayerProducer::OnCalculationsEndCallbackImpl)(DataLayer) = nullptr;
 
 FractalDimensionLayerProducer::FractalDimensionLayerProducer()
 {
@@ -78,7 +78,7 @@ void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 	JITTER_MANAGER.CalculateWithGridJitterAsync(WorkOnNode, bSmootherResult);
 }
 
-void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
+void FractalDimensionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
@@ -103,8 +103,8 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-		MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new DataLayerDebugInfo();
+		DataLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
 		DebugInfo->Type = "FractalDimensionDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
@@ -215,7 +215,7 @@ void FractalDimensionLayerProducer::CalculateOnWholeModel()
 	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
 }
 
-void FractalDimensionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(MeshLayer))
+void FractalDimensionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(DataLayer))
 {
 	OnCalculationsEndCallbackImpl = Func;
 }

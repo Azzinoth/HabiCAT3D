@@ -94,64 +94,64 @@ glm::vec3 ComplexityMetricInfo::GetAverageNormal()
 	return AverageNormal;
 }
 
-void ComplexityMetricInfo::AddLayer(std::vector<float> TrianglesToData)
+void ComplexityMetricInfo::AddLayer(std::vector<float> ElementsToData)
 {
-	if (TrianglesToData.size() == Triangles.size())
-		Layers.push_back(MeshLayer(this, TrianglesToData));
+	if (ElementsToData.size() == Triangles.size())
+		Layers.push_back(DataLayer(this, ElementsToData));
 }
 
-void ComplexityMetricInfo::AddLayer(MeshLayer NewLayer)
+void ComplexityMetricInfo::AddLayer(DataLayer NewLayer)
 {
-	if (NewLayer.TrianglesToData.size() == Triangles.size())
+	if (NewLayer.ElementsToData.size() == Triangles.size())
 	{
 		NewLayer.SetParent(this);
 		Layers.push_back(NewLayer);
 	}
 }
 
-MeshLayer::MeshLayer()
+DataLayer::DataLayer()
 {
 	ID = APPLICATION.GetUniqueHexID();
 };
 
-MeshLayer::MeshLayer(ComplexityMetricInfo* Parent, const std::vector<float> TrianglesToData)
+DataLayer::DataLayer(ComplexityMetricInfo* Parent, const std::vector<float> ElementsToData)
 {
 	if (Parent == nullptr)
 		return;
 
-	if (TrianglesToData.size() != Parent->Triangles.size())
+	if (ElementsToData.size() != Parent->Triangles.size())
 		return;
 
 	ID = APPLICATION.GetUniqueHexID();
 
 	this->ParentComplexityMetricData = Parent;
-	this->TrianglesToData = TrianglesToData;
+	this->ElementsToData = ElementsToData;
 
 	CalculateInitData();
 }
 
-MeshLayer::~MeshLayer() {};
+DataLayer::~DataLayer() {};
 
-ComplexityMetricInfo* MeshLayer::GetParent()
+ComplexityMetricInfo* DataLayer::GetParent()
 {
 	return ParentComplexityMetricData;
 }
 
-void MeshLayer::SetParent(ComplexityMetricInfo* NewValue)
+void DataLayer::SetParent(ComplexityMetricInfo* NewValue)
 {
 	if (NewValue == nullptr)
 		return;
 
-	if (TrianglesToData.size() != NewValue->Triangles.size())
+	if (ElementsToData.size() != NewValue->Triangles.size())
 		return;
 
 	this->ParentComplexityMetricData = NewValue;
-	this->TrianglesToData = TrianglesToData;
+	this->ElementsToData = ElementsToData;
 
 	CalculateInitData();
 }
 
-void MeshLayer::CalculateInitData()
+void DataLayer::CalculateInitData()
 {
 	Min = FLT_MAX;
 	MinVisible = FLT_MAX;
@@ -165,40 +165,41 @@ void MeshLayer::CalculateInitData()
 		return;
 
 	double TotalSum = 0.0;
-	for (size_t i = 0; i < TrianglesToData.size(); i++)
+	for (size_t i = 0; i < ElementsToData.size(); i++)
 	{
-		Min = std::min(Min, TrianglesToData[i]);
-		Max = std::max(Max, TrianglesToData[i]);
+		Min = std::min(Min, ElementsToData[i]);
+		Max = std::max(Max, ElementsToData[i]);
 
-		TotalSum += TrianglesToData[i];
+		TotalSum += ElementsToData[i];
 	}
 
-	std::vector<float> SortedData = TrianglesToData;
+	std::vector<float> SortedData = ElementsToData;
 	std::sort(SortedData.begin(), SortedData.end());
 	int MaxVisibleIndex = static_cast<int>(SortedData.size() * 0.85);
 
 	MinVisible = Min;
 	MaxVisible = SortedData[MaxVisibleIndex];
 
-	if (!TrianglesToData.empty())
+	if (!ElementsToData.empty())
 	{
-		Mean = static_cast<float>(TotalSum / TrianglesToData.size());
+		Mean = static_cast<float>(TotalSum / ElementsToData.size());
 		Median = SortedData[SortedData.size() / 2];
 	}
 
 	ValueTriangleAreaAndIndex.clear();
-	for (int i = 0; i < ParentComplexityMetricData->Triangles.size(); i++)
+	if (DataSourceType == DATA_SOURCE_TYPE::MESH)
 	{
-		ValueTriangleAreaAndIndex.push_back(std::make_tuple(TrianglesToData[i], ParentComplexityMetricData->TrianglesArea[i], i));
+		for (int i = 0; i < ParentComplexityMetricData->Triangles.size(); i++)
+			ValueTriangleAreaAndIndex.push_back(std::make_tuple(ElementsToData[i], ParentComplexityMetricData->TrianglesArea[i], i));
+		
+		// sort() function will sort by 1st element of tuple.
+		std::sort(ValueTriangleAreaAndIndex.begin(), ValueTriangleAreaAndIndex.end());
 	}
-
-	// sort() function will sort by 1st element of tuple.
-	std::sort(ValueTriangleAreaAndIndex.begin(), ValueTriangleAreaAndIndex.end());
 }
 
-void MeshLayer::FillRawData()
+void DataLayer::FillRawData()
 {
-	if (ParentComplexityMetricData == nullptr || TrianglesToData.empty())
+	if (ParentComplexityMetricData == nullptr || ElementsToData.empty())
 		return;
 
 	std::vector<int> IndexVector;
@@ -234,66 +235,76 @@ void MeshLayer::FillRawData()
 
 	for (size_t i = 0; i < ParentComplexityMetricData->Triangles.size(); i++)
 	{
-		SetRugosityOfFace(static_cast<int>(i), TrianglesToData[i]);
+		SetRugosityOfFace(static_cast<int>(i), ElementsToData[i]);
 	}
 }
 
-std::string MeshLayer::GetCaption()
+std::string DataLayer::GetCaption()
 {
 	return Caption;
 }
 
-void MeshLayer::SetCaption(const std::string NewValue)
+void DataLayer::SetCaption(const std::string NewValue)
 {
 	Caption = NewValue;
 }
 
-std::string MeshLayer::GetNote()
+std::string DataLayer::GetNote()
 {
 	return UserNote;
 }
 
-void MeshLayer::SetNote(const std::string NewValue)
+void DataLayer::SetNote(const std::string NewValue)
 {
 	UserNote = NewValue;
 }
 
-float MeshLayer::GetMax()
+float DataLayer::GetMax()
 {
 	return Max;
 }
 
-float MeshLayer::GetMin()
+float DataLayer::GetMin()
 {
 	return Min;
 }
 
-float MeshLayer::GetMean()
+float DataLayer::GetMean()
 {
 	return Mean;
 }
 
-float MeshLayer::GetMedian()
+float DataLayer::GetMedian()
 {
 	return Median;
 }
 
-LAYER_TYPE MeshLayer::GetType()
+LAYER_TYPE DataLayer::GetType()
 {
 	return Type;
 }
 
-void MeshLayer::SetType(LAYER_TYPE NewValue)
+void DataLayer::SetType(LAYER_TYPE NewValue)
 {
 	Type = NewValue;
 }
 
-float MeshLayer::GetSelectedRangeMin()
+DATA_SOURCE_TYPE DataLayer::GetDataSourceType()
+{
+	return DataSourceType;
+}
+
+void DataLayer::SetDataSourceType(DATA_SOURCE_TYPE NewValue)
+{
+	DataSourceType = NewValue;
+}
+
+float DataLayer::GetSelectedRangeMin()
 {
 	return SelectedRangeMin;
 }
 
-void MeshLayer::SetSelectedRangeMin(float NewValue)
+void DataLayer::SetSelectedRangeMin(float NewValue)
 {
 	if (NewValue < 0.0f)
 		NewValue = 0.0f;
@@ -304,12 +315,12 @@ void MeshLayer::SetSelectedRangeMin(float NewValue)
 	SelectedRangeMin = NewValue;
 }
 
-float MeshLayer::GetSelectedRangeMax()
+float DataLayer::GetSelectedRangeMax()
 {
 	return SelectedRangeMax;
 }
 
-void MeshLayer::SetSelectedRangeMax(float NewValue)
+void DataLayer::SetSelectedRangeMax(float NewValue)
 {
 	if (NewValue < 0.0f)
 		NewValue = 0.0f;
@@ -320,12 +331,12 @@ void MeshLayer::SetSelectedRangeMax(float NewValue)
 	SelectedRangeMax = NewValue;
 }
 
-std::string MeshLayer::GetID()
+std::string DataLayer::GetID()
 {
 	return ID;
 }
 
-void MeshLayer::ForceID(std::string ID)
+void DataLayer::ForceID(std::string ID)
 {
 	this->ID = ID;
 }
@@ -374,7 +385,7 @@ DebugEntry::DebugEntry(const std::string Type, const int Size, char* RawData)
 		this->RawData[this->Size - 1] = '\0';
 }
 
-std::string MeshLayerDebugInfo::ToString()
+std::string DataLayerDebugInfo::ToString()
 {
 	std::string Result;
 
@@ -387,7 +398,7 @@ std::string MeshLayerDebugInfo::ToString()
 	return Result;
 }
 
-void MeshLayerDebugInfo::FromFile(std::fstream& File)
+void DataLayerDebugInfo::FromFile(std::fstream& File)
 {
 	char* Buffer8 = new char[1];
 	char* Buffer32 = new char[4];
@@ -422,7 +433,7 @@ void MeshLayerDebugInfo::FromFile(std::fstream& File)
 	delete[] Buffer64;
 }
 
-void MeshLayerDebugInfo::ToFile(std::fstream& File)
+void DataLayerDebugInfo::ToFile(std::fstream& File)
 {
 	int Count = static_cast<int>(Entries.size());
 	File.write((char*)&Count, sizeof(int));
@@ -446,7 +457,7 @@ void MeshLayerDebugInfo::ToFile(std::fstream& File)
 	}
 }
 
-void MeshLayerDebugInfo::AddEntry(const std::string Name, const bool Data)
+void DataLayerDebugInfo::AddEntry(const std::string Name, const bool Data)
 {
 	DebugEntry Entry;
 	Entry.Name = Name;
@@ -457,7 +468,7 @@ void MeshLayerDebugInfo::AddEntry(const std::string Name, const bool Data)
 	Entries.push_back(Entry);
 }
 
-void MeshLayerDebugInfo::AddEntry(const std::string Name, const int Data)
+void DataLayerDebugInfo::AddEntry(const std::string Name, const int Data)
 {
 	DebugEntry Entry;
 	Entry.Name = Name;
@@ -468,7 +479,7 @@ void MeshLayerDebugInfo::AddEntry(const std::string Name, const int Data)
 	Entries.push_back(Entry);
 }
 
-void MeshLayerDebugInfo::AddEntry(const std::string Name, const float Data)
+void DataLayerDebugInfo::AddEntry(const std::string Name, const float Data)
 {
 	DebugEntry Entry;
 	Entry.Name = Name;
@@ -479,7 +490,7 @@ void MeshLayerDebugInfo::AddEntry(const std::string Name, const float Data)
 	Entries.push_back(Entry);
 }
 
-void MeshLayerDebugInfo::AddEntry(const std::string Name, const double Data)
+void DataLayerDebugInfo::AddEntry(const std::string Name, const double Data)
 {
 	DebugEntry Entry;
 	Entry.Name = Name;
@@ -490,7 +501,7 @@ void MeshLayerDebugInfo::AddEntry(const std::string Name, const double Data)
 	Entries.push_back(Entry);
 }
 
-void MeshLayerDebugInfo::AddEntry(const std::string Name, const uint64_t Data)
+void DataLayerDebugInfo::AddEntry(const std::string Name, const uint64_t Data)
 {
 	DebugEntry Entry;
 	Entry.Name = Name;
@@ -501,7 +512,7 @@ void MeshLayerDebugInfo::AddEntry(const std::string Name, const uint64_t Data)
 	Entries.push_back(Entry);
 }
 
-void MeshLayerDebugInfo::AddEntry(const std::string Name, const std::string Data)
+void DataLayerDebugInfo::AddEntry(const std::string Name, const std::string Data)
 {
 	DebugEntry Entry;
 	Entry.Name = Name;

@@ -131,7 +131,7 @@ int JitterManager::GetTimeToFinishInSeconds()
 void JitterManager::AfterAllCurrentJitterThreadsFinished()
 {
 	JITTER_MANAGER.JitterDoneCount++;
-	JITTER_MANAGER.LastUsedGrid->FillMeshWithUserData();
+	JITTER_MANAGER.LastUsedGrid->FillMeasurementData();
 	JITTER_MANAGER.LastUsedGrid->bFullyLoaded = true;
 	JITTER_MANAGER.MoveResultDataFromGrid(JITTER_MANAGER.LastUsedGrid);
 
@@ -244,10 +244,10 @@ void JitterManager::RunNextJitter()
 
 	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(&LastUsedJitterSettings[CurrentJitterIndex], JITTER_MANAGER.GetResolutionInM());
 	Grid->Init(0, FinalAABB, JITTER_MANAGER.GetResolutionInM());
-	Grid->FillCellsWithTriangleInfo();
+	COMPLEXITY_METRIC_MANAGER.IsUsingMeshData() ? Grid->FillCellsWithTriangleInfo() : Grid->FillCellsWithPointInfo();
 
-	int NodesWithTrianglesCount = 0;
-	int TriangleCount = 0;
+	int NodesWithDataCount = 0;
+	int TotalObjectCountInNodes = 0;
 	std::vector<GridNode*> NodesWithData;
 	for (size_t i = 0; i < Grid->Data.size(); i++)
 	{
@@ -255,24 +255,24 @@ void JitterManager::RunNextJitter()
 		{
 			for (size_t k = 0; k < Grid->Data.size(); k++)
 			{
-				if (!Grid->Data[i][j][k].TrianglesInCell.empty())
+				if (!(COMPLEXITY_METRIC_MANAGER.IsUsingMeshData() ? Grid->Data[i][j][k].TrianglesInCell.empty() : Grid->Data[i][j][k].PointsInCell.empty()))
 				{
-					TriangleCount += static_cast<int>(Grid->Data[i][j][k].TrianglesInCell.size());
+					TotalObjectCountInNodes += COMPLEXITY_METRIC_MANAGER.IsUsingMeshData() ? static_cast<int>(Grid->Data[i][j][k].TrianglesInCell.size()) : static_cast<int>(Grid->Data[i][j][k].PointsInCell.size());
 					NodesWithData.push_back(&Grid->Data[i][j][k]);
 				}
 			}
 		}
 	}
-	NodesWithTrianglesCount = static_cast<int>(NodesWithData.size());
+	NodesWithDataCount = static_cast<int>(NodesWithData.size());
 
 	THREAD_COUNT = THREAD_POOL.GetThreadCount() * 10;
 	// It should be based on complexity of the algorithm
-	// not only triangle count.
-	THREAD_COUNT = static_cast<int>(TriangleCount / 10000.0);
+	// not only triangle/point count.
+	THREAD_COUNT = static_cast<int>(TotalObjectCountInNodes / (COMPLEXITY_METRIC_MANAGER.IsUsingMeshData() ? 10000.0 : 100000.0));
 	if (THREAD_COUNT < 1)
 		THREAD_COUNT = 1;
 	
-	int NumberOfTrianglesPerThread = static_cast<int>(TriangleCount / THREAD_COUNT);
+	int NumberOfObjectsPerThread = static_cast<int>(TotalObjectCountInNodes / THREAD_COUNT);
 
 	int LastAssignedIndex = -1;
 	int CurrentlyAssignedNodes = 0;
@@ -298,7 +298,7 @@ void JitterManager::RunNextJitter()
 				NewThreadData->Nodes.push_back(NodesWithData[j]);
 
 				CurrentlyAssignedTriangles += static_cast<int>(NodesWithData[j]->TrianglesInCell.size());
-				if (CurrentlyAssignedTriangles >= NumberOfTrianglesPerThread)
+				if (CurrentlyAssignedTriangles >= NumberOfObjectsPerThread)
 				{
 					LastAssignedIndex = static_cast<int>(j);
 					break;
@@ -339,7 +339,7 @@ void JitterManager::RunCalculationOnGridAsync(void* InputData, void* OutputData)
 	Output->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
 	Output->TimeTakenToCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
 
-	Output->FillMeshWithUserData();
+	Output->FillMeasurementData();
 	Output->bFullyLoaded = true;
 }
 
@@ -364,40 +364,41 @@ void JitterManager::AfterCalculationFinishGridCallback(void* OutputData)
 
 void JitterManager::MoveResultDataFromGrid(MeasurementGrid* Grid)
 {
-	if (Grid == nullptr || Grid->TrianglesUserData.empty())
+	std::vector<float>& DataToUse = Grid->IsInTriangleMode() ? Grid->PerTriangleMeasurementData : Grid->PerPointMeasurementData;
+	if (Grid == nullptr || DataToUse.empty())
 		return;
 
 	PerJitterResult.resize(PerJitterResult.size() + 1);
 
-	if (Result.size() != Grid->TrianglesUserData.size())
-		Result.resize(Grid->TrianglesUserData.size());
+	if (Result.size() != DataToUse.size())
+		Result.resize(DataToUse.size());
 
 	if (CorrectValuesCounters.empty())
 	{
-		CorrectValuesCounters.resize(Grid->TrianglesUserData.size());
+		CorrectValuesCounters.resize(DataToUse.size());
 		std::fill(CorrectValuesCounters.begin(), CorrectValuesCounters.end(), 0);
 	}
 
 	for (size_t i = 0; i < Result.size(); i++)
 	{
-		if (isnan(Grid->TrianglesUserData[i]))
-			Grid->TrianglesUserData[i] = FallbackValue;
+		if (isnan(DataToUse[i]))
+			DataToUse[i] = FallbackValue;
 		
 		// We will save all results. Even if they are not correct.
-		PerJitterResult.back().push_back(Grid->TrianglesUserData[i]);
+		PerJitterResult.back().push_back(DataToUse[i]);
 
 		// And if user defined function is not nullptr, we will check if we should ignore this value.
 		if (IgnoreValueFunc != nullptr)
 		{
-			if (!IgnoreValueFunc(Grid->TrianglesUserData[i]))
+			if (!IgnoreValueFunc(DataToUse[i]))
 			{
-				Result[i] += Grid->TrianglesUserData[i];
+				Result[i] += DataToUse[i];
 				CorrectValuesCounters[i]++;
 			}
 		}
 		else
 		{
-			Result[i] += Grid->TrianglesUserData[i];
+			Result[i] += DataToUse[i];
 			CorrectValuesCounters[i]++;
 		}
 	}
@@ -419,7 +420,7 @@ void JitterManager::MoveResultDataFromGrid(MeasurementGrid* Grid)
 
 void JitterManager::OnCalculationsStart()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr && COMPLEXITY_METRIC_MANAGER.RawPointCloudData.empty())
 		return;
 
 	JITTER_MANAGER.Result.clear();
@@ -450,11 +451,11 @@ void JitterManager::OnCalculationsEnd()
 	JITTER_MANAGER.FallbackValue = 1.0f;
 	JITTER_MANAGER.TotalJitterIndex = 0;
 
-	MeshLayer NewLayer;
-	NewLayer.TrianglesToData = JITTER_MANAGER.Result;
+	DataLayer NewLayer;
+	NewLayer.ElementsToData = JITTER_MANAGER.Result;
 
-	NewLayer.DebugInfo = new MeshLayerDebugInfo();
-	NewLayer.DebugInfo->Type = "JitterMeshLayerDebugInfo";
+	NewLayer.DebugInfo = new DataLayerDebugInfo();
+	NewLayer.DebugInfo->Type = "JitterDataLayerDebugInfo";
 	NewLayer.DebugInfo->AddEntry("Start time", JITTER_MANAGER.StartTime);
 	uint64_t EndTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 	NewLayer.DebugInfo->AddEntry("End time", EndTime);
@@ -484,7 +485,7 @@ void JitterManager::SetOnCalculationsStartCallback(std::function<void()> Func)
 	OnCalculationsStartCallbacks.push_back(Func);
 }
 
-void JitterManager::SetOnCalculationsEndCallback(std::function<void(MeshLayer CurrentMeshLayer)> Func)
+void JitterManager::SetOnCalculationsEndCallback(std::function<void(DataLayer CurrentDataLayer)> Func)
 {
 	OnCalculationsEndCallbacks.push_back(Func);
 }
@@ -587,7 +588,7 @@ void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)
 	ResultGrid->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
 	ResultGrid->TimeTakenToCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));
 
-	ResultGrid->FillMeshWithUserData();
+	ResultGrid->FillMeasurementData();
 	ResultGrid->bFullyLoaded = true;
 }
 
@@ -759,15 +760,16 @@ std::vector<float> JitterManager::ProduceStandardDeviationData()
 
 FEAABB JitterManager::GetAABBForJitteredGrid(GridInitData_Jitter* Settings, float CurrentResolutionInM)
 {
-	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
-	FEAABB FinalAABB = MeshAABB;
+	FEAABB ObjectAABB = COMPLEXITY_METRIC_MANAGER.IsUsingMeshData() ? COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB : COMPLEXITY_METRIC_MANAGER.GetPointCloudAABB();
+	FEAABB FinalAABB = ObjectAABB;
 
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
-	TransformMatrix = glm::translate(TransformMatrix, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetPosition());
+	if (COMPLEXITY_METRIC_MANAGER.IsUsingMeshData())
+		TransformMatrix = glm::translate(TransformMatrix, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetPosition());
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(Settings->GridScale));
 	FinalAABB = FinalAABB.Transform(TransformMatrix);
 
-	const glm::vec3 Center = MeshAABB.GetCenter() + glm::vec3(Settings->ShiftX, Settings->ShiftY, Settings->ShiftZ) * CurrentResolutionInM;
+	const glm::vec3 Center = ObjectAABB.GetCenter() + glm::vec3(Settings->ShiftX, Settings->ShiftY, Settings->ShiftZ) * CurrentResolutionInM;
 	const FEAABB GridAABB = FEAABB(Center - glm::vec3(FinalAABB.GetLongestAxisLength() / 2.0f), Center + glm::vec3(FinalAABB.GetLongestAxisLength() / 2.0f));
 	FinalAABB = GridAABB;
 

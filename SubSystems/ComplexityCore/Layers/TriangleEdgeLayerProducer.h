@@ -8,7 +8,7 @@ class TriangleEdgeLayerProducer
 public:
 	SINGLETON_PUBLIC_PART(TriangleEdgeLayerProducer)
 
-	MeshLayer Calculate(int Mode);
+	DataLayer Calculate(int Mode);
 private:
 	SINGLETON_PRIVATE_PART(TriangleEdgeLayerProducer)
 };

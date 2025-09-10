@@ -98,7 +98,7 @@ int LayerManager::GetActiveLayerIndex()
 	return COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentLayerIndex;
 }
 
-MeshLayer* LayerManager::GetActiveLayer()
+DataLayer* LayerManager::GetActiveLayer()
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return nullptr;

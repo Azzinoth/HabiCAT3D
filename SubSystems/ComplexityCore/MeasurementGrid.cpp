@@ -8,11 +8,10 @@ MeasurementGrid::~MeasurementGrid()
 	Data.clear();
 }
 
-void MeasurementGrid::InitializeSegment(size_t beginIndex, size_t endIndex, size_t Dimensions, FEAABB GridAABB, float CellSize)
+void MeasurementGrid::InitializeSegment(size_t BeginIndex, size_t EndIndex, size_t Dimensions, FEAABB GridAABB, float CellSize)
 {
 	const glm::vec3 Start = GridAABB.GetMin();
-
-	for (size_t i = beginIndex; i < endIndex; i++)
+	for (size_t i = BeginIndex; i < EndIndex; i++)
 	{
 		Data[i].resize(Dimensions);
 		for (size_t j = 0; j < Dimensions; j++)
@@ -32,9 +31,9 @@ void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionIn
 	TIME.BeginTimeStamp("Measurement grid Generation");
 
 	const glm::vec3 Center = AABB.GetCenter();
-
 	int AdditionalDimensions = 0;
 	Dimensions = 1;
+
 	if (ResolutionInM > 0)
 	{
 		AdditionalDimensions = 2;
@@ -68,31 +67,26 @@ void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionIn
 	Data.resize(Dimensions);
 	if (bUsingMultiThreading)
 	{
-		size_t numThreads = std::thread::hardware_concurrency();
+		size_t ThreadCount = std::thread::hardware_concurrency();
 		// Using dedicated threads instead of the thread pool to make less changes to the existing code
-		std::vector<std::thread> threads(numThreads);
+		std::vector<std::thread> Threads(ThreadCount);
 
-		size_t chunkSize = Dimensions / numThreads;  // Divide the work into chunks per thread
-
-		for (size_t i = 0; i < numThreads; ++i)
+		size_t ChunkSize = Dimensions / ThreadCount;  // Divide the work into chunks per thread
+		for (size_t i = 0; i < ThreadCount; ++i)
 		{
-			size_t start = i * chunkSize;
-			size_t end = (i + 1) * chunkSize;
-			if (i == numThreads - 1)
-			{
-				end = Dimensions;  // Make sure the last thread covers all remaining elements
-			}
+			size_t Start = i * ChunkSize;
+			size_t End = (i + 1) * ChunkSize;
+			if (i == ThreadCount - 1)
+				End = Dimensions;  // Make sure the last thread covers all remaining elements
 
-			threads[i] = std::thread([=]() {
-				InitializeSegment(start, end, Dimensions, GridAABB, CellSize);
+			Threads[i] = std::thread([=]() {
+				InitializeSegment(Start, End, Dimensions, GridAABB, CellSize);
 			});
 		}
 
 		// Wait for all threads to finish
-		for (auto& thread : threads)
-		{
-			thread.join();
-		}
+		for (auto& CurrentThread : Threads)
+			CurrentThread.join();
 	}
 	else
 	{
@@ -100,9 +94,7 @@ void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionIn
 		{
 			Data[i].resize(Dimensions);
 			for (size_t j = 0; j < Dimensions; j++)
-			{
 				Data[i][j].resize(Dimensions);
-			}
 		}
 
 		const glm::vec3 Start = GridAABB.GetMin();
@@ -339,6 +331,193 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 	TimeTakenFillCellsWithTriangleInfo = static_cast<float>(TIME.EndTimeStamp("Fill cells with triangle info"));
 }
 
+void MeasurementGrid::FillCellsWithPointInfo()
+{
+	bTriangleMode = false;
+	TIME.BeginTimeStamp("Fill cells with points info");
+
+	/*if (bUsingMultiThreading)
+	{*/
+		/*int LocalThreadCount = THREAD_POOL.GetThreadCount();
+		int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() / LocalThreadCount);
+
+		if (LocalThreadCount > NumberOfTrianglesPerThread)
+		{
+			LocalThreadCount = 1;
+			NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
+		}
+
+		std::vector<std::string> ThreadIDs;
+		std::vector<GridThreadData*> ThreadData;
+		std::vector<std::vector<GridUpdateTask>*> AllOutputTasks;
+
+		for (int i = 0; i < LocalThreadCount; i++)
+		{
+			GridThreadData* NewThreadData = new GridThreadData();
+			ThreadData.push_back(NewThreadData);
+			NewThreadData->FirstIndexInTriangleArray = i * NumberOfTrianglesPerThread + 1;
+
+			if (i == 0)
+				NewThreadData->FirstIndexInTriangleArray = 0;
+
+			if (i == LocalThreadCount - 1)
+				NewThreadData->LastIndexInTriangleArray = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() - 1);
+			else
+				NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
+
+			std::vector<GridUpdateTask>* OutputTasks = new std::vector<GridUpdateTask>();
+			AllOutputTasks.push_back(OutputTasks);
+
+			ThreadIDs.push_back(THREAD_POOL.CreateLightThread());
+			THREAD_POOL.ExecuteLightThread(ThreadIDs.back(), [=]() {
+				GridFillingThread(NewThreadData, OutputTasks);
+				});
+		}
+
+		for (size_t i = 0; i < ThreadIDs.size(); i++)
+		{
+			THREAD_POOL.WaitForLightThread(ThreadIDs[i]);
+		}
+
+		for (size_t i = 0; i < ThreadIDs.size(); i++)
+		{
+			THREAD_POOL.RemoveLightThread(ThreadIDs[i]);
+		}
+
+		for (size_t i = 0; i < ThreadData.size(); i++)
+		{
+			delete ThreadData[i];
+		}
+
+		for (int i = 0; i < AllOutputTasks.size(); i++)
+		{
+			for (int j = 0; j < AllOutputTasks[i]->size(); j++)
+			{
+				const int FirstIndex = AllOutputTasks[i]->at(j).FirstIndex;
+				const int SecondIndex = AllOutputTasks[i]->at(j).SecondIndex;
+				const int ThirdIndex = AllOutputTasks[i]->at(j).ThirdIndex;
+				const int TriangleIndexToAdd = AllOutputTasks[i]->at(j).TriangleIndexToAdd;
+
+				Data[FirstIndex][SecondIndex][ThirdIndex].TrianglesInCell.push_back(TriangleIndexToAdd);
+			}
+
+			delete AllOutputTasks[i];
+		}
+
+		AllOutputTasks.clear();*/
+	/*}
+	else
+	{*/
+		const float CellSize = Data[0][0][0].AABB.GetLongestAxisLength();
+		const glm::vec3 GridMin = Data[0][0][0].AABB.GetMin();
+		const glm::vec3 GridMax = Data[Data.size() - 1][Data.size() - 1][Data.size() - 1].AABB.GetMax();
+
+		//DebugTotalTrianglesInCells = 0;
+
+		/*for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.RawPointCloudData.size(); i++)
+		{
+			if (Data[i][j][k].AABB.AABBIntersect(TriangleAABB))
+			{
+				if (GEOMETRY.IsAABBIntersectTriangle(Data[i][j][k].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
+				{
+					Data[i][j][k].TrianglesInCell.push_back(l);
+					DebugTotalTrianglesInCells++;
+				}
+			}
+		}*/
+
+		DebugTotalPointsInCells = 0;
+
+		for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.RawPointCloudData.size(); l++)
+		{
+			glm::vec3 CurrentPoint = glm::vec3(COMPLEXITY_METRIC_MANAGER.RawPointCloudData[l].X, COMPLEXITY_METRIC_MANAGER.RawPointCloudData[l].Y, COMPLEXITY_METRIC_MANAGER.RawPointCloudData[l].Z);
+
+		//	for (size_t i = 0; i < Data.size(); i++)
+		//	{
+		//		for (size_t j = 0; j < Data[i].size(); j++)
+		//		{
+		//			for (size_t k = 0; k < Data[i][j].size(); k++)
+		//			{
+		//				if (Data[i][j][k].AABB.ContainsPoint(CurrentPoint))
+		//				{
+		//					Data[i][j][k].PointsInCell.push_back(l);
+		//					DebugTotalPointsInCells++;
+		//				}
+		//			}
+		//		}
+		//	}
+		//}
+
+
+
+			int XEnd = static_cast<int>(Data.size());
+
+			float Distance = CurrentPoint.x - GridMin.x;
+			int XBegin = static_cast<int>(Distance / CellSize) - 2;
+			if (XBegin < 0)
+				XBegin = 0;
+
+			XEnd = XBegin + 3;
+			if (XEnd > Data.size())
+				XEnd = static_cast<int>(Data.size());
+
+			for (size_t i = XBegin; i < XEnd; i++)
+			{
+				int YEnd = static_cast<int>(Data.size());
+
+				Distance = CurrentPoint.y - GridMin.y;
+				int YBegin = static_cast<int>(Distance / CellSize) - 2;
+				if (YBegin < 0)
+					YBegin = 0;
+
+				YEnd = YBegin + 3;
+				if (YEnd > Data.size())
+					YEnd = static_cast<int>(Data.size());
+
+				for (size_t j = YBegin; j < YEnd; j++)
+				{
+					int ZEnd = static_cast<int>(Data.size());
+
+					Distance = CurrentPoint.z - GridMin.z;
+					int ZBegin = static_cast<int>(Distance / CellSize) - 2;
+					if (ZBegin < 0)
+						ZBegin = 0;
+
+					ZEnd = ZBegin + 3;
+					if (ZEnd > Data.size())
+						ZEnd = static_cast<int>(Data.size());
+
+					for (size_t k = ZBegin; k < ZEnd; k++)
+					{
+						if (Data[i][j][k].AABB.ContainsPoint(CurrentPoint))
+						{
+							Data[i][j][k].PointsInCell.push_back(l);
+							DebugTotalPointsInCells++;
+						}
+					}
+
+					/*for (size_t i = 0; i < Data.size(); i++)
+					{
+						for (size_t j = 0; j < Data[i].size(); j++)
+						{
+							for (size_t k = 0; k < Data[i][j].size(); k++)
+							{
+								if (Data[i][j][k].AABB.ContainsPoint(CurrentPoint))
+								{
+									Data[i][j][k].PointsInCell.push_back(l);
+									DebugTotalPointsInCells++;
+								}
+							}
+						}
+					}*/
+				}
+			}
+		}
+	//}
+
+	TimeTakenFillCellsWithTriangleInfo = static_cast<float>(TIME.EndTimeStamp("Fill cells with points info"));
+}
+
 void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const glm::mat4 TransformMat)
 {
 	SelectedCell = glm::vec3(-1.0);
@@ -383,16 +562,16 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 		Data[static_cast<int>(SelectedCell.x)][static_cast<int>(SelectedCell.y)][static_cast<int>(SelectedCell.z)].bSelected = true;
 }
 
-void MeasurementGrid::FillMeshWithUserData()
+void MeasurementGrid::FillPerTriangleMeasurementData()
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
-	TIME.BeginTimeStamp("FillMeshWithUserData");
+	TIME.BeginTimeStamp("FillMeasurementData");
 
-	std::vector<int> TrianglesRugosityCount;
-	TrianglesUserData.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
-	TrianglesRugosityCount.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
+	std::vector<int> PointDataCount;
+	PerTriangleMeasurementData.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
+	PointDataCount.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
 
 	for (size_t i = 0; i < Data.size(); i++)
 	{
@@ -402,25 +581,73 @@ void MeasurementGrid::FillMeshWithUserData()
 			{
 				for (size_t l = 0; l < Data[i][j][k].TrianglesInCell.size(); l++)
 				{
-					const int TriangleIndex = Data[i][j][k].TrianglesInCell[l];
-					TrianglesRugosityCount[TriangleIndex]++;
-					TrianglesUserData[TriangleIndex] += static_cast<float>(Data[i][j][k].UserData);
+					const int PointIndex = Data[i][j][k].TrianglesInCell[l];
+					PointDataCount[PointIndex]++;
+					PerTriangleMeasurementData[PointIndex] += static_cast<float>(Data[i][j][k].UserData);
 				}
 			}
 		}
 	}
 
-	for (size_t i = 0; i < TrianglesUserData.size(); i++)
+	for (size_t i = 0; i < PerTriangleMeasurementData.size(); i++)
 	{
 		// If triangle was not in any cell, omit it
 		// it should not happen, but just in case.
-		if (TrianglesUserData[i] == 0 || TrianglesRugosityCount[i] == 0)
+		if (PerTriangleMeasurementData[i] == 0 || PointDataCount[i] == 0)
 			continue;
 
-		TrianglesUserData[i] /= TrianglesRugosityCount[i];
+		PerTriangleMeasurementData[i] /= PointDataCount[i];
 	}
 
-	TimeTakenToFillMeshWithUserData = static_cast<float>(TIME.EndTimeStamp("FillMeshWithUserData"));
+	TimeTakenToFillMeasurementData = static_cast<float>(TIME.EndTimeStamp("FillMeasurementData"));
+}
+
+void MeasurementGrid::FillPerPointMeasurementData()
+{
+	if (COMPLEXITY_METRIC_MANAGER.RawPointCloudData.empty())
+		return;
+
+	TIME.BeginTimeStamp("FillMeasurementData");
+
+	std::vector<int> PointDataCount;
+	PerPointMeasurementData.resize(COMPLEXITY_METRIC_MANAGER.RawPointCloudData.size());
+	PointDataCount.resize(COMPLEXITY_METRIC_MANAGER.RawPointCloudData.size());
+
+	for (size_t i = 0; i < Data.size(); i++)
+	{
+		for (size_t j = 0; j < Data[i].size(); j++)
+		{
+			for (size_t k = 0; k < Data[i][j].size(); k++)
+			{
+				for (size_t l = 0; l < Data[i][j][k].PointsInCell.size(); l++)
+				{
+					const int PointIndex = Data[i][j][k].PointsInCell[l];
+					PointDataCount[PointIndex]++;
+					PerPointMeasurementData[PointIndex] += static_cast<float>(Data[i][j][k].UserData);
+				}
+			}
+		}
+	}
+
+	for (size_t i = 0; i < PerPointMeasurementData.size(); i++)
+	{
+		// If point was not in any cell, omit it
+		// it should not happen, but just in case.
+		if (PerPointMeasurementData[i] == 0 || PointDataCount[i] == 0)
+			continue;
+
+		PerPointMeasurementData[i] /= PointDataCount[i];
+	}
+
+	TimeTakenToFillMeasurementData = static_cast<float>(TIME.EndTimeStamp("FillMeasurementData"));
+}
+
+void MeasurementGrid::FillMeasurementData()
+{
+	if (bTriangleMode)
+		FillPerTriangleMeasurementData();
+	else
+		FillPerPointMeasurementData();
 }
 
 void MeasurementGrid::AddLinesOfGrid()
@@ -495,4 +722,9 @@ void MeasurementGrid::RunOnAllNodes(std::function<void(GridNode* currentNode)> F
 			}
 		}
 	}
+}
+
+bool MeasurementGrid::IsInTriangleMode()
+{
+	return bTriangleMode;
 }

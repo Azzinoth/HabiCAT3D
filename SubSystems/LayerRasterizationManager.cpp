@@ -417,7 +417,7 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 
 					for (int k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
 					{
-						float CurrentValue = CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]];
+						float CurrentValue = CurrentLayer->ElementsToData[Grid[i][j].TrianglesInCell[k]];
 						if (CurrentValue < MinValue)
 							MinValue = CurrentValue;
 					}
@@ -430,7 +430,7 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 
 					for (int k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
 					{
-						float CurrentValue = CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]];
+						float CurrentValue = CurrentLayer->ElementsToData[Grid[i][j].TrianglesInCell[k]];
 						if (CurrentValue > MaxValue)
 							MaxValue = CurrentValue;
 					}
@@ -449,7 +449,7 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 						if (CurrentTrianlgeArea != 0.0 && !isnan(CurrentTrianlgeArea))
 						{
 							TriangleWithAreaCount++;
-							FinalResult += CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]];
+							FinalResult += CurrentLayer->ElementsToData[Grid[i][j].TrianglesInCell[k]];
 						}
 					}
 
@@ -466,7 +466,7 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 						if (CurrentTrianlgeArea != 0.0 && !isnan(CurrentTrianlgeArea))
 						{
 							Debug_TotalAreaUsed += CurrentTrianlgeArea;
-							double CurrentTriangleValue = CurrentLayer->TrianglesToData[Grid[i][j].TrianglesInCell[k]];
+							double CurrentTriangleValue = CurrentLayer->ElementsToData[Grid[i][j].TrianglesInCell[k]];
 							FinalResult += static_cast<float>(CurrentTriangleValue * CurrentTrianlgeArea);
 						}
 					}
@@ -947,7 +947,7 @@ void LayerRasterizationManager::GatherGridRasterizationThreadWork(void* OutputDa
 		LAYER_RASTERIZATION_MANAGER.AfterAllGridRasterizationThreadFinished();
 }
 
-void LayerRasterizationManager::PrepareLayerForExport(MeshLayer* LayerToExport, glm::vec3 ForceProjectionVector)
+void LayerRasterizationManager::PrepareLayerForExport(DataLayer* LayerToExport, glm::vec3 ForceProjectionVector)
 {
 	CurrentLayer = LayerToExport;
 	if (CurrentLayer == nullptr)

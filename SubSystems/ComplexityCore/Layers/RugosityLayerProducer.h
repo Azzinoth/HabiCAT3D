@@ -63,7 +63,7 @@ namespace FocalEngine
 
 		// Callback setters
 		void SetOnRugosityCalculationsStartCallback(void(*Func)(void));
-		void SetOnRugosityCalculationsEndCallback(void(*Func)(MeshLayer));
+		void SetOnRugosityCalculationsEndCallback(void(*Func)(DataLayer));
 
 		std::string GetUsedRugosityAlgorithmName();
 		void SetUsedRugosityAlgorithmName(std::string name);
@@ -101,11 +101,11 @@ namespace FocalEngine
 		static float LastTimeTookForCalculation;
 		static void OnRugosityCalculationsStart();
 		static void(*OnRugosityCalculationsStartCallbackImpl)(void);
-		static void(*OnRugosityCalculationsEndCallbackImpl)(MeshLayer);
+		static void(*OnRugosityCalculationsEndCallbackImpl)(DataLayer);
 
 		// Internal calculation methods
 		static void CalculateOneNodeRugosity(GridNode* CurrentNode);
-		static void OnJitterCalculationsEnd(MeshLayer NewLayer);
+		static void OnJitterCalculationsEnd(DataLayer NewLayer);
 		double CGALCalculateArea(const Polygon_set_2& polygon_set);
 		void CreateLocalCoordinateSystem(const glm::dvec3& Normal, glm::dvec3& U, glm::dvec3& V);
 		Point_2 ProjectToLocalCoordinates(const glm::dvec3& Point, const glm::dvec3& U, const glm::dvec3& V);

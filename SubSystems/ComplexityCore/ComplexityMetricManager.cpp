@@ -111,9 +111,9 @@ void ComplexityMetricManager::SaveToRUGFile(std::string FilePath)
 		File.write((char*)&Count, sizeof(int));
 		File.write((char*)ActiveComplexityMetricInfo->Layers[i].GetNote().c_str(), sizeof(char) * Count);
 
-		Count = static_cast<int>(ActiveComplexityMetricInfo->Layers[i].TrianglesToData.size());
+		Count = static_cast<int>(ActiveComplexityMetricInfo->Layers[i].ElementsToData.size());
 		File.write((char*)&Count, sizeof(int));
-		File.write((char*)ActiveComplexityMetricInfo->Layers[i].TrianglesToData.data(), sizeof(float) * Count);
+		File.write((char*)ActiveComplexityMetricInfo->Layers[i].ElementsToData.data(), sizeof(float) * Count);
 
 		Count = ActiveComplexityMetricInfo->Layers[i].DebugInfo != nullptr;
 		File.write((char*)&Count, sizeof(int));
@@ -131,4 +131,36 @@ void ComplexityMetricManager::SaveToRUGFile(std::string FilePath)
 	File.write((char*)&TempAABB.GetMax()[2], sizeof(float));
 
 	File.close();
+}
+
+void ComplexityMetricManager::InitializePointCloudData(FEPointCloud* PointCloud)
+{
+	std::vector<FEPointCloudVertex> TemporaryRawData = PointCloud->GetRawData();
+	RawPointCloudData.resize(TemporaryRawData.size());
+	for (size_t i = 0; i < TemporaryRawData.size(); i++)
+	{
+		RawPointCloudData[i].X = static_cast<double>(TemporaryRawData[i].X);
+		RawPointCloudData[i].Y = static_cast<double>(TemporaryRawData[i].Y);
+		RawPointCloudData[i].Z = static_cast<double>(TemporaryRawData[i].Z);
+
+		RawPointCloudData[i].R = TemporaryRawData[i].R;
+		RawPointCloudData[i].G = TemporaryRawData[i].G;
+		RawPointCloudData[i].B = TemporaryRawData[i].B;
+		RawPointCloudData[i].A = TemporaryRawData[i].A;
+	}
+
+	PointCloudAABB = PointCloud->GetAABB();
+
+	// FIX ME: Temporary solution.
+	bUsingMeshData = false;
+}
+
+bool ComplexityMetricManager::IsUsingMeshData()
+{
+	return bUsingMeshData;
+}
+
+FEAABB ComplexityMetricManager::GetPointCloudAABB()
+{
+	return PointCloudAABB;
 }

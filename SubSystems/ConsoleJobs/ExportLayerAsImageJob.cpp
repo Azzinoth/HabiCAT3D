@@ -230,7 +230,7 @@ bool ExportLayerAsImageJob::Execute(void* InputData, void* OutputData)
 		return false;
 	}
 
-	MeshLayer* LayerToExport = nullptr;
+	DataLayer* LayerToExport = nullptr;
 	if (GetLayerIndex() >= 0 && GetLayerIndex() < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
 	{
 		LayerToExport = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[GetLayerIndex()];

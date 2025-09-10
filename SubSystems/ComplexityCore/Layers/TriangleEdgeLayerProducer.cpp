@@ -4,9 +4,9 @@ using namespace FocalEngine;
 TriangleEdgeLayerProducer::TriangleEdgeLayerProducer() {}
 TriangleEdgeLayerProducer::~TriangleEdgeLayerProducer() {}
 
-MeshLayer TriangleEdgeLayerProducer::Calculate(int Mode)
+DataLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 {
-	MeshLayer Result;
+	DataLayer Result;
 	Result.SetType(TRIANGLE_EDGE);
 
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
@@ -21,24 +21,24 @@ MeshLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 
 		if (Mode == 0)
 		{
-			Result.TrianglesToData.push_back(static_cast<float>(std::max(Edge0Length, std::max(Edge1Length, Edge2Length))));
+			Result.ElementsToData.push_back(static_cast<float>(std::max(Edge0Length, std::max(Edge1Length, Edge2Length))));
 		}
 		else if (Mode == 1)
 		{
-			Result.TrianglesToData.push_back(static_cast<float>(std::min(Edge0Length, std::min(Edge1Length, Edge2Length))));
+			Result.ElementsToData.push_back(static_cast<float>(std::min(Edge0Length, std::min(Edge1Length, Edge2Length))));
 		}
 		else if (Mode == 2)
 		{
-			Result.TrianglesToData.push_back(static_cast<float>((Edge0Length + Edge1Length + Edge2Length) / 3.0));
+			Result.ElementsToData.push_back(static_cast<float>((Edge0Length + Edge1Length + Edge2Length) / 3.0));
 		}
 		else
 		{
-			Result.TrianglesToData.push_back(static_cast<float>((Edge0Length + Edge1Length + Edge2Length) / 3.0));
+			Result.ElementsToData.push_back(static_cast<float>((Edge0Length + Edge1Length + Edge2Length) / 3.0));
 		}
 	}
 	
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle edge"));
-	Result.DebugInfo = new MeshLayerDebugInfo();
+	Result.DebugInfo = new DataLayerDebugInfo();
 
 	Result.DebugInfo->AddEntry("Start time", StartTime);
 	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));

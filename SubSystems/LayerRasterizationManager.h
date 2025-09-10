@@ -14,7 +14,7 @@ class LayerRasterizationManager
 public:
 	SINGLETON_PUBLIC_PART(LayerRasterizationManager)
 
-	void PrepareLayerForExport(MeshLayer* LayerToExport, glm::vec3 ForceProjectionVector = glm::vec3(0.0f));
+	void PrepareLayerForExport(DataLayer* LayerToExport, glm::vec3 ForceProjectionVector = glm::vec3(0.0f));
 
 	enum GridRasterizationMode { Min = 0, Max = 1, Mean = 2, Cumulative = 3 };
 	enum SaveMode { SaveAsPNG = 0, SaveAsTIF = 1, SaveAs32bitTIF = 2 };
@@ -91,7 +91,7 @@ private:
 	std::vector<GridUpdateTask> MainThreadGridUpdateTasks;
 	std::vector<std::vector<GridCell>> Grid;
 	int GatherGridRasterizationThreadCount = 0;
-	MeshLayer* CurrentLayer = nullptr;
+	DataLayer* CurrentLayer = nullptr;
 	int CurrentResolution = 256;
 	float CurrentResolutionInMeters = 1.0f;
 	GridRasterizationMode Mode = GridRasterizationMode::Max;

@@ -1,4 +1,5 @@
 #include "SubSystems/ConsoleJobs/ConsoleJobManager.h"
+#include "SubSystems/VRManager/VRManager.h"
 using namespace FocalEngine;
 
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
@@ -12,7 +13,7 @@ void MouseMoveCallback(double XPos, double YPos)
 	MouseY = YPos;
 }
 
-void LoadMesh(std::string FileName);
+void LoadResource(std::string FileName);
 
 static void DropCallback(int Count, const char** Paths);
 void DropCallback(int Count, const char** Paths)
@@ -22,7 +23,7 @@ void DropCallback(int Count, const char** Paths)
 
 	for (size_t i = 0; i < size_t(Count); i++)
 	{
-		LoadMesh(Paths[i]);
+		LoadResource(Paths[i]);
 	}
 }
 
@@ -58,9 +59,9 @@ void AfterMeshLoads()
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
 }
 
-void LoadMesh(std::string FileName)
+void LoadResource(std::string FileName)
 {
-	const FEMesh* TempMesh = MESH_MANAGER.LoadMesh(FileName);
+	const FEMesh* TempMesh = MESH_MANAGER.LoadResource(FileName);
 	if (TempMesh == nullptr)
 	{
 		LOG.Add("Failed to load mesh with path: " + FileName);
@@ -148,14 +149,14 @@ void OutputSelectedAreaInfoToFile()
 
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
 	{
-		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i];
+		DataLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i];
 
 		Text = "Layer \"" + CurrentLayer->GetCaption() + "\" : \n";
 		Text += "Area average value : ";
 		float Total = 0.0f;
 		for (size_t j = 0; j < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size(); j++)
 		{
-			Total += CurrentLayer->TrianglesToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[i]];
+			Total += CurrentLayer->ElementsToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[i]];
 		}
 
 		Total /= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size();
@@ -244,7 +245,6 @@ void AddFontOnSecondFrame()
 			bFontCreated = true;
 			ImGui::GetIO().Fonts->AddFontFromFileTTF("Resources/Cousine-Regular.ttf", 32);
 			ImGui::GetIO().Fonts->Build();
-			ImGui_ImplOpenGL3_CreateFontsTexture();
 		}
 	}
 }
@@ -280,6 +280,117 @@ void ConsoleThreadCode(void* InputData)
 	}
 }
 
+
+void CalculateOneNodePointCount(GridNode* CurrentNode)
+{
+	if (CurrentNode->PointsInCell.empty())
+		return;
+	
+	CurrentNode->UserData = CurrentNode->PointsInCell.size();
+}
+
+void OnJitterCalculationsEnd(DataLayer NewLayer)
+{
+
+	NewLayer.ElementsToData;
+
+
+	float Min = FLT_MAX;
+	float Max = -FLT_MAX;
+	for (size_t i = 0; i < NewLayer.ElementsToData.size(); i++)
+	{
+		if (NewLayer.ElementsToData[i] < Min)
+			Min = NewLayer.ElementsToData[i];
+		if (NewLayer.ElementsToData[i] > Max)
+			Max = NewLayer.ElementsToData[i];
+	}
+
+	// Update color based on min/max
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.RawPointCloudData.size(); i++)
+	{
+		float NormalizedValue = (NewLayer.ElementsToData[i] - Min) / (Max - Min);
+		glm::vec3 NewColor = GetTurboColorMap(NormalizedValue);
+		COMPLEXITY_METRIC_MANAGER.RawPointCloudData[i].R = static_cast<unsigned char>(NewColor.x * 255.0f);
+		COMPLEXITY_METRIC_MANAGER.RawPointCloudData[i].G = static_cast<unsigned char>(NewColor.y * 255.0f);
+		COMPLEXITY_METRIC_MANAGER.RawPointCloudData[i].B = static_cast<unsigned char>(NewColor.z * 255.0f);
+	}
+
+	FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(COMPLEXITY_METRIC_MANAGER.RawPointCloudData);
+
+	MESH_MANAGER.CurrentPointCloudEntity->RemoveComponent<FEPointCloudComponent>();
+	RESOURCE_MANAGER.DeleteFEPointCloud(MESH_MANAGER.CurrentPointCloud);
+	MESH_MANAGER.CurrentPointCloud = PointCloud;
+	MESH_MANAGER.CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(MESH_MANAGER.CurrentPointCloud);
+
+
+	//if (!RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult)
+	//	return;
+
+	NewLayer.SetDataSourceType(DATA_SOURCE_TYPE::POINT_CLOUD);
+	//NewLayer.SetType(RUGOSITY);
+	
+	//RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = false;
+	//NewLayer.DebugInfo->Type = "RugosityDataLayerDebugInfo";
+
+	//std::string AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[0];
+	//if (RUGOSITY_LAYER_PRODUCER.bUseFindSmallestRugosity)
+	//	AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[1];
+
+	//if (RUGOSITY_LAYER_PRODUCER.bUseCGALVariant)
+	//	AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[2];
+
+	//NewLayer.DebugInfo->AddEntry("Algorithm used", AlgorithmUsed);
+
+	//if (AlgorithmUsed == "Min Rugosity(default)")
+	//	NewLayer.DebugInfo->AddEntry("Orientation set name", RUGOSITY_LAYER_PRODUCER.GetOrientationSetForMinRugosityName());
+
+	//std::string DeleteOutliers = "No";
+	//// Remove outliers.
+	//if (RUGOSITY_LAYER_PRODUCER.bDeleteOutliers || (RUGOSITY_LAYER_PRODUCER.bUseFindSmallestRugosity && RUGOSITY_LAYER_PRODUCER.OrientationSetForMinRugosity == "1"))
+	//{
+	//	DeleteOutliers = "Yes";
+	//	JITTER_MANAGER.AdjustOutliers(NewLayer.ElementsToData, 0.00f, 0.99f);
+	//}
+	//NewLayer.DebugInfo->AddEntry("Delete outliers", DeleteOutliers);
+
+	//std::string OverlapAware = "No";
+	//if (RUGOSITY_LAYER_PRODUCER.bUniqueProjectedArea)
+	//	OverlapAware = "Yes";
+	//NewLayer.DebugInfo->AddEntry("Unique projected area (very slow)", OverlapAware);
+
+	//std::string OverlapAwareApproximation = "No";
+	//if (RUGOSITY_LAYER_PRODUCER.bUniqueProjectedAreaApproximation)
+	//	OverlapAwareApproximation = "Yes";
+	//NewLayer.DebugInfo->AddEntry("Approximation of unique projected area", OverlapAwareApproximation);
+
+	//LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
+
+	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
+	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
+	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
+
+	//LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
+
+	//if (RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation)
+	//{
+	//	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
+	//	std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
+	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
+	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+
+	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new DataLayerDebugInfo();
+	//	DataLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
+	//	DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
+	//	DebugInfo->AddEntry("Start time", StartTime);
+	//	DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+	//	DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
+	//	DebugInfo->AddEntry("Source layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
+	//}
+
+	//if (OnRugosityCalculationsEndCallbackImpl != nullptr)
+	//	OnRugosityCalculationsEndCallbackImpl(NewLayer);
+}
+
 void MainWindowRender()
 {
 	static bool FirstFrame = true;
@@ -292,6 +403,93 @@ void MainWindowRender()
 		UI.SetShouldTakeScreenshot(false);
 		SCREENSHOT_MANAGER.TakeScreenshot();
 		return;
+	}
+
+	bool bVRMode = ENGINE.IsVREnabled();
+	if (ImGui::Checkbox("Enter VR mode", &bVRMode))
+	{
+		if (bVRMode)
+		{
+			if (ENGINE.EnableVR(FERenderingPipeline::Forward_Simplified))
+			{
+				VR_MANAGER.Initialize();
+			}
+		}
+		else
+		{
+			ENGINE.DisableVR();
+		}
+	}
+
+	if (MESH_MANAGER.CurrentPointCloudEntity != nullptr)
+	{
+		if (ImGui::Button("Calculate on point cloud"))
+		{
+			JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
+			JITTER_MANAGER.CalculateWithGridJitterAsync(CalculateOneNodePointCount);
+		}
+	}
+
+	if (bVRMode)
+	{
+		VR_MANAGER.Update();
+
+		FEEntity* VRRigEntity = OpenXR_MANAGER.GetVRRigEntity();
+		if (VRRigEntity != nullptr)
+		{
+			FETransformComponent& VRRigTransform = VRRigEntity->GetComponent<FETransformComponent>();
+			glm::vec3 VRRigPosition = VRRigTransform.GetPosition();
+
+			ImGui::Text("VRRig Position : ");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##X Left Controller", &VRRigPosition[0], 0.01f);
+
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##Y Left Controller", &VRRigPosition[1], 0.01f);
+
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##Z Left Controller", &VRRigPosition[2], 0.01f);
+
+			VRRigTransform.SetPosition(VRRigPosition);
+		}
+
+		/*glm::vec3 ControllerPosition = FEOpenXR_INPUT.GetLeftControllerPosition();
+		ImGui::Text("Left Controller Position : ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##X Left Controller", &ControllerPosition[0], 0.01f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##Y Left Controller", &ControllerPosition[1], 0.01f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##Z Left Controller", &ControllerPosition[2], 0.01f);
+
+
+		ControllerPosition = FEOpenXR_INPUT.GetRightControllerPosition();
+
+		ImGui::Text("Right Controller Position : ");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##X Right Controller", &ControllerPosition[0], 0.01f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##Y Right Controller", &ControllerPosition[1], 0.01f);
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##Z Right Controller", &ControllerPosition[2], 0.01f);
+
+		if (ImGui::Button("Haptic"))
+		{
+			FEOpenXR_INPUT.TriggerHapticFeedback(0.5f, 0.5f, 0.5f, false);
+		}*/
 	}
 
 	if (MESH_MANAGER.ActiveEntity != nullptr)
@@ -309,7 +507,7 @@ void MainWindowRender()
 		MESH_MANAGER.UpdateUniforms();
 
 		// Unnecessary part
-		MESH_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetVisibility(true);
+		MESH_MANAGER.ActiveEntity->SetComponentVisible(ComponentVisibilityType::ALL, true);
 
 		// This part should be done by Engine.
 		FE_GL_ERROR(glBindVertexArray(MESH_MANAGER.ActiveMesh->GetVaoID()));
@@ -330,94 +528,7 @@ void MainWindowRender()
 
 		// RenderFEMesh END
 
-		bool bVRMode = ENGINE.IsVREnabled();
-		if (ImGui::Checkbox("Enter VR mode", &bVRMode))
-		{
-			if (bVRMode)
-			{
-				if (ENGINE.EnableVR())
-				{
-
-					/*std::string ActiveRuntime = FEOpenXR_CORE.GetActiveRuntimeInfo();
-					std::vector<FEOpenXRExtensionInfo> ExtensionsInfo = FEOpenXR_CORE.GetAvailableExtensionsInfo();
-
-					int y = 0;
-					y++;*/
-
-					//glm::vec2 VRResolution = OpenXR_MANAGER.EyeResolution();
-					//POINT_MANAGER.RenderTargetResize(static_cast<int>(VRResolution.x), static_cast<int>(VRResolution.y));
-
-					//AddVirtualUI();
-				}
-
-			}
-			else
-			{
-				ENGINE.DisableVR();
-
-				//POINT_MANAGER.RenderTargetResize(static_cast<int>(ENGINE.GetRenderTargetWidth()), static_cast<int>(ENGINE.GetRenderTargetHeight()));
-			}
-		}
-
-		if (bVRMode)
-		{
-			FEEntity* VRRigEntity = OpenXR_MANAGER.GetVRRigEntity();
-			if (VRRigEntity != nullptr)
-			{
-				FETransformComponent& VRRigTransform = VRRigEntity->GetComponent<FETransformComponent>();
-				glm::vec3 VRRigPosition = VRRigTransform.GetPosition();
-
-				ImGui::Text("VRRig Position : ");
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(70);
-				ImGui::DragFloat("##X Left Controller", &VRRigPosition[0], 0.01f);
-
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(70);
-				ImGui::DragFloat("##Y Left Controller", &VRRigPosition[1], 0.01f);
-
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(70);
-				ImGui::DragFloat("##Z Left Controller", &VRRigPosition[2], 0.01f);
-
-				VRRigTransform.SetPosition(VRRigPosition);
-			}
-
-			glm::vec3 ControllerPosition = FEOpenXR_INPUT.GetLeftControllerPosition();
-			ImGui::Text("Left Controller Position : ");
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(70);
-			ImGui::DragFloat("##X Left Controller", &ControllerPosition[0], 0.01f);
-
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(70);
-			ImGui::DragFloat("##Y Left Controller", &ControllerPosition[1], 0.01f);
-
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(70);
-			ImGui::DragFloat("##Z Left Controller", &ControllerPosition[2], 0.01f);
-
-
-			ControllerPosition = FEOpenXR_INPUT.GetRightControllerPosition();
-
-			ImGui::Text("Right Controller Position : ");
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(70);
-			ImGui::DragFloat("##X Right Controller", &ControllerPosition[0], 0.01f);
-
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(70);
-			ImGui::DragFloat("##Y Right Controller", &ControllerPosition[1], 0.01f);
-
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(70);
-			ImGui::DragFloat("##Z Right Controller", &ControllerPosition[2], 0.01f);
-
-			if (ImGui::Button("Haptic"))
-			{
-				FEOpenXR_INPUT.TriggerHapticFeedback(0.5f, 0.5f, 0.5f, false);
-			}
-		}
+		
 	}
 
 	LINE_RENDERER.Render();

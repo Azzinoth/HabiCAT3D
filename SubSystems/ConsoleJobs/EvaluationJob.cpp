@@ -165,7 +165,7 @@ bool ComplexityEvaluationJob::Execute(void* InputData, void* OutputData)
 			return false;
 		}
 
-		MeshLayer* LayerToEvaluate = nullptr;
+		DataLayer* LayerToEvaluate = nullptr;
 		if (GetLayerIndex() != -1)
 		{
 			LayerToEvaluate = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[GetLayerIndex()];

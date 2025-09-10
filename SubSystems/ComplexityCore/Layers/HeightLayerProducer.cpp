@@ -4,9 +4,9 @@ using namespace FocalEngine;
 HeightLayerProducer::HeightLayerProducer() {}
 HeightLayerProducer::~HeightLayerProducer() {}
 
-MeshLayer HeightLayerProducer::Calculate()
+DataLayer HeightLayerProducer::Calculate()
 {
-	MeshLayer Result;
+	DataLayer Result;
 	Result.SetType(HEIGHT);
 
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
@@ -25,18 +25,18 @@ MeshLayer HeightLayerProducer::Calculate()
 			AverageTriangleHeight += CurrentHeight;
 		}
 
-		Result.TrianglesToData.push_back(static_cast<float>(AverageTriangleHeight / 3.0));
-		Min = std::min(float(Min), Result.TrianglesToData.back());
+		Result.ElementsToData.push_back(static_cast<float>(AverageTriangleHeight / 3.0));
+		Min = std::min(float(Min), Result.ElementsToData.back());
 	}
 
 	// Smallest value should be 0.0f.
-	for (size_t i = 0; i < Result.TrianglesToData.size(); i++)
+	for (size_t i = 0; i < Result.ElementsToData.size(); i++)
 	{
-		Result.TrianglesToData[i] += static_cast<float>(abs(Min));
+		Result.ElementsToData[i] += static_cast<float>(abs(Min));
 	}
 	
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Height"));
-	Result.DebugInfo = new MeshLayerDebugInfo();
+	Result.DebugInfo = new DataLayerDebugInfo();
 
 	Result.DebugInfo->AddEntry("Start time", StartTime);
 	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));

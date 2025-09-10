@@ -1,7 +1,7 @@
 #include "VectorDispersionLayerProducer.h"
 using namespace FocalEngine;
 
-void(*VectorDispersionLayerProducer::OnCalculationsEndCallbackImpl)(MeshLayer) = nullptr;
+void(*VectorDispersionLayerProducer::OnCalculationsEndCallbackImpl)(DataLayer) = nullptr;
 
 VectorDispersionLayerProducer::VectorDispersionLayerProducer()
 {
@@ -68,7 +68,7 @@ void VectorDispersionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 	JITTER_MANAGER.CalculateWithGridJitterAsync(WorkOnNode, bSmootherResult);
 }
 
-void VectorDispersionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
+void VectorDispersionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
@@ -90,8 +90,8 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-		MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new DataLayerDebugInfo();
+		DataLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
 		DebugInfo->Type = "VectorDispersionDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
@@ -140,7 +140,7 @@ void VectorDispersionLayerProducer::CalculateOnWholeModel()
 	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
 }
 
-void VectorDispersionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(MeshLayer))
+void VectorDispersionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(DataLayer))
 {
 	OnCalculationsEndCallbackImpl = Func;
 }

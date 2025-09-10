@@ -13,7 +13,7 @@ public:
 private:
 	SINGLETON_PRIVATE_PART(TriangleCountLayerProducer)
 
-	static void OnJitterCalculationsEnd(MeshLayer NewLayer);
+	static void OnJitterCalculationsEnd(DataLayer NewLayer);
 	bool bWaitForJitterResult = false;
 };
 

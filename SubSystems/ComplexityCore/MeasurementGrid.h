@@ -8,6 +8,7 @@ struct GridNode
 {
     FEAABB AABB;
     std::vector<int> TrianglesInCell;
+	std::vector<int> PointsInCell;
     glm::vec3 AverageCellNormal = glm::vec3(0.0f);
     glm::vec3 CellTrianglesCentroid = glm::vec3(0.0f);
     double UserData = 0.0;
@@ -23,9 +24,11 @@ struct MeasurementGrid
     float TimeTakenToGenerateInMS = 0.0f;
     float TimeTakenFillCellsWithTriangleInfo = 0.0f;
     float TimeTakenToCalculate = 0.0f;
-    float TimeTakenToFillMeshWithUserData = 0.0f;
-    std::vector<float> TrianglesUserData;
+    float TimeTakenToFillMeasurementData = 0.0f;
+    std::vector<float> PerTriangleMeasurementData;
+    std::vector<float> PerPointMeasurementData;
     int DebugTotalTrianglesInCells = 0;
+	int DebugTotalPointsInCells = 0;
     int RenderingMode = 0;
 
     bool bFullyLoaded = false;
@@ -36,16 +39,25 @@ struct MeasurementGrid
 
     void Init(int Dimensions, FEAABB AABB, float ResolutionInM = 0.0f);
     void FillCellsWithTriangleInfo();
+	void FillCellsWithPointInfo();
+
     void MouseClick(double MouseX, double MouseY, glm::mat4 TransformMat = glm::identity<glm::mat4>());
-    void FillMeshWithUserData();
+
+    void FillMeasurementData();
+
     void UpdateRenderedLines();
     void RunOnAllNodes(std::function<void(GridNode* currentNode)> Func);
     void AddLinesOfGrid();
 
+    bool IsInTriangleMode();
 private:
-    void InitializeSegment(size_t beginIndex, size_t endIndex, size_t Dimensions, FEAABB GridAABB, float CellSize);
+    void InitializeSegment(size_t BeginIndex, size_t EndIndex, size_t Dimensions, FEAABB GridAABB, float CellSize);
 
     bool bUsingMultiThreading = true;
+	bool bTriangleMode = true;
+
+    void FillPerTriangleMeasurementData();
+    void FillPerPointMeasurementData();
 
     struct GridThreadData
     {

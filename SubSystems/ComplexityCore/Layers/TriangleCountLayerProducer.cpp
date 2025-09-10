@@ -26,7 +26,7 @@ void TriangleCountLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 	JITTER_MANAGER.CalculateWithGridJitterAsync(WorkOnNode, bSmootherResult);
 }
 
-void TriangleCountLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
+void TriangleCountLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 {
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;

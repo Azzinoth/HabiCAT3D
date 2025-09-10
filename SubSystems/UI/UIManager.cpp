@@ -435,7 +435,7 @@ void UIManager::Render(bool bScreenshotMode)
 
 				if (!FilePath.empty())
 				{
-					MESH_MANAGER.LoadMesh(FilePath);
+					MESH_MANAGER.LoadResource(FilePath);
 				}
 			}
 
@@ -690,7 +690,7 @@ void UIManager::OnJitterCalculationsStart()
 	UI.bShouldOpenProgressPopup = true;
 }
 
-void UIManager::OnJitterCalculationsEnd(MeshLayer NewLayer)
+void UIManager::OnJitterCalculationsEnd(DataLayer NewLayer)
 {
 	UI.bShouldCloseProgressPopup = true;
 	UI.CurrentJitterStepIndexVisualize = static_cast<int>(JITTER_MANAGER.GetLastUsedJitterSettings().size() - 1);
@@ -794,7 +794,7 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 
 	if (bScreenshotMode && MeshAndCurrentLayerIsValid())
 	{
-		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		DataLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 		if (CurrentLayer->GetMin() == CurrentLayer->GetMax())
 		{
 			HeatMapColorRange.Legend.SetDummyValues();
@@ -821,7 +821,7 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 	static float LastValue = HeatMapColorRange.GetSliderValue();
 	if (MeshAndCurrentLayerIsValid())
 	{
-		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		DataLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 		if (CurrentLayer->GetMin() == CurrentLayer->GetMax())
 		{
 			HeatMapColorRange.Legend.SetDummyValues();
@@ -861,7 +861,7 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 	ImGui::SameLine();
 	if (ImGui::Button("Set", ImVec2(62, 19)))
 	{
-		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		DataLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		float NewValue = float(atof(CurrentRugosityMax));
 		if (NewValue < CurrentLayer->GetMin())
@@ -1059,7 +1059,7 @@ void UIManager::RenderLayerChooseWindow()
 		ImVec4 Transparent = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 		ImGui::PushStyleColor(ImGuiCol_Button, Transparent);
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-		if (ImGui::ImageButton((void*)(intptr_t)AddNewLayerIcon->GetTextureID(), ImVec2(32, 32), ImVec2(0, 0), ImVec2(1, 1), 0))
+		if (ImGui::ImageButton("AddNewLayerButton", AddNewLayerIcon->GetTextureID(), ImVec2(32, 32), ImVec2(0, 0), ImVec2(1, 1)))
 		{
 			NEW_LAYER_WINDOW.Show();
 		}
@@ -1173,7 +1173,7 @@ void UIManager::SetIsModelCamera(const bool NewValue, glm::vec3 ModelCameraFocus
 	bModelCamera = NewValue;
 }
 
-void UIManager::UpdateHistogramData(MeshLayer* FromLayer, int NewBinCount)
+void UIManager::UpdateHistogramData(DataLayer* FromLayer, int NewBinCount)
 {
 	std::vector<double> Values;
 	std::vector<double> Weights;
@@ -1319,7 +1319,7 @@ void UIManager::RenderHistogramWindow()
 													  ArrowPosition + ImVec2(1.0f, Histogram.GetSize().y - 1.0f),
 													  ImColor(156.0f / 255.0f, 105.0f / 255.0f, 137.0f / 255.0f, 165.0f / 255.0f));
 			
-			MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+			DataLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 			if (CurrentLayer != nullptr)
 			{
 				CurrentLayer->SetSelectedRangeMin(HistogramSelectRegionMin.GetRangePosition());
@@ -1469,9 +1469,9 @@ void UIManager::RenderAboutWindow()
 	}
 }
 
-glm::dvec2 UIManager::LayerValuesAreaDistribution(MeshLayer* Layer, float Value)
+glm::dvec2 UIManager::LayerValuesAreaDistribution(DataLayer* Layer, float Value)
 {
-	if (Layer == nullptr || Layer->GetParent() == nullptr || Layer->TrianglesToData.empty() || Layer->GetParent()->TrianglesArea.empty())
+	if (Layer == nullptr || Layer->GetParent() == nullptr || Layer->ElementsToData.empty() || Layer->GetParent()->TrianglesArea.empty())
 		return glm::dvec2(0.0);
 
 	float FirstBin = 0.0;
@@ -1481,7 +1481,7 @@ glm::dvec2 UIManager::LayerValuesAreaDistribution(MeshLayer* Layer, float Value)
 
 	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
 	{
-		if (Layer->TrianglesToData[i] <= Value)
+		if (Layer->ElementsToData[i] <= Value)
 		{
 			FirstBin += float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[i]);
 		}
@@ -1515,7 +1515,7 @@ void UIManager::OnLayerChange()
 	{
 		UI.UpdateHistogramData(&COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()], UI.Histogram.GetCurrentBinCount());
 
-		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		DataLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		MESH_MANAGER.SetHeatMapType(5);
 		UI.HeatMapColorRange.SetColorRangeFunction(GetTurboColorMap);
@@ -1556,7 +1556,7 @@ void UIManager::OnLayerChange()
 	}	
 }
 
-std::vector<GridInitData_Jitter> ReadJitterSettingsFromDebugInfo(MeshLayerDebugInfo* DebugInfo)
+std::vector<GridInitData_Jitter> ReadJitterSettingsFromDebugInfo(DataLayerDebugInfo* DebugInfo)
 {
 	std::vector<GridInitData_Jitter> Result;
 
@@ -1622,7 +1622,7 @@ void UIManager::InitDebugGrid(size_t JitterIndex)
 	// We are working with jitter manager
 	// that means that layer should have this info.
 	float CurrentLayerResolutionInM = 0.0f;
-	MeshLayer* Layer = LAYER_MANAGER.GetActiveLayer();
+	DataLayer* Layer = LAYER_MANAGER.GetActiveLayer();
 	for (size_t i = 0; i < Layer->DebugInfo->Entries.size(); i++)
 	{
 		if (Layer->DebugInfo->Entries[i].Name == "Resolution used")
@@ -1670,7 +1670,7 @@ void UIManager::RenderLayerSettingsTab()
 
 	if (NoInfoText.empty())
 	{
-		MeshLayer* Layer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		DataLayer* Layer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		ImGui::Text("Triangle count: ");
 		ImGui::SameLine();
@@ -1915,7 +1915,7 @@ void UIManager::RenderGeneralSettingsTab()
 
 			if (DebugGrid->RenderingMode == 1)
 			{
-				MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
+				DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
 				if (CurrentLayer == nullptr)
 					return;
 
@@ -2142,13 +2142,13 @@ void UIManager::RenderExportTab()
 
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() == 1 && LAYER_MANAGER.GetActiveLayer() != nullptr)
 	{
-		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		DataLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		ImGui::Separator();
 		ImGui::Text("Selected triangle information :");
 
 		std::string Text = "Triangle value : ";
-		Text += std::to_string(CurrentLayer->TrianglesToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]]);
+		Text += std::to_string(CurrentLayer->ElementsToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]]);
 		ImGui::Text(Text.c_str());
 
 		int HeightLayerIndex = -1;
@@ -2162,7 +2162,7 @@ void UIManager::RenderExportTab()
 		double AverageHeight = 0.0;
 		if (HeightLayerIndex != -1)
 		{
-			AverageHeight = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[HeightLayerIndex].TrianglesToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
+			AverageHeight = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[HeightLayerIndex].ElementsToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
 			AverageHeight -= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[HeightLayerIndex].GetMin();
 		}
 
@@ -2171,13 +2171,13 @@ void UIManager::RenderExportTab()
 	}
 	else if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() > 1 && LAYER_MANAGER.GetActiveLayer() != nullptr)
 	{
-		MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		DataLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
 		std::string Text = "Area average value : ";
 		float TotalRugosity = 0.0f;
 		for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size(); i++)
 		{
-			TotalRugosity += CurrentLayer->TrianglesToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[i]];
+			TotalRugosity += CurrentLayer->ElementsToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[i]];
 		}
 
 		TotalRugosity /= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size();
@@ -2197,11 +2197,11 @@ void UIManager::RenderExportTab()
 
 		if (HeightLayerIndex != -1)
 		{
-			MeshLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[HeightLayerIndex];
+			DataLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[HeightLayerIndex];
 
 			for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size(); i++)
 			{
-				double CurrentHeight = CurrentLayer->TrianglesToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[i]];
+				double CurrentHeight = CurrentLayer->ElementsToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[i]];
 				AverageHeight += CurrentHeight;
 			}
 
@@ -2259,13 +2259,13 @@ bool UIManager::ExportOBJ(std::string FilePath, int LayerIndex)
 
 		// To export model with layer, we need to create a new mesh with vertex colors as layer data.
 		RawMeshData& MeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData;
-		MeshLayer* Layer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex];
+		DataLayer* Layer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex];
 
 		std::vector<float> ColorData;
 		ColorData.resize(MeshData.Vertices.size());
-		for (size_t i = 0; i < Layer->TrianglesToData.size(); i++)
+		for (size_t i = 0; i < Layer->ElementsToData.size(); i++)
 		{
-			float CompexityValueForTriangle = Layer->TrianglesToData[i];
+			float CompexityValueForTriangle = Layer->ElementsToData[i];
 			float NormalizedValue = (CompexityValueForTriangle - Layer->GetMin()) / (Layer->MaxVisible - Layer->GetMin());
 			if (NormalizedValue > 1.0f)
 				NormalizedValue = 1.0f;
@@ -2390,7 +2390,7 @@ void UIManager::UpdateRenderingMode(MeasurementGrid* Grid, int NewRenderingMode)
 	if (LAYER_TYPE::UNKNOWN)
 		return;
 
-	MeshLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
+	DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
 	if (CurrentLayer == nullptr)
 		return;
 

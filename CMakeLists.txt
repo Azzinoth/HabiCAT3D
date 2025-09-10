@@ -128,6 +128,11 @@ file(GLOB SubSystems_ConsoleJobs_SRC
 	"SubSystems/ConsoleJobs/ConsoleJobManager.cpp"
 )
 
+file(GLOB SubSystems_VRManager_SRC
+	"SubSystems/VRManager/VRManager.h"
+	"SubSystems/VRManager/VRManager.cpp"
+)
+
 set(MAIN_SOURCE_FILES "")
 list(APPEND MAIN_SOURCE_FILES
     "EngineInclude.h"
@@ -158,6 +163,7 @@ add_executable(HabiCAT3D WIN32
 					     ${SubSystems_UI_SRC}
 					     ${SubSystems_ConsoleJobs_SRC}
 					     ${SubSystems_ComplexityCore_SRC}
+						 ${SubSystems_VRManager_SRC}
 )
 
 target_link_libraries(HabiCAT3D
@@ -177,6 +183,7 @@ source_group("Source Files/SubSystems/ComplexityCore" FILES ${SubSystems_Complex
 source_group("Source Files/SubSystems/ComplexityCore/Layers" FILES ${SubSystems_Layers_SRC})
 source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
 source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJobs_SRC})
+source_group("Source Files/SubSystems/VRManager" FILES ${SubSystems_VRManager_SRC})
 
 # set as the startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT HabiCAT3D)

@@ -2,7 +2,7 @@
 
 namespace FocalEngine
 {
-	struct RugosityMeshLayerDebugInfo;
+	struct RugosityDataLayerDebugInfo;
 }
 using namespace FocalEngine;
 
@@ -63,9 +63,9 @@ std::vector<float> CompareLayerProducer::Normalize(std::vector<float> Original)
 	return Result;
 }
 
-MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int SecondLayer)
+DataLayer CompareLayerProducer::Calculate(const int FirstLayer, const int SecondLayer)
 {
-	MeshLayer Result;
+	DataLayer Result;
 	Result.SetType(COMPARE);
 
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr || FirstLayer == -1 || SecondLayer == -1)
@@ -73,18 +73,18 @@ MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	MeshLayer* First = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[FirstLayer];
-	MeshLayer* Second = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[SecondLayer];
+	DataLayer* First = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[FirstLayer];
+	DataLayer* Second = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[SecondLayer];
 
 	std::vector<float> NewData;
-	NewData.resize(First->TrianglesToData.size());
+	NewData.resize(First->ElementsToData.size());
 
 	if (bNormalize)
 	{
-		std::vector<float> FirstLayerData = Normalize(First->TrianglesToData);
-		std::vector<float> SecondLayerData = Normalize(Second->TrianglesToData);
+		std::vector<float> FirstLayerData = Normalize(First->ElementsToData);
+		std::vector<float> SecondLayerData = Normalize(Second->ElementsToData);
 
-		for (size_t i = 0; i < First->TrianglesToData.size(); i++)
+		for (size_t i = 0; i < First->ElementsToData.size(); i++)
 		{
 			NewData[i] = FirstLayerData[i] - SecondLayerData[i];
 		}
@@ -93,9 +93,9 @@ MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 	}
 	else
 	{
-		for (size_t i = 0; i < First->TrianglesToData.size(); i++)
+		for (size_t i = 0; i < First->ElementsToData.size(); i++)
 		{
-			NewData[i] = First->TrianglesToData[i] - Second->TrianglesToData[i];
+			NewData[i] = First->ElementsToData[i] - Second->ElementsToData[i];
 		}
 
 		bool bDeleteOutliers = true;
@@ -106,11 +106,11 @@ MeshLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 		}
 	}
 
-	Result.TrianglesToData = NewData;
+	Result.ElementsToData = NewData;
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Compare"));
 
-	Result.DebugInfo = new MeshLayerDebugInfo();
-	Result.DebugInfo->Type = "CompareMeshLayerDebugInfo";
+	Result.DebugInfo = new DataLayerDebugInfo();
+	Result.DebugInfo->Type = "CompareDataLayerDebugInfo";
 	Result.DebugInfo->AddEntry("Start time", StartTime);
 	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 

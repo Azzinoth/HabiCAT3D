@@ -16,12 +16,12 @@ struct DebugEntry
 	std::string ToString();
 };
 
-struct MeshLayerDebugInfo
+struct DataLayerDebugInfo
 {
 	uint64_t StartCalculationsTime;
 	uint64_t EndCalculationsTime;
 
-	std::string Type = "MeshLayerDebugInfo";
+	std::string Type = "DataLayerDebugInfo";
 
 	virtual std::string ToString();
 
@@ -49,11 +49,20 @@ enum LAYER_TYPE
 	RUGOSITY = 6,
 	VECTOR_DISPERSION = 7,
 	FRACTAL_DIMENSION = 8,
-	TRIANGLE_DENSITY = 9
+	TRIANGLE_DENSITY = 9,
+
+	// Point cloud specific types
+	POINT_DENSITY = 10
+};
+
+enum class DATA_SOURCE_TYPE
+{
+	MESH = 0,
+	POINT_CLOUD = 1
 };
 
 class ComplexityMetricInfo;
-class MeshLayer
+class DataLayer
 {
 	ComplexityMetricInfo* ParentComplexityMetricData = nullptr;
 
@@ -61,6 +70,7 @@ class MeshLayer
 	std::string Caption = "Layer caption";
 	std::string UserNote;
 	LAYER_TYPE Type = LAYER_TYPE::UNKNOWN;
+	DATA_SOURCE_TYPE DataSourceType = DATA_SOURCE_TYPE::MESH;
 
 	float Max = -FLT_MAX;
 	float Min = FLT_MAX;
@@ -72,16 +82,16 @@ class MeshLayer
 	float SelectedRangeMin = 0.0f;
 	float SelectedRangeMax = 0.0f;
 public:
-	MeshLayer();
-	MeshLayer(ComplexityMetricInfo* Parent, std::vector<float> TrianglesToData);
-	~MeshLayer();
+	DataLayer();
+	DataLayer(ComplexityMetricInfo* Parent, std::vector<float> ElementsToData);
+	~DataLayer();
 
 	void FillRawData();
 
 	std::string GetID();
 	void ForceID(std::string ID);
 
-	MeshLayerDebugInfo* DebugInfo = nullptr;
+	DataLayerDebugInfo* DebugInfo = nullptr;
 
 	std::string GetCaption();
 	void SetCaption(std::string NewValue);
@@ -101,12 +111,17 @@ public:
 	float MaxVisible = FLT_MAX;
 
 	std::vector<float> RawData;
-	std::vector<float> TrianglesToData;
+	// This vector contains the data for each triangle/point.
+	std::vector<float> ElementsToData;
 
+	// Mesh specific data.
 	std::vector<std::tuple<double, double, int>> ValueTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
 
 	LAYER_TYPE GetType();
 	void SetType(LAYER_TYPE NewValue);
+
+	DATA_SOURCE_TYPE GetDataSourceType();
+	void SetDataSourceType(DATA_SOURCE_TYPE NewValue);
 
 	float GetSelectedRangeMin();
 	void SetSelectedRangeMin(float NewValue);
@@ -115,7 +130,7 @@ public:
 	void SetSelectedRangeMax(float NewValue);
 };
 
-// For purposes of complexity metric storing of all of raw data is redundant,but it is needed for saving RUG file.
+// For purposes of complexity metric storing of all of raw data is redundant, but it is needed for saving RUG file.
 struct RawMeshData
 {
 	std::vector<double> Vertices;
@@ -159,10 +174,10 @@ public:
 	glm::vec3 GetAverageNormal();
 	void UpdateAverageNormal();
 
-	std::vector<MeshLayer> Layers;
+	std::vector<DataLayer> Layers;
 
-	void AddLayer(std::vector<float> TrianglesToData);
-	void AddLayer(MeshLayer NewLayer);
+	void AddLayer(std::vector<float> ElementsToData);
+	void AddLayer(DataLayer NewLayer);
 
 	std::string FileName;
 	FETransformComponent* Position = new FETransformComponent();

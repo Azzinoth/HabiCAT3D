@@ -8,7 +8,7 @@ class CompareLayerProducer
 public:
 	SINGLETON_PUBLIC_PART(CompareLayerProducer)
 
-	MeshLayer Calculate(int FirstLayer, int SecondLayer);
+	DataLayer Calculate(int FirstLayer, int SecondLayer);
 
 	bool GetShouldNormalize();
 	void SetShouldNormalize(bool NewValue);

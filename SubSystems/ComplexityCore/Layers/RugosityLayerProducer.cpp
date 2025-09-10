@@ -3,7 +3,7 @@ using namespace FocalEngine;
 
 float RugosityLayerProducer::LastTimeTookForCalculation = 0.0f;
 void(*RugosityLayerProducer::OnRugosityCalculationsStartCallbackImpl)(void) = nullptr;
-void(*RugosityLayerProducer::OnRugosityCalculationsEndCallbackImpl)(MeshLayer) = nullptr;
+void(*RugosityLayerProducer::OnRugosityCalculationsEndCallbackImpl)(DataLayer) = nullptr;
 
 RugosityLayerProducer::RugosityLayerProducer()
 {
@@ -577,19 +577,19 @@ void RugosityLayerProducer::OnRugosityCalculationsStart()
 		OnRugosityCalculationsStartCallbackImpl();
 }
 
-void RugosityLayerProducer::SetOnRugosityCalculationsEndCallback(void(*Func)(MeshLayer))
+void RugosityLayerProducer::SetOnRugosityCalculationsEndCallback(void(*Func)(DataLayer))
 {
 	OnRugosityCalculationsEndCallbackImpl = Func;
 }
 
-void RugosityLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
+void RugosityLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 {
 	if (!RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult)
 		return;
 
 	NewLayer.SetType(RUGOSITY);
 	RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = false;
-	NewLayer.DebugInfo->Type = "RugosityMeshLayerDebugInfo";
+	NewLayer.DebugInfo->Type = "RugosityDataLayerDebugInfo";
 
 	std::string AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[0];
 	if (RUGOSITY_LAYER_PRODUCER.bUseFindSmallestRugosity)
@@ -608,7 +608,7 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 	if (RUGOSITY_LAYER_PRODUCER.bDeleteOutliers || (RUGOSITY_LAYER_PRODUCER.bUseFindSmallestRugosity && RUGOSITY_LAYER_PRODUCER.OrientationSetForMinRugosity == "1"))
 	{
 		DeleteOutliers = "Yes";
-		JITTER_MANAGER.AdjustOutliers(NewLayer.TrianglesToData, 0.00f, 0.99f);
+		JITTER_MANAGER.AdjustOutliers(NewLayer.ElementsToData, 0.00f, 0.99f);
 	}
 	NewLayer.DebugInfo->AddEntry("Delete outliers", DeleteOutliers);
 
@@ -637,8 +637,8 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(MeshLayer NewLayer)
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
 		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new MeshLayerDebugInfo();
-		MeshLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new DataLayerDebugInfo();
+		DataLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
 		DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
