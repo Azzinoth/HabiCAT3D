@@ -6,18 +6,17 @@ HeightLayerProducer::~HeightLayerProducer() {}
 
 DataLayer HeightLayerProducer::Calculate()
 {
-	DataLayer Result;
+	DataLayer Result(DATA_SOURCE_TYPE::MESH);
 	Result.SetType(HEIGHT);
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return Result;
 
-	MeshGeometryData* CurrentMesh = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMesh = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMesh == nullptr)
 		return Result;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	auto& ComplexityMetric = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo;
 
 	double Min = DBL_MAX;
 	for (size_t i = 0; i < CurrentMesh->Triangles.size(); i++)

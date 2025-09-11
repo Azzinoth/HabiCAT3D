@@ -21,7 +21,7 @@ void VectorDispersionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 
 	for (size_t p = 0; p < CurrentNode->TrianglesInCell.size(); p++)
 	{
-		std::vector<glm::vec3> CurrentTriangleNormals = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->TrianglesNormals[CurrentNode->TrianglesInCell[p]];
+		std::vector<glm::vec3> CurrentTriangleNormals = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->TrianglesNormals[CurrentNode->TrianglesInCell[p]];
 
 		for (size_t l = 0; l < CurrentTriangleNormals.size(); l++)
 		{
@@ -59,7 +59,7 @@ void VectorDispersionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 
 void VectorDispersionLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	bWaitForJitterResult = true;
@@ -70,7 +70,7 @@ void VectorDispersionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 
 void VectorDispersionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	if (!VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult)
@@ -79,24 +79,24 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	NewLayer.SetType(VECTOR_DISPERSION);
 
 	VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult = false;
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector dispersion"));
-	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
+	LAYER_MANAGER.AddLayer(NewLayer);
+	LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector dispersion"));
+	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
 
 	if (VECTOR_DISPERSION_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{
 		uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+		LAYER_MANAGER.AddLayer(DATA_SOURCE_TYPE::MESH, TrianglesToStandardDeviation);
+		LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new DataLayerDebugInfo();
-		DataLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
+		LAYER_MANAGER.Layers.back().DebugInfo = new DataLayerDebugInfo();
+		DataLayerDebugInfo* DebugInfo = LAYER_MANAGER.Layers.back().DebugInfo;
 		DebugInfo->Type = "VectorDispersionDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
+		DebugInfo->AddEntry("Source layer ID", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetID());
+		DebugInfo->AddEntry("Source layer caption", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetCaption());
 	}
 
 	if (OnCalculationsEndCallbackImpl != nullptr)
@@ -113,7 +113,7 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	GridNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
 	for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
 	{
-		const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
+		const auto CurrentTriangle = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
 
 		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
@@ -131,7 +131,7 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 
 void VectorDispersionLayerProducer::CalculateOnWholeModel()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	bWaitForJitterResult = true;

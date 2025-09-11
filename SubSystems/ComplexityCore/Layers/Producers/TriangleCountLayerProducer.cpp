@@ -10,7 +10,7 @@ TriangleCountLayerProducer::~TriangleCountLayerProducer() {}
 
 void TriangleCountLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	bWaitForJitterResult = true;
@@ -28,7 +28,7 @@ void TriangleCountLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 
 void TriangleCountLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	if (!TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult)
@@ -37,15 +37,15 @@ void TriangleCountLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	NewLayer.SetType(TRIANGLE_DENSITY);
 
 	TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult = false;
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle density"));
-	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
+	LAYER_MANAGER.AddLayer(NewLayer);
+	LAYER_MANAGER.Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);
+	LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle density"));
+	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
 }
 
 void TriangleCountLayerProducer::CalculateOnWholeModel()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	bWaitForJitterResult = true;

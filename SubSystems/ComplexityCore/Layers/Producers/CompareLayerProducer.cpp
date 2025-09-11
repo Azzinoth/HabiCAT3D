@@ -65,16 +65,16 @@ std::vector<float> CompareLayerProducer::Normalize(std::vector<float> Original)
 
 DataLayer CompareLayerProducer::Calculate(const int FirstLayer, const int SecondLayer)
 {
-	DataLayer Result;
+	DataLayer Result(DATA_SOURCE_TYPE::MESH);
 	Result.SetType(COMPARE);
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr || FirstLayer == -1 || SecondLayer == -1)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData() || FirstLayer == -1 || SecondLayer == -1)
 		return Result;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	DataLayer* First = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[FirstLayer];
-	DataLayer* Second = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[SecondLayer];
+	DataLayer* First = &LAYER_MANAGER.Layers[FirstLayer];
+	DataLayer* Second = &LAYER_MANAGER.Layers[SecondLayer];
 
 	std::vector<float> NewData;
 	NewData.resize(First->ElementsToData.size());
@@ -117,12 +117,12 @@ DataLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 	std::string TempString = bNormalize ? "Yes" : "No";
 	Result.DebugInfo->AddEntry("Normalized", TempString);
 
-	//auto& Layer = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[FirstLayer];
+	//auto& Layer = LAYER_MANAGER.Layers[FirstLayer];
 
-	Result.DebugInfo->AddEntry("First layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[FirstLayer].GetID());
-	Result.DebugInfo->AddEntry("First layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[FirstLayer].GetCaption());
-	Result.DebugInfo->AddEntry("Second layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[SecondLayer].GetID());
-	Result.DebugInfo->AddEntry("Second layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[SecondLayer].GetCaption());
+	Result.DebugInfo->AddEntry("First layer ID", LAYER_MANAGER.Layers[FirstLayer].GetID());
+	Result.DebugInfo->AddEntry("First layer caption", LAYER_MANAGER.Layers[FirstLayer].GetCaption());
+	Result.DebugInfo->AddEntry("Second layer ID", LAYER_MANAGER.Layers[SecondLayer].GetID());
+	Result.DebugInfo->AddEntry("Second layer caption", LAYER_MANAGER.Layers[SecondLayer].GetCaption());
 
 	return Result;
 }

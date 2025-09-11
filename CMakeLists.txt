@@ -60,34 +60,37 @@ file(GLOB SubSystems_SRC
 	"SubSystems/ScreenshotManager.h"
 )
 
+file(GLOB SubSystems_Layers_Producers_SRC
+	"SubSystems/ComplexityCore/Layers/Producers/HeightLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/Producers/HeightLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/Producers/AreaLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/Producers/AreaLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/Producers/TriangleEdgeLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/Producers/TriangleEdgeLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/Producers/CompareLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/Producers/CompareLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/Producers/RugosityLayerProducer.cpp" 
+	"SubSystems/ComplexityCore/Layers/Producers/RugosityLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/Producers/VectorDispersionLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/Producers/VectorDispersionLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/Producers/FractalDimensionLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/Producers/FractalDimensionLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/Producers/TriangleCountLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/Producers/TriangleCountLayerProducer.h"
+)
+
 file(GLOB SubSystems_Layers_SRC
-	"SubSystems/ComplexityCore/Layers/HeightLayerProducer.cpp"
-	"SubSystems/ComplexityCore/Layers/HeightLayerProducer.h"
-	"SubSystems/ComplexityCore/Layers/AreaLayerProducer.cpp"
-	"SubSystems/ComplexityCore/Layers/AreaLayerProducer.h"
-	"SubSystems/ComplexityCore/Layers/TriangleEdgeLayerProducer.cpp"
-	"SubSystems/ComplexityCore/Layers/TriangleEdgeLayerProducer.h"
-	"SubSystems/ComplexityCore/Layers/CompareLayerProducer.cpp"
-	"SubSystems/ComplexityCore/Layers/CompareLayerProducer.h"
-	"SubSystems/ComplexityCore/Layers/RugosityLayerProducer.cpp" 
-	"SubSystems/ComplexityCore/Layers/RugosityLayerProducer.h"
-	"SubSystems/ComplexityCore/Layers/VectorDispersionLayerProducer.cpp"
-	"SubSystems/ComplexityCore/Layers/VectorDispersionLayerProducer.h"
-	"SubSystems/ComplexityCore/Layers/FractalDimensionLayerProducer.cpp"
-	"SubSystems/ComplexityCore/Layers/FractalDimensionLayerProducer.h"
-	"SubSystems/ComplexityCore/Layers/TriangleCountLayerProducer.cpp"
-	"SubSystems/ComplexityCore/Layers/TriangleCountLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/DataLayer.cpp"
+	"SubSystems/ComplexityCore/Layers/DataLayer.h"
 	"SubSystems/ComplexityCore/Layers/LayerManager.cpp"
 	"SubSystems/ComplexityCore/Layers/LayerManager.h"
 )
 
 file(GLOB SubSystems_ComplexityCore_SRC
+	"SubSystems/ComplexityCore/AnalysisObjectManager.cpp"
+	"SubSystems/ComplexityCore/AnalysisObjectManager.h"
 	"SubSystems/ComplexityCore/MeasurementGrid.cpp"
 	"SubSystems/ComplexityCore/MeasurementGrid.h"
-	"SubSystems/ComplexityCore/ComplexityMetricInfo.cpp"
-	"SubSystems/ComplexityCore/ComplexityMetricInfo.h"
-	"SubSystems/ComplexityCore/ComplexityMetricManager.cpp"
-	"SubSystems/ComplexityCore/ComplexityMetricManager.h"
 	"SubSystems/ComplexityCore/JitterManager.cpp"
 	"SubSystems/ComplexityCore/JitterManager.h"
 )
@@ -160,6 +163,7 @@ add_executable(HabiCAT3D WIN32
 					     # *************** SUB_SYSTEM ***************
 					     ${SubSystems_SRC}
 					     ${SubSystems_Layers_SRC}
+						 ${SubSystems_Layers_Producers_SRC}
 					     ${SubSystems_UI_SRC}
 					     ${SubSystems_ConsoleJobs_SRC}
 					     ${SubSystems_ComplexityCore_SRC}
@@ -181,6 +185,7 @@ endif()
 source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
 source_group("Source Files/SubSystems/ComplexityCore" FILES ${SubSystems_ComplexityCore_SRC})
 source_group("Source Files/SubSystems/ComplexityCore/Layers" FILES ${SubSystems_Layers_SRC})
+source_group("Source Files/SubSystems/ComplexityCore/Layers/Producers" FILES ${SubSystems_Layers_Producers_SRC})
 source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
 source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJobs_SRC})
 source_group("Source Files/SubSystems/VRManager" FILES ${SubSystems_VRManager_SRC})

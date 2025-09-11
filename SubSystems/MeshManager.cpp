@@ -1,5 +1,6 @@
 #include "MeshManager.h"
 using namespace FocalEngine;
+#include "ComplexityCore/Layers/LayerManager.h"
 
 MeshManager::MeshManager()
 {
@@ -38,12 +39,13 @@ FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 												FirstObject->FColorsC.data(), int(FirstObject->FColorsC.size()),
 												FirstObject->MaterialIDs.data(), int(FirstObject->MaterialIDs.size()), int(FirstObject->MaterialRecords.size()), "");
 	
-		COMPLEXITY_METRIC_MANAGER.Init(FirstObject->DVerC, FirstObject->FColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
+		ANALYSIS_OBJECT_MANAGER.InitializeMeshData(FirstObject->DVerC, FirstObject->FColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
 	}
 	
 	return Result;
 }
 
+// FIX ME: That function should not be here.
 FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 {
 	std::fstream File;
@@ -251,7 +253,7 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 		FENormals[i] = ((float*)NormBuffer)[i];
 	}
 	
-	COMPLEXITY_METRIC_MANAGER.Init(FEVertices, FEColors, FEUVs, FETangents, FEIndices, FENormals);
+	ANALYSIS_OBJECT_MANAGER.InitializeMeshData(FEVertices, FEColors, FEUVs, FETangents, FEIndices, FENormals);
 
 	delete[] Buffer;
 	delete[] VertexBuffer;
@@ -260,10 +262,9 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 	delete[] TangBuffer;
 	delete[] IndexBuffer;
 
+	// FIX ME: That portion should not be here.
 	for (size_t i = 0; i < Layers.size(); i++)
-	{
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(Layers[i]);
-	}
+		LAYER_MANAGER.AddLayer(Layers[i]);
 
 	return NewMesh;
 }
@@ -310,7 +311,7 @@ FEMesh* MeshManager::LoadResource(std::string FileName)
 			CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(CurrentPointCloud);
 			CurrentPointCloud->SetAdvancedRenderingEnabled(true);
 
-			COMPLEXITY_METRIC_MANAGER.InitializePointCloudData(CurrentPointCloud);
+			ANALYSIS_OBJECT_MANAGER.InitializePointCloudData(CurrentPointCloud);
 		}
 	}
 	else if (FileExtension == ".las" || FileExtension == ".laz")
@@ -335,7 +336,7 @@ FEMesh* MeshManager::LoadResource(std::string FileName)
 			CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(CurrentPointCloud);
 			CurrentPointCloud->SetAdvancedRenderingEnabled(true);
 
-			COMPLEXITY_METRIC_MANAGER.InitializePointCloudData(CurrentPointCloud);
+			ANALYSIS_OBJECT_MANAGER.InitializePointCloudData(CurrentPointCloud);
 		}
 	}
 
@@ -345,7 +346,7 @@ FEMesh* MeshManager::LoadResource(std::string FileName)
 		return Result;
 	}
 
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
+	ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
 	ActiveMesh = Result;
 
 	for (size_t i = 0; i < ClientLoadCallbacks.size(); i++)
@@ -369,7 +370,7 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 	if (Mesh == nullptr)
 		return;
 
-	COMPLEXITY_METRIC_MANAGER.SaveToRUGFileAskForFilePath();
+	ANALYSIS_OBJECT_MANAGER.SaveToRUGFileAskForFilePath();
 }
 
 int MeshManager::GetHeatMapType()
@@ -384,17 +385,17 @@ void MeshManager::SetHeatMapType(int NewValue)
 
 void MeshManager::ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex)
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData == nullptr)
 		return;
 
 	if (ActiveMesh == nullptr)
 		return;
 
-	if (LayerIndex < 0 || LayerIndex >= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+	if (LayerIndex < 0 || LayerIndex >= LAYER_MANAGER.Layers.size())
 		return;
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.empty())
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].FillRawData();
+	if (LAYER_MANAGER.Layers[LayerIndex].RawData.empty())
+		LAYER_MANAGER.Layers[LayerIndex].FillRawData();
 
 	FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
 
@@ -403,7 +404,7 @@ void MeshManager::ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex)
 		FirstLayerBufferID = 0;
 		FE_GL_ERROR(glGenBuffers(1, &FirstLayerBufferID));
 		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, FirstLayerBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.size(), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * LAYER_MANAGER.Layers[LayerIndex].RawData.size(), LAYER_MANAGER.Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
 		FE_GL_ERROR(glVertexAttribPointer(7, 3, GL_FLOAT, false, 0, nullptr));
 	}
 	else
@@ -411,7 +412,7 @@ void MeshManager::ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex)
 		SecondLayerBufferID = 0;
 		FE_GL_ERROR(glGenBuffers(1, &SecondLayerBufferID));
 		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, SecondLayerBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.size(), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * LAYER_MANAGER.Layers[LayerIndex].RawData.size(), LAYER_MANAGER.Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
 		FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, nullptr));
 	}
 
@@ -449,11 +450,11 @@ bool MeshManager::SelectTriangle(glm::dvec3 MouseRay)
 	double LastDistance = 9999.0;
 
 	int TriangeIndex = -1;
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->TriangleSelected.clear();
+	ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->TriangleSelected.clear();
 
-	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size(); i++)
+	for (int i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size(); i++)
 	{
-		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i];
+		std::vector<glm::dvec3> TranformedTrianglePoints = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
 			//TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
@@ -471,7 +472,7 @@ bool MeshManager::SelectTriangle(glm::dvec3 MouseRay)
 
 	if (TriangeIndex != -1)
 	{
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->TriangleSelected.push_back(TriangeIndex);
+		ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->TriangleSelected.push_back(TriangeIndex);
 		return true;
 	}
 
@@ -486,9 +487,9 @@ glm::vec3 MeshManager::IntersectTriangle(glm::dvec3 MouseRay)
 	double CurrentDistance = 0.0;
 	double LastDistance = 9999.0;
 
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size(); i++)
+	for (size_t i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size(); i++)
 	{
-		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i];
+		std::vector<glm::dvec3> TranformedTrianglePoints = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
 			//TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
@@ -520,8 +521,8 @@ bool MeshManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
 	
 	SelectTriangle(MouseRay);
 
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
+	if (ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData == nullptr)
 		return Result;
 
 	if (CurrentMeshData->TriangleSelected.size() == 0)
@@ -610,14 +611,14 @@ void MeshManager::UpdateUniforms()
 
 	if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
 	{
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerMin", float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MinVisible));
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerMax", float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].MaxVisible));
+		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerMin", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].MinVisible));
+		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerMax", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].MaxVisible));
 
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerAbsoluteMin", float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMin()));
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerAbsoluteMax", float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMax()));
+		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerAbsoluteMin", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMin()));
+		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerAbsoluteMax", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMax()));
 	}
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
+	if (ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
 	{
 		float TempMeasuredRugosityAreaRadius = 0.0f;
 		glm::vec3 TempMeasuredRugosityAreaCenter = glm::vec3(0.0f);

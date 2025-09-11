@@ -124,7 +124,7 @@ std::string ScreenshotManager::SuitableNewFileName(std::string Base, std::string
 
 void ScreenshotManager::TakeScreenshot()
 {
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 	{
 		APPLICATION.EndFrame();

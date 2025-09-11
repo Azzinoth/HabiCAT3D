@@ -45,8 +45,8 @@ bool FileLoadJob::Execute(void* InputData, void* OutputData)
 
 	std::cout << "File found. Loading file: " << FilePath << std::endl;
 
-	COMPLEXITY_METRIC_MANAGER.ImportOBJ(FilePath.c_str(), true);
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	ANALYSIS_OBJECT_MANAGER.ImportOBJ(FilePath.c_str(), true);
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return false;
 

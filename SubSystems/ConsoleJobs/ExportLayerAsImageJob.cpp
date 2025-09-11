@@ -222,7 +222,7 @@ void ExportLayerAsImageJob::SetLayerIndex(int NewValue)
 
 bool ExportLayerAsImageJob::Execute(void* InputData, void* OutputData)
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
+	if (LAYER_MANAGER.Layers.empty())
 	{
 		std::string ErrorMessage = "Error: No layers to export. Please calculate a layer before attempting to export.";
 		LOG.Add(ErrorMessage, "CONSOLE_LOG");
@@ -231,9 +231,9 @@ bool ExportLayerAsImageJob::Execute(void* InputData, void* OutputData)
 	}
 
 	DataLayer* LayerToExport = nullptr;
-	if (GetLayerIndex() >= 0 && GetLayerIndex() < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+	if (GetLayerIndex() >= 0 && GetLayerIndex() < LAYER_MANAGER.Layers.size())
 	{
-		LayerToExport = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[GetLayerIndex()];
+		LayerToExport = &LAYER_MANAGER.Layers[GetLayerIndex()];
 	}
 	else
 	{

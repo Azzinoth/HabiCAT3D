@@ -54,7 +54,7 @@ void FractalDimensionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 
 void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	bWaitForJitterResult = true;
@@ -80,7 +80,7 @@ void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 
 void FractalDimensionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	if (!FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult)
@@ -91,25 +91,25 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult = false;
 
 	NewLayer.DebugInfo->AddEntry("FD outliers: ", std::string(FRACTAL_DIMENSION_LAYER_PRODUCER.bFilterFractalDimensionValues ? "Yes" : "No"));
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::FRACTAL_DIMENSION);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal dimension"));
-	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
+	LAYER_MANAGER.AddLayer(NewLayer);
+	LAYER_MANAGER.Layers.back().SetType(LAYER_TYPE::FRACTAL_DIMENSION);
+	LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal dimension"));
+	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
 
 	if (FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{
 		uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+		LAYER_MANAGER.AddLayer(DATA_SOURCE_TYPE::MESH, TrianglesToStandardDeviation);
+		LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new DataLayerDebugInfo();
-		DataLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
+		LAYER_MANAGER.Layers.back().DebugInfo = new DataLayerDebugInfo();
+		DataLayerDebugInfo* DebugInfo = LAYER_MANAGER.Layers.back().DebugInfo;
 		DebugInfo->Type = "FractalDimensionDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
+		DebugInfo->AddEntry("Source layer ID", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetID());
+		DebugInfo->AddEntry("Source layer caption", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetCaption());
 	}
 
 	if (OnCalculationsEndCallbackImpl != nullptr)
@@ -128,7 +128,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	double FractalDimension = RunOnAllInternalNodesWithTriangles(CurrentNode, [&](int BoxSizeIndex, FEAABB BoxAABB) {
 		if (BoxSizeIndex == DebugBoxSizeIndex)
 		{
-			FEAABB TransformedBox = BoxAABB.Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Position->GetWorldMatrix());
+			FEAABB TransformedBox = BoxAABB.Transform(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Position->GetWorldMatrix());
 			LINE_RENDERER.RenderAABB(TransformedBox, glm::vec3(1.0, 0.0, 0.0));
 			DebugBoxCount++;
 		}
@@ -200,7 +200,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoWindow(MeasurementGrid* Grid)
 
 void FractalDimensionLayerProducer::CalculateOnWholeModel()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	bWaitForJitterResult = true;
@@ -272,7 +272,7 @@ double FractalDimensionLayerProducer::RunOnAllInternalNodesWithTriangles(GridNod
 		// Iterate through all the triangles
 		for (size_t j = 0; j < OuterNode->TrianglesInCell.size(); j++)
 		{
-			std::vector<glm::dvec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[OuterNode->TrianglesInCell[j]];
+			std::vector<glm::dvec3> CurrentTriangle = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[OuterNode->TrianglesInCell[j]];
 
 			// Calculate the grid cells that the triangle intersects or is contained in
 			FEAABB TriangleBBox = FEAABB(CurrentTriangle);

@@ -114,7 +114,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 	if (CurrentNode->TrianglesInCell.empty())
 		return;
 
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return;
 
@@ -476,7 +476,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 
 void RugosityLayerProducer::CalculateWithJitterAsync()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -487,7 +487,7 @@ void RugosityLayerProducer::CalculateWithJitterAsync()
 
 void RugosityLayerProducer::CalculateOnWholeModel()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -568,7 +568,7 @@ void RugosityLayerProducer::SetOnRugosityCalculationsStartCallback(void(*Func)(v
 
 void RugosityLayerProducer::OnRugosityCalculationsStart()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
 	JITTER_MANAGER.SetFallbackValue(1.0f);
@@ -628,26 +628,26 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 
 	LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
 
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
+	LAYER_MANAGER.AddLayer(NewLayer);
+	LAYER_MANAGER.Layers.back().SetType(LAYER_TYPE::RUGOSITY);
+	LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
 
-	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
+	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
 
 	if (RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{
 		uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+		LAYER_MANAGER.AddLayer(DATA_SOURCE_TYPE::MESH, TrianglesToStandardDeviation);
+		LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new DataLayerDebugInfo();
-		DataLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
+		LAYER_MANAGER.Layers.back().DebugInfo = new DataLayerDebugInfo();
+		DataLayerDebugInfo* DebugInfo = LAYER_MANAGER.Layers.back().DebugInfo;
 		DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
+		DebugInfo->AddEntry("Source layer ID", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetID());
+		DebugInfo->AddEntry("Source layer caption", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetCaption());
 	}
 
 	if (OnRugosityCalculationsEndCallbackImpl != nullptr)
@@ -659,7 +659,7 @@ void RugosityLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
 
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return;
 

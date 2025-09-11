@@ -1,6 +1,5 @@
 #pragma once
 #include "../EngineInclude.h"
-#include "ComplexityCore/MeasurementGrid.h"
 using namespace FocalEngine;
 
 static const char* const CustomMesh_VS = R"(

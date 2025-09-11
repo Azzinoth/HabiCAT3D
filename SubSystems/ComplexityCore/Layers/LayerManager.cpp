@@ -4,6 +4,53 @@ using namespace FocalEngine;
 LayerManager::LayerManager() {}
 LayerManager::~LayerManager() {}
 
+void LayerManager::AddLayer(DATA_SOURCE_TYPE LayerDataSource, std::vector<float> ElementsToData)
+{
+	switch (LayerDataSource)
+	{
+		case DATA_SOURCE_TYPE::MESH:
+		{
+			if (ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+			{
+				if (ElementsToData.size() == ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size())
+					Layers.push_back(DataLayer(DATA_SOURCE_TYPE::MESH, ElementsToData));
+			}
+
+			break;
+		}
+
+		case DATA_SOURCE_TYPE::POINT_CLOUD:
+		{
+			break;
+		}
+	}
+}
+
+void LayerManager::AddLayer(DataLayer NewLayer)
+{
+	switch (NewLayer.GetDataSourceType())
+	{
+		case DATA_SOURCE_TYPE::MESH:
+		{
+			if (ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+			{
+				if (NewLayer.ElementsToData.size() == ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size())
+				{
+					Layers.push_back(NewLayer);
+					Layers.back().ComputeStatistics();
+				}	
+			}
+			
+			break;
+		}
+
+		case DATA_SOURCE_TYPE::POINT_CLOUD:
+		{
+			break;
+		}
+	}
+}
+
 int LayerManager::FindHighestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List)
 {
 	int Result = 0;
@@ -33,23 +80,26 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 {
 	std::string Result = Base;
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData())
 		return Result;
 
 	std::vector<std::string> CaptionList;
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
+	for (size_t i = 0; i < Layers.size(); i++)
 	{
-		CaptionList.push_back(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption());
+		CaptionList.push_back(Layers[i].GetCaption());
 	}
 
 	int IndexToAdd = FindHighestIntPostfix(Base, "_", CaptionList);
 	IndexToAdd++;
 	if (IndexToAdd < 2)
 	{
-		std::transform(Base.begin(), Base.end(), Base.begin(), [](const unsigned char C) { return std::tolower(C); });
-		for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
+		std::transform(Base.begin(), Base.end(), Base.begin(), [](const unsigned char Character) {
+			return std::tolower(Character);
+		});
+
+		for (size_t i = 0; i < Layers.size(); i++)
 		{
-			std::string CurrentCaption = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption();
+			std::string CurrentCaption = Layers[i].GetCaption();
 			std::transform(CurrentCaption.begin(), CurrentCaption.end(), CurrentCaption.begin(), [](const unsigned char C) { return std::tolower(C); });
 
 			if (CurrentCaption.find(Base) != std::string::npos)
@@ -66,12 +116,13 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 	return Result;
 }
 
+#include "../../MeshManager.h"
 void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr || NewLayerIndex < -1 || NewLayerIndex >= int(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size()))
+	if (MESH_MANAGER.ActiveMesh == nullptr || NewLayerIndex < -1 || NewLayerIndex >= int(Layers.size()))
 		return;
 
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentLayerIndex = NewLayerIndex;
+	CurrentLayerIndex = NewLayerIndex;
 
 	if (NewLayerIndex != -1)
 		MESH_MANAGER.ComplexityMetricDataToGPU(NewLayerIndex);
@@ -92,19 +143,24 @@ void LayerManager::AddActiveLayerChangedCallback(std::function<void()> Func)
 
 int LayerManager::GetActiveLayerIndex()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData())
 		return -1;
 
-	return COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentLayerIndex;
+	return CurrentLayerIndex;
 }
 
 DataLayer* LayerManager::GetActiveLayer()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData())
 		return nullptr;
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentLayerIndex == -1)
+	if (CurrentLayerIndex == -1)
 		return nullptr;
 
-	return &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentLayerIndex];
+	return &Layers[CurrentLayerIndex];
+}
+
+size_t LayerManager::GetLayerCount()
+{
+	return Layers.size();
 }

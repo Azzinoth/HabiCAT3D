@@ -6,21 +6,21 @@ TriangleEdgeLayerProducer::~TriangleEdgeLayerProducer() {}
 
 DataLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 {
-	DataLayer Result;
+	DataLayer Result(DATA_SOURCE_TYPE::MESH);
 	Result.SetType(TRIANGLE_EDGE);
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return Result;
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData == nullptr)
+	if (ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData == nullptr)
 		return Result;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size(); i++)
+	for (size_t i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size(); i++)
 	{
-		double Edge0Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][0], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][1]);
-		double Edge1Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][1], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][2]);
-		double Edge2Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][2], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][0]);
+		double Edge0Length = glm::distance(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][0], ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][1]);
+		double Edge1Length = glm::distance(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][1], ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][2]);
+		double Edge2Length = glm::distance(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][2], ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][0]);
 
 		if (Mode == 0)
 		{

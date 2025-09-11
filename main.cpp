@@ -41,7 +41,7 @@ void AfterMeshLoads()
 	MESH_MANAGER.ActiveEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Main entity");
 	MESH_MANAGER.ActiveEntity->AddComponent<FEGameModelComponent>(NewGameModel);
 
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return;
 
@@ -59,8 +59,8 @@ void AfterMeshLoads()
 		MESH_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(CurrentMeshData->GetAverageNormal()));
 	}
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
+	if (LAYER_MANAGER.GetLayerCount() == 0)
+		LAYER_MANAGER.AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
 }
 
 void LoadResource(std::string FileName)
@@ -75,7 +75,7 @@ void LoadResource(std::string FileName)
 
 void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 {
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return;
 
@@ -133,10 +133,10 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 
 void OutputSelectedAreaInfoToFile()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return;
 
@@ -159,9 +159,9 @@ void OutputSelectedAreaInfoToFile()
 	Text += std::to_string(Center.z);
 	LOG.Add(Text, CurrentMeshData->FileName);
 
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
+	for (size_t i = 0; i < LAYER_MANAGER.Layers.size(); i++)
 	{
-		DataLayer* CurrentLayer = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i];
+		DataLayer* CurrentLayer = &LAYER_MANAGER.Layers[i];
 
 		Text = "Layer \"" + CurrentLayer->GetCaption() + "\" : \n";
 		Text += "Area average value : ";
@@ -292,7 +292,6 @@ void ConsoleThreadCode(void* InputData)
 	}
 }
 
-
 void CalculateOneNodePointCount(GridNode* CurrentNode)
 {
 	if (CurrentNode->PointsInCell.empty())
@@ -303,9 +302,7 @@ void CalculateOneNodePointCount(GridNode* CurrentNode)
 
 void OnJitterCalculationsEnd(DataLayer NewLayer)
 {
-
 	NewLayer.ElementsToData;
-
 
 	float Min = FLT_MAX;
 	float Max = -FLT_MAX;
@@ -317,7 +314,7 @@ void OnJitterCalculationsEnd(DataLayer NewLayer)
 			Max = NewLayer.ElementsToData[i];
 	}
 
-	PointCloudGeometryData* CurrentPointCloudData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentPointCloudGeometryData;
+	PointCloudGeometryData* CurrentPointCloudData = ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData;
 
 	// Update color based on min/max
 	for (size_t i = 0; i < CurrentPointCloudData->RawPointCloudData.size(); i++)
@@ -379,26 +376,26 @@ void OnJitterCalculationsEnd(DataLayer NewLayer)
 
 	//LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
 
-	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(NewLayer);
-	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetType(LAYER_TYPE::RUGOSITY);
-	//COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
+	//LAYER_MANAGER.AddLayer(NewLayer);
+	//LAYER_MANAGER.Layers.back().SetType(LAYER_TYPE::RUGOSITY);
+	//LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
 
-	//LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
+	//LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
 
 	//if (RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation)
 	//{
 	//	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 	//	std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
-	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TrianglesToStandardDeviation);
-	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+	//	LAYER_MANAGER.AddLayer(TrianglesToStandardDeviation);
+	//	LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-	//	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo = new DataLayerDebugInfo();
-	//	DataLayerDebugInfo* DebugInfo = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back().DebugInfo;
+	//	LAYER_MANAGER.Layers.back().DebugInfo = new DataLayerDebugInfo();
+	//	DataLayerDebugInfo* DebugInfo = LAYER_MANAGER.Layers.back().DebugInfo;
 	//	DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
 	//	DebugInfo->AddEntry("Start time", StartTime);
 	//	DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-	//	DebugInfo->AddEntry("Source layer ID", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetID());
-	//	DebugInfo->AddEntry("Source layer caption", COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 2].GetCaption());
+	//	DebugInfo->AddEntry("Source layer ID", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetID());
+	//	DebugInfo->AddEntry("Source layer caption", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetCaption());
 	//}
 
 	//if (OnRugosityCalculationsEndCallbackImpl != nullptr)

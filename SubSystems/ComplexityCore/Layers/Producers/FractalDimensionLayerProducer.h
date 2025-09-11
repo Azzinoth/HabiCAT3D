@@ -1,7 +1,7 @@
 #pragma once
 
 #include <numeric>
-#include "LayerManager.h"
+#include "../LayerManager.h"
 using namespace FocalEngine;
 
 class FractalDimensionLayerProducer

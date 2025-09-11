@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../EngineInclude.h"
+#include "../AnalysisObjectManager.h"
 using namespace FocalEngine;
 
 struct DebugEntry
@@ -57,15 +57,14 @@ enum LAYER_TYPE
 
 enum class DATA_SOURCE_TYPE
 {
+	UNKNOWN = -1,
 	MESH = 0,
 	POINT_CLOUD = 1
 };
 
-class ComplexityMetricInfo;
-// FIX ME: Move to a separate file.
 class DataLayer
 {
-	ComplexityMetricInfo* ParentComplexityMetricData = nullptr;
+	friend class LayerManager;
 
 	std::string ID;
 	std::string Caption = "Layer caption";
@@ -78,13 +77,14 @@ class DataLayer
 	float Mean = -FLT_MAX;
 	float Median = -FLT_MAX;
 
-	void CalculateInitData();
+	void ComputeStatistics();
 
 	float SelectedRangeMin = 0.0f;
 	float SelectedRangeMax = 0.0f;
 public:
 	DataLayer();
-	DataLayer(ComplexityMetricInfo* Parent, std::vector<float> ElementsToData);
+	DataLayer(DATA_SOURCE_TYPE SourceType);
+	DataLayer(DATA_SOURCE_TYPE SourceType, std::vector<float> ElementsToData);
 	~DataLayer();
 
 	void FillRawData();
@@ -99,9 +99,6 @@ public:
 
 	std::string GetNote();
 	void SetNote(std::string NewValue);
-
-	ComplexityMetricInfo* GetParent();
-	void SetParent(ComplexityMetricInfo* NewValue);
 
 	float GetMax();
 	float GetMin();
@@ -129,80 +126,4 @@ public:
 
 	float GetSelectedRangeMax();
 	void SetSelectedRangeMax(float NewValue);
-};
-
-// For purposes of complexity metric storing of all of raw data is redundant, but it is needed for saving RUG file.
-struct RawMeshData
-{
-	std::vector<double> Vertices;
-	std::vector<float> Colors;
-	std::vector<float> UVs;
-	std::vector<float> Tangents;
-	std::vector<int> Indices;
-	std::vector<float> Normals;
-
-	FEAABB AABB;
-
-	void Clear();
-};
-
-class MeshGeometryData
-{
-	friend class ComplexityMetricInfo;
-
-	double TotalArea = 0.0;
-	glm::vec3 AverageNormal = glm::vec3();
-public:
-	double GetTotalArea();
-
-	std::vector<int> TriangleSelected;
-	RawMeshData MeshData;
-
-	std::vector<std::vector<glm::dvec3>> Triangles;
-	std::vector<double> TrianglesArea;
-
-	std::vector<std::vector<glm::vec3>> TrianglesNormals;
-	std::vector<glm::dvec3> TrianglesCentroids;
-
-	glm::vec3 GetAverageNormal();
-	void UpdateAverageNormal();
-
-	std::string FileName;
-	FETransformComponent* Position = new FETransformComponent();
-
-	void Clear();
-};
-
-struct PointCloudGeometryData
-{
-	std::vector<FEPointCloudVertexDouble> RawPointCloudData;
-	FEAABB PointCloudAABB;
-};
-
-class MeshManager;
-class LayerManager;
-
-// FIX ME: Make that class more of manager of additional data of mesh/point cloud, data that is not directly related to rendering.
-// And make it singleton.
-class ComplexityMetricInfo
-{
-	friend MeshManager;
-	friend LayerManager;
-
-	int CurrentLayerIndex = -1;
-
-	double TotalArea = 0.0;
-	glm::vec3 AverageNormal = glm::vec3();
-public:
-	ComplexityMetricInfo();
-
-	MeshGeometryData* CurrentMeshGeometryData = nullptr;
-	void FillTrianglesData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
-
-	PointCloudGeometryData* CurrentPointCloudGeometryData = nullptr;
-
-	// FIX ME: Move it to a layer manager.
-	std::vector<DataLayer> Layers;
-	void AddLayer(std::vector<float> ElementsToData);
-	void AddLayer(DataLayer NewLayer);
 };

@@ -117,24 +117,24 @@ void NewLayerWindow::AddLayer()
 	{
 		case 0:
 		{
-			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
-			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
+			LAYER_MANAGER.AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
+			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
 
 			InternalClose();
 			break;
 		}
 		case 1:
 		{
-			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(AREA_LAYER_PRODUCER.Calculate());
-			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
+			LAYER_MANAGER.AddLayer(AREA_LAYER_PRODUCER.Calculate());
+			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
 
 			InternalClose();
 			break;
 		}
 		case 2:
 		{
-			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(TrianglesEdgesMode));
-			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
+			LAYER_MANAGER.AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(TrianglesEdgesMode));
+			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
 
 			InternalClose();
 			break;
@@ -205,8 +205,8 @@ void NewLayerWindow::AddLayer()
 		}
 		case 7:
 		{
-			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
-			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() - 1));
+			LAYER_MANAGER.AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
+			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
 			MESH_MANAGER.SetHeatMapType(6);
 
 			InternalClose();
@@ -417,7 +417,7 @@ void NewLayerWindow::RenderFractalDimentionSettings()
 
 void NewLayerWindow::RenderCompareLayerSettings()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size() < 2)
+	if (LAYER_MANAGER.Layers.size() < 2)
 	{
 		const std::string Text = "To compare layers, you should have at least two layers.";
 
@@ -430,7 +430,7 @@ void NewLayerWindow::RenderCompareLayerSettings()
 
 	std::string FirstString = "Choose layer";
 	if (FirstChoosenLayerIndex != -1)
-		FirstString = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[FirstChoosenLayerIndex].GetCaption();
+		FirstString = LAYER_MANAGER.Layers[FirstChoosenLayerIndex].GetCaption();
 
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
 	ImGui::Text("First layer: ");
@@ -439,10 +439,10 @@ void NewLayerWindow::RenderCompareLayerSettings()
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
 	if (ImGui::BeginCombo("##ChooseFirstLayer", FirstString.c_str(), ImGuiWindowFlags_None))
 	{
-		for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
+		for (size_t i = 0; i < LAYER_MANAGER.Layers.size(); i++)
 		{
 			bool is_selected = (i == FirstChoosenLayerIndex);
-			if (ImGui::Selectable(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption().c_str(), is_selected))
+			if (ImGui::Selectable(LAYER_MANAGER.Layers[i].GetCaption().c_str(), is_selected))
 			{
 				FirstChoosenLayerIndex = static_cast<int>(i);
 			}
@@ -455,7 +455,7 @@ void NewLayerWindow::RenderCompareLayerSettings()
 
 	std::string SecondString = "Choose layer";
 	if (SecondChoosenLayerIndex != -1)
-		SecondString = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[SecondChoosenLayerIndex].GetCaption();
+		SecondString = LAYER_MANAGER.Layers[SecondChoosenLayerIndex].GetCaption();
 
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
 	ImGui::Text("Second layer: ");
@@ -464,10 +464,10 @@ void NewLayerWindow::RenderCompareLayerSettings()
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
 	if (ImGui::BeginCombo("##ChooseSecondLayer", SecondString.c_str(), ImGuiWindowFlags_None))
 	{
-		for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
+		for (size_t i = 0; i < LAYER_MANAGER.Layers.size(); i++)
 		{
 			bool is_selected = (i == SecondChoosenLayerIndex);
-			if (ImGui::Selectable(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[i].GetCaption().c_str(), is_selected))
+			if (ImGui::Selectable(LAYER_MANAGER.Layers[i].GetCaption().c_str(), is_selected))
 			{
 				SecondChoosenLayerIndex = static_cast<int>(i);
 			}

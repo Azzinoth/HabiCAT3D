@@ -293,7 +293,7 @@ void ComplexityJob::SetRugosityAlgorithm()
 
 bool ComplexityJob::Execute(void* InputData, void* OutputData)
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 	{
 		std::string ErrorMessage = "Error: No file loaded. Please load a file before attempting to calculate complexity.";
 		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
@@ -312,7 +312,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 	{
 		std::cout << "Initiating Height Layer calculation." << std::endl;
 
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
+		LAYER_MANAGER.AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
 
 		std::cout << "Height Layer calculation completed." << std::endl;
 	}
@@ -320,7 +320,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 	{
 		std::cout << "Initiating Area Layer calculation." << std::endl;
 
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(AREA_LAYER_PRODUCER.Calculate());
+		LAYER_MANAGER.AddLayer(AREA_LAYER_PRODUCER.Calculate());
 
 		std::cout << "Area Layer calculation completed." << std::endl;
 	}
@@ -338,7 +338,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 			Mode = 2;
 		}
 
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(Mode));
+		LAYER_MANAGER.AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(Mode));
 
 		std::cout << "Triangle Edge Layer calculation completed." << std::endl;
 	}
@@ -436,7 +436,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		std::cout << "Initiating Compare Layer calculation." << std::endl;
 
 		int FirstLayerIndex = Settings.GetCompare_FirstLayerIndex();
-		if (FirstLayerIndex < 0 || FirstLayerIndex > COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+		if (FirstLayerIndex < 0 || FirstLayerIndex > LAYER_MANAGER.Layers.size())
 		{
 			std::string ErrorMessage = "Error: First layer index is out of range. Please check the layer index and try again.";
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
@@ -444,7 +444,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		}
 
 		int SecondLayerIndex = Settings.GetCompare_SecondLayerIndex();
-		if (SecondLayerIndex < 0 || SecondLayerIndex > COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size())
+		if (SecondLayerIndex < 0 || SecondLayerIndex > LAYER_MANAGER.Layers.size())
 		{
 			std::string ErrorMessage = "Error: Second layer index is out of range. Please check the layer index and try again.";
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
@@ -452,7 +452,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		}
 
 		COMPARE_LAYER_PRODUCER.SetShouldNormalize(Settings.IsCompare_Normalize());
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstLayerIndex, SecondLayerIndex));
+		LAYER_MANAGER.AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstLayerIndex, SecondLayerIndex));
 
 		std::cout << "Compare Layer calculation completed." << std::endl;
 	}

@@ -6,19 +6,19 @@ AreaLayerProducer::~AreaLayerProducer() {}
 
 DataLayer AreaLayerProducer::Calculate()
 {
-	DataLayer Result;
+	DataLayer Result(DATA_SOURCE_TYPE::MESH);
 	Result.SetType(TRIANGLE_AREA);
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return Result;
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData == nullptr)
+	if (ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData == nullptr)
 		return Result;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size(); i++)
+	for (size_t i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size(); i++)
 	{
-		Result.ElementsToData.push_back(static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->TrianglesArea[i]));
+		Result.ElementsToData.push_back(static_cast<float>(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->TrianglesArea[i]));
 	}
 	
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle area"));

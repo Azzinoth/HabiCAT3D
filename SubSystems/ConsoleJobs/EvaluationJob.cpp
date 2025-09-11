@@ -158,7 +158,7 @@ bool ComplexityEvaluationJob::Execute(void* InputData, void* OutputData)
 {
 	if (EvaluationType == "COMPLEXITY")
 	{
-		if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
+		if (LAYER_MANAGER.Layers.empty())
 		{
 			std::string ErrorMessage = "Error: No layers to evaluate. Please calculate a layer before attempting to evaluate.";
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
@@ -168,11 +168,11 @@ bool ComplexityEvaluationJob::Execute(void* InputData, void* OutputData)
 		DataLayer* LayerToEvaluate = nullptr;
 		if (GetLayerIndex() != -1)
 		{
-			LayerToEvaluate = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[GetLayerIndex()];
+			LayerToEvaluate = &LAYER_MANAGER.Layers[GetLayerIndex()];
 		}
 		else
 		{
-			LayerToEvaluate = &COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.back();
+			LayerToEvaluate = &LAYER_MANAGER.Layers.back();
 		}
 
 		if (LayerToEvaluate == nullptr)

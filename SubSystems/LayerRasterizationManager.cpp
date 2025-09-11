@@ -33,13 +33,13 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 {
 	std::vector<std::vector<GridCell>> Grid;
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return Grid;
 
 	if (Axis.x + Axis.y + Axis.z != 1.0f)
 		return Grid;
 
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return Grid;
 
@@ -50,7 +50,7 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 	if (CurrentResolutionInMeters < MinMaxResolutionInMeters.y)
 		CurrentResolutionInMeters = MinMaxResolutionInMeters.y;
 
-	FEAABB MeshAABB = CurrentMeshData->MeshData.AABB;
+	FEAABB MeshAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB();
 	float CellSize = CurrentResolutionInMeters;
 
 	if (CellSize <= 0.0f)
@@ -126,7 +126,7 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 
 void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* OutputData)
 {
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return;
 
@@ -961,7 +961,7 @@ void LayerRasterizationManager::PrepareLayerForExport(DataLayer* LayerToExport, 
 	if (CurrentLayer == nullptr)
 		return;
 
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return;
 
@@ -1097,7 +1097,7 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(size_t GridX, size
 {
 	double Result = 0.0;
 
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return Result;
 
@@ -1281,10 +1281,10 @@ glm::vec2 LayerRasterizationManager::GetMinMaxResolutionInMeters(glm::vec3 Proje
 {
 	glm::vec2 Result = glm::vec2(0.0f);
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return Result;
 
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return Result;
 
@@ -1301,7 +1301,7 @@ glm::vec2 LayerRasterizationManager::GetMinMaxResolutionInMeters(glm::vec3 Proje
 	if (GLMVec3Equal(Axis, glm::vec3(0.0f)))
 		return Result;
 		
-	FEAABB MeshAABB = CurrentMeshData->MeshData.AABB;
+	FEAABB MeshAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB();
 
 	float UsableSize = 0.0f;
 	if (Axis.x > 0.0)
@@ -1378,7 +1378,7 @@ void LayerRasterizationManager::DebugRenderGrid()
 {
 	//LINE_RENDERER.ClearAll();
 
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return;
 
@@ -1442,7 +1442,7 @@ void LayerRasterizationManager::DebugMouseClick()
 	{
 		for (size_t j = 0; j < Grid[i].size(); j++)
 		{
-			FEAABB FinalAABB = Grid[i][j].AABB.Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Position->GetWorldMatrix());
+			FEAABB FinalAABB = Grid[i][j].AABB.Transform(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Position->GetWorldMatrix());
 			if (FinalAABB.RayIntersect(MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE), MAIN_SCENE_MANAGER.GetMouseRayDirection(), DistanceToCell))
 			{
 				if (LastDistanceToCell > DistanceToCell)
@@ -1464,7 +1464,7 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 	if (X < 0 || X >= Grid.size() || Y < 0 || Y >= Grid[0].size())
 		return;
 
-	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 	if (CurrentMeshData == nullptr)
 		return;
 
@@ -1518,10 +1518,10 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 
 void LayerRasterizationManager::UpdateProjectionVector()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return;
 
-	LAYER_RASTERIZATION_MANAGER.CurrentProjectionVector = ConvertToClosestAxis(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->GetAverageNormal());
+	LAYER_RASTERIZATION_MANAGER.CurrentProjectionVector = ConvertToClosestAxis(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->GetAverageNormal());
 }
 
 glm::uvec2 LayerRasterizationManager::GetResolutionInPixelsBasedOnResolutionInMeters(glm::vec3 ProjectionVector, float ResolutionInMeters)
@@ -1537,10 +1537,10 @@ glm::uvec2 LayerRasterizationManager::GetResolutionInPixelsBasedOnResolutionInMe
 	if (ProjectionVector.x + ProjectionVector.y + ProjectionVector.z != 1.0f)
 		return Result;
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return Result;
 
-	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->MeshData.AABB;
+	FEAABB MeshAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB();
 	unsigned int CountOfCellsToCoverAABB = 0;
 	float UsableSize = 0.0f;
 
@@ -1579,7 +1579,7 @@ float LayerRasterizationManager::GetResolutionInMetersBasedOnResolutionInPixels(
 	if (Pixels <= 0)
 		return Result;
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return Result;
 
 	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
@@ -1588,7 +1588,7 @@ float LayerRasterizationManager::GetResolutionInMetersBasedOnResolutionInPixels(
 	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
 		return Result;
 
-	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->MeshData.AABB;
+	FEAABB MeshAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB();
 	unsigned int CountOfCellToCoverAABB = 0;
 
 	float UsableSize = 0.0f;
@@ -1622,10 +1622,10 @@ int LayerRasterizationManager::GetResolutionInPixelsThatWouldGiveSuchResolutionI
 	if (Meters <= 0.0f)
 		return Result;
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return Result;
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData == nullptr)
+	if (ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData == nullptr)
 		return Result;
 
 	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
@@ -1634,7 +1634,7 @@ int LayerRasterizationManager::GetResolutionInPixelsThatWouldGiveSuchResolutionI
 	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
 		return Result;
 
-	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->MeshData.AABB;
+	FEAABB MeshAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB();
 	unsigned int CountOfCellToCoverAABB = 0;
 	float UsableSize = 0.0f;
 
