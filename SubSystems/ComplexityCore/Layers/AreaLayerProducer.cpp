@@ -12,10 +12,13 @@ DataLayer AreaLayerProducer::Calculate()
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return Result;
 
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData == nullptr)
+		return Result;
+
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size(); i++)
 	{
-		Result.ElementsToData.push_back(static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesArea[i]));
+		Result.ElementsToData.push_back(static_cast<float>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->TrianglesArea[i]));
 	}
 	
 	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle area"));

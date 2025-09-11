@@ -27,7 +27,7 @@ void JitterManager::OnMeshUpdate()
 {
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
-	FEAABB FinalAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.Transform(TransformMatrix);
+	FEAABB FinalAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->MeshData.AABB.Transform(TransformMatrix);
 
 	const float MaxMeshAABBSize = FinalAABB.GetLongestAxisLength();
 
@@ -244,7 +244,9 @@ void JitterManager::RunNextJitter()
 
 	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(&LastUsedJitterSettings[CurrentJitterIndex], JITTER_MANAGER.GetResolutionInM());
 	Grid->Init(0, FinalAABB, JITTER_MANAGER.GetResolutionInM());
-	COMPLEXITY_METRIC_MANAGER.IsUsingMeshData() ? Grid->FillCellsWithTriangleInfo() : Grid->FillCellsWithPointInfo();
+
+	bool bUsingMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentPointCloudGeometryData == nullptr;
+	bUsingMeshData ? Grid->FillCellsWithTriangleInfo() : Grid->FillCellsWithPointInfo();
 
 	int NodesWithDataCount = 0;
 	int TotalObjectCountInNodes = 0;
@@ -255,9 +257,9 @@ void JitterManager::RunNextJitter()
 		{
 			for (size_t k = 0; k < Grid->Data.size(); k++)
 			{
-				if (!(COMPLEXITY_METRIC_MANAGER.IsUsingMeshData() ? Grid->Data[i][j][k].TrianglesInCell.empty() : Grid->Data[i][j][k].PointsInCell.empty()))
+				if (!(bUsingMeshData ? Grid->Data[i][j][k].TrianglesInCell.empty() : Grid->Data[i][j][k].PointsInCell.empty()))
 				{
-					TotalObjectCountInNodes += COMPLEXITY_METRIC_MANAGER.IsUsingMeshData() ? static_cast<int>(Grid->Data[i][j][k].TrianglesInCell.size()) : static_cast<int>(Grid->Data[i][j][k].PointsInCell.size());
+					TotalObjectCountInNodes += bUsingMeshData ? static_cast<int>(Grid->Data[i][j][k].TrianglesInCell.size()) : static_cast<int>(Grid->Data[i][j][k].PointsInCell.size());
 					NodesWithData.push_back(&Grid->Data[i][j][k]);
 				}
 			}
@@ -268,7 +270,7 @@ void JitterManager::RunNextJitter()
 	THREAD_COUNT = THREAD_POOL.GetThreadCount() * 10;
 	// It should be based on complexity of the algorithm
 	// not only triangle/point count.
-	THREAD_COUNT = static_cast<int>(TotalObjectCountInNodes / (COMPLEXITY_METRIC_MANAGER.IsUsingMeshData() ? 10000.0 : 100000.0));
+	THREAD_COUNT = static_cast<int>(TotalObjectCountInNodes / (bUsingMeshData ? 10000.0 : 100000.0));
 	if (THREAD_COUNT < 1)
 		THREAD_COUNT = 1;
 	
@@ -420,7 +422,9 @@ void JitterManager::MoveResultDataFromGrid(MeasurementGrid* Grid)
 
 void JitterManager::OnCalculationsStart()
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr && COMPLEXITY_METRIC_MANAGER.RawPointCloudData.empty())
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr ||
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData == nullptr ||
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentPointCloudGeometryData == nullptr)
 		return;
 
 	JITTER_MANAGER.Result.clear();
@@ -575,9 +579,12 @@ void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* CurrentNo
 
 void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)
 {
-	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB;
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
+		return;
 
-	const glm::vec3 Center = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB.GetCenter() ;
+	FEAABB MeshAABB = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->MeshData.AABB;
+
+	const glm::vec3 Center = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->MeshData.AABB.GetCenter() ;
 	const FEAABB GridAABB = FEAABB(Center - glm::vec3(MeshAABB.GetLongestAxisLength() / 2.0f), Center + glm::vec3(MeshAABB.GetLongestAxisLength() / 2.0f));
 	MeshAABB = GridAABB;
 
@@ -744,7 +751,7 @@ std::vector<float> JitterManager::ProduceStandardDeviationData()
 	if (PerJitterResult.empty())
 		return Result;
 
-	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size(); i++)
 	{
 		std::vector<float> CurrentTriangleResults;
 		for (int j = 0; j < JitterToDoCount; j++)
@@ -760,12 +767,15 @@ std::vector<float> JitterManager::ProduceStandardDeviationData()
 
 FEAABB JitterManager::GetAABBForJitteredGrid(GridInitData_Jitter* Settings, float CurrentResolutionInM)
 {
-	FEAABB ObjectAABB = COMPLEXITY_METRIC_MANAGER.IsUsingMeshData() ? COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->MeshData.AABB : COMPLEXITY_METRIC_MANAGER.GetPointCloudAABB();
+	// FIX ME: Should be based on different logic.
+	bool bUsingMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentPointCloudGeometryData == nullptr;
+
+	FEAABB ObjectAABB = bUsingMeshData ? COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->MeshData.AABB : COMPLEXITY_METRIC_MANAGER.GetPointCloudAABB();
 	FEAABB FinalAABB = ObjectAABB;
 
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
-	if (COMPLEXITY_METRIC_MANAGER.IsUsingMeshData())
-		TransformMatrix = glm::translate(TransformMatrix, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetPosition());
+	if (bUsingMeshData)
+		TransformMatrix = glm::translate(TransformMatrix, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Position->GetPosition());
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(Settings->GridScale));
 	FinalAABB = FinalAABB.Transform(TransformMatrix);
 

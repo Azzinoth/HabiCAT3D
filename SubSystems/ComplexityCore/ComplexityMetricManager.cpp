@@ -67,29 +67,31 @@ void ComplexityMetricManager::SaveToRUGFile(std::string FilePath)
 	float version = APP_VERSION;
 	File.write((char*)&version, sizeof(float));
 
-	int Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Vertices.size());
-	File.write((char*)&Count, sizeof(int));
-	File.write((char*)ActiveComplexityMetricInfo->MeshData.Vertices.data(), sizeof(double) * Count);
+	MeshGeometryData* CurrentMeshData = ActiveComplexityMetricInfo->CurrentMeshGeometryData;
 
-	Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Colors.size());
+	int Count = static_cast<int>(CurrentMeshData->MeshData.Vertices.size());
 	File.write((char*)&Count, sizeof(int));
-	File.write((char*)ActiveComplexityMetricInfo->MeshData.Colors.data(), sizeof(float) * Count);
+	File.write((char*)CurrentMeshData->MeshData.Vertices.data(), sizeof(double) * Count);
 
-	Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.UVs.size());
+	Count = static_cast<int>(CurrentMeshData->MeshData.Colors.size());
 	File.write((char*)&Count, sizeof(int));
-	File.write((char*)ActiveComplexityMetricInfo->MeshData.UVs.data(), sizeof(float) * Count);
+	File.write((char*)CurrentMeshData->MeshData.Colors.data(), sizeof(float) * Count);
 
-	Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Normals.size());
+	Count = static_cast<int>(CurrentMeshData->MeshData.UVs.size());
 	File.write((char*)&Count, sizeof(int));
-	File.write((char*)ActiveComplexityMetricInfo->MeshData.Normals.data(), sizeof(float) * Count);
+	File.write((char*)CurrentMeshData->MeshData.UVs.data(), sizeof(float) * Count);
 
-	Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Tangents.size());
+	Count = static_cast<int>(CurrentMeshData->MeshData.Normals.size());
 	File.write((char*)&Count, sizeof(int));
-	File.write((char*)ActiveComplexityMetricInfo->MeshData.Tangents.data(), sizeof(float) * Count);
+	File.write((char*)CurrentMeshData->MeshData.Normals.data(), sizeof(float) * Count);
 
-	Count = static_cast<int>(ActiveComplexityMetricInfo->MeshData.Indices.size());
+	Count = static_cast<int>(CurrentMeshData->MeshData.Tangents.size());
 	File.write((char*)&Count, sizeof(int));
-	File.write((char*)ActiveComplexityMetricInfo->MeshData.Indices.data(), sizeof(int) * Count);
+	File.write((char*)CurrentMeshData->MeshData.Tangents.data(), sizeof(float) * Count);
+
+	Count = static_cast<int>(CurrentMeshData->MeshData.Indices.size());
+	File.write((char*)&Count, sizeof(int));
+	File.write((char*)CurrentMeshData->MeshData.Indices.data(), sizeof(int) * Count);
 
 	Count = static_cast<int>(ActiveComplexityMetricInfo->Layers.size());
 	File.write((char*)&Count, sizeof(int));
@@ -121,7 +123,7 @@ void ComplexityMetricManager::SaveToRUGFile(std::string FilePath)
 			ActiveComplexityMetricInfo->Layers[i].DebugInfo->ToFile(File);
 	}
 
-	FEAABB TempAABB(ActiveComplexityMetricInfo->MeshData.Vertices.data(), static_cast<int>(ActiveComplexityMetricInfo->MeshData.Vertices.size()));
+	FEAABB TempAABB(CurrentMeshData->MeshData.Vertices.data(), static_cast<int>(CurrentMeshData->MeshData.Vertices.size()));
 	File.write((char*)&TempAABB.GetMin()[0], sizeof(float));
 	File.write((char*)&TempAABB.GetMin()[1], sizeof(float));
 	File.write((char*)&TempAABB.GetMin()[2], sizeof(float));
@@ -135,32 +137,49 @@ void ComplexityMetricManager::SaveToRUGFile(std::string FilePath)
 
 void ComplexityMetricManager::InitializePointCloudData(FEPointCloud* PointCloud)
 {
+	if (ActiveComplexityMetricInfo != nullptr)
+		delete ActiveComplexityMetricInfo;
+
+	ActiveComplexityMetricInfo = new ComplexityMetricInfo();
+
+	if (ActiveComplexityMetricInfo->CurrentPointCloudGeometryData != nullptr)
+		delete ActiveComplexityMetricInfo->CurrentPointCloudGeometryData;
+
+	ActiveComplexityMetricInfo->CurrentPointCloudGeometryData = new PointCloudGeometryData();
+
 	std::vector<FEPointCloudVertex> TemporaryRawData = PointCloud->GetRawData();
-	RawPointCloudData.resize(TemporaryRawData.size());
+	ActiveComplexityMetricInfo->CurrentPointCloudGeometryData->RawPointCloudData.resize(TemporaryRawData.size());
 	for (size_t i = 0; i < TemporaryRawData.size(); i++)
 	{
-		RawPointCloudData[i].X = static_cast<double>(TemporaryRawData[i].X);
-		RawPointCloudData[i].Y = static_cast<double>(TemporaryRawData[i].Y);
-		RawPointCloudData[i].Z = static_cast<double>(TemporaryRawData[i].Z);
+		ActiveComplexityMetricInfo->CurrentPointCloudGeometryData->RawPointCloudData[i].X = static_cast<double>(TemporaryRawData[i].X);
+		ActiveComplexityMetricInfo->CurrentPointCloudGeometryData->RawPointCloudData[i].Y = static_cast<double>(TemporaryRawData[i].Y);
+		ActiveComplexityMetricInfo->CurrentPointCloudGeometryData->RawPointCloudData[i].Z = static_cast<double>(TemporaryRawData[i].Z);
 
-		RawPointCloudData[i].R = TemporaryRawData[i].R;
-		RawPointCloudData[i].G = TemporaryRawData[i].G;
-		RawPointCloudData[i].B = TemporaryRawData[i].B;
-		RawPointCloudData[i].A = TemporaryRawData[i].A;
+		ActiveComplexityMetricInfo->CurrentPointCloudGeometryData->RawPointCloudData[i].R = TemporaryRawData[i].R;
+		ActiveComplexityMetricInfo->CurrentPointCloudGeometryData->RawPointCloudData[i].G = TemporaryRawData[i].G;
+		ActiveComplexityMetricInfo->CurrentPointCloudGeometryData->RawPointCloudData[i].B = TemporaryRawData[i].B;
+		ActiveComplexityMetricInfo->CurrentPointCloudGeometryData->RawPointCloudData[i].A = TemporaryRawData[i].A;
 	}
 
-	PointCloudAABB = PointCloud->GetAABB();
-
-	// FIX ME: Temporary solution.
-	bUsingMeshData = false;
-}
-
-bool ComplexityMetricManager::IsUsingMeshData()
-{
-	return bUsingMeshData;
+	ActiveComplexityMetricInfo->CurrentPointCloudGeometryData->PointCloudAABB = PointCloud->GetAABB();
 }
 
 FEAABB ComplexityMetricManager::GetPointCloudAABB()
 {
-	return PointCloudAABB;
+	return ActiveComplexityMetricInfo->CurrentPointCloudGeometryData->PointCloudAABB;
+}
+
+bool ComplexityMetricManager::HaveAnyData()
+{
+	return HaveMeshData() || HavePointCloudData();
+}
+
+bool ComplexityMetricManager::HaveMeshData()
+{
+	return ActiveComplexityMetricInfo != nullptr && ActiveComplexityMetricInfo->CurrentMeshGeometryData != nullptr;
+}
+
+bool ComplexityMetricManager::HavePointCloudData()
+{
+	return ActiveComplexityMetricInfo != nullptr && ActiveComplexityMetricInfo->CurrentPointCloudGeometryData != nullptr;
 }

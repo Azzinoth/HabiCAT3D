@@ -46,7 +46,11 @@ bool FileLoadJob::Execute(void* InputData, void* OutputData)
 	std::cout << "File found. Loading file: " << FilePath << std::endl;
 
 	COMPLEXITY_METRIC_MANAGER.ImportOBJ(FilePath.c_str(), true);
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->UpdateAverageNormal();
+	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	if (CurrentMeshData == nullptr)
+		return false;
+
+	CurrentMeshData->UpdateAverageNormal();
 
 	OutputConsoleTextWithColor("Successfully completed loading file: ", 0, 255, 0);
 	OutputConsoleTextWithColor(FilePath, 0, 255, 0);

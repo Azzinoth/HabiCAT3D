@@ -345,7 +345,7 @@ FEMesh* MeshManager::LoadResource(std::string FileName)
 		return Result;
 	}
 
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
 	ActiveMesh = Result;
 
 	for (size_t i = 0; i < ClientLoadCallbacks.size(); i++)
@@ -449,11 +449,11 @@ bool MeshManager::SelectTriangle(glm::dvec3 MouseRay)
 	double LastDistance = 9999.0;
 
 	int TriangeIndex = -1;
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.clear();
+	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->TriangleSelected.clear();
 
-	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	for (int i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size(); i++)
 	{
-		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
+		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
 			//TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
@@ -471,7 +471,7 @@ bool MeshManager::SelectTriangle(glm::dvec3 MouseRay)
 
 	if (TriangeIndex != -1)
 	{
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.push_back(TriangeIndex);
+		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->TriangleSelected.push_back(TriangeIndex);
 		return true;
 	}
 
@@ -486,9 +486,9 @@ glm::vec3 MeshManager::IntersectTriangle(glm::dvec3 MouseRay)
 	double CurrentDistance = 0.0;
 	double LastDistance = 9999.0;
 
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size(); i++)
 	{
-		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i];
+		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
 			//TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
@@ -520,23 +520,27 @@ bool MeshManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
 	
 	SelectTriangle(MouseRay);
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() == 0)
+	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	if (CurrentMeshData == nullptr)
+		return Result;
+
+	if (CurrentMeshData->TriangleSelected.size() == 0)
 		return Result;
 
 	MeasuredRugosityAreaRadius = Radius;
-	//MeasuredRugosityAreaCenter = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]], 1.0f);
-	MeasuredRugosityAreaCenter = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]], 1.0f);
+	//MeasuredRugosityAreaCenter = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(CurrentMeshData->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]], 1.0f);
+	MeasuredRugosityAreaCenter = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(CurrentMeshData->TrianglesCentroids[CurrentMeshData->TriangleSelected[0]], 1.0f);
 
-	const glm::dvec3 FirstSelectedTriangleCentroid = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
+	const glm::dvec3 FirstSelectedTriangleCentroid = CurrentMeshData->TrianglesCentroids[CurrentMeshData->TriangleSelected[0]];
 
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	for (size_t i = 0; i < CurrentMeshData->Triangles.size(); i++)
 	{
-		if (i == COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0])
+		if (i == CurrentMeshData->TriangleSelected[0])
 			continue;
 
-		if (glm::distance(FirstSelectedTriangleCentroid, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[i]) <= Radius)
+		if (glm::distance(FirstSelectedTriangleCentroid, CurrentMeshData->TrianglesCentroids[i]) <= Radius)
 		{
-			COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.push_back(static_cast<int>(i));
+			CurrentMeshData->TriangleSelected.push_back(static_cast<int>(i));
 			Result = true;
 		}
 	}
@@ -613,7 +617,7 @@ void MeshManager::UpdateUniforms()
 		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerAbsoluteMax", float(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMax()));
 	}
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
 	{
 		float TempMeasuredRugosityAreaRadius = 0.0f;
 		glm::vec3 TempMeasuredRugosityAreaCenter = glm::vec3(0.0f);

@@ -128,7 +128,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	double FractalDimension = RunOnAllInternalNodesWithTriangles(CurrentNode, [&](int BoxSizeIndex, FEAABB BoxAABB) {
 		if (BoxSizeIndex == DebugBoxSizeIndex)
 		{
-			FEAABB TransformedBox = BoxAABB.Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetWorldMatrix());
+			FEAABB TransformedBox = BoxAABB.Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Position->GetWorldMatrix());
 			LINE_RENDERER.RenderAABB(TransformedBox, glm::vec3(1.0, 0.0, 0.0));
 			DebugBoxCount++;
 		}
@@ -272,7 +272,7 @@ double FractalDimensionLayerProducer::RunOnAllInternalNodesWithTriangles(GridNod
 		// Iterate through all the triangles
 		for (size_t j = 0; j < OuterNode->TrianglesInCell.size(); j++)
 		{
-			std::vector<glm::dvec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[OuterNode->TrianglesInCell[j]];
+			std::vector<glm::dvec3> CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[OuterNode->TrianglesInCell[j]];
 
 			// Calculate the grid cells that the triangle intersects or is contained in
 			FEAABB TriangleBBox = FEAABB(CurrentTriangle);

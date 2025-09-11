@@ -41,18 +41,22 @@ void AfterMeshLoads()
 	MESH_MANAGER.ActiveEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Main entity");
 	MESH_MANAGER.ActiveEntity->AddComponent<FEGameModelComponent>(NewGameModel);
 
+	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	if (CurrentMeshData == nullptr)
+		return;
+
 	if (!APPLICATION.HasConsoleWindow())
 	{
 		MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().SetPosition(-MESH_MANAGER.ActiveMesh->GetAABB().GetCenter());
-		COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->SetPosition(-MESH_MANAGER.ActiveMesh->GetAABB().GetCenter());
+		CurrentMeshData->Position->SetPosition(-MESH_MANAGER.ActiveMesh->GetAABB().GetCenter());
 	}
 
-	COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->UpdateAverageNormal();
+	CurrentMeshData->UpdateAverageNormal();
 
 	if (!APPLICATION.HasConsoleWindow())
 	{
 		UI.SetIsModelCamera(true);
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal()));
+		MESH_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(CurrentMeshData->GetAverageNormal()));
 	}
 
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.empty())
@@ -71,44 +75,48 @@ void LoadResource(std::string FileName)
 
 void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 {
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() == 1)
+	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	if (CurrentMeshData == nullptr)
+		return;
+
+	if (CurrentMeshData->TriangleSelected.size() == 1)
 	{
 		LINE_RENDERER.ClearAll();
 
-		std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
+		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentMeshData->Triangles[CurrentMeshData->TriangleSelected[0]];
 		for (size_t i = 0; i < TranformedTrianglePoints.size(); i++)
 		{
-			TranformedTrianglePoints[i] = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
+			TranformedTrianglePoints[i] = CurrentMeshData->Position->GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
 		}
 
 		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
 		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 
-		if (!COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals.empty())
+		if (!CurrentMeshData->TrianglesNormals.empty())
 		{
 			glm::vec3 Point = TranformedTrianglePoints[0];
-			glm::vec3 Normal = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]][0];
+			glm::vec3 Normal = CurrentMeshData->TrianglesNormals[CurrentMeshData->TriangleSelected[0]][0];
 			LINE_RENDERER.AddLineToBuffer(FECustomLine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
 			Point = TranformedTrianglePoints[1];
-			Normal = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]][1];
+			Normal = CurrentMeshData->TrianglesNormals[CurrentMeshData->TriangleSelected[0]][1];
 			LINE_RENDERER.AddLineToBuffer(FECustomLine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
 			Point = TranformedTrianglePoints[2];
-			Normal = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]][2];
+			Normal = CurrentMeshData->TrianglesNormals[CurrentMeshData->TriangleSelected[0]][2];
 			LINE_RENDERER.AddLineToBuffer(FECustomLine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 		}
 
 		LINE_RENDERER.SyncWithGPU();
 	}
-	else if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() > 1)
+	else if (CurrentMeshData->TriangleSelected.size() > 1)
 	{
 		LINE_RENDERER.ClearAll();
 
-		for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size(); i++)
+		for (size_t i = 0; i < CurrentMeshData->TriangleSelected.size(); i++)
 		{
-			std::vector<glm::dvec3> TranformedTrianglePoints = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[i]];
+			std::vector<glm::dvec3> TranformedTrianglePoints = CurrentMeshData->Triangles[CurrentMeshData->TriangleSelected[i]];
 			for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 			{
 				TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
@@ -128,7 +136,11 @@ void OutputSelectedAreaInfoToFile()
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return;
 
-	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size() < 2)
+	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	if (CurrentMeshData == nullptr)
+		return;
+
+	if (CurrentMeshData->TriangleSelected.size() < 2)
 		return;
 
 	bool bCurrentSettings = LOG.IsFileOutputActive();
@@ -136,16 +148,16 @@ void OutputSelectedAreaInfoToFile()
 		LOG.SetFileOutput(true);
 
 	std::string Text = "Area radius : " + std::to_string(UI.GetRadiusOfAreaToMeasure());
-	LOG.Add(Text, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName);
+	LOG.Add(Text, CurrentMeshData->FileName);
 
 	Text = "Area approximate center : X - ";
-	const glm::vec3 Center = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]];
+	const glm::vec3 Center = CurrentMeshData->TrianglesCentroids[CurrentMeshData->TriangleSelected[0]];
 	Text += std::to_string(Center.x);
 	Text += " Y - ";
 	Text += std::to_string(Center.y);
 	Text += " Z - ";
 	Text += std::to_string(Center.z);
-	LOG.Add(Text, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName);
+	LOG.Add(Text, CurrentMeshData->FileName);
 
 	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Layers.size(); i++)
 	{
@@ -154,14 +166,14 @@ void OutputSelectedAreaInfoToFile()
 		Text = "Layer \"" + CurrentLayer->GetCaption() + "\" : \n";
 		Text += "Area average value : ";
 		float Total = 0.0f;
-		for (size_t j = 0; j < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size(); j++)
+		for (size_t j = 0; j < CurrentMeshData->TriangleSelected.size(); j++)
 		{
-			Total += CurrentLayer->ElementsToData[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[i]];
+			Total += CurrentLayer->ElementsToData[CurrentMeshData->TriangleSelected[i]];
 		}
 
-		Total /= COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected.size();
+		Total /= CurrentMeshData->TriangleSelected.size();
 		Text += std::to_string(Total);
-		LOG.Add(Text, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName);
+		LOG.Add(Text, CurrentMeshData->FileName);
 	}
 
 	if (!bCurrentSettings)
@@ -305,17 +317,19 @@ void OnJitterCalculationsEnd(DataLayer NewLayer)
 			Max = NewLayer.ElementsToData[i];
 	}
 
+	PointCloudGeometryData* CurrentPointCloudData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentPointCloudGeometryData;
+
 	// Update color based on min/max
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.RawPointCloudData.size(); i++)
+	for (size_t i = 0; i < CurrentPointCloudData->RawPointCloudData.size(); i++)
 	{
 		float NormalizedValue = (NewLayer.ElementsToData[i] - Min) / (Max - Min);
 		glm::vec3 NewColor = GetTurboColorMap(NormalizedValue);
-		COMPLEXITY_METRIC_MANAGER.RawPointCloudData[i].R = static_cast<unsigned char>(NewColor.x * 255.0f);
-		COMPLEXITY_METRIC_MANAGER.RawPointCloudData[i].G = static_cast<unsigned char>(NewColor.y * 255.0f);
-		COMPLEXITY_METRIC_MANAGER.RawPointCloudData[i].B = static_cast<unsigned char>(NewColor.z * 255.0f);
+		CurrentPointCloudData->RawPointCloudData[i].R = static_cast<unsigned char>(NewColor.x * 255.0f);
+		CurrentPointCloudData->RawPointCloudData[i].G = static_cast<unsigned char>(NewColor.y * 255.0f);
+		CurrentPointCloudData->RawPointCloudData[i].B = static_cast<unsigned char>(NewColor.z * 255.0f);
 	}
 
-	FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(COMPLEXITY_METRIC_MANAGER.RawPointCloudData);
+	FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudData->RawPointCloudData);
 
 	MESH_MANAGER.CurrentPointCloudEntity->RemoveComponent<FEPointCloudComponent>();
 	RESOURCE_MANAGER.DeleteFEPointCloud(MESH_MANAGER.CurrentPointCloud);

@@ -21,7 +21,7 @@ void VectorDispersionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 
 	for (size_t p = 0; p < CurrentNode->TrianglesInCell.size(); p++)
 	{
-		std::vector<glm::vec3> CurrentTriangleNormals = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TrianglesNormals[CurrentNode->TrianglesInCell[p]];
+		std::vector<glm::vec3> CurrentTriangleNormals = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->TrianglesNormals[CurrentNode->TrianglesInCell[p]];
 
 		for (size_t l = 0; l < CurrentTriangleNormals.size(); l++)
 		{
@@ -113,7 +113,7 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	GridNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
 	for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
 	{
-		const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
+		const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
 
 		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)

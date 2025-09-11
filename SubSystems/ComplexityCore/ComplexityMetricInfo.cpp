@@ -1,16 +1,135 @@
 #include "ComplexityMetricInfo.h"
 using namespace FocalEngine;
 
-ComplexityMetricInfo::ComplexityMetricInfo() {}
+void RawMeshData::Clear()
+{
+	Vertices.clear();
+	Colors.clear();
+	UVs.clear();
+	Tangents.clear();
+	Indices.clear();
+	Normals.clear();
+	AABB = FEAABB();
+}
 
-double ComplexityMetricInfo::GetTotalArea()
+void MeshGeometryData::Clear()
+{
+	TotalArea = 0.0;
+	AverageNormal = glm::vec3();
+
+	TriangleSelected.clear();
+	MeshData.Clear();
+	
+	Triangles.clear();
+	TrianglesNormals.clear();
+	TrianglesArea.clear();
+	TrianglesCentroids.clear();
+
+	FileName = "";
+	Position = new FETransformComponent();
+}
+
+double MeshGeometryData::GetTotalArea()
 {
 	return TotalArea;
 }
 
+glm::vec3 MeshGeometryData::GetAverageNormal()
+{
+	return AverageNormal;
+}
+
+void MeshGeometryData::UpdateAverageNormal()
+{
+	AverageNormal = glm::vec3();
+
+	std::vector<double> OriginalAreas;
+	double TotalArea = 0.0;
+	for (size_t i = 0; i < Triangles.size(); i++)
+	{
+		const double OriginalArea = GEOMETRY.CalculateTriangleArea(Triangles[i][0], Triangles[i][1], Triangles[i][2]);
+		OriginalAreas.push_back(OriginalArea);
+		TotalArea += OriginalArea;
+	}
+
+	// ******* Getting average normal *******
+	for (size_t i = 0; i < Triangles.size(); i++)
+	{
+		double CurrentTriangleCoef = OriginalAreas[i] / TotalArea;
+
+		AverageNormal += TrianglesNormals[i][0] * static_cast<float>(CurrentTriangleCoef);
+		AverageNormal += TrianglesNormals[i][1] * static_cast<float>(CurrentTriangleCoef);
+		AverageNormal += TrianglesNormals[i][2] * static_cast<float>(CurrentTriangleCoef);
+	}
+
+	AverageNormal = glm::normalize(AverageNormal);
+}
+
+ComplexityMetricInfo::ComplexityMetricInfo() {}
+
+//double ComplexityMetricInfo::GetTotalArea()
+//{
+//	return TotalArea;
+//}
+
 void ComplexityMetricInfo::FillTrianglesData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals)
 {
-	MeshData.Vertices = Vertices;
+	if (CurrentMeshGeometryData != nullptr)
+		delete CurrentMeshGeometryData;
+
+	CurrentMeshGeometryData = new MeshGeometryData();
+
+	CurrentMeshGeometryData->MeshData.Vertices = Vertices;
+	CurrentMeshGeometryData->MeshData.Colors = Colors;
+	CurrentMeshGeometryData->MeshData.UVs = UVs;
+	CurrentMeshGeometryData->MeshData.Tangents = Tangents;
+	CurrentMeshGeometryData->MeshData.Indices = Indices;
+	CurrentMeshGeometryData->MeshData.Normals = Normals;
+
+	std::vector<glm::dvec3> Triangle;
+	Triangle.resize(3);
+	std::vector<glm::vec3> TriangleNormal;
+	TriangleNormal.resize(3);
+
+	for (size_t i = 0; i < Indices.size(); i += 3)
+	{
+		int VertexPosition = Indices[i] * 3;
+		Triangle[0] = glm::dvec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
+
+		VertexPosition = Indices[i + 1] * 3;
+		Triangle[1] = glm::dvec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
+
+		VertexPosition = Indices[i + 2] * 3;
+		Triangle[2] = glm::dvec3(Vertices[VertexPosition], Vertices[VertexPosition + 1], Vertices[VertexPosition + 2]);
+
+		CurrentMeshGeometryData->Triangles.push_back(Triangle);
+		CurrentMeshGeometryData->TrianglesArea.push_back(GEOMETRY.CalculateTriangleArea(Triangle[0], Triangle[1], Triangle[2]));
+		CurrentMeshGeometryData->TotalArea += CurrentMeshGeometryData->TrianglesArea.back();
+
+		CurrentMeshGeometryData->TrianglesCentroids.push_back((Triangle[0] + Triangle[1] + Triangle[2]) / 3.0);
+
+		if (!Normals.empty())
+		{
+			VertexPosition = Indices[i] * 3;
+			TriangleNormal[0] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
+
+			VertexPosition = Indices[i + 1] * 3;
+			TriangleNormal[1] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
+
+			VertexPosition = Indices[i + 2] * 3;
+			TriangleNormal[2] = glm::vec3(Normals[VertexPosition], Normals[VertexPosition + 1], Normals[VertexPosition + 2]);
+
+			CurrentMeshGeometryData->TrianglesNormals.push_back(TriangleNormal);
+		}
+	}
+
+	CurrentMeshGeometryData->MeshData.AABB = FEAABB(Vertices.data(), static_cast<int>(Vertices.size()));
+
+
+
+
+
+	/*MeshData.Vertices = Vertices;
 	MeshData.Colors = Colors;
 	MeshData.UVs = UVs;
 	MeshData.Tangents = Tangents;
@@ -60,52 +179,58 @@ void ComplexityMetricInfo::FillTrianglesData(std::vector<double>& Vertices, std:
 		}
 	}
 
-	MeshData.AABB = FEAABB(Vertices.data(), static_cast<int>(Vertices.size()));
+	MeshData.AABB = FEAABB(Vertices.data(), static_cast<int>(Vertices.size()));*/
 }
 
-void ComplexityMetricInfo::UpdateAverageNormal()
-{
-	AverageNormal = glm::vec3();
+//void ComplexityMetricInfo::UpdateAverageNormal()
+//{
+//	AverageNormal = glm::vec3();
+//
+//	std::vector<double> OriginalAreas;
+//	double TotalArea = 0.0;
+//	for (size_t i = 0; i < Triangles.size(); i++)
+//	{
+//		const double OriginalArea = GEOMETRY.CalculateTriangleArea(Triangles[i][0], Triangles[i][1], Triangles[i][2]);
+//		OriginalAreas.push_back(OriginalArea);
+//		TotalArea += OriginalArea;
+//	}
+//
+//	// ******* Getting average normal *******
+//	for (size_t i = 0; i < Triangles.size(); i++)
+//	{
+//		double CurrentTriangleCoef = OriginalAreas[i] / TotalArea;
+//
+//		AverageNormal += TrianglesNormals[i][0] * static_cast<float>(CurrentTriangleCoef);
+//		AverageNormal += TrianglesNormals[i][1] * static_cast<float>(CurrentTriangleCoef);
+//		AverageNormal += TrianglesNormals[i][2] * static_cast<float>(CurrentTriangleCoef);
+//	}
+//
+//	AverageNormal = glm::normalize(AverageNormal);
+//}
 
-	std::vector<double> OriginalAreas;
-	double TotalArea = 0.0;
-	for (size_t i = 0; i < Triangles.size(); i++)
-	{
-		const double OriginalArea = GEOMETRY.CalculateTriangleArea(Triangles[i][0], Triangles[i][1], Triangles[i][2]);
-		OriginalAreas.push_back(OriginalArea);
-		TotalArea += OriginalArea;
-	}
-
-	// ******* Getting average normal *******
-	for (size_t i = 0; i < Triangles.size(); i++)
-	{
-		double CurrentTriangleCoef = OriginalAreas[i] / TotalArea;
-
-		AverageNormal += TrianglesNormals[i][0] * static_cast<float>(CurrentTriangleCoef);
-		AverageNormal += TrianglesNormals[i][1] * static_cast<float>(CurrentTriangleCoef);
-		AverageNormal += TrianglesNormals[i][2] * static_cast<float>(CurrentTriangleCoef);
-	}
-
-	AverageNormal = glm::normalize(AverageNormal);
-}
-
-glm::vec3 ComplexityMetricInfo::GetAverageNormal()
-{
-	return AverageNormal;
-}
+//glm::vec3 ComplexityMetricInfo::GetAverageNormal()
+//{
+//	return AverageNormal;
+//}
 
 void ComplexityMetricInfo::AddLayer(std::vector<float> ElementsToData)
 {
-	if (ElementsToData.size() == Triangles.size())
-		Layers.push_back(DataLayer(this, ElementsToData));
+	if (CurrentMeshGeometryData != nullptr)
+	{
+		if (ElementsToData.size() == CurrentMeshGeometryData->Triangles.size())
+			Layers.push_back(DataLayer(this, ElementsToData));
+	}
 }
 
 void ComplexityMetricInfo::AddLayer(DataLayer NewLayer)
 {
-	if (NewLayer.ElementsToData.size() == Triangles.size())
+	if (CurrentMeshGeometryData != nullptr)
 	{
-		NewLayer.SetParent(this);
-		Layers.push_back(NewLayer);
+		if (NewLayer.ElementsToData.size() == CurrentMeshGeometryData->Triangles.size())
+		{
+			NewLayer.SetParent(this);
+			Layers.push_back(NewLayer);
+		}
 	}
 }
 
@@ -119,7 +244,10 @@ DataLayer::DataLayer(ComplexityMetricInfo* Parent, const std::vector<float> Elem
 	if (Parent == nullptr)
 		return;
 
-	if (ElementsToData.size() != Parent->Triangles.size())
+	if (Parent->CurrentMeshGeometryData == nullptr)
+		return;
+
+	if (ElementsToData.size() != Parent->CurrentMeshGeometryData->Triangles.size())
 		return;
 
 	ID = APPLICATION.GetUniqueHexID();
@@ -142,7 +270,10 @@ void DataLayer::SetParent(ComplexityMetricInfo* NewValue)
 	if (NewValue == nullptr)
 		return;
 
-	if (ElementsToData.size() != NewValue->Triangles.size())
+	if (NewValue->CurrentMeshGeometryData == nullptr)
+		return;
+
+	if (ElementsToData.size() != NewValue->CurrentMeshGeometryData->Triangles.size())
 		return;
 
 	this->ParentComplexityMetricData = NewValue;
@@ -189,8 +320,8 @@ void DataLayer::CalculateInitData()
 	ValueTriangleAreaAndIndex.clear();
 	if (DataSourceType == DATA_SOURCE_TYPE::MESH)
 	{
-		for (int i = 0; i < ParentComplexityMetricData->Triangles.size(); i++)
-			ValueTriangleAreaAndIndex.push_back(std::make_tuple(ElementsToData[i], ParentComplexityMetricData->TrianglesArea[i], i));
+		for (int i = 0; i < ParentComplexityMetricData->CurrentMeshGeometryData->Triangles.size(); i++)
+			ValueTriangleAreaAndIndex.push_back(std::make_tuple(ElementsToData[i], ParentComplexityMetricData->CurrentMeshGeometryData->TrianglesArea[i], i));
 		
 		// sort() function will sort by 1st element of tuple.
 		std::sort(ValueTriangleAreaAndIndex.begin(), ValueTriangleAreaAndIndex.end());
@@ -203,12 +334,12 @@ void DataLayer::FillRawData()
 		return;
 
 	std::vector<int> IndexVector;
-	for (size_t i = 0; i < ParentComplexityMetricData->MeshData.Indices.size(); i++)
+	for (size_t i = 0; i < ParentComplexityMetricData->CurrentMeshGeometryData->MeshData.Indices.size(); i++)
 	{
-		IndexVector.push_back(ParentComplexityMetricData->MeshData.Indices[i]);
+		IndexVector.push_back(ParentComplexityMetricData->CurrentMeshGeometryData->MeshData.Indices[i]);
 	}
 
-	RawData.resize(ParentComplexityMetricData->MeshData.Vertices.size());
+	RawData.resize(ParentComplexityMetricData->CurrentMeshGeometryData->MeshData.Vertices.size());
 	auto GetVertexOfFace = [&](const int FaceIndex) {
 		std::vector<int> result;
 		result.push_back(IndexVector[FaceIndex * 3]);
@@ -233,7 +364,7 @@ void DataLayer::FillRawData()
 		}
 	};
 
-	for (size_t i = 0; i < ParentComplexityMetricData->Triangles.size(); i++)
+	for (size_t i = 0; i < ParentComplexityMetricData->CurrentMeshGeometryData->Triangles.size(); i++)
 	{
 		SetRugosityOfFace(static_cast<int>(i), ElementsToData[i]);
 	}

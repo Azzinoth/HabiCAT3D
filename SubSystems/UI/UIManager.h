@@ -41,8 +41,6 @@ public:
 	void SetLayerSelectionMode(int NewValue);
 
 	void SetIsModelCamera(bool NewValue, glm::vec3 ModelCameraFocusPoint = glm::vec3(0.0f));
-
-	//static void(*SwapCameraImpl)(bool);
 	void SwapCamera(bool bModelCamera, glm::vec3 ModelCameraFocusPoint = glm::vec3(0.0f));
 
 	bool GetOutputSelectionToFile();

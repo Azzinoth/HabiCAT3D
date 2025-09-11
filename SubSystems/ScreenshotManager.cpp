@@ -124,6 +124,13 @@ std::string ScreenshotManager::SuitableNewFileName(std::string Base, std::string
 
 void ScreenshotManager::TakeScreenshot()
 {
+	MeshGeometryData* CurrentMeshData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	if (CurrentMeshData == nullptr)
+	{
+		APPLICATION.EndFrame();
+		return;
+	}
+
 	if (MESH_MANAGER.ActiveEntity == nullptr)
 	{
 		APPLICATION.EndFrame();
@@ -132,9 +139,6 @@ void ScreenshotManager::TakeScreenshot()
 
 	FrameBufferObject->Bind();
 	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-
-	// FXI ME!
-	//ENGINE.GetCamera()->Move(10);
 
 	if (MESH_MANAGER.ActiveEntity != nullptr)
 	{
@@ -151,7 +155,7 @@ void ScreenshotManager::TakeScreenshot()
 
 	FrameBufferObject->UnBind();
 
-	RESOURCE_MANAGER.ExportFETextureToPNG(FrameBufferObject->GetColorAttachment(), SuitableNewFileName(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->FileName, ".png").c_str());
+	RESOURCE_MANAGER.ExportFETextureToPNG(FrameBufferObject->GetColorAttachment(), SuitableNewFileName(CurrentMeshData->FileName, ".png").c_str());
 }
 
 void ScreenshotManager::RenderTargetWasResized()

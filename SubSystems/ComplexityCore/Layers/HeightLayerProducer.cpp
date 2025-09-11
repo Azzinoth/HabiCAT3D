@@ -12,16 +12,20 @@ DataLayer HeightLayerProducer::Calculate()
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return Result;
 
+	MeshGeometryData* CurrentMesh = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData;
+	if (CurrentMesh == nullptr)
+		return Result;
+
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 	auto& ComplexityMetric = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo;
 
 	double Min = DBL_MAX;
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	for (size_t i = 0; i < CurrentMesh->Triangles.size(); i++)
 	{
 		double AverageTriangleHeight = 0.0;
 		for (size_t j = 0; j < 3; j++)
 		{
-			double CurrentHeight = glm::dot(glm::vec3(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetWorldMatrix() * glm::vec4(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][j], 1.0)), COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->GetAverageNormal());
+			double CurrentHeight = glm::dot(glm::vec3(CurrentMesh->Position->GetWorldMatrix() * glm::vec4(CurrentMesh->Triangles[i][j], 1.0)), CurrentMesh->GetAverageNormal());
 			AverageTriangleHeight += CurrentHeight;
 		}
 

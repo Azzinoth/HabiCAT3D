@@ -12,12 +12,15 @@ DataLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo == nullptr)
 		return Result;
 
+	if (COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData == nullptr)
+		return Result;
+
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); i++)
+	for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size(); i++)
 	{
-		double Edge0Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][0], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][1]);
-		double Edge1Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][1], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][2]);
-		double Edge2Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][2], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[i][0]);
+		double Edge0Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][0], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][1]);
+		double Edge1Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][1], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][2]);
+		double Edge2Length = glm::distance(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][2], COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[i][0]);
 
 		if (Mode == 0)
 		{

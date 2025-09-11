@@ -123,7 +123,7 @@ void MeasurementGrid::GridFillingThread(void* InputData, void* OutputData)
 
 	for (int l = Input->FirstIndexInTriangleArray; l <= Input->LastIndexInTriangleArray; l++)
 	{
-		FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
+		FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[l]);
 
 		int XEnd = static_cast<int>(Data.size());
 
@@ -172,7 +172,7 @@ void MeasurementGrid::GridFillingThread(void* InputData, void* OutputData)
 				{
 					if (Data[i][j][k].AABB.AABBIntersect(TriangleAABB))
 					{
-						if (GEOMETRY.IsAABBIntersectTriangle(Data[i][j][k].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
+						if (GEOMETRY.IsAABBIntersectTriangle(Data[i][j][k].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[l]))
 						{
 							Output->push_back(GridUpdateTask(static_cast<int>(i), static_cast<int>(j), static_cast<int>(k), l));
 						}
@@ -190,12 +190,12 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 	if (bUsingMultiThreading)
 	{
 		int LocalThreadCount = THREAD_POOL.GetThreadCount();
-		int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() / LocalThreadCount);
+		int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size() / LocalThreadCount);
 		
 		if (LocalThreadCount > NumberOfTrianglesPerThread)
 		{
 			LocalThreadCount = 1;
-			NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
+			NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size());
 		}
 
 		std::vector<std::string> ThreadIDs;
@@ -212,7 +212,7 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 				NewThreadData->FirstIndexInTriangleArray = 0;
 
 			if (i == LocalThreadCount - 1)
-				NewThreadData->LastIndexInTriangleArray = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() - 1);
+				NewThreadData->LastIndexInTriangleArray = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size() - 1);
 			else
 				NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
 
@@ -265,9 +265,9 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 
 		DebugTotalTrianglesInCells = 0;
 
-		for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size(); l++)
+		for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size(); l++)
 		{
-			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]);
+			FEAABB TriangleAABB = FEAABB(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[l]);
 
 			int XEnd = static_cast<int>(Data.size());
 
@@ -316,7 +316,7 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 					{
 						if (Data[i][j][k].AABB.AABBIntersect(TriangleAABB))
 						{
-							if (GEOMETRY.IsAABBIntersectTriangle(Data[i][j][k].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
+							if (GEOMETRY.IsAABBIntersectTriangle(Data[i][j][k].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[l]))
 							{
 								Data[i][j][k].TrianglesInCell.push_back(l);
 								DebugTotalTrianglesInCells++;
@@ -428,9 +428,10 @@ void MeasurementGrid::FillCellsWithPointInfo()
 
 		DebugTotalPointsInCells = 0;
 
-		for (int l = 0; l < COMPLEXITY_METRIC_MANAGER.RawPointCloudData.size(); l++)
+		PointCloudGeometryData* CurrentPointCloudData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentPointCloudGeometryData;
+		for (int l = 0; l < CurrentPointCloudData->RawPointCloudData.size(); l++)
 		{
-			glm::vec3 CurrentPoint = glm::vec3(COMPLEXITY_METRIC_MANAGER.RawPointCloudData[l].X, COMPLEXITY_METRIC_MANAGER.RawPointCloudData[l].Y, COMPLEXITY_METRIC_MANAGER.RawPointCloudData[l].Z);
+			glm::vec3 CurrentPoint = glm::vec3(CurrentPointCloudData->RawPointCloudData[l].X, CurrentPointCloudData->RawPointCloudData[l].Y, CurrentPointCloudData->RawPointCloudData[l].Z);
 
 		//	for (size_t i = 0; i < Data.size(); i++)
 		//	{
@@ -545,7 +546,7 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 				if (!Data[i][j][k].bWasRenderedLastFrame)
 					continue;
 
-				FEAABB FinalAABB = Data[i][j][k].AABB.Transform(TransformMat).Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Position->GetWorldMatrix());
+				FEAABB FinalAABB = Data[i][j][k].AABB.Transform(TransformMat).Transform(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Position->GetWorldMatrix());
 				if (FinalAABB.RayIntersect(MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE), MAIN_SCENE_MANAGER.GetMouseRayDirection(), DistanceToCell))
 				{
 					if (LastDistanceToCell > DistanceToCell)
@@ -570,8 +571,8 @@ void MeasurementGrid::FillPerTriangleMeasurementData()
 	TIME.BeginTimeStamp("FillMeasurementData");
 
 	std::vector<int> PointDataCount;
-	PerTriangleMeasurementData.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
-	PointDataCount.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
+	PerTriangleMeasurementData.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size());
+	PointDataCount.resize(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles.size());
 
 	for (size_t i = 0; i < Data.size(); i++)
 	{
@@ -604,14 +605,18 @@ void MeasurementGrid::FillPerTriangleMeasurementData()
 
 void MeasurementGrid::FillPerPointMeasurementData()
 {
-	if (COMPLEXITY_METRIC_MANAGER.RawPointCloudData.empty())
+	PointCloudGeometryData* CurrentPointCloudData = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentPointCloudGeometryData;
+	if (CurrentPointCloudData == nullptr)
+		return;
+
+	if (CurrentPointCloudData->RawPointCloudData.empty())
 		return;
 
 	TIME.BeginTimeStamp("FillMeasurementData");
 
 	std::vector<int> PointDataCount;
-	PerPointMeasurementData.resize(COMPLEXITY_METRIC_MANAGER.RawPointCloudData.size());
-	PointDataCount.resize(COMPLEXITY_METRIC_MANAGER.RawPointCloudData.size());
+	PerPointMeasurementData.resize(CurrentPointCloudData->RawPointCloudData.size());
+	PointDataCount.resize(CurrentPointCloudData->RawPointCloudData.size());
 
 	for (size_t i = 0; i < Data.size(); i++)
 	{
@@ -678,7 +683,7 @@ void MeasurementGrid::AddLinesOfGrid()
 					{
 						for (size_t l = 0; l < Data[i][j][k].TrianglesInCell.size(); l++)
 						{
-							const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[Data[i][j][k].TrianglesInCell[l]];
+							const auto CurrentTriangle = COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->CurrentMeshGeometryData->Triangles[Data[i][j][k].TrianglesInCell[l]];
 
 							std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 							for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
