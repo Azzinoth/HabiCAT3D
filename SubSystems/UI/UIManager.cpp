@@ -17,7 +17,7 @@ UIManager::UIManager()
 	JITTER_MANAGER.SetOnCalculationsStartCallback(OnJitterCalculationsStart);
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
 
-	MESH_MANAGER.AddLoadCallback(UIManager::OnMeshUpdate);
+	SCENE_RESOURCES.AddOnLoadCallback(UIManager::OnNewObjectLoaded);
 	LAYER_MANAGER.AddActiveLayerChangedCallback(UIManager::OnLayerChange);
 
 	LAYER_RASTERIZATION_MANAGER.SetOnCalculationsStartCallback(OnLayerRasterizationCalculationsStart);
@@ -298,16 +298,12 @@ void UIManager::ShowCameraTransform()
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
 		if (ImGui::Button("Copy##Position"))
-		{
-			APPLICATION.SetClipboardText(CameraPositionToStr());
-		}
+			APPLICATION.SetClipboardText(CameraPositionToString());
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
 		if (ImGui::Button("Paste##Position"))
-		{
-			StrToCameraPosition(APPLICATION.GetClipboardText());
-		}
+			StringToCameraPosition(APPLICATION.GetClipboardText());
 
 		// ********* ROTATION *********
 		glm::vec3 CameraRotation = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetRotation(FE_WORLD_SPACE);
@@ -328,19 +324,15 @@ void UIManager::ShowCameraTransform()
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
 		if (ImGui::Button("Copy##Rotation"))
-		{
-			APPLICATION.SetClipboardText(CameraRotationToStr());
-		}
+			APPLICATION.SetClipboardText(CameraRotationToString());
 
 		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().SetRotation(CameraRotation, FE_WORLD_SPACE);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(40);
 		if (ImGui::Button("Paste##Rotation"))
-		{
-			StrToCameraRotation(APPLICATION.GetClipboardText());
-		}
-
+			StringToCameraRotation(APPLICATION.GetClipboardText());
+		
 		float NearPlane = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().GetNearPlane();
 		ImGui::Text("Near plane: ");
 		ImGui::SameLine();
@@ -432,28 +424,22 @@ void UIManager::Render(bool bScreenshotMode)
 				FILE_SYSTEM.ShowFileOpenDialog(FilePath, RUGOSITY_LOAD_FILE_FILTER, 1);
 
 				if (!FilePath.empty())
-				{
-					MESH_MANAGER.LoadResource(FilePath);
-				}
+					SCENE_RESOURCES.LoadResource(FilePath);
 			}
 
-			if (MESH_MANAGER.ActiveMesh == nullptr)
+			if (SCENE_RESOURCES.ActiveMesh == nullptr)
 				ImGui::BeginDisabled();
 
 			if (ImGui::MenuItem("Save..."))
-			{
-				MESH_MANAGER.SaveRUGMesh(MESH_MANAGER.ActiveMesh);
-			}
+				SCENE_RESOURCES.SaveRUGMesh(SCENE_RESOURCES.ActiveMesh);
 
-			if (MESH_MANAGER.ActiveMesh == nullptr)
+			if (SCENE_RESOURCES.ActiveMesh == nullptr)
 				ImGui::EndDisabled();
 
 			ImGui::Separator();
 
 			if (ImGui::MenuItem("Exit"))
-			{
 				APPLICATION.Close();
-			}
 
 			ImGui::EndMenu();
 		}
@@ -461,9 +447,7 @@ void UIManager::Render(bool bScreenshotMode)
 		if (ImGui::BeginMenu("Info"))
 		{
 			if (ImGui::MenuItem("About..."))
-			{
-				OpenAboutWindow();
-			}
+				ShowAboutDialog();
 
 			ImGui::EndMenu();
 		}
@@ -473,7 +457,7 @@ void UIManager::Render(bool bScreenshotMode)
 
 	RenderSettingsWindow();
 	RenderLegend();
-	RenderLayerChooseWindow();
+	RenderLayerTabs();
 	RenderHistogramWindow();
 	RenderAboutWindow();
 
@@ -511,13 +495,13 @@ void UIManager::Render(bool bScreenshotMode)
 	}
 }
 
-std::string UIManager::CameraPositionToStr()
+std::string UIManager::CameraPositionToString()
 {
 	const glm::vec3 CameraPosition = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE);
 	return "( X:" + std::to_string(CameraPosition.x) + " Y:" + std::to_string(CameraPosition.y) + " Z:" + std::to_string(CameraPosition.z) + " )";
 }
 
-void UIManager::StrToCameraPosition(std::string Text)
+void UIManager::StringToCameraPosition(std::string Text)
 {
 	size_t StartPosition = Text.find("( X:");
 	if (StartPosition == std::string::npos)
@@ -579,13 +563,13 @@ void UIManager::StrToCameraPosition(std::string Text)
 	MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().SetPosition(glm::vec3(X, Y, Z), FE_WORLD_SPACE);
 }
 
-std::string UIManager::CameraRotationToStr()
+std::string UIManager::CameraRotationToString()
 {
 	const glm::vec3 CameraRotation = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetRotation(FE_WORLD_SPACE);
 	return "( X:" + std::to_string(CameraRotation.x) + " Y:" + std::to_string(CameraRotation.y) + " Z:" + std::to_string(CameraRotation.z) + " )";
 }
 
-void UIManager::StrToCameraRotation(std::string Text)
+void UIManager::StringToCameraRotation(std::string Text)
 {
 	size_t StartPosition = Text.find("( X:");
 	if (StartPosition == std::string::npos)
@@ -647,7 +631,7 @@ void UIManager::StrToCameraRotation(std::string Text)
 	MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().SetRotation(glm::vec3(X, Y, Z), FE_WORLD_SPACE);
 }
 
-void UIManager::OnMeshUpdate()
+void UIManager::OnNewObjectLoaded(DATA_SOURCE_TYPE DataSource)
 {
 	LINE_RENDERER.ClearAll();
 	LINE_RENDERER.SyncWithGPU();
@@ -907,7 +891,6 @@ ImVec2 UIManager::GetLayerListButtonSize(std::string ButtonText)
 int UIManager::TotalWidthNeededForLayerList(int ButtonUsed)
 {
 	int Result = 0;
-
 	const int ButtonSpacing = 6;
 	const int FirstLastButtonPadding = 4;
 
@@ -927,10 +910,9 @@ int UIManager::TotalWidthNeededForLayerList(int ButtonUsed)
 	return Result;
 }
 
-void UIManager::RenderLayerChooseWindow()
+void UIManager::RenderLayerTabs()
 {
 	static int RowCount = 1;
-
 	const int ButtonSpacing = 6;
 	const int FirstLastButtonPadding = 4;
 	const int RowHeight = 26;
@@ -945,14 +927,14 @@ void UIManager::RenderLayerChooseWindow()
 	int UsableSpaceWidth = static_cast<int>(UsableSpaceEnd.x - UsableSpaceStart.x);
 
 	int TotalWidthNeeded = 0;
-
-	if (MESH_MANAGER.ActiveMesh != nullptr)
+	if (ANALYSIS_OBJECT_MANAGER.HaveAnyData())
 		TotalWidthNeeded = TotalWidthNeededForLayerList(static_cast<int>(LAYER_MANAGER.Layers.size()));
+
 	if (TotalWidthNeeded == 0)
 	{
-		if (MESH_MANAGER.ActiveMesh == nullptr)
+		if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData())
 		{
-			TotalWidthNeeded = static_cast<int>(ImGui::CalcTextSize("No Data.(Drag & Drop model)").x + 18);
+			TotalWidthNeeded = static_cast<int>(ImGui::CalcTextSize(NoDataText.c_str()).x + 18);
 		}
 		else
 		{
@@ -980,7 +962,6 @@ void UIManager::RenderLayerChooseWindow()
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f);
 	if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData())
 	{
-		std::string NoDataText = "No Data.(Drag & Drop model or point cloud)";
 		ImVec2 TextSize = ImGui::CalcTextSize(NoDataText.c_str());
 
 		ImGui::SetCursorPos(ImVec2(CurrentWindowW / 2.0f - TextSize.x / 2.0f, CurrentWindowH / 2.0f - TextSize.y / 2.0f));
@@ -1076,7 +1057,7 @@ void UIManager::RenderLayerChooseWindow()
 	ImGui::End();
 }
 
-void UIManager::SwapCamera(bool bModelCamera, glm::vec3 ModelCameraFocusPoint)
+void UIManager::SwitchCameraMode(bool bModelCamera, glm::vec3 ModelCameraFocusPoint)
 {
 	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
 	if (CameraEntity == nullptr)
@@ -1144,28 +1125,28 @@ void UIManager::SetIsModelCamera(const bool NewValue, glm::vec3 ModelCameraFocus
 {
 	bChooseCameraFocusPointMode = false;
 
-	SwapCamera(NewValue, ModelCameraFocusPoint);
+	SwitchCameraMode(NewValue, ModelCameraFocusPoint);
 
 	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
 	if (CameraEntity == nullptr)
 		return;
 
 	FECameraComponent& CameraComponent = CameraEntity->GetComponent<FECameraComponent>();
-	CameraComponent.SetFarPlane(MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 5.0f);
+	CameraComponent.SetFarPlane(SCENE_RESOURCES.ActiveMesh->GetAABB().GetLongestAxisLength() * 5.0f);
 
 	if (NewValue)
 	{
 		FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
-		NativeScriptComponent.SetVariableValue("DistanceToModel", MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f);
+		NativeScriptComponent.SetVariableValue("DistanceToModel", SCENE_RESOURCES.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f);
 	}
 	else
 	{
 		FETransformComponent& TransformComponent = CameraEntity->GetComponent<FETransformComponent>();
-		TransformComponent.SetPosition(glm::vec3(0.0f, 0.0f, MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f));
+		TransformComponent.SetPosition(glm::vec3(0.0f, 0.0f, SCENE_RESOURCES.ActiveMesh->GetAABB().GetLongestAxisLength() * 1.5f));
 		TransformComponent.SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 
 		FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
-		NativeScriptComponent.SetVariableValue("MovementSpeed", MESH_MANAGER.ActiveMesh->GetAABB().GetLongestAxisLength() / 5.0f);
+		NativeScriptComponent.SetVariableValue("MovementSpeed", SCENE_RESOURCES.ActiveMesh->GetAABB().GetLongestAxisLength() / 5.0f);
 	}
 
 	bModelCamera = NewValue;
@@ -1214,7 +1195,7 @@ void UIManager::RenderHistogramWindow()
 			HistogramSelectRegionMin.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMin.GetRangePosition(), 0.0f));
 			HistogramSelectRegionMax.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMax.GetRangePosition(), 0.0f));
 
-			if (MESH_MANAGER.ActiveMesh != nullptr &&
+			if (SCENE_RESOURCES.ActiveMesh != nullptr &&
 				bHistogramPixelBins &&
 				LAYER_MANAGER.GetActiveLayerIndex() != -1)
 			{
@@ -1237,7 +1218,7 @@ void UIManager::RenderHistogramWindow()
 		ImGui::SetCursorPos(ImVec2(12.0f, 30.0f));
 		if (ImGui::Checkbox("Select region mode", &bHistogramSelectRegionMode))
 		{
-			if (MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
+			if (SCENE_RESOURCES.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
 			{
 				Histogram.SetPosition(ImVec2(Histogram.GetPosition().x, bHistogramSelectRegionMode ? 80.0f : 60.0f));
 				Histogram.SetSize(ImVec2(HistogramWindow->SizeFull.x - 40, HistogramWindow->SizeFull.y - Histogram.GetPosition().y - 50.0f));
@@ -1269,7 +1250,7 @@ void UIManager::RenderHistogramWindow()
 		if (MeshAndCurrentLayerIsValid() && !bLayerWithOneValue)
 			Histogram.Render();
 
-		if (bHistogramSelectRegionMode && MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
+		if (bHistogramSelectRegionMode && SCENE_RESOURCES.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
 		{
 			HistogramSelectRegionMin.Render();
 			HistogramSelectRegionMax.Render();
@@ -1290,8 +1271,8 @@ void UIManager::RenderHistogramWindow()
 			float MinValueSelected = LAYER_MANAGER.GetActiveLayer()->GetMin() + (LAYER_MANAGER.GetActiveLayer()->GetMax() - LAYER_MANAGER.GetActiveLayer()->GetMin()) * HistogramSelectRegionMin.GetRangePosition();
 			float MaxValueSelected = LAYER_MANAGER.GetActiveLayer()->GetMin() + (LAYER_MANAGER.GetActiveLayer()->GetMax() - LAYER_MANAGER.GetActiveLayer()->GetMin()) * HistogramSelectRegionMax.GetRangePosition();
 
-			glm::vec2 MinValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
-			glm::vec2 MaxValueDistribution = LayerValuesAreaDistribution(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
+			glm::vec2 MinValueDistribution = CalculateAreaDistributionAtValue(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
+			glm::vec2 MaxValueDistribution = CalculateAreaDistributionAtValue(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
 			MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
 			float PercentageOfAreaSelected = static_cast<float>((MaxValueDistribution.x / CurrentMeshData->GetTotalArea() * 100.0) - (MinValueDistribution.x / CurrentMeshData->GetTotalArea() * 100.0));
 
@@ -1369,7 +1350,7 @@ void UIManager::RenderHistogramWindow()
 
 				if (Histogram.GetCurrentBinCount() != TempInt)
 				{
-					if (MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)	
+					if (SCENE_RESOURCES.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)	
 						UpdateHistogramData(&LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()], TempInt);
 				}
 			}
@@ -1409,12 +1390,12 @@ void UIManager::ApplyStandardWindowsSizeAndPosition()
 	Window = ImGui::FindWindowByName("Settings");
 	if (Window != nullptr)
 	{
-		Window->SizeFull.x = APPLICATION.GetMainWindow()->GetWidth() * 0.30f;
+		Window->SizeFull.x = APPLICATION.GetMainWindow()->GetWidth() * 0.3f;
 		Window->SizeFull.y = APPLICATION.GetMainWindow()->GetHeight() * 0.7f;
 	}
 }
 
-void UIManager::OpenAboutWindow()
+void UIManager::ShowAboutDialog()
 {
 	bShouldOpenAboutWindow = true;
 }
@@ -1438,7 +1419,7 @@ void UIManager::RenderAboutWindow()
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
-		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 05\\09\\2024";
+		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 09\\12\\2025";
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
@@ -1462,16 +1443,16 @@ void UIManager::RenderAboutWindow()
 		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
 
-		ImGui::SetCursorPosX(PopupW / 2.0f - 210 / 2.0f);
+		ImGui::SetCursorPosX(PopupW / 2.0f - 210.0f / 2.0f);
 		ImGui::SetNextItemWidth(210);
-		if (ImGui::Button("Close", ImVec2(210, 20)))
+		if (ImGui::Button("Close", ImVec2(210.0f, 20.0f)))
 			ImGui::CloseCurrentPopup();
 
 		ImGui::EndPopup();
 	}
 }
 
-glm::dvec2 UIManager::LayerValuesAreaDistribution(DataLayer* Layer, float Value)
+glm::dvec2 UIManager::CalculateAreaDistributionAtValue(DataLayer* Layer, float Value)
 {
 	if (Layer == nullptr || Layer->ElementsToData.empty() || !ANALYSIS_OBJECT_MANAGER.HaveMeshData() || ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->TrianglesArea.empty())
 		return glm::dvec2(0.0);
@@ -1479,7 +1460,7 @@ glm::dvec2 UIManager::LayerValuesAreaDistribution(DataLayer* Layer, float Value)
 	float FirstBin = 0.0;
 	float SecondBin = 0.0;
 
-	FEMesh* Mesh = MESH_MANAGER.ActiveMesh;
+	FEMesh* Mesh = SCENE_RESOURCES.ActiveMesh;
 	if (Mesh == nullptr)
 		return glm::dvec2(0.0);
 
@@ -1504,7 +1485,7 @@ glm::dvec2 UIManager::LayerValuesAreaDistribution(DataLayer* Layer, float Value)
 
 void UIManager::OnLayerChange()
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (SCENE_RESOURCES.ActiveMesh == nullptr)
 		return;
 
 	LAYER_RASTERIZATION_MANAGER.ClearAllData();
@@ -1525,17 +1506,17 @@ void UIManager::OnLayerChange()
 
 		DataLayer* CurrentLayer = &LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()];
 
-		MESH_MANAGER.SetHeatMapType(5);
+		SCENE_RESOURCES.SetHeatMapType(5);
 		UI.HeatMapColorRange.SetColorRangeFunction(GetTurboColorMap);
 		UI.HeatMapColorRange.bRenderSlider = true;
 	
 		float MiddleOfRange = CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) / 2.0f;
 		UI.HeatMapColorRange.SetSliderValue(MiddleOfRange / CurrentLayer->GetMax());
 
-		if (CurrentLayer->GetType() == COMPARE)
+		if (CurrentLayer->GetType() == LAYER_TYPE::COMPARE)
 		{
 			UI.HeatMapColorRange.SetColorRangeFunction(CompareColormapValue);
-			MESH_MANAGER.SetHeatMapType(6);
+			SCENE_RESOURCES.SetHeatMapType(6);
 
 			UI.HeatMapColorRange.bRenderSlider = false;
 			UI.HeatMapColorRange.SetSliderValue(1.0f);
@@ -1554,7 +1535,7 @@ void UIManager::OnLayerChange()
 	}
 	else
 	{
-		MESH_MANAGER.SetHeatMapType(-1);
+		SCENE_RESOURCES.SetHeatMapType(-1);
 	}
 
 	if (UI.GetDebugGrid() != nullptr)
@@ -1659,13 +1640,13 @@ void UIManager::InitDebugGrid(size_t JitterIndex)
 void UIManager::RenderLayerSettingsTab()
 {
 	std::string NoInfoText;
-	if (MESH_MANAGER.ActiveMesh == nullptr)
+	if (SCENE_RESOURCES.ActiveMesh == nullptr)
 		NoInfoText = "No model loaded.";
 
-	if (MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.Layers.empty())
+	if (SCENE_RESOURCES.ActiveMesh != nullptr && LAYER_MANAGER.Layers.empty())
 		NoInfoText = "Model have no layers.";
 
-	if (MESH_MANAGER.ActiveMesh != nullptr && !LAYER_MANAGER.Layers.empty() && LAYER_MANAGER.GetActiveLayerIndex() == -1)
+	if (SCENE_RESOURCES.ActiveMesh != nullptr && !LAYER_MANAGER.Layers.empty() && LAYER_MANAGER.GetActiveLayerIndex() == -1)
 		NoInfoText = "Layer is not selected.";
 
 	if (!NoInfoText.empty())
@@ -1682,7 +1663,7 @@ void UIManager::RenderLayerSettingsTab()
 
 		ImGui::Text("Triangle count: ");
 		ImGui::SameLine();
-		ImGui::Text(std::to_string(MESH_MANAGER.ActiveMesh->GetVertexCount() / 3).c_str());
+		ImGui::Text(std::to_string(SCENE_RESOURCES.ActiveMesh->GetVertexCount() / 3).c_str());
 
 		ImGui::Text((std::string("ID: ") + Layer->GetID()).c_str());
 		static char CurrentLayerCaption[1024];
@@ -1767,7 +1748,7 @@ void UIManager::RenderLayerSettingsTab()
 		{
 			float NewValue = float(atof(CurrentDistributionEdit));
 			LastDistributionValue = NewValue;
-			CurrentDistribution = LayerValuesAreaDistribution(&LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewValue);
+			CurrentDistribution = CalculateAreaDistributionAtValue(&LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewValue);
 		}
 
 		if (CurrentDistribution != glm::vec2())
@@ -1799,9 +1780,9 @@ void UIManager::RenderGeneralSettingsTab()
 
 	if (bModelCamera && bChooseCameraFocusPointMode && ImGui::IsMouseReleased(0))
 	{
-		glm::dvec3 IntersectionPoint = MESH_MANAGER.IntersectTriangle(MAIN_SCENE_MANAGER.GetMouseRayDirection());
+		glm::dvec3 IntersectionPoint = SCENE_RESOURCES.IntersectTriangle(MAIN_SCENE_MANAGER.GetMouseRayDirection());
 
-		IntersectionPoint = glm::dvec3(MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(IntersectionPoint, 1.0));
+		IntersectionPoint = glm::dvec3(SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(IntersectionPoint, 1.0));
 		if (IntersectionPoint != glm::dvec3(0.0))
 		{
 			SetIsModelCamera(true, IntersectionPoint);
@@ -2262,7 +2243,7 @@ bool UIManager::ExportOBJ(std::string FilePath, int LayerIndex)
 	// If LayerIndex is -1, export just model without any layers.
 	if (LayerIndex < 0)
 	{
-		return RESOURCE_MANAGER.ExportFEMeshToOBJ(MESH_MANAGER.ActiveMesh, FilePath.c_str());
+		return RESOURCE_MANAGER.ExportFEMeshToOBJ(SCENE_RESOURCES.ActiveMesh, FilePath.c_str());
 	}
 	else // Export model with layer.
 	{
@@ -2347,7 +2328,7 @@ void UIManager::RenderSettingsWindow()
 				ImGui::EndTabItem();
 			}
 
-			if (MESH_MANAGER.ActiveMesh == nullptr)
+			if (SCENE_RESOURCES.ActiveMesh == nullptr)
 				ImGui::BeginDisabled();
 
 			if (ImGui::BeginTabItem("General"))
@@ -2362,7 +2343,7 @@ void UIManager::RenderSettingsWindow()
 				ImGui::EndTabItem();
 			}
 
-			if (MESH_MANAGER.ActiveMesh == nullptr)
+			if (SCENE_RESOURCES.ActiveMesh == nullptr)
 				ImGui::EndDisabled();
 
 			ImGui::EndTabBar();
@@ -2398,11 +2379,11 @@ void UIManager::UpdateRenderingMode(MeasurementGrid* Grid, int NewRenderingMode)
 	if (NewRenderingMode == 0)
 		return;
 
-	if (LAYER_TYPE::UNKNOWN)
-		return;
-
 	DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
 	if (CurrentLayer == nullptr)
+		return;
+
+	if (CurrentLayer->GetType() == LAYER_TYPE::UNKNOWN)
 		return;
 
 	switch (CurrentLayer->GetType())
@@ -2452,7 +2433,7 @@ bool UIManager::ShouldUseTransparentBackground()
 
 bool UIManager::MeshAndCurrentLayerIsValid()
 {
-	return MESH_MANAGER.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1 && LAYER_MANAGER.Layers.size() > LAYER_MANAGER.GetActiveLayerIndex();
+	return SCENE_RESOURCES.ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1 && LAYER_MANAGER.Layers.size() > LAYER_MANAGER.GetActiveLayerIndex();
 }
 
 void UIManager::UpdateProgressModalPopupCurrentValue()

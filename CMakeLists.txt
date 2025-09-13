@@ -51,8 +51,8 @@ file(GLOB SubSystems_SRC
 	"SubSystems/CGALDeclarations.h"
 	"SubSystems/FELinesRenderer.cpp"
 	"SubSystems/FELinesRenderer.h"
-	"SubSystems/MeshManager.cpp"
-	"SubSystems/MeshManager.h"
+	"SubSystems/SceneResources.cpp"
+	"SubSystems/SceneResources.h"
 	"SubSystems/SphereVectors.h"
 	"SubSystems/LayerRasterizationManager.cpp"
 	"SubSystems/LayerRasterizationManager.h"
@@ -77,6 +77,8 @@ file(GLOB SubSystems_Layers_Producers_SRC
 	"SubSystems/ComplexityCore/Layers/Producers/FractalDimensionLayerProducer.h"
 	"SubSystems/ComplexityCore/Layers/Producers/TriangleCountLayerProducer.cpp"
 	"SubSystems/ComplexityCore/Layers/Producers/TriangleCountLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/Producers/PointDensityLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/Producers/PointDensityLayerProducer.h"
 )
 
 file(GLOB SubSystems_Layers_SRC

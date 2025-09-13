@@ -5,11 +5,11 @@ JitterManager::JitterManager()
 {
 	if (APPLICATION.HasConsoleWindow())
 	{
-		ANALYSIS_OBJECT_MANAGER.AddLoadCallback(JitterManager::OnMeshUpdate);
+		ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(JitterManager::OnNewObjectLoaded);
 	}
 	else
 	{
-		MESH_MANAGER.AddLoadCallback(JitterManager::OnMeshUpdate);
+		SCENE_RESOURCES.AddOnLoadCallback(JitterManager::OnNewObjectLoaded);
 	}
 
 	JitterVectorSetNames.push_back("1");
@@ -23,18 +23,28 @@ JitterManager::JitterManager()
 
 JitterManager::~JitterManager() {}
 
-void JitterManager::OnMeshUpdate()
+void JitterManager::OnNewObjectLoaded(DATA_SOURCE_TYPE DataSource)
 {
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
-	FEAABB FinalAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB().Transform(TransformMatrix);
+	FEAABB AABBToUse = DataSource == DATA_SOURCE_TYPE::MESH ? ANALYSIS_OBJECT_MANAGER.GetMeshAABB() : ANALYSIS_OBJECT_MANAGER.GetPointCloudAABB();
 
-	const float MaxMeshAABBSize = FinalAABB.GetLongestAxisLength();
+	FEAABB FinalAABB = AABBToUse.Transform(TransformMatrix);
+	const float MaxAABBSize = FinalAABB.GetLongestAxisLength();
 
-	JITTER_MANAGER.LowestPossibleResolution = MaxMeshAABBSize / 120;
-	JITTER_MANAGER.HighestPossibleResolution = MaxMeshAABBSize / 9;
+	JITTER_MANAGER.LowestPossibleResolution = MaxAABBSize / 120;
+	JITTER_MANAGER.HighestPossibleResolution = MaxAABBSize / 9;
 
 	JITTER_MANAGER.ResolutionInM = JITTER_MANAGER.LowestPossibleResolution;
+
+	/*if (DataSource == DATA_SOURCE_TYPE::MESH)
+	{
+
+	}
+	else if (DataSource == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+
+	}*/
 
 	delete JITTER_MANAGER.LastUsedGrid;
 	JITTER_MANAGER.LastUsedGrid = nullptr;

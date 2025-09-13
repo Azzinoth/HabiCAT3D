@@ -1393,7 +1393,7 @@ void LayerRasterizationManager::DebugRenderGrid()
 			{
 				if (!Grid[i][j].TrianglesInCell.empty())
 				{
-					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
+					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
 				}
 			}
 			else if (bDebugShowOnlySelectedCells)
@@ -1401,7 +1401,7 @@ void LayerRasterizationManager::DebugRenderGrid()
 				if (DebugSelectedCell.x == i && DebugSelectedCell.y == j)
 				{
 					Color = glm::vec3(1.0f, 1.0f, 0.0f);
-					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
+					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
 
 					for (size_t k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
 					{
@@ -1410,7 +1410,7 @@ void LayerRasterizationManager::DebugRenderGrid()
 						std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 						for (size_t l = 0; l < TranformedTrianglePoints.size(); l++)
 						{
-							TranformedTrianglePoints[l] = MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[l], 1.0f);
+							TranformedTrianglePoints[l] = SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[l], 1.0f);
 						}
 
 						LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 0.0f, 1.0f)));
@@ -1421,7 +1421,7 @@ void LayerRasterizationManager::DebugRenderGrid()
 			}
 			else
 			{
-				LINE_RENDERER.RenderAABB(Cell.AABB.Transform(MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
+				LINE_RENDERER.RenderAABB(Cell.AABB.Transform(SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
 			}
 		}
 	}
@@ -1505,7 +1505,7 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 
 		for (size_t l = 0; l < IntersectionPoints.size(); l++)
 		{
-			glm::dvec3 TransformedPoint = MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(IntersectionPoints[l], 1.0f);
+			glm::dvec3 TransformedPoint = SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(IntersectionPoints[l], 1.0f);
 			LINE_RENDERER.AddLineToBuffer(FECustomLine(TransformedPoint, TransformedPoint + glm::dvec3(0.0, 1.0, 0.0), glm::vec3(1.0f, 0.0f, 0.0f)));
 		}
 

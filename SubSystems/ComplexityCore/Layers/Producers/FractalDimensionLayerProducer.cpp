@@ -86,7 +86,7 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	if (!FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult)
 		return;
 
-	NewLayer.SetType(FRACTAL_DIMENSION);
+	NewLayer.SetType(LAYER_TYPE::FRACTAL_DIMENSION);
 
 	FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult = false;
 

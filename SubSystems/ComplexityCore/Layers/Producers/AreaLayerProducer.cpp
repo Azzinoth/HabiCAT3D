@@ -7,7 +7,7 @@ AreaLayerProducer::~AreaLayerProducer() {}
 DataLayer AreaLayerProducer::Calculate()
 {
 	DataLayer Result(DATA_SOURCE_TYPE::MESH);
-	Result.SetType(TRIANGLE_AREA);
+	Result.SetType(LAYER_TYPE::TRIANGLE_AREA);
 
 	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return Result;

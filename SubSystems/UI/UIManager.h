@@ -26,13 +26,13 @@ public:
 	bool IsInDeveloperMode();
 	void SetDeveloperMode(bool NewValue);
 
-	std::string CameraPositionToStr();
-	void StrToCameraPosition(std::string Text);
+	std::string CameraPositionToString();
+	void StringToCameraPosition(std::string Text);
 
-	std::string CameraRotationToStr();
-	void StrToCameraRotation(std::string Text);
+	std::string CameraRotationToString();
+	void StringToCameraRotation(std::string Text);
 
-	static void OnMeshUpdate();
+	static void OnNewObjectLoaded(DATA_SOURCE_TYPE DataSource);
 
 	float GetRadiusOfAreaToMeasure();
 	void SetRadiusOfAreaToMeasure(float NewValue);
@@ -41,14 +41,14 @@ public:
 	void SetLayerSelectionMode(int NewValue);
 
 	void SetIsModelCamera(bool NewValue, glm::vec3 ModelCameraFocusPoint = glm::vec3(0.0f));
-	void SwapCamera(bool bModelCamera, glm::vec3 ModelCameraFocusPoint = glm::vec3(0.0f));
+	void SwitchCameraMode(bool bModelCamera, glm::vec3 ModelCameraFocusPoint = glm::vec3(0.0f));
 
 	bool GetOutputSelectionToFile();
 	void SetOutputSelectionToFile(bool NewValue);
 
 	void ApplyStandardWindowsSizeAndPosition();
 
-	glm::dvec2 LayerValuesAreaDistribution(DataLayer* Layer, float Value);
+	glm::dvec2 CalculateAreaDistributionAtValue(DataLayer* Layer, float Value);
 
 	float GetAmbientLightFactor();
 	void SetAmbientLightFactor(float NewValue);
@@ -68,7 +68,7 @@ public:
 private:
 	SINGLETON_PRIVATE_PART(UIManager)
 
-		bool bPreviousFrameWindowWasNull = true;
+	bool bPreviousFrameWindowWasNull = true;
 
 	bool bWireframeMode = false;
 	float TimeTookToJitter = 0.0f;
@@ -77,6 +77,8 @@ private:
 	bool bModelCamera = true;
 	//float ModelCameraMouseWheelSensitivity = 0.05f;
 	bool bChooseCameraFocusPointMode = false;
+
+	std::string NoDataText = "No Data.(Drag & Drop model or point cloud)";
 
 	bool bShouldOpenProgressPopup = false;
 	bool bShouldCloseProgressPopup = true;
@@ -87,7 +89,7 @@ private:
 	FEColorRangeAdjuster HeatMapColorRange;
 
 	void RenderLegend(bool bScreenshotMode = false);
-	void RenderLayerChooseWindow();
+	void RenderLayerTabs();
 
 	FEWeightedHistogram Histogram;
 	FEArrowScroller HistogramSelectRegionMin;
@@ -104,7 +106,7 @@ private:
 	bool bOutputSelectionToFile = false;
 
 	bool bShouldOpenAboutWindow = false;
-	void OpenAboutWindow();
+	void ShowAboutDialog();
 	void RenderAboutWindow();
 
 	static void OnLayerChange();

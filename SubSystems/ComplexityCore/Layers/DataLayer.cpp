@@ -45,6 +45,27 @@ DataLayer::DataLayer(DATA_SOURCE_TYPE SourceType, const std::vector<float> Eleme
 
 DataLayer::~DataLayer() {};
 
+DATA_SOURCE_TYPE DataLayer::GetDataSourceTypeForLayerType(LAYER_TYPE Type)
+{
+	switch (Type)
+	{
+	case LAYER_TYPE::HEIGHT:
+	case LAYER_TYPE::TRIANGLE_EDGE:
+	case LAYER_TYPE::TRIANGLE_AREA:
+	case LAYER_TYPE::COMPARE:
+	case LAYER_TYPE::STANDARD_DEVIATION:
+	case LAYER_TYPE::RUGOSITY:
+	case LAYER_TYPE::VECTOR_DISPERSION:
+	case LAYER_TYPE::FRACTAL_DIMENSION:
+	case LAYER_TYPE::TRIANGLE_DENSITY:
+		return DATA_SOURCE_TYPE::MESH;
+	case LAYER_TYPE::POINT_DENSITY:
+		return DATA_SOURCE_TYPE::POINT_CLOUD;
+	default:
+		return DATA_SOURCE_TYPE::UNKNOWN;
+	}
+}
+
 void DataLayer::ComputeStatistics()
 {
 	Min = FLT_MAX;
@@ -134,13 +155,13 @@ void DataLayer::FillRawData()
 				result.push_back(IndexVector[FaceIndex * 3 + 2]);
 
 				return result;
-				};
+			};
 
 			auto SetRugosityOfVertex = [&](const int Index, const float Value) {
 				RawData[Index * 3] = Value;
 				RawData[Index * 3 + 1] = Value;
 				RawData[Index * 3 + 2] = Value;
-				};
+			};
 
 			auto SetRugosityOfFace = [&](const int FaceIndex, const float Value) {
 				const std::vector<int> FaceVertex = GetVertexOfFace(FaceIndex);
@@ -149,16 +170,13 @@ void DataLayer::FillRawData()
 				{
 					SetRugosityOfVertex(FaceVertex[i], Value);
 				}
-				};
+			};
 
 			for (size_t i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size(); i++)
-			{
 				SetRugosityOfFace(static_cast<int>(i), ElementsToData[i]);
-			}
 
 			break;
 		}
-
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
 			if (!ANALYSIS_OBJECT_MANAGER.HavePointCloudData())

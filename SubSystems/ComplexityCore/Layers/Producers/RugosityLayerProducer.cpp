@@ -591,7 +591,7 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	if (!RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult)
 		return;
 
-	NewLayer.SetType(RUGOSITY);
+	NewLayer.SetType(LAYER_TYPE::RUGOSITY);
 	RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = false;
 	NewLayer.DebugInfo->Type = "RugosityDataLayerDebugInfo";
 

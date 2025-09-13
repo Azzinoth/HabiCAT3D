@@ -7,7 +7,7 @@ HeightLayerProducer::~HeightLayerProducer() {}
 DataLayer HeightLayerProducer::Calculate()
 {
 	DataLayer Result(DATA_SOURCE_TYPE::MESH);
-	Result.SetType(HEIGHT);
+	Result.SetType(LAYER_TYPE::HEIGHT);
 
 	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return Result;

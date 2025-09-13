@@ -76,7 +76,7 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	if (!VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult)
 		return;
 
-	NewLayer.SetType(VECTOR_DISPERSION);
+	NewLayer.SetType(LAYER_TYPE::VECTOR_DISPERSION);
 
 	VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult = false;
 	LAYER_MANAGER.AddLayer(NewLayer);
@@ -118,7 +118,7 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
-			TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+			TranformedTrianglePoints[j] = SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
 		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));

@@ -1,5 +1,5 @@
 #pragma once
-#include "../EngineInclude.h"
+#include "ComplexityCore/AnalysisObjectManager.h"
 using namespace FocalEngine;
 
 static const char* const CustomMesh_VS = R"(
@@ -353,11 +353,11 @@ void main(void)
 )";
 
 class FECGALWrapper;
-class MeshManager
+class SceneResources
 {
 	friend FECGALWrapper;
 public:
-	SINGLETON_PUBLIC_PART(MeshManager)
+	SINGLETON_PUBLIC_PART(SceneResources)
 
 	FEShader* CustomMeshShader = nullptr;
 	FEMaterial* CustomMaterial = nullptr;
@@ -369,7 +369,7 @@ public:
 	FEPointCloud* CurrentPointCloud = nullptr;
 	FEEntity* CurrentPointCloudEntity = nullptr;
 
-	void AddLoadCallback(std::function<void()> Func);
+	void AddOnLoadCallback(std::function<void(DATA_SOURCE_TYPE)> Callback);
 	void SaveRUGMesh(FEMesh* Mesh);
 
 	float GetUnselectedAreaSaturationFactor();
@@ -394,12 +394,12 @@ public:
 
 	void ClearBuffers();
 private:
-	SINGLETON_PRIVATE_PART(MeshManager)
+	SINGLETON_PRIVATE_PART(SceneResources)
 
 	FEMesh* ImportOBJ(const char* FileName, bool bForceOneMesh);
 	FEMesh* LoadRUGMesh(std::string FileName);
 
-	std::vector<std::function<void()>> ClientLoadCallbacks;
+	std::vector<std::function<void(DATA_SOURCE_TYPE)>> ClientOnLoadCallbacks;
 
 	int HeatMapType = 5;
 	GLuint FirstLayerBufferID = 0;
@@ -415,4 +415,4 @@ public:
 	void UpdateUniforms();
 };
 
-#define MESH_MANAGER MeshManager::GetInstance()
+#define SCENE_RESOURCES SceneResources::GetInstance()

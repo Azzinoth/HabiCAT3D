@@ -94,9 +94,9 @@ void AnalysisObjectManager::InitializeMeshData(std::vector<double>& Vertices, st
 	CurrentMeshGeometryData->AABB = FEAABB(Vertices.data(), static_cast<int>(Vertices.size()));
 }
 
-void AnalysisObjectManager::AddLoadCallback(std::function<void()> Func)
+void AnalysisObjectManager::AddOnLoadCallback(std::function<void(DATA_SOURCE_TYPE)> Callback)
 {
-	ClientLoadCallbacks.push_back(Func);
+	ClientOnLoadCallbacks.push_back(Callback);
 }
 
 void AnalysisObjectManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
@@ -114,12 +114,12 @@ void AnalysisObjectManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 	if (FirstObject != nullptr)
 		InitializeMeshData(FirstObject->DVerC, FirstObject->FColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
 
-	for (size_t i = 0; i < ClientLoadCallbacks.size(); i++)
+	for (size_t i = 0; i < ClientOnLoadCallbacks.size(); i++)
 	{
-		if (ClientLoadCallbacks[i] == nullptr)
+		if (ClientOnLoadCallbacks[i] == nullptr)
 			continue;
 
-		ClientLoadCallbacks[i]();
+		ClientOnLoadCallbacks[i](DATA_SOURCE_TYPE::MESH);
 	}
 }
 
@@ -222,6 +222,7 @@ void AnalysisObjectManager::InitializePointCloudData(FEPointCloud* PointCloud)
 
 	std::vector<FEPointCloudVertex> TemporaryRawData = PointCloud->GetRawData();
 	CurrentPointCloudGeometryData->RawPointCloudData.resize(TemporaryRawData.size());
+	CurrentPointCloudGeometryData->OriginalColors.resize(TemporaryRawData.size());
 	for (size_t i = 0; i < TemporaryRawData.size(); i++)
 	{
 		CurrentPointCloudGeometryData->RawPointCloudData[i].X = static_cast<double>(TemporaryRawData[i].X);
@@ -232,6 +233,8 @@ void AnalysisObjectManager::InitializePointCloudData(FEPointCloud* PointCloud)
 		CurrentPointCloudGeometryData->RawPointCloudData[i].G = TemporaryRawData[i].G;
 		CurrentPointCloudGeometryData->RawPointCloudData[i].B = TemporaryRawData[i].B;
 		CurrentPointCloudGeometryData->RawPointCloudData[i].A = TemporaryRawData[i].A;
+
+		CurrentPointCloudGeometryData->OriginalColors[i] = { TemporaryRawData[i].R, TemporaryRawData[i].G, TemporaryRawData[i].B, TemporaryRawData[i].A };
 	}
 
 	CurrentPointCloudGeometryData->PointCloudAABB = PointCloud->GetAABB();

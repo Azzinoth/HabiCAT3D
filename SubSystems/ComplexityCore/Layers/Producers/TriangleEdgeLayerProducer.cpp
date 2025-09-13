@@ -7,7 +7,7 @@ TriangleEdgeLayerProducer::~TriangleEdgeLayerProducer() {}
 DataLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 {
 	DataLayer Result(DATA_SOURCE_TYPE::MESH);
-	Result.SetType(TRIANGLE_EDGE);
+	Result.SetType(LAYER_TYPE::TRIANGLE_EDGE);
 
 	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
 		return Result;

@@ -14,6 +14,13 @@ const COMDLG_FILTERSPEC RUGOSITY_SAVE_FILE_FILTER[] =
 	{ L"Rugosity file (*.rug)", L"*.rug" }
 };
 
+enum class DATA_SOURCE_TYPE
+{
+	UNKNOWN = -1,
+	MESH = 0,
+	POINT_CLOUD = 1
+};
+
 class MeshGeometryData
 {
 	friend class AnalysisObjectManager;
@@ -49,6 +56,8 @@ public:
 struct PointCloudGeometryData
 {
 	std::vector<FEPointCloudVertexDouble> RawPointCloudData;
+	std::vector<std::vector<unsigned char>> OriginalColors;
+
 	FEAABB PointCloudAABB;
 };
 
@@ -64,7 +73,7 @@ public:
 	void ImportOBJ(const char* FileName, bool bForceOneMesh);
 	FEAABB GetMeshAABB();
 
-	void AddLoadCallback(std::function<void()> Func);
+	void AddOnLoadCallback(std::function<void(DATA_SOURCE_TYPE)> Callback);
 	void SaveToRUGFile(std::string FilePath);
 	void SaveToRUGFileAskForFilePath();
 
@@ -77,7 +86,7 @@ public:
 private:
 	SINGLETON_PRIVATE_PART(AnalysisObjectManager)
 
-	std::vector<std::function<void()>> ClientLoadCallbacks;
+	std::vector<std::function<void(DATA_SOURCE_TYPE)>> ClientOnLoadCallbacks;
 };
 
 #define ANALYSIS_OBJECT_MANAGER AnalysisObjectManager::GetInstance()

@@ -8,6 +8,8 @@
 #include "../ComplexityCore/Layers/Producers/FractalDimensionLayerProducer.h"
 #include "../ComplexityCore/Layers/Producers/TriangleCountLayerProducer.h"
 
+#include "../ComplexityCore/Layers/Producers/PointDensityLayerProducer.h"
+
 class NewLayerWindow
 {
 	SINGLETON_PRIVATE_PART(NewLayerWindow)
@@ -17,10 +19,15 @@ class NewLayerWindow
 	bool bSmootherResult = false;
 	bool bRunOnWholeModel = false;
 
-	int Mode = 0;
-	int FeaturesSizeSelectionMode = 0;
-	std::vector<std::string> LayerTypesNames;
+	std::vector<DATA_SOURCE_TYPE> AvailableDataSources;
+	std::vector<LAYER_TYPE> AvailableLayerTypes;
+	std::unordered_map<LAYER_TYPE, std::string> LayerTypeToName;
+	void CheckAvailableDataSources();
 
+	DATA_SOURCE_TYPE CurrentDataSource = DATA_SOURCE_TYPE::MESH;
+	LAYER_TYPE SelectedLayerType = LAYER_TYPE::UNKNOWN;
+	
+	int FeaturesSizeSelectionMode = 0;
 	int FirstChoosenLayerIndex = -1;
 	int SecondChoosenLayerIndex = -1;
 
@@ -29,8 +36,7 @@ class NewLayerWindow
 
 	void RenderCellSizeSettings();
 
-	void RenderHeightLayerSettings();
-	void RenderAreaLayerSettings();
+	void RenderNoSettingsAvailable();
 	void RenderTrianglesEdgesLayerSettings();
 	std::vector<std::string> TrianglesEdgesModeNames;
 	int TrianglesEdgesMode = 0;
@@ -42,16 +48,16 @@ class NewLayerWindow
 
 	void RenderCompareLayerSettings();
 
+	void RenderPointDensitySettings();
+
 	void RenderSettings();
-	void OnModeChanged(int OldMode);
+	void OnLayerTypeChanged(LAYER_TYPE OldLayerType);
 public:
 	SINGLETON_PUBLIC_PART(NewLayerWindow)
 
 	void Show();
 	void Close();
 	void Render();
-
-	std::vector<std::string> GetNewLayerName();
 };
 
 #define NEW_LAYER_WINDOW NewLayerWindow::GetInstance()

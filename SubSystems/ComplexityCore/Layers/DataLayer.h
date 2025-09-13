@@ -38,7 +38,7 @@ struct DataLayerDebugInfo
 	void AddEntry(std::string Name, std::string Data);
 };
 
-enum LAYER_TYPE
+enum class LAYER_TYPE
 {
 	UNKNOWN = 0,
 	HEIGHT = 1,
@@ -53,13 +53,6 @@ enum LAYER_TYPE
 
 	// Point cloud specific types
 	POINT_DENSITY = 10
-};
-
-enum class DATA_SOURCE_TYPE
-{
-	UNKNOWN = -1,
-	MESH = 0,
-	POINT_CLOUD = 1
 };
 
 class DataLayer
@@ -86,6 +79,8 @@ public:
 	DataLayer(DATA_SOURCE_TYPE SourceType);
 	DataLayer(DATA_SOURCE_TYPE SourceType, std::vector<float> ElementsToData);
 	~DataLayer();
+
+	static DATA_SOURCE_TYPE GetDataSourceTypeForLayerType(LAYER_TYPE Type);
 
 	void FillRawData();
 

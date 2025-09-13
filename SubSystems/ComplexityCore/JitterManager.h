@@ -414,7 +414,7 @@ class JitterManager
 public:
 	SINGLETON_PUBLIC_PART(JitterManager)
 
-	static void OnMeshUpdate();
+	static void OnNewObjectLoaded(DATA_SOURCE_TYPE DataSource);
 
 	void CalculateWithGridJitterAsync(std::function<void(GridNode* CurrentNode)> Func, bool bSmootherResult = false);
 	void CalculateOnWholeModel(std::function<void(GridNode* CurrentNode)> Func);

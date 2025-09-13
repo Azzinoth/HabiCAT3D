@@ -131,7 +131,7 @@ void ScreenshotManager::TakeScreenshot()
 		return;
 	}
 
-	if (MESH_MANAGER.ActiveEntity == nullptr)
+	if (SCENE_RESOURCES.ActiveEntity == nullptr)
 	{
 		APPLICATION.EndFrame();
 		return;
@@ -140,9 +140,9 @@ void ScreenshotManager::TakeScreenshot()
 	FrameBufferObject->Bind();
 	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-	if (MESH_MANAGER.ActiveEntity != nullptr)
+	if (SCENE_RESOURCES.ActiveEntity != nullptr)
 	{
-		RENDERER.RenderGameModelComponentForward(MESH_MANAGER.ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera());
+		RENDERER.RenderGameModelComponentForward(SCENE_RESOURCES.ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera());
 	}
 
 	UI.Render(true);

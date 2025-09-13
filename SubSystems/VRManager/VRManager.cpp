@@ -236,7 +236,7 @@ void VRManager::OnRightTriggerRelease()
 
 void VRManager::OnLeftTriggerPress()
 {
-	VR_MANAGER.SetCurrentEntityToManipulate(MESH_MANAGER.ActiveEntity);
+	VR_MANAGER.SetCurrentEntityToManipulate(SCENE_RESOURCES.ActiveEntity);
 
 	VR_MANAGER.bLeftControllerTriggerIsPressed = true;
 }

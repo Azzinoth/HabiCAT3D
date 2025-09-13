@@ -1,5 +1,5 @@
 #pragma once
-#include "../MeshManager.h"
+#include "../SceneResources.h"
 using namespace FocalEngine;
 
 class VRManager

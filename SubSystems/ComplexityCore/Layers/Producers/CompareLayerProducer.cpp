@@ -66,7 +66,7 @@ std::vector<float> CompareLayerProducer::Normalize(std::vector<float> Original)
 DataLayer CompareLayerProducer::Calculate(const int FirstLayer, const int SecondLayer)
 {
 	DataLayer Result(DATA_SOURCE_TYPE::MESH);
-	Result.SetType(COMPARE);
+	Result.SetType(LAYER_TYPE::COMPARE);
 
 	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData() || FirstLayer == -1 || SecondLayer == -1)
 		return Result;

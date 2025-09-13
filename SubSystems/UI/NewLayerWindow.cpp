@@ -2,20 +2,22 @@
 
 NewLayerWindow::NewLayerWindow()
 {
-	LayerTypesNames.push_back("Height");
-	LayerTypesNames.push_back("Triangle area");
-	LayerTypesNames.push_back("Triangle edges");
-	LayerTypesNames.push_back("Triangle density");
-
-	LayerTypesNames.push_back("Rugosity");
-	LayerTypesNames.push_back("Vector dispersion");
-	LayerTypesNames.push_back("Fractal dimension");
-
-	LayerTypesNames.push_back("Compare layers");
-
 	TrianglesEdgesModeNames.push_back("Max triangle edge length");
 	TrianglesEdgesModeNames.push_back("Min triangle edge length");
 	TrianglesEdgesModeNames.push_back("Mean triangle edge length");
+
+	LayerTypeToName[LAYER_TYPE::HEIGHT] = "Height";
+	LayerTypeToName[LAYER_TYPE::TRIANGLE_AREA] = "Triangle area";
+	LayerTypeToName[LAYER_TYPE::TRIANGLE_EDGE] = "Triangle edges";
+	LayerTypeToName[LAYER_TYPE::TRIANGLE_DENSITY] = "Triangle density";
+
+	LayerTypeToName[LAYER_TYPE::RUGOSITY] = "Rugosity";
+	LayerTypeToName[LAYER_TYPE::VECTOR_DISPERSION] = "Vector dispersion";
+	LayerTypeToName[LAYER_TYPE::FRACTAL_DIMENSION] = "Fractal dimension";
+
+	LayerTypeToName[LAYER_TYPE::COMPARE] = "Compare layers";
+
+	LayerTypeToName[LAYER_TYPE::POINT_DENSITY] = "Point density";
 };
 
 NewLayerWindow::~NewLayerWindow() {};
@@ -35,6 +37,8 @@ void NewLayerWindow::Close()
 
 void NewLayerWindow::Render()
 {
+	CheckAvailableDataSources();
+
 	const ImVec2 CurrentWinowSize = ImVec2(512, 420);
 	const ImVec2 CurrentWinowPosition = ImVec2(APPLICATION.GetMainWindow()->GetWidth() / 2.0f - CurrentWinowSize.x / 2.0f, APPLICATION.GetMainWindow()->GetHeight() / 2.0f - CurrentWinowSize.y / 2.0f);
 
@@ -53,22 +57,23 @@ void NewLayerWindow::Render()
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(190);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
-		if (ImGui::BeginCombo("##ChooseTypeOfNewLayer", (LayerTypesNames[Mode]).c_str(), ImGuiWindowFlags_None))
+		if (ImGui::BeginCombo("##ChooseTypeOfNewLayer", (LayerTypeToName[SelectedLayerType]).c_str(), ImGuiWindowFlags_None))
 		{
-			for (size_t i = 0; i < LayerTypesNames.size(); i++)
+			for (size_t i = 0; i < AvailableLayerTypes.size(); i++)
 			{
-				const bool is_selected = LayerTypesNames[Mode] == LayerTypesNames[i];
-				if (ImGui::Selectable(LayerTypesNames[i].c_str(), is_selected))
+				const bool bIsSelected = LayerTypeToName[SelectedLayerType] == LayerTypeToName[AvailableLayerTypes[i]];
+				if (ImGui::Selectable(LayerTypeToName[AvailableLayerTypes[i]].c_str(), bIsSelected))
 				{
-					int OldMode = Mode;
-					Mode = static_cast<int>(i);
-					OnModeChanged(OldMode);
+					LAYER_TYPE OldLayerType = SelectedLayerType;
+					SelectedLayerType = AvailableLayerTypes[i];
+					CurrentDataSource = DataLayer::GetDataSourceTypeForLayerType(SelectedLayerType);
+					OnLayerTypeChanged(OldLayerType);
 				}
 
-				if (is_selected)
+				if (bIsSelected)
 					ImGui::SetItemDefaultFocus();
 
-				if (i == 3 || i == 6)
+				if (AvailableLayerTypes[i] == LAYER_TYPE::TRIANGLE_DENSITY || AvailableLayerTypes[i] == LAYER_TYPE::FRACTAL_DIMENSION)
 					ImGui::Separator();
 			}
 
@@ -100,11 +105,6 @@ void NewLayerWindow::Render()
 	}
 }
 
-std::vector<std::string> NewLayerWindow::GetNewLayerName()
-{
-	return LayerTypesNames;
-}
-
 void NewLayerWindow::InternalClose()
 {
 	bShouldClose = false;
@@ -113,9 +113,9 @@ void NewLayerWindow::InternalClose()
 
 void NewLayerWindow::AddLayer()
 {
-	switch (Mode)
+	switch (SelectedLayerType)
 	{
-		case 0:
+		case LAYER_TYPE::HEIGHT:
 		{
 			LAYER_MANAGER.AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
 			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
@@ -123,7 +123,7 @@ void NewLayerWindow::AddLayer()
 			InternalClose();
 			break;
 		}
-		case 1:
+		case LAYER_TYPE::TRIANGLE_AREA:
 		{
 			LAYER_MANAGER.AddLayer(AREA_LAYER_PRODUCER.Calculate());
 			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
@@ -131,7 +131,7 @@ void NewLayerWindow::AddLayer()
 			InternalClose();
 			break;
 		}
-		case 2:
+		case LAYER_TYPE::TRIANGLE_EDGE:
 		{
 			LAYER_MANAGER.AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(TrianglesEdgesMode));
 			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
@@ -139,79 +139,87 @@ void NewLayerWindow::AddLayer()
 			InternalClose();
 			break;
 		}
-		case 3:
+		case LAYER_TYPE::TRIANGLE_DENSITY:
 		{
 			if (bRunOnWholeModel)
 			{
 				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateOnWholeModel();
-				MESH_MANAGER.SetHeatMapType(-1);
+				SCENE_RESOURCES.SetHeatMapType(-1);
 			}
 			else
 			{
 				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-				MESH_MANAGER.SetHeatMapType(5);
+				SCENE_RESOURCES.SetHeatMapType(5);
 			}
 
 			InternalClose();
 			break;
 		}
-		case 4:
+		case LAYER_TYPE::RUGOSITY:
 		{
 			if (bRunOnWholeModel)
 			{
 				RUGOSITY_LAYER_PRODUCER.CalculateOnWholeModel();
-				MESH_MANAGER.SetHeatMapType(-1);
+				SCENE_RESOURCES.SetHeatMapType(-1);
 			}
 			else
 			{
 				RUGOSITY_LAYER_PRODUCER.CalculateWithJitterAsync();
-				MESH_MANAGER.SetHeatMapType(5);
+				SCENE_RESOURCES.SetHeatMapType(5);
 			}
 
 			InternalClose();
 			break;
 		}
-		case 5:
+		case LAYER_TYPE::VECTOR_DISPERSION:
 		{
 			if (bRunOnWholeModel)
 			{
 				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateOnWholeModel();
-				MESH_MANAGER.SetHeatMapType(-1);
+				SCENE_RESOURCES.SetHeatMapType(-1);
 			}
 			else
 			{
 				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-				MESH_MANAGER.SetHeatMapType(5);
+				SCENE_RESOURCES.SetHeatMapType(5);
 			}
 
 			InternalClose();
 			break;
 		}
-		case 6:
+		case LAYER_TYPE::FRACTAL_DIMENSION:
 		{
 			if (bRunOnWholeModel)
 			{
 				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel();
-				MESH_MANAGER.SetHeatMapType(-1);
+				SCENE_RESOURCES.SetHeatMapType(-1);
 			}
 			else
 			{
 				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-				MESH_MANAGER.SetHeatMapType(5);
+				SCENE_RESOURCES.SetHeatMapType(5);
 			}
 
 			InternalClose();
 			break;
 		}
-		case 7:
+		case LAYER_TYPE::COMPARE:
 		{
 			LAYER_MANAGER.AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
 			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
-			MESH_MANAGER.SetHeatMapType(6);
+			SCENE_RESOURCES.SetHeatMapType(6);
 
 			InternalClose();
 			break;
 		}
+		case LAYER_TYPE::POINT_DENSITY:
+		{
+			POINT_DENSITY_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
+			
+			InternalClose();
+			break;
+		}
+
 	}
 }
 
@@ -270,16 +278,7 @@ void NewLayerWindow::RenderCellSizeSettings()
 	}
 }
 
-void NewLayerWindow::RenderHeightLayerSettings()
-{
-	const std::string Text = "No settings available.";
-
-	ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2.0f - ImGui::CalcTextSize(Text.c_str()).x / 2.0f);
-	ImGui::SetCursorPosY(ImGui::GetWindowHeight() / 2.0f - ImGui::CalcTextSize(Text.c_str()).y / 2.0f);
-	ImGui::Text(Text.c_str());
-}
-
-void NewLayerWindow::RenderAreaLayerSettings()
+void NewLayerWindow::RenderNoSettingsAvailable()
 {
 	const std::string Text = "No settings available.";
 
@@ -483,82 +482,92 @@ void NewLayerWindow::RenderCompareLayerSettings()
 	COMPARE_LAYER_PRODUCER.SetShouldNormalize(TempBool);
 }
 
+void NewLayerWindow::RenderPointDensitySettings()
+{
+	RenderCellSizeSettings();
+}
+
 void NewLayerWindow::RenderSettings()
 {
-	switch (Mode)
+	switch (SelectedLayerType)
 	{
-		case 0:
+		case LAYER_TYPE::HEIGHT:
 		{
-			RenderHeightLayerSettings();
+			RenderNoSettingsAvailable();
 			break;
 		}
-		case 1:
+		case LAYER_TYPE::TRIANGLE_AREA:
 		{
-			RenderAreaLayerSettings();
+			RenderNoSettingsAvailable();
 			break;
 		}
-		case 2:
+		case LAYER_TYPE::TRIANGLE_EDGE:
 		{
 			RenderTrianglesEdgesLayerSettings();
 			break;
 		}
-		case 3:
+		case LAYER_TYPE::TRIANGLE_DENSITY:
 		{
 			RenderTriangleDensityLayerSettings();
 			break;
 		}
-		case 4:
+		case LAYER_TYPE::RUGOSITY:
 		{
 			RenderRugosityLayerSettings();
 			break;
 		}
-		case 5:
+		case LAYER_TYPE::VECTOR_DISPERSION:
 		{
 			RenderVectorDispersionSettings();
 			break;
 		}
-		case 6:
+		case LAYER_TYPE::FRACTAL_DIMENSION:
 		{
 			RenderFractalDimentionSettings();
 			break;
 		}
-		case 7:
+		case LAYER_TYPE::COMPARE:
 		{
 			RenderCompareLayerSettings();
+			break;
+		}
+		case LAYER_TYPE::POINT_DENSITY:
+		{
+			RenderPointDensitySettings();
 			break;
 		}
 	}
 }
 
-void NewLayerWindow::OnModeChanged(int OldMode)
+void NewLayerWindow::OnLayerTypeChanged(LAYER_TYPE OldLayerType)
 {
-	switch (Mode)
+	switch (SelectedLayerType)
 	{
-		case 0:
+		case LAYER_TYPE::HEIGHT:
 		{
 			break;
 		}
-		case 1:
+		case LAYER_TYPE::TRIANGLE_AREA:
 		{
 			break;
 		}
-		case 2:
+		case LAYER_TYPE::TRIANGLE_EDGE:
 		{
 			break;
 		}
-		case 3:
+		case LAYER_TYPE::TRIANGLE_DENSITY:
 		{
 			break;
 		}
-		case 4:
+		case LAYER_TYPE::RUGOSITY:
 		{
 			break;
 		}
-		case 5:
+		case LAYER_TYPE::VECTOR_DISPERSION:
 		{
 			break;
 		}
-		case 6:
+		case LAYER_TYPE::FRACTAL_DIMENSION:
 		{
 			FeaturesSizeSelectionMode = 3;
 			double StartingResolution = JITTER_MANAGER.GetLowestPossibleResolution() + (JITTER_MANAGER.GetHighestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution()) / 2.0f;
@@ -566,9 +575,34 @@ void NewLayerWindow::OnModeChanged(int OldMode)
 
 			break;
 		}
-		case 7:
+		case LAYER_TYPE::COMPARE:
 		{
 			break;
 		}
+	}
+}
+
+void NewLayerWindow::CheckAvailableDataSources()
+{
+	AvailableDataSources.clear();
+	AvailableLayerTypes.clear();
+
+	if (ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	{
+		AvailableDataSources.push_back(DATA_SOURCE_TYPE::MESH);
+		AvailableLayerTypes.push_back(LAYER_TYPE::HEIGHT);
+		AvailableLayerTypes.push_back(LAYER_TYPE::TRIANGLE_AREA);
+		AvailableLayerTypes.push_back(LAYER_TYPE::TRIANGLE_EDGE);
+		AvailableLayerTypes.push_back(LAYER_TYPE::TRIANGLE_DENSITY);
+		AvailableLayerTypes.push_back(LAYER_TYPE::RUGOSITY);
+		AvailableLayerTypes.push_back(LAYER_TYPE::VECTOR_DISPERSION);
+		AvailableLayerTypes.push_back(LAYER_TYPE::FRACTAL_DIMENSION);
+		AvailableLayerTypes.push_back(LAYER_TYPE::COMPARE);
+	}
+		
+	if (ANALYSIS_OBJECT_MANAGER.HavePointCloudData())
+	{
+		AvailableDataSources.push_back(DATA_SOURCE_TYPE::POINT_CLOUD);
+		AvailableLayerTypes.push_back(LAYER_TYPE::POINT_DENSITY);
 	}
 }

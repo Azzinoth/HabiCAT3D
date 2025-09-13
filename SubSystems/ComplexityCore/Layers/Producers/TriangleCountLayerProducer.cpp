@@ -34,7 +34,7 @@ void TriangleCountLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	if (!TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult)
 		return;
 
-	NewLayer.SetType(TRIANGLE_DENSITY);
+	NewLayer.SetType(LAYER_TYPE::TRIANGLE_DENSITY);
 
 	TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult = false;
 	LAYER_MANAGER.AddLayer(NewLayer);

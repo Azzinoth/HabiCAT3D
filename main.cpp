@@ -27,45 +27,49 @@ void DropCallback(int Count, const char** Paths)
 	}
 }
 
-void AfterMeshLoads()
+void AfterNewResourceLoads(DATA_SOURCE_TYPE DataSource)
 {
-	if (MESH_MANAGER.ActiveEntity != nullptr)
+	// Point cloud alternative is done in MeshManager
+	if (DataSource == DATA_SOURCE_TYPE::MESH)
 	{
-		MESH_MANAGER.ClearBuffers();
+		if (SCENE_RESOURCES.ActiveEntity != nullptr)
+		{
+			SCENE_RESOURCES.ClearBuffers();
 
-		MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(MESH_MANAGER.ActiveEntity->GetObjectID());
-		MESH_MANAGER.ActiveEntity = nullptr;
+			MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(SCENE_RESOURCES.ActiveEntity->GetObjectID());
+			SCENE_RESOURCES.ActiveEntity = nullptr;
+		}
+
+		FEGameModel* NewGameModel = RESOURCE_MANAGER.CreateGameModel(SCENE_RESOURCES.ActiveMesh, SCENE_RESOURCES.CustomMaterial);
+		SCENE_RESOURCES.ActiveEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Main entity");
+		SCENE_RESOURCES.ActiveEntity->AddComponent<FEGameModelComponent>(NewGameModel);
+
+		MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
+		if (CurrentMeshData == nullptr)
+			return;
+
+		if (!APPLICATION.HasConsoleWindow())
+		{
+			SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().SetPosition(-SCENE_RESOURCES.ActiveMesh->GetAABB().GetCenter());
+			CurrentMeshData->Position->SetPosition(-SCENE_RESOURCES.ActiveMesh->GetAABB().GetCenter());
+		}
+
+		CurrentMeshData->UpdateAverageNormal();
+
+		if (!APPLICATION.HasConsoleWindow())
+		{
+			UI.SetIsModelCamera(true);
+			SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(CurrentMeshData->GetAverageNormal()));
+		}
+
+		if (LAYER_MANAGER.GetLayerCount() == 0)
+			LAYER_MANAGER.AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
 	}
-
-	FEGameModel* NewGameModel = RESOURCE_MANAGER.CreateGameModel(MESH_MANAGER.ActiveMesh, MESH_MANAGER.CustomMaterial);
-	MESH_MANAGER.ActiveEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Main entity");
-	MESH_MANAGER.ActiveEntity->AddComponent<FEGameModelComponent>(NewGameModel);
-
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
-		return;
-
-	if (!APPLICATION.HasConsoleWindow())
-	{
-		MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().SetPosition(-MESH_MANAGER.ActiveMesh->GetAABB().GetCenter());
-		CurrentMeshData->Position->SetPosition(-MESH_MANAGER.ActiveMesh->GetAABB().GetCenter());
-	}
-
-	CurrentMeshData->UpdateAverageNormal();
-
-	if (!APPLICATION.HasConsoleWindow())
-	{
-		UI.SetIsModelCamera(true);
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(CurrentMeshData->GetAverageNormal()));
-	}
-
-	if (LAYER_MANAGER.GetLayerCount() == 0)
-		LAYER_MANAGER.AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
 }
 
 void LoadResource(std::string FileName)
 {
-	const FEMesh* TempMesh = MESH_MANAGER.LoadResource(FileName);
+	const FEMesh* TempMesh = SCENE_RESOURCES.LoadResource(FileName);
 	if (TempMesh == nullptr)
 	{
 		LOG.Add("Failed to load mesh with path: " + FileName);
@@ -119,7 +123,7 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 			std::vector<glm::dvec3> TranformedTrianglePoints = CurrentMeshData->Triangles[CurrentMeshData->TriangleSelected[i]];
 			for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 			{
-				TranformedTrianglePoints[j] = MESH_MANAGER.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+				TranformedTrianglePoints[j] = SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 			}
 
 			LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
@@ -201,24 +205,24 @@ void mouseButtonCallback(int button, int action, int mods)
 	{
 		//LAYER_RASTERIZATION_MANAGER.DebugMouseClick();
 
-		if (MESH_MANAGER.ActiveMesh != nullptr)
+		if (SCENE_RESOURCES.ActiveMesh != nullptr)
 		{
 			if (UI.GetLayerSelectionMode() == 1)
 			{
-				MESH_MANAGER.SelectTriangle(MAIN_SCENE_MANAGER.GetMouseRayDirection());
+				SCENE_RESOURCES.SelectTriangle(MAIN_SCENE_MANAGER.GetMouseRayDirection());
 			}
 			else if (UI.GetLayerSelectionMode() == 2)
 			{
-				if (MESH_MANAGER.SelectTrianglesInRadius(MAIN_SCENE_MANAGER.GetMouseRayDirection(), UI.GetRadiusOfAreaToMeasure()) && UI.GetOutputSelectionToFile())
+				if (SCENE_RESOURCES.SelectTrianglesInRadius(MAIN_SCENE_MANAGER.GetMouseRayDirection(), UI.GetRadiusOfAreaToMeasure()) && UI.GetOutputSelectionToFile())
 				{
 					OutputSelectedAreaInfoToFile();
 				}
 			}
 
-			UpdateMeshSelectedTrianglesRendering(MESH_MANAGER.ActiveMesh);
+			UpdateMeshSelectedTrianglesRendering(SCENE_RESOURCES.ActiveMesh);
 		}
 
-		if (MESH_MANAGER.ActiveMesh != nullptr && UI.GetDebugGrid() != nullptr)
+		if (SCENE_RESOURCES.ActiveMesh != nullptr && UI.GetDebugGrid() != nullptr)
 		{
 			if (UI.GetDebugGrid()->RenderingMode != 0)
 			{
@@ -292,116 +296,6 @@ void ConsoleThreadCode(void* InputData)
 	}
 }
 
-void CalculateOneNodePointCount(GridNode* CurrentNode)
-{
-	if (CurrentNode->PointsInCell.empty())
-		return;
-	
-	CurrentNode->UserData = CurrentNode->PointsInCell.size();
-}
-
-void OnJitterCalculationsEnd(DataLayer NewLayer)
-{
-	NewLayer.ElementsToData;
-
-	float Min = FLT_MAX;
-	float Max = -FLT_MAX;
-	for (size_t i = 0; i < NewLayer.ElementsToData.size(); i++)
-	{
-		if (NewLayer.ElementsToData[i] < Min)
-			Min = NewLayer.ElementsToData[i];
-		if (NewLayer.ElementsToData[i] > Max)
-			Max = NewLayer.ElementsToData[i];
-	}
-
-	PointCloudGeometryData* CurrentPointCloudData = ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData;
-
-	// Update color based on min/max
-	for (size_t i = 0; i < CurrentPointCloudData->RawPointCloudData.size(); i++)
-	{
-		float NormalizedValue = (NewLayer.ElementsToData[i] - Min) / (Max - Min);
-		glm::vec3 NewColor = GetTurboColorMap(NormalizedValue);
-		CurrentPointCloudData->RawPointCloudData[i].R = static_cast<unsigned char>(NewColor.x * 255.0f);
-		CurrentPointCloudData->RawPointCloudData[i].G = static_cast<unsigned char>(NewColor.y * 255.0f);
-		CurrentPointCloudData->RawPointCloudData[i].B = static_cast<unsigned char>(NewColor.z * 255.0f);
-	}
-
-	FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudData->RawPointCloudData);
-
-	MESH_MANAGER.CurrentPointCloudEntity->RemoveComponent<FEPointCloudComponent>();
-	RESOURCE_MANAGER.DeleteFEPointCloud(MESH_MANAGER.CurrentPointCloud);
-	MESH_MANAGER.CurrentPointCloud = PointCloud;
-	MESH_MANAGER.CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(MESH_MANAGER.CurrentPointCloud);
-
-
-	//if (!RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult)
-	//	return;
-
-	NewLayer.SetDataSourceType(DATA_SOURCE_TYPE::POINT_CLOUD);
-	//NewLayer.SetType(RUGOSITY);
-	
-	//RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = false;
-	//NewLayer.DebugInfo->Type = "RugosityDataLayerDebugInfo";
-
-	//std::string AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[0];
-	//if (RUGOSITY_LAYER_PRODUCER.bUseFindSmallestRugosity)
-	//	AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[1];
-
-	//if (RUGOSITY_LAYER_PRODUCER.bUseCGALVariant)
-	//	AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[2];
-
-	//NewLayer.DebugInfo->AddEntry("Algorithm used", AlgorithmUsed);
-
-	//if (AlgorithmUsed == "Min Rugosity(default)")
-	//	NewLayer.DebugInfo->AddEntry("Orientation set name", RUGOSITY_LAYER_PRODUCER.GetOrientationSetForMinRugosityName());
-
-	//std::string DeleteOutliers = "No";
-	//// Remove outliers.
-	//if (RUGOSITY_LAYER_PRODUCER.bDeleteOutliers || (RUGOSITY_LAYER_PRODUCER.bUseFindSmallestRugosity && RUGOSITY_LAYER_PRODUCER.OrientationSetForMinRugosity == "1"))
-	//{
-	//	DeleteOutliers = "Yes";
-	//	JITTER_MANAGER.AdjustOutliers(NewLayer.ElementsToData, 0.00f, 0.99f);
-	//}
-	//NewLayer.DebugInfo->AddEntry("Delete outliers", DeleteOutliers);
-
-	//std::string OverlapAware = "No";
-	//if (RUGOSITY_LAYER_PRODUCER.bUniqueProjectedArea)
-	//	OverlapAware = "Yes";
-	//NewLayer.DebugInfo->AddEntry("Unique projected area (very slow)", OverlapAware);
-
-	//std::string OverlapAwareApproximation = "No";
-	//if (RUGOSITY_LAYER_PRODUCER.bUniqueProjectedAreaApproximation)
-	//	OverlapAwareApproximation = "Yes";
-	//NewLayer.DebugInfo->AddEntry("Approximation of unique projected area", OverlapAwareApproximation);
-
-	//LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
-
-	//LAYER_MANAGER.AddLayer(NewLayer);
-	//LAYER_MANAGER.Layers.back().SetType(LAYER_TYPE::RUGOSITY);
-	//LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
-
-	//LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
-
-	//if (RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation)
-	//{
-	//	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	//	std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
-	//	LAYER_MANAGER.AddLayer(TrianglesToStandardDeviation);
-	//	LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
-
-	//	LAYER_MANAGER.Layers.back().DebugInfo = new DataLayerDebugInfo();
-	//	DataLayerDebugInfo* DebugInfo = LAYER_MANAGER.Layers.back().DebugInfo;
-	//	DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
-	//	DebugInfo->AddEntry("Start time", StartTime);
-	//	DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-	//	DebugInfo->AddEntry("Source layer ID", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetID());
-	//	DebugInfo->AddEntry("Source layer caption", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetCaption());
-	//}
-
-	//if (OnRugosityCalculationsEndCallbackImpl != nullptr)
-	//	OnRugosityCalculationsEndCallbackImpl(NewLayer);
-}
-
 void MainWindowRender()
 {
 	static bool FirstFrame = true;
@@ -416,7 +310,7 @@ void MainWindowRender()
 		return;
 	}
 
-	bool bVRMode = ENGINE.IsVREnabled();
+	/*bool bVRMode = ENGINE.IsVREnabled();
 	if (ImGui::Checkbox("Enter VR mode", &bVRMode))
 	{
 		if (bVRMode)
@@ -429,15 +323,6 @@ void MainWindowRender()
 		else
 		{
 			ENGINE.DisableVR();
-		}
-	}
-
-	if (MESH_MANAGER.CurrentPointCloudEntity != nullptr)
-	{
-		if (ImGui::Button("Calculate on point cloud"))
-		{
-			JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
-			JITTER_MANAGER.CalculateWithGridJitterAsync(CalculateOneNodePointCount);
 		}
 	}
 
@@ -466,76 +351,41 @@ void MainWindowRender()
 
 			VRRigTransform.SetPosition(VRRigPosition);
 		}
+	}*/
 
-		/*glm::vec3 ControllerPosition = FEOpenXR_INPUT.GetLeftControllerPosition();
-		ImGui::Text("Left Controller Position : ");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##X Left Controller", &ControllerPosition[0], 0.01f);
-
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##Y Left Controller", &ControllerPosition[1], 0.01f);
-
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##Z Left Controller", &ControllerPosition[2], 0.01f);
-
-
-		ControllerPosition = FEOpenXR_INPUT.GetRightControllerPosition();
-
-		ImGui::Text("Right Controller Position : ");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##X Right Controller", &ControllerPosition[0], 0.01f);
-
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##Y Right Controller", &ControllerPosition[1], 0.01f);
-
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(70);
-		ImGui::DragFloat("##Z Right Controller", &ControllerPosition[2], 0.01f);
-
-		if (ImGui::Button("Haptic"))
-		{
-			FEOpenXR_INPUT.TriggerHapticFeedback(0.5f, 0.5f, 0.5f, false);
-		}*/
-	}
-
-	if (MESH_MANAGER.ActiveEntity != nullptr)
+	if (SCENE_RESOURCES.ActiveEntity != nullptr)
 	{
 		if (UI.GetWireFrameMode())
 		{
-			MESH_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(true);
+			SCENE_RESOURCES.ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(true);
 		}
 		else
 		{
-			MESH_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(false);
+			SCENE_RESOURCES.ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(false);
 		}
 
 		// RenderFEMesh
-		MESH_MANAGER.UpdateUniforms();
+		SCENE_RESOURCES.UpdateUniforms();
 
 		// Unnecessary part
-		MESH_MANAGER.ActiveEntity->SetComponentVisible(ComponentVisibilityType::ALL, true);
+		SCENE_RESOURCES.ActiveEntity->SetComponentVisible(ComponentVisibilityType::ALL, true);
 
 		// This part should be done by Engine.
-		FE_GL_ERROR(glBindVertexArray(MESH_MANAGER.ActiveMesh->GetVaoID()));
+		FE_GL_ERROR(glBindVertexArray(SCENE_RESOURCES.ActiveMesh->GetVaoID()));
 
-		if (MESH_MANAGER.ActiveMesh->GetColorCount() > 0) FE_GL_ERROR(glEnableVertexAttribArray(1));
-		if (MESH_MANAGER.GetFirstLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(7));
-		if (MESH_MANAGER.GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
+		if (SCENE_RESOURCES.ActiveMesh->GetColorCount() > 0) FE_GL_ERROR(glEnableVertexAttribArray(1));
+		if (SCENE_RESOURCES.GetFirstLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(7));
+		if (SCENE_RESOURCES.GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
 		// This part should be done by Engine END.
 
 		// That should happen in Engine. In RenderingPipeline.
-		//RENDERER.RenderGameModelComponentForward(MESH_MANAGER.ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera(), false);
+		//RENDERER.RenderGameModelComponentForward(SCENE_RESOURCES.ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera(), false);
 
 
 		// Unnecessary part
-		//MESH_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetVisibility(false);
+		//SCENE_RESOURCES.ActiveEntity->GetComponent<FEGameModelComponent>().SetVisibility(false);
 
-		//MESH_RENDERER.RenderFEMesh(MESH_MANAGER.ActiveMesh);
+		//MESH_RENDERER.RenderFEMesh(SCENE_RESOURCES.ActiveMesh);
 
 		// RenderFEMesh END
 
@@ -666,7 +516,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		CameraComponent.SetNearPlane(0.1f);
 		CameraComponent.SetActive(false);
 
-		MESH_MANAGER.AddLoadCallback(AfterMeshLoads);
+		SCENE_RESOURCES.AddOnLoadCallback(AfterNewResourceLoads);
 
 		SCREENSHOT_MANAGER.Init();
 

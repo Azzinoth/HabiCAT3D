@@ -1,8 +1,8 @@
-#include "MeshManager.h"
+#include "SceneResources.h"
 using namespace FocalEngine;
 #include "ComplexityCore/Layers/LayerManager.h"
 
-MeshManager::MeshManager()
+SceneResources::SceneResources()
 {
 	if (!APPLICATION.HasConsoleWindow())
 	{
@@ -14,9 +14,9 @@ MeshManager::MeshManager()
 	}
 }
 
-MeshManager::~MeshManager() {}
+SceneResources::~SceneResources() {}
 
-FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
+FEMesh* SceneResources::ImportOBJ(const char* FileName, bool bForceOneMesh)
 {
 	FEMesh* Result = nullptr;
 	FEObjLoader& OBJLoader = FEObjLoader::GetInstance();
@@ -46,7 +46,7 @@ FEMesh* MeshManager::ImportOBJ(const char* FileName, bool bForceOneMesh)
 }
 
 // FIX ME: That function should not be here.
-FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
+FEMesh* SceneResources::LoadRUGMesh(std::string FileName)
 {
 	std::fstream File;
 
@@ -269,7 +269,7 @@ FEMesh* MeshManager::LoadRUGMesh(std::string FileName)
 	return NewMesh;
 }
 
-FEMesh* MeshManager::LoadResource(std::string FileName)
+FEMesh* SceneResources::LoadResource(std::string FileName)
 {
 	FEMesh* Result = nullptr;
 	if (!FILE_SYSTEM.DoesFileExist(FileName.c_str()))
@@ -281,19 +281,26 @@ FEMesh* MeshManager::LoadResource(std::string FileName)
 		return std::tolower(Character);
 	});
 
+	DATA_SOURCE_TYPE DataSourceType = DATA_SOURCE_TYPE::UNKNOWN;
+
 	if (FileExtension == ".obj")
 	{
 		Result = ImportOBJ(FileName.c_str(), true);
+		DataSourceType = DATA_SOURCE_TYPE::MESH;
 	}
 	else if (FileExtension == ".rug")
 	{
 		Result = LoadRUGMesh(FileName);
+		// FIX ME: In future we can have .rug files with point clouds.
+		DataSourceType = DATA_SOURCE_TYPE::MESH;
 	}
 	else if (FileExtension == ".ply")
 	{
 		FEObject* LoadedObject = RESOURCE_MANAGER.ImportPLYFile(FileName);
 		if (LoadedObject->GetType() == FE_POINT_CLOUD)
 		{
+			DataSourceType = DATA_SOURCE_TYPE::POINT_CLOUD;
+
 			if (CurrentPointCloudEntity != nullptr)
 			{
 				MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(CurrentPointCloudEntity);
@@ -316,6 +323,8 @@ FEMesh* MeshManager::LoadResource(std::string FileName)
 	}
 	else if (FileExtension == ".las" || FileExtension == ".laz")
 	{
+		DataSourceType = DATA_SOURCE_TYPE::POINT_CLOUD;
+
 		FEPointCloud* PointCloud = RESOURCE_MANAGER.ImportPointCloud(FileName);
 		if (PointCloud != nullptr)
 		{
@@ -340,32 +349,32 @@ FEMesh* MeshManager::LoadResource(std::string FileName)
 		}
 	}
 
-	if (Result == nullptr)
+	if (Result != nullptr)
 	{
-		LOG.Add("Failed to load resource with path: " + FileName);
-		return Result;
+		ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
+		ActiveMesh = Result;
+
+		//LOG.Add("Failed to load resource with path: " + FileName);
+		//return Result;
 	}
 
-	ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->FileName = FILE_SYSTEM.GetFileName(FileName.c_str());
-	ActiveMesh = Result;
-
-	for (size_t i = 0; i < ClientLoadCallbacks.size(); i++)
+	for (size_t i = 0; i < ClientOnLoadCallbacks.size(); i++)
 	{
-		if (ClientLoadCallbacks[i] == nullptr)
+		if (ClientOnLoadCallbacks[i] == nullptr)
 			continue;
 
-		ClientLoadCallbacks[i]();
+		ClientOnLoadCallbacks[i](DataSourceType);
 	}
 
 	return Result;
 }
 
-void MeshManager::AddLoadCallback(std::function<void()> Func)
+void SceneResources::AddOnLoadCallback(std::function<void(DATA_SOURCE_TYPE)> Callback)
 {
-	ClientLoadCallbacks.push_back(Func);
+	ClientOnLoadCallbacks.push_back(Callback);
 }
 
-void MeshManager::SaveRUGMesh(FEMesh* Mesh)
+void SceneResources::SaveRUGMesh(FEMesh* Mesh)
 {
 	if (Mesh == nullptr)
 		return;
@@ -373,75 +382,109 @@ void MeshManager::SaveRUGMesh(FEMesh* Mesh)
 	ANALYSIS_OBJECT_MANAGER.SaveToRUGFileAskForFilePath();
 }
 
-int MeshManager::GetHeatMapType()
+int SceneResources::GetHeatMapType()
 {
 	return HeatMapType;
 }
 
-void MeshManager::SetHeatMapType(int NewValue)
+void SceneResources::SetHeatMapType(int NewValue)
 {
 	HeatMapType = NewValue;
 }
 
-void MeshManager::ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex)
+void SceneResources::ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex)
 {
-	if (ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData == nullptr)
-		return;
-
-	if (ActiveMesh == nullptr)
-		return;
-
 	if (LayerIndex < 0 || LayerIndex >= LAYER_MANAGER.Layers.size())
 		return;
 
-	if (LAYER_MANAGER.Layers[LayerIndex].RawData.empty())
-		LAYER_MANAGER.Layers[LayerIndex].FillRawData();
-
-	FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
-
-	if (GPULayerIndex == 0)
+	DataLayer& CurrentLayer = LAYER_MANAGER.Layers[LayerIndex];
+	if (CurrentLayer.GetDataSourceType() == DATA_SOURCE_TYPE::MESH)
 	{
-		FirstLayerBufferID = 0;
-		FE_GL_ERROR(glGenBuffers(1, &FirstLayerBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, FirstLayerBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * LAYER_MANAGER.Layers[LayerIndex].RawData.size(), LAYER_MANAGER.Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(7, 3, GL_FLOAT, false, 0, nullptr));
-	}
-	else
-	{
-		SecondLayerBufferID = 0;
-		FE_GL_ERROR(glGenBuffers(1, &SecondLayerBufferID));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, SecondLayerBufferID));
-		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * LAYER_MANAGER.Layers[LayerIndex].RawData.size(), LAYER_MANAGER.Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
-		FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, nullptr));
-	}
+		if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData() || SCENE_RESOURCES.ActiveMesh == nullptr)
+			return;
 
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+		if (ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData == nullptr)
+			return;
+
+		if (ActiveMesh == nullptr)
+			return;
+
+		if (LAYER_MANAGER.Layers[LayerIndex].RawData.empty())
+			LAYER_MANAGER.Layers[LayerIndex].FillRawData();
+
+		FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
+
+		if (GPULayerIndex == 0)
+		{
+			FirstLayerBufferID = 0;
+			FE_GL_ERROR(glGenBuffers(1, &FirstLayerBufferID));
+			FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, FirstLayerBufferID));
+			FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * LAYER_MANAGER.Layers[LayerIndex].RawData.size(), LAYER_MANAGER.Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
+			FE_GL_ERROR(glVertexAttribPointer(7, 3, GL_FLOAT, false, 0, nullptr));
+		}
+		else
+		{
+			SecondLayerBufferID = 0;
+			FE_GL_ERROR(glGenBuffers(1, &SecondLayerBufferID));
+			FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, SecondLayerBufferID));
+			FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * LAYER_MANAGER.Layers[LayerIndex].RawData.size(), LAYER_MANAGER.Layers[LayerIndex].RawData.data(), GL_STATIC_DRAW));
+			FE_GL_ERROR(glVertexAttribPointer(8, 3, GL_FLOAT, false, 0, nullptr));
+		}
+
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	}
+	else if (CurrentLayer.GetDataSourceType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+		if (!ANALYSIS_OBJECT_MANAGER.HavePointCloudData() || SCENE_RESOURCES.CurrentPointCloud == nullptr)
+			return;
+
+		if (ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData == nullptr)
+			return;
+
+		if (CurrentPointCloud == nullptr)
+			return;
+
+		for (size_t i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData.size(); i++)
+		{
+			float NormalizedValue = (CurrentLayer.ElementsToData[i] - CurrentLayer.GetMin()) / (CurrentLayer.GetMax() - CurrentLayer.GetMin());
+			glm::vec3 NewColor = GetTurboColorMap(NormalizedValue);
+			ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData[i].R = static_cast<unsigned char>(NewColor.x * 255.0f);
+			ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData[i].G = static_cast<unsigned char>(NewColor.y * 255.0f);
+			ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData[i].B = static_cast<unsigned char>(NewColor.z * 255.0f);
+		}
+
+		FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData);
+
+		CurrentPointCloudEntity->RemoveComponent<FEPointCloudComponent>();
+		RESOURCE_MANAGER.DeleteFEPointCloud(CurrentPointCloud);
+		CurrentPointCloud = PointCloud;
+		CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(CurrentPointCloud);
+	}
 }
 
-GLuint MeshManager::GetFirstLayerBufferID()
+GLuint SceneResources::GetFirstLayerBufferID()
 {
 	return FirstLayerBufferID;
 }
 
-GLuint MeshManager::GetSecondLayerBufferID()
+GLuint SceneResources::GetSecondLayerBufferID()
 {
 	return SecondLayerBufferID;
 }
 
-void MeshManager::GetMeasuredRugosityArea(float& Radius, glm::vec3& Center)
+void SceneResources::GetMeasuredRugosityArea(float& Radius, glm::vec3& Center)
 {
 	Radius = MeasuredRugosityAreaRadius;
 	Center = MeasuredRugosityAreaCenter;
 }
 
-void MeshManager::ClearMeasuredRugosityArea()
+void SceneResources::ClearMeasuredRugosityArea()
 {
 	MeasuredRugosityAreaRadius = -1.0f;
 	MeasuredRugosityAreaCenter = glm::vec3(0.0f);
 }
 
-bool MeshManager::SelectTriangle(glm::dvec3 MouseRay)
+bool SceneResources::SelectTriangle(glm::dvec3 MouseRay)
 {
 	if (ActiveMesh == nullptr || ActiveEntity == nullptr)
 		return false;
@@ -457,7 +500,6 @@ bool MeshManager::SelectTriangle(glm::dvec3 MouseRay)
 		std::vector<glm::dvec3> TranformedTrianglePoints = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
-			//TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 			TranformedTrianglePoints[j] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
@@ -479,7 +521,7 @@ bool MeshManager::SelectTriangle(glm::dvec3 MouseRay)
 	return false;
 }
 
-glm::vec3 MeshManager::IntersectTriangle(glm::dvec3 MouseRay)
+glm::vec3 SceneResources::IntersectTriangle(glm::dvec3 MouseRay)
 {
 	if (ActiveMesh == nullptr || ActiveEntity == nullptr)
 		return glm::vec3(0.0f);
@@ -492,7 +534,6 @@ glm::vec3 MeshManager::IntersectTriangle(glm::dvec3 MouseRay)
 		std::vector<glm::dvec3> TranformedTrianglePoints = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i];
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
-			//TranformedTrianglePoints[j] = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 			TranformedTrianglePoints[j] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
@@ -503,7 +544,6 @@ glm::vec3 MeshManager::IntersectTriangle(glm::dvec3 MouseRay)
 		{
 			LastDistance = CurrentDistance;
 
-			//const glm::mat4 Inverse = glm::inverse(ActiveEntity->Transform.GetTransformMatrix());
 			const glm::mat4 Inverse = glm::inverse(ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix());
 			return Inverse * glm::vec4(HitPosition, 1.0f);
 		}
@@ -512,7 +552,7 @@ glm::vec3 MeshManager::IntersectTriangle(glm::dvec3 MouseRay)
 	return glm::vec3(0.0f);
 }
 
-bool MeshManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
+bool SceneResources::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
 {
 	bool Result = false;
 
@@ -529,7 +569,6 @@ bool MeshManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
 		return Result;
 
 	MeasuredRugosityAreaRadius = Radius;
-	//MeasuredRugosityAreaCenter = ActiveEntity->Transform.GetTransformMatrix() * glm::vec4(CurrentMeshData->TrianglesCentroids[COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->TriangleSelected[0]], 1.0f);
 	MeasuredRugosityAreaCenter = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(CurrentMeshData->TrianglesCentroids[CurrentMeshData->TriangleSelected[0]], 1.0f);
 
 	const glm::dvec3 FirstSelectedTriangleCentroid = CurrentMeshData->TrianglesCentroids[CurrentMeshData->TriangleSelected[0]];
@@ -549,12 +588,12 @@ bool MeshManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
 	return Result;
 }
 
-float MeshManager::GetUnselectedAreaSaturationFactor()
+float SceneResources::GetUnselectedAreaSaturationFactor()
 {
 	return UnselectedAreaSaturationFactor;
 }
 
-void MeshManager::SetUnselectedAreaSaturationFactor(float NewValue)
+void SceneResources::SetUnselectedAreaSaturationFactor(float NewValue)
 {
 	if (NewValue < 0.0f)
 		NewValue = 0.0f;
@@ -562,12 +601,12 @@ void MeshManager::SetUnselectedAreaSaturationFactor(float NewValue)
 	UnselectedAreaSaturationFactor = NewValue;
 }
 
-float MeshManager::GetUnselectedAreaBrightnessFactor()
+float SceneResources::GetUnselectedAreaBrightnessFactor()
 {
 	return UnselectedAreaBrightnessFactor;
 }
 
-void MeshManager::SetUnselectedAreaBrightnessFactor(float NewValue)
+void SceneResources::SetUnselectedAreaBrightnessFactor(float NewValue)
 {
 	if (NewValue < 0.0f)
 		NewValue = 0.0f;
@@ -575,7 +614,7 @@ void MeshManager::SetUnselectedAreaBrightnessFactor(float NewValue)
 	UnselectedAreaBrightnessFactor = NewValue;
 }
 
-void MeshManager::ClearBuffers()
+void SceneResources::ClearBuffers()
 {
 	if (FirstLayerBufferID > 0)
 		glDeleteBuffers(1, &FirstLayerBufferID);
@@ -588,46 +627,46 @@ void MeshManager::ClearBuffers()
 }
 
 #include "UI/UIManager.h"
-void MeshManager::UpdateUniforms()
+void SceneResources::UpdateUniforms()
 {
-	MESH_MANAGER.CustomMeshShader->UpdateUniformData("AmbientFactor", UI.GetAmbientLightFactor());
-	MESH_MANAGER.CustomMeshShader->UpdateUniformData("HaveColor", ActiveMesh->GetColorCount() == 0 ? 0 : 1);
-	MESH_MANAGER.CustomMeshShader->UpdateUniformData("HeatMapType", MESH_MANAGER.GetHeatMapType());
-	MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerIndex", LAYER_MANAGER.GetActiveLayerIndex());
+	SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("AmbientFactor", UI.GetAmbientLightFactor());
+	SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("HaveColor", ActiveMesh->GetColorCount() == 0 ? 0 : 1);
+	SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("HeatMapType", SCENE_RESOURCES.GetHeatMapType());
+	SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("LayerIndex", LAYER_MANAGER.GetActiveLayerIndex());
 
-	MESH_MANAGER.CustomMeshShader->UpdateUniformData("UnselectedAreaSaturationFactor", MESH_MANAGER.GetUnselectedAreaSaturationFactor());
-	MESH_MANAGER.CustomMeshShader->UpdateUniformData("UnselectedAreaBrightnessFactor", MESH_MANAGER.GetUnselectedAreaBrightnessFactor());
+	SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("UnselectedAreaSaturationFactor", SCENE_RESOURCES.GetUnselectedAreaSaturationFactor());
+	SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("UnselectedAreaBrightnessFactor", SCENE_RESOURCES.GetUnselectedAreaBrightnessFactor());
 
 	if (LAYER_MANAGER.GetActiveLayer() != nullptr)
 	{
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("SelectedRangeMin", LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMin());
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("SelectedRangeMax", LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMax());
+		SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("SelectedRangeMin", LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMin());
+		SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("SelectedRangeMax", LAYER_MANAGER.GetActiveLayer()->GetSelectedRangeMax());
 	}
 	else
 	{
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("SelectedRangeMin", 0.0f);
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("SelectedRangeMax", 0.0f);
+		SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("SelectedRangeMin", 0.0f);
+		SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("SelectedRangeMax", 0.0f);
 	}
 
 	if (LAYER_MANAGER.GetActiveLayerIndex() != -1)
 	{
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerMin", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].MinVisible));
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerMax", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].MaxVisible));
+		SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("LayerMin", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].MinVisible));
+		SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("LayerMax", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].MaxVisible));
 
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerAbsoluteMin", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMin()));
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("LayerAbsoluteMax", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMax()));
+		SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("LayerAbsoluteMin", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMin()));
+		SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("LayerAbsoluteMax", float(LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMax()));
 	}
 
 	if (ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
 	{
 		float TempMeasuredRugosityAreaRadius = 0.0f;
 		glm::vec3 TempMeasuredRugosityAreaCenter = glm::vec3(0.0f);
-		MESH_MANAGER.GetMeasuredRugosityArea(TempMeasuredRugosityAreaRadius, TempMeasuredRugosityAreaCenter);
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("MeasuredRugosityAreaRadius", TempMeasuredRugosityAreaRadius);
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("MeasuredRugosityAreaCenter", TempMeasuredRugosityAreaCenter);
+		SCENE_RESOURCES.GetMeasuredRugosityArea(TempMeasuredRugosityAreaRadius, TempMeasuredRugosityAreaCenter);
+		SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("MeasuredRugosityAreaRadius", TempMeasuredRugosityAreaRadius);
+		SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("MeasuredRugosityAreaCenter", TempMeasuredRugosityAreaCenter);
 	}
 	else
 	{
-		MESH_MANAGER.CustomMeshShader->UpdateUniformData("MeasuredRugosityAreaRadius", -1.0f);
+		SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("MeasuredRugosityAreaRadius", -1.0f);
 	}
 }

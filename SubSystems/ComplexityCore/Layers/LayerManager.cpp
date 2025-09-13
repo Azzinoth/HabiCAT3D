@@ -46,6 +46,15 @@ void LayerManager::AddLayer(DataLayer NewLayer)
 
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
+			if (ANALYSIS_OBJECT_MANAGER.HavePointCloudData())
+			{
+				if (NewLayer.ElementsToData.size() == ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData.size())
+				{
+					Layers.push_back(NewLayer);
+					Layers.back().ComputeStatistics();
+				}
+			}
+
 			break;
 		}
 	}
@@ -116,16 +125,73 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 	return Result;
 }
 
-#include "../../MeshManager.h"
+#include "../../SceneResources.h"
 void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
 {
-	if (MESH_MANAGER.ActiveMesh == nullptr || NewLayerIndex < -1 || NewLayerIndex >= int(Layers.size()))
+	if (NewLayerIndex < -1 || NewLayerIndex >= int(Layers.size()))
 		return;
 
-	CurrentLayerIndex = NewLayerIndex;
+	if (NewLayerIndex == -1)
+	{
+		if (CurrentLayerIndex != -1)
+		{
+			// FIX ME: Not sure if that is a good solution.
+			DataLayer& CurrentLayer = Layers[CurrentLayerIndex];
+			if (CurrentLayer.GetDataSourceType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+			{
+				for (size_t i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData.size(); i++)
+				{
+					std::vector<unsigned char> OriginalColor = ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->OriginalColors[i];
 
-	if (NewLayerIndex != -1)
-		MESH_MANAGER.ComplexityMetricDataToGPU(NewLayerIndex);
+					ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData[i].R = OriginalColor[0];
+					ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData[i].G = OriginalColor[1];
+					ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData[i].B = OriginalColor[2];
+					ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData[i].A = OriginalColor[3];
+				}
+
+				FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData);
+
+				SCENE_RESOURCES.CurrentPointCloudEntity->RemoveComponent<FEPointCloudComponent>();
+				RESOURCE_MANAGER.DeleteFEPointCloud(SCENE_RESOURCES.CurrentPointCloud);
+				SCENE_RESOURCES.CurrentPointCloud = PointCloud;
+				SCENE_RESOURCES.CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(SCENE_RESOURCES.CurrentPointCloud);
+			}
+		}
+
+		CurrentLayerIndex = -1;
+
+		for (size_t i = 0; i < ClientAfterActiveLayerChangedCallbacks.size(); i++)
+		{
+			if (ClientAfterActiveLayerChangedCallbacks[i] == nullptr)
+				continue;
+
+			ClientAfterActiveLayerChangedCallbacks[i]();
+		}
+
+		return;
+	}
+
+	DataLayer& NewLayer = Layers[NewLayerIndex];
+	if (NewLayer.GetDataSourceType() == DATA_SOURCE_TYPE::MESH)
+	{
+		if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData() || SCENE_RESOURCES.ActiveMesh == nullptr)
+			return;
+
+		CurrentLayerIndex = NewLayerIndex;
+
+		if (NewLayerIndex != -1)
+			SCENE_RESOURCES.ComplexityMetricDataToGPU(NewLayerIndex);
+	}
+	else if (NewLayer.GetDataSourceType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+		if (!ANALYSIS_OBJECT_MANAGER.HavePointCloudData() || SCENE_RESOURCES.CurrentPointCloud == nullptr)
+			return;
+
+		CurrentLayerIndex = NewLayerIndex;
+
+		if (NewLayerIndex != -1)
+			SCENE_RESOURCES.ComplexityMetricDataToGPU(NewLayerIndex);
+	}
 
 	for (size_t i = 0; i < ClientAfterActiveLayerChangedCallbacks.size(); i++)
 	{
