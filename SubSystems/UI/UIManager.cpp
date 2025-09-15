@@ -1139,10 +1139,10 @@ void UIManager::SetIsModelCamera(const bool NewValue, glm::vec3 ModelCameraFocus
 	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (CurrentObject != nullptr)
 	{
-		ResourceAnalysisData* GeometryData = CurrentObject->GetGeometryData();
-		if (GeometryData != nullptr)
+		ResourceAnalysisData* AnalysisData = CurrentObject->GetAnalysisData();
+		if (AnalysisData != nullptr)
 		{
-			FEAABB ObjectAABB = GeometryData->GetAABB();
+			FEAABB ObjectAABB = AnalysisData->GetAABB();
 
 			FECameraComponent& CameraComponent = CameraEntity->GetComponent<FECameraComponent>();
 			CameraComponent.SetFarPlane(ObjectAABB.GetLongestAxisLength() * 5.0f);
@@ -1299,7 +1299,7 @@ void UIManager::RenderHistogramWindow()
 			float PercentageOfAreaSelected = 0.0f;
 			if (CurrentObject != nullptr)
 			{
-				MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+				MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 				if (CurrentMeshAnalysisData != nullptr)
 				{
 					PercentageOfAreaSelected = static_cast<float>((MaxValueDistribution.x / CurrentMeshAnalysisData->GetTotalArea() * 100.0) - (MinValueDistribution.x / CurrentMeshAnalysisData->GetTotalArea() * 100.0));
@@ -1488,7 +1488,7 @@ glm::dvec2 UIManager::CalculateAreaDistributionAtValue(DataLayer* Layer, float V
 	if (CurrentObject == nullptr)
 		return glm::dvec2(0.0);
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return glm::dvec2(0.0);
 
@@ -1535,7 +1535,7 @@ void UIManager::OnLayerChange()
 	LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMin(0.0f);
 	LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMax(0.0f);
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMin() != LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMax())
 	{
 		UI.UpdateHistogramData(&LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()], UI.Histogram.GetCurrentBinCount());
@@ -1800,7 +1800,7 @@ void UIManager::RenderLayerSettingsTab()
 		if (CurrentObject == nullptr)
 			return;
 
-		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 		if (CurrentMeshAnalysisData == nullptr)
 			return;
 
@@ -2155,7 +2155,7 @@ void UIManager::RenderExportTab()
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -2297,7 +2297,7 @@ bool UIManager::ExportOBJ(std::string FilePath, int LayerIndex)
 	if (CurrentObject == nullptr)
 		return false;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return false;
 

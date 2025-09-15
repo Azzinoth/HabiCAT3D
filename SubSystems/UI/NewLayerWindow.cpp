@@ -117,7 +117,7 @@ void NewLayerWindow::AddLayer()
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 
 	switch (SelectedLayerType)
 	{

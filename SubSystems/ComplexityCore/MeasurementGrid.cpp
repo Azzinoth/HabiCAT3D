@@ -118,7 +118,7 @@ void MeasurementGrid::GridFillingThread(void* InputData, void* OutputData)
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -199,7 +199,7 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -356,7 +356,7 @@ void MeasurementGrid::FillCellsWithPointInfo()
 	if (CurrentObject == nullptr)
 		return;
 
-	PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+	PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentPointCloudAnalysisData == nullptr)
 		return;
 
@@ -561,7 +561,7 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -600,7 +600,7 @@ void MeasurementGrid::FillPerTriangleMeasurementData()
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -645,7 +645,7 @@ void MeasurementGrid::FillPerPointMeasurementData()
 	if (CurrentObject == nullptr)
 		return;
 
-	PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+	PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentPointCloudAnalysisData == nullptr)
 		return;
 
@@ -701,7 +701,7 @@ void MeasurementGrid::AddLinesOfGrid()
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 

@@ -14,7 +14,7 @@ void TriangleCountLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -37,7 +37,7 @@ void TriangleCountLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -59,7 +59,7 @@ void TriangleCountLayerProducer::CalculateOnWholeModel()
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 

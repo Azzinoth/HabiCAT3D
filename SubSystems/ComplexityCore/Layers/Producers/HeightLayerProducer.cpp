@@ -13,7 +13,7 @@ DataLayer HeightLayerProducer::Calculate()
 	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return Result;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 

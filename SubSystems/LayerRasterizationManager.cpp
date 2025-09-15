@@ -37,7 +37,7 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 	if (CurrentObject == nullptr)
 		return Grid;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return Grid;
 
@@ -131,7 +131,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -970,7 +970,7 @@ void LayerRasterizationManager::PrepareLayerForExport(DataLayer* LayerToExport, 
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -1110,7 +1110,7 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(size_t GridX, size
 	if (CurrentObject == nullptr)
 		return Result;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
@@ -1298,7 +1298,7 @@ glm::vec2 LayerRasterizationManager::GetMinMaxResolutionInMeters(glm::vec3 Proje
 	if (CurrentObject == nullptr)
 		return Result;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
@@ -1396,7 +1396,7 @@ void LayerRasterizationManager::DebugRenderGrid()
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -1462,7 +1462,7 @@ void LayerRasterizationManager::DebugMouseClick()
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -1498,7 +1498,7 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -1560,7 +1560,7 @@ void LayerRasterizationManager::UpdateProjectionVector()
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -1584,7 +1584,7 @@ glm::uvec2 LayerRasterizationManager::GetResolutionInPixelsBasedOnResolutionInMe
 	if (CurrentObject == nullptr)
 		return Result;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
@@ -1631,7 +1631,7 @@ float LayerRasterizationManager::GetResolutionInMetersBasedOnResolutionInPixels(
 	if (CurrentObject == nullptr)
 		return Result;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
@@ -1679,7 +1679,7 @@ int LayerRasterizationManager::GetResolutionInPixelsThatWouldGiveSuchResolutionI
 	if (CurrentObject == nullptr)
 		return Result;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 

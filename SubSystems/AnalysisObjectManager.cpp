@@ -99,7 +99,7 @@ AnalysisObject* AnalysisObjectManager::ImportOBJ(const char* FilePath, bool bFor
 		}
 		
 		Result->EngineResource = LoadedMesh;
-		Result->GeometryData = ExtractAdditionalGeometryData(FirstObject->DVerC, FirstObject->FColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
+		Result->AnalysisData = ExtractAdditionalGeometryData(FirstObject->DVerC, FirstObject->FColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
 		
 		//AnalysisObjects[Result->ID] = Result;
 	}
@@ -318,7 +318,7 @@ AnalysisObject* AnalysisObjectManager::LoadRUGMesh(std::string FilePath)
 	Result->Type = DATA_SOURCE_TYPE::MESH;
 	Result->FilePath = FilePath;
 	Result->EngineResource = NewMesh;
-	Result->GeometryData = ExtractAdditionalGeometryData(FEVertices, FEColors, FEUVs, FETangents, FEIndices, FENormals);
+	Result->AnalysisData = ExtractAdditionalGeometryData(FEVertices, FEColors, FEUVs, FETangents, FEIndices, FENormals);
 
 	delete[] Buffer;
 	delete[] VertexBuffer;
@@ -365,7 +365,7 @@ AnalysisObject* AnalysisObjectManager::LoadResource(std::string FilePath)
 			Result->FilePath = FilePath;
 			Result->Name = FILE_SYSTEM.GetFileName(FilePath, false);
 			Result->EngineResource = LoadedObject;
-			Result->GeometryData = ExtractAdditionalGeometryData(static_cast<FEPointCloud*>(LoadedObject));
+			Result->AnalysisData = ExtractAdditionalGeometryData(static_cast<FEPointCloud*>(LoadedObject));
 		}
 	}
 	else if (FileExtension == ".las" || FileExtension == ".laz")
@@ -378,7 +378,7 @@ AnalysisObject* AnalysisObjectManager::LoadResource(std::string FilePath)
 			Result->FilePath = FilePath;
 			Result->Name = FILE_SYSTEM.GetFileName(FilePath, false);
 			Result->EngineResource = PointCloud;
-			Result->GeometryData = ExtractAdditionalGeometryData(PointCloud);
+			Result->AnalysisData = ExtractAdditionalGeometryData(PointCloud);
 		}
 	}
 
@@ -417,7 +417,7 @@ void AnalysisObjectManager::ComplexityMetricDataToGPU(int LayerIndex, int GPULay
 	DataLayer& CurrentLayer = LAYER_MANAGER.Layers[LayerIndex];
 	if (CurrentLayer.GetDataSourceType() == DATA_SOURCE_TYPE::MESH)
 	{
-		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 		if (CurrentMeshAnalysisData == nullptr)
 			return;
 
@@ -451,7 +451,7 @@ void AnalysisObjectManager::ComplexityMetricDataToGPU(int LayerIndex, int GPULay
 	}
 	else if (CurrentLayer.GetDataSourceType() == DATA_SOURCE_TYPE::POINT_CLOUD)
 	{
-		PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+		PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
 		if (CurrentPointCloudAnalysisData == nullptr)
 			return;
 
@@ -492,7 +492,7 @@ bool AnalysisObjectManager::SelectTriangle(glm::dvec3 MouseRay)
 	if (ActiveMesh == nullptr)
 		return false;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return false;
 
@@ -542,7 +542,7 @@ glm::vec3 AnalysisObjectManager::IntersectTriangle(glm::dvec3 MouseRay)
 	if (ActiveMesh == nullptr)
 		return glm::vec3(0.0f);
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return glm::vec3(0.0f);
 
@@ -588,7 +588,7 @@ bool AnalysisObjectManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float R
 	if (ActiveMesh == nullptr)
 		return Result;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 	
@@ -630,7 +630,7 @@ void AnalysisObjectManager::UpdateUniforms()
 		if (ActiveMesh == nullptr)
 			return;
 
-		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 		if (CurrentMeshAnalysisData == nullptr)
 			return;
 
@@ -788,7 +788,7 @@ void AnalysisObjectManager::SaveToRUGFile(std::string FilePath, std::string Anal
 	if (FilePath.find(".rug") == std::string::npos)
 		FilePath += ".rug";
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 

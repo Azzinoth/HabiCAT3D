@@ -108,25 +108,22 @@ class AnalysisObject
 	std::string Name;
 	std::string FilePath;
 
-	ResourceAnalysisData* GeometryData = nullptr;
+	ResourceAnalysisData* AnalysisData = nullptr;
 	DATA_SOURCE_TYPE Type = DATA_SOURCE_TYPE::UNKNOWN;
 
 	FEObject* EngineResource = nullptr;
 	FEEntity* Entity = nullptr;
 public:
-	AnalysisObject()
-	{
-		ID = APPLICATION.GetUniqueHexID();
-	}
+	AnalysisObject();
 
-	std::string GetID() { return ID; }
-	std::string GetName() { return Name; }
-	std::string GetFilePath() { return FilePath; }
+	std::string GetID();
+	std::string GetName();
+	std::string GetFilePath();
 
-	ResourceAnalysisData* GetGeometryData() { return GeometryData; }
-	DATA_SOURCE_TYPE GetType() { return Type; }
-	FEObject* GetEngineResource() { return EngineResource; }
-	FEEntity* GetEntity() { return Entity; }
+	ResourceAnalysisData* GetAnalysisData();
+	DATA_SOURCE_TYPE GetType();
+	FEObject* GetEngineResource();
+	FEEntity* GetEntity();
 
 	std::vector<DataLayer*> Layers;
 };

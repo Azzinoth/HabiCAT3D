@@ -93,3 +93,43 @@ void MeshAnalysisData::SetUnselectedAreaBrightnessFactor(float NewValue)
 
 	UnselectedAreaBrightnessFactor = NewValue;
 }
+
+AnalysisObject::AnalysisObject()
+{
+	ID = APPLICATION.GetUniqueHexID();
+}
+
+std::string AnalysisObject::GetID()
+{ 
+	return ID;
+}
+
+std::string AnalysisObject::GetName()
+{ 
+	return Name;
+}
+
+std::string AnalysisObject::GetFilePath() 
+{ 
+	return FilePath;
+}
+
+ResourceAnalysisData* AnalysisObject::GetAnalysisData()
+{ 
+	return AnalysisData;
+}
+
+DATA_SOURCE_TYPE AnalysisObject::GetType()
+{ 
+	return Type;
+}
+
+FEObject* AnalysisObject::GetEngineResource()
+{ 
+	return EngineResource;
+}
+
+FEEntity* AnalysisObject::GetEntity()
+{ 
+	return Entity;
+}

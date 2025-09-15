@@ -36,12 +36,12 @@ void AfterNewResourceLoads(AnalysisObject* NewObject)
 	if (ActiveEntity == nullptr)
 		return;
 
-	ResourceAnalysisData* GeometryData = NewObject->GetGeometryData();
+	ResourceAnalysisData* AnalysisData = NewObject->GetAnalysisData();
 
 	if (!APPLICATION.HasConsoleWindow())
 	{
-		ActiveEntity->GetComponent<FETransformComponent>().SetPosition(-GeometryData->GetAABB().GetCenter());
-		GeometryData->Position->SetPosition(-GeometryData->GetAABB().GetCenter());
+		ActiveEntity->GetComponent<FETransformComponent>().SetPosition(-AnalysisData->GetAABB().GetCenter());
+		AnalysisData->Position->SetPosition(-AnalysisData->GetAABB().GetCenter());
 	}
 
 	if (!APPLICATION.HasConsoleWindow())
@@ -49,7 +49,7 @@ void AfterNewResourceLoads(AnalysisObject* NewObject)
 		UI.SetIsModelCamera(true);
 		if (NewObject->GetType() == DATA_SOURCE_TYPE::MESH)
 		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(NewObject->GetGeometryData());
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(NewObject->GetAnalysisData());
 			if (CurrentMeshAnalysisData != nullptr)
 				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(CurrentMeshAnalysisData->GetAverageNormal()));
 		}
@@ -72,7 +72,7 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -138,7 +138,7 @@ void OutputSelectedAreaInfoToFile()
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -381,7 +381,7 @@ void MainWindowRender()
 			// Unnecessary part
 			//ActiveEntity->SetComponentVisible(ComponentVisibilityType::ALL, true);
 
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 
 			// This part should be done by Engine.
 			FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));

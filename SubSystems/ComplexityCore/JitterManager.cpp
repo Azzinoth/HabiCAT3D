@@ -21,13 +21,13 @@ void JitterManager::OnNewObjectLoaded(AnalysisObject* NewObject)
 	if (NewObject == nullptr)
 		return;
 
-	ResourceAnalysisData* GeometryData = NewObject->GetGeometryData();
-	if (GeometryData == nullptr)
+	ResourceAnalysisData* AnalysisData = NewObject->GetAnalysisData();
+	if (AnalysisData == nullptr)
 		return;
 
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
-	FEAABB AABBToUse = GeometryData->GetAABB();
+	FEAABB AABBToUse = AnalysisData->GetAABB();
 
 	FEAABB FinalAABB = AABBToUse.Transform(TransformMatrix);
 	const float MaxAABBSize = FinalAABB.GetLongestAxisLength();
@@ -585,7 +585,7 @@ void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -756,7 +756,7 @@ std::vector<float> JitterManager::ProduceStandardDeviationData()
 	if (CurrentObject == nullptr)
 		return Result;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
@@ -783,15 +783,15 @@ FEAABB JitterManager::GetAABBForJitteredGrid(GridInitData_Jitter* Settings, floa
 	if (CurrentObject == nullptr)
 		return Result;
 
-	ResourceAnalysisData* GeometryData = CurrentObject->GetGeometryData();
-	if (GeometryData == nullptr)
+	ResourceAnalysisData* AnalysisData = CurrentObject->GetAnalysisData();
+	if (AnalysisData == nullptr)
 		return Result;
 
-	FEAABB GeometryAABB = GeometryData->GetAABB();
+	FEAABB GeometryAABB = AnalysisData->GetAABB();
 	FEAABB FinalAABB = GeometryAABB;
 
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
-	TransformMatrix = glm::translate(TransformMatrix, GeometryData->Position->GetPosition());
+	TransformMatrix = glm::translate(TransformMatrix, AnalysisData->Position->GetPosition());
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(Settings->GridScale));
 	FinalAABB = FinalAABB.Transform(TransformMatrix);
 

@@ -26,7 +26,7 @@ DataLayer::DataLayer(DATA_SOURCE_TYPE SourceType, const std::vector<float> Eleme
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 			if (CurrentMeshAnalysisData == nullptr)
 				return;
 
@@ -38,7 +38,7 @@ DataLayer::DataLayer(DATA_SOURCE_TYPE SourceType, const std::vector<float> Eleme
 			
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
 			if (CurrentPointCloudAnalysisData == nullptr)
 				return;
 
@@ -118,7 +118,7 @@ void DataLayer::ComputeStatistics()
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 			if (CurrentMeshAnalysisData == nullptr)
 				return;
 
@@ -133,7 +133,7 @@ void DataLayer::ComputeStatistics()
 
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
 			if (CurrentPointCloudAnalysisData == nullptr)
 				return;
 
@@ -155,7 +155,7 @@ void DataLayer::FillRawData()
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 			if (CurrentMeshAnalysisData == nullptr)
 				return;
 
@@ -197,7 +197,7 @@ void DataLayer::FillRawData()
 		}
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
 			if (CurrentPointCloudAnalysisData == nullptr)
 				return;
 

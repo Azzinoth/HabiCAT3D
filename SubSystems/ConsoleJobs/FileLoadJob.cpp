@@ -56,7 +56,7 @@ bool FileLoadJob::Execute(void* InputData, void* OutputData)
 	if (CurrentObject == nullptr)
 		return false;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return false;
 

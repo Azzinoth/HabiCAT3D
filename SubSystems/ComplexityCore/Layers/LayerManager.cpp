@@ -14,7 +14,7 @@ void LayerManager::AddLayer(DATA_SOURCE_TYPE LayerDataSource, std::vector<float>
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 			if (CurrentMeshAnalysisData == nullptr)
 				return;
 
@@ -41,7 +41,7 @@ void LayerManager::AddLayer(DataLayer NewLayer)
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 			if (CurrentMeshAnalysisData == nullptr)
 				return;
 
@@ -56,7 +56,7 @@ void LayerManager::AddLayer(DataLayer NewLayer)
 
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
 			if (CurrentPointCloudAnalysisData == nullptr)
 				return;
 
@@ -155,7 +155,7 @@ void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
 				if (CurrentObject == nullptr)
 					return;
 
-				PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+				PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
 				if (CurrentPointCloudAnalysisData == nullptr)
 					return;
 
@@ -208,7 +208,7 @@ void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
 		if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
 			return;
 
-		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 		if (CurrentMeshAnalysisData == nullptr || CurrentObject->GetEngineResource() == nullptr)
 			return;
 
@@ -223,7 +223,7 @@ void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
 		if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::POINT_CLOUD)
 			return;
 
-		PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+		PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
 		if (CurrentPointCloudAnalysisData == nullptr || CurrentObject->GetEngineResource() == nullptr)
 			return;
 
