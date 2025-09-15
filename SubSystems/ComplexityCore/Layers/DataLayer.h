@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../AnalysisObjectManager.h"
+#include "../AnalysisData.h"
 using namespace FocalEngine;
 
 struct DebugEntry
@@ -63,7 +63,10 @@ class DataLayer
 	std::string Caption = "Layer caption";
 	std::string UserNote;
 	LAYER_TYPE Type = LAYER_TYPE::UNKNOWN;
+	// FIX ME: It should not be here.
 	DATA_SOURCE_TYPE DataSourceType = DATA_SOURCE_TYPE::MESH;
+	// FIX ME: DATA_SOURCE_TYPE should be taken from the AnalysisObject the layer belongs to.
+	std::vector<std::string> ParentObjectIDs;
 
 	float Max = -FLT_MAX;
 	float Min = FLT_MAX;

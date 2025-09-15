@@ -68,7 +68,11 @@ DataLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 	DataLayer Result(DATA_SOURCE_TYPE::MESH);
 	Result.SetType(LAYER_TYPE::COMPARE);
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData() || FirstLayer == -1 || SecondLayer == -1)
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
+		return Result;
+
+	if (FirstLayer == -1 || SecondLayer == -1)
 		return Result;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);

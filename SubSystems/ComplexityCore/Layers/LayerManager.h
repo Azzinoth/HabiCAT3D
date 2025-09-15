@@ -3,7 +3,7 @@
 
 class LayerManager
 {
-	friend class SceneResources;
+	friend class AnalysisObjectManager;
 public:
 	SINGLETON_PUBLIC_PART(LayerManager)
 

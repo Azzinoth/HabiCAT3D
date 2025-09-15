@@ -6,15 +6,20 @@ LayerManager::~LayerManager() {}
 
 void LayerManager::AddLayer(DATA_SOURCE_TYPE LayerDataSource, std::vector<float> ElementsToData)
 {
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr || CurrentObject->GetType() != LayerDataSource)
+		return;
+
 	switch (LayerDataSource)
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			if (ANALYSIS_OBJECT_MANAGER.HaveMeshData())
-			{
-				if (ElementsToData.size() == ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size())
-					Layers.push_back(DataLayer(DATA_SOURCE_TYPE::MESH, ElementsToData));
-			}
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+			if (CurrentMeshAnalysisData == nullptr)
+				return;
+
+			if (ElementsToData.size() == CurrentMeshAnalysisData->Triangles.size())
+				Layers.push_back(DataLayer(DATA_SOURCE_TYPE::MESH, ElementsToData));
 
 			break;
 		}
@@ -28,17 +33,22 @@ void LayerManager::AddLayer(DATA_SOURCE_TYPE LayerDataSource, std::vector<float>
 
 void LayerManager::AddLayer(DataLayer NewLayer)
 {
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr || CurrentObject->GetType() != NewLayer.GetDataSourceType())
+		return;
+
 	switch (NewLayer.GetDataSourceType())
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			if (ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+			if (CurrentMeshAnalysisData == nullptr)
+				return;
+
+			if (NewLayer.ElementsToData.size() == CurrentMeshAnalysisData->Triangles.size())
 			{
-				if (NewLayer.ElementsToData.size() == ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size())
-				{
-					Layers.push_back(NewLayer);
-					Layers.back().ComputeStatistics();
-				}	
+				Layers.push_back(NewLayer);
+				Layers.back().ComputeStatistics();
 			}
 			
 			break;
@@ -46,13 +56,14 @@ void LayerManager::AddLayer(DataLayer NewLayer)
 
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			if (ANALYSIS_OBJECT_MANAGER.HavePointCloudData())
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+			if (CurrentPointCloudAnalysisData == nullptr)
+				return;
+
+			if (NewLayer.ElementsToData.size() == CurrentPointCloudAnalysisData->RawPointCloudData.size())
 			{
-				if (NewLayer.ElementsToData.size() == ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData.size())
-				{
-					Layers.push_back(NewLayer);
-					Layers.back().ComputeStatistics();
-				}
+				Layers.push_back(NewLayer);
+				Layers.back().ComputeStatistics();
 			}
 
 			break;
@@ -89,7 +100,8 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 {
 	std::string Result = Base;
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return Result;
 
 	std::vector<std::string> CaptionList;
@@ -125,7 +137,7 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 	return Result;
 }
 
-#include "../../SceneResources.h"
+#include "../../AnalysisObjectManager.h"
 void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
 {
 	if (NewLayerIndex < -1 || NewLayerIndex >= int(Layers.size()))
@@ -139,22 +151,40 @@ void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
 			DataLayer& CurrentLayer = Layers[CurrentLayerIndex];
 			if (CurrentLayer.GetDataSourceType() == DATA_SOURCE_TYPE::POINT_CLOUD)
 			{
-				for (size_t i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData.size(); i++)
-				{
-					std::vector<unsigned char> OriginalColor = ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->OriginalColors[i];
+				AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+				if (CurrentObject == nullptr)
+					return;
 
-					ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData[i].R = OriginalColor[0];
-					ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData[i].G = OriginalColor[1];
-					ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData[i].B = OriginalColor[2];
-					ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData[i].A = OriginalColor[3];
+				PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+				if (CurrentPointCloudAnalysisData == nullptr)
+					return;
+
+				for (size_t i = 0; i < CurrentPointCloudAnalysisData->RawPointCloudData.size(); i++)
+				{
+					std::vector<unsigned char> OriginalColor = CurrentPointCloudAnalysisData->OriginalColors[i];
+
+					CurrentPointCloudAnalysisData->RawPointCloudData[i].R = OriginalColor[0];
+					CurrentPointCloudAnalysisData->RawPointCloudData[i].G = OriginalColor[1];
+					CurrentPointCloudAnalysisData->RawPointCloudData[i].B = OriginalColor[2];
+					CurrentPointCloudAnalysisData->RawPointCloudData[i].A = OriginalColor[3];
 				}
 
-				FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData);
+				FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudAnalysisData->RawPointCloudData);
 
-				SCENE_RESOURCES.CurrentPointCloudEntity->RemoveComponent<FEPointCloudComponent>();
-				RESOURCE_MANAGER.DeleteFEPointCloud(SCENE_RESOURCES.CurrentPointCloud);
-				SCENE_RESOURCES.CurrentPointCloud = PointCloud;
-				SCENE_RESOURCES.CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(SCENE_RESOURCES.CurrentPointCloud);
+				// FIX ME: Should it be here?
+				FEEntity* PointCloudEntity = CurrentObject->GetEntity();
+				FEPointCloud* OldPointCloud = static_cast<FEPointCloud*>(CurrentObject->GetEngineResource());
+				if (PointCloudEntity != nullptr)
+				{
+					PointCloudEntity->RemoveComponent<FEPointCloudComponent>();
+					RESOURCE_MANAGER.DeleteFEPointCloud(OldPointCloud);
+					CurrentObject->EngineResource = PointCloud;
+					PointCloudEntity->AddComponent<FEPointCloudComponent>(PointCloud);
+				}
+				/*ANALYSIS_OBJECT_MANAGER.CurrentPointCloudEntity->RemoveComponent<FEPointCloudComponent>();
+				RESOURCE_MANAGER.DeleteFEPointCloud(ANALYSIS_OBJECT_MANAGER.CurrentPointCloud);
+				ANALYSIS_OBJECT_MANAGER.CurrentPointCloud = PointCloud;
+				ANALYSIS_OBJECT_MANAGER.CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(ANALYSIS_OBJECT_MANAGER.CurrentPointCloud);*/
 			}
 		}
 
@@ -174,23 +204,33 @@ void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
 	DataLayer& NewLayer = Layers[NewLayerIndex];
 	if (NewLayer.GetDataSourceType() == DATA_SOURCE_TYPE::MESH)
 	{
-		if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData() || SCENE_RESOURCES.ActiveMesh == nullptr)
+		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
+			return;
+
+		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+		if (CurrentMeshAnalysisData == nullptr || CurrentObject->GetEngineResource() == nullptr)
 			return;
 
 		CurrentLayerIndex = NewLayerIndex;
 
 		if (NewLayerIndex != -1)
-			SCENE_RESOURCES.ComplexityMetricDataToGPU(NewLayerIndex);
+			ANALYSIS_OBJECT_MANAGER.ComplexityMetricDataToGPU(NewLayerIndex);
 	}
 	else if (NewLayer.GetDataSourceType() == DATA_SOURCE_TYPE::POINT_CLOUD)
 	{
-		if (!ANALYSIS_OBJECT_MANAGER.HavePointCloudData() || SCENE_RESOURCES.CurrentPointCloud == nullptr)
+		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::POINT_CLOUD)
+			return;
+
+		PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+		if (CurrentPointCloudAnalysisData == nullptr || CurrentObject->GetEngineResource() == nullptr)
 			return;
 
 		CurrentLayerIndex = NewLayerIndex;
 
 		if (NewLayerIndex != -1)
-			SCENE_RESOURCES.ComplexityMetricDataToGPU(NewLayerIndex);
+			ANALYSIS_OBJECT_MANAGER.ComplexityMetricDataToGPU(NewLayerIndex);
 	}
 
 	for (size_t i = 0; i < ClientAfterActiveLayerChangedCallbacks.size(); i++)
@@ -209,7 +249,7 @@ void LayerManager::AddActiveLayerChangedCallback(std::function<void()> Func)
 
 int LayerManager::GetActiveLayerIndex()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData())
+	if (ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject() == nullptr)
 		return -1;
 
 	return CurrentLayerIndex;
@@ -217,7 +257,7 @@ int LayerManager::GetActiveLayerIndex()
 
 DataLayer* LayerManager::GetActiveLayer()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData())
+	if (ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject() == nullptr)
 		return nullptr;
 
 	if (CurrentLayerIndex == -1)

@@ -114,6 +114,14 @@ void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionIn
 
 void MeasurementGrid::GridFillingThread(void* InputData, void* OutputData)
 {
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
 	GridThreadData* Input = reinterpret_cast<GridThreadData*>(InputData);
 	std::vector<GridUpdateTask>* Output = reinterpret_cast<std::vector<GridUpdateTask>*>(OutputData);
 
@@ -123,7 +131,7 @@ void MeasurementGrid::GridFillingThread(void* InputData, void* OutputData)
 
 	for (int l = Input->FirstIndexInTriangleArray; l <= Input->LastIndexInTriangleArray; l++)
 	{
-		FEAABB TriangleAABB = FEAABB(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[l]);
+		FEAABB TriangleAABB = FEAABB(CurrentMeshAnalysisData->Triangles[l]);
 
 		int XEnd = static_cast<int>(Data.size());
 
@@ -172,7 +180,7 @@ void MeasurementGrid::GridFillingThread(void* InputData, void* OutputData)
 				{
 					if (Data[i][j][k].AABB.AABBIntersect(TriangleAABB))
 					{
-						if (GEOMETRY.IsAABBIntersectTriangle(Data[i][j][k].AABB, ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[l]))
+						if (GEOMETRY.IsAABBIntersectTriangle(Data[i][j][k].AABB, CurrentMeshAnalysisData->Triangles[l]))
 						{
 							Output->push_back(GridUpdateTask(static_cast<int>(i), static_cast<int>(j), static_cast<int>(k), l));
 						}
@@ -187,15 +195,23 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 {
 	TIME.BeginTimeStamp("Fill cells with triangle info");
 
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
 	if (bUsingMultiThreading)
 	{
 		int LocalThreadCount = THREAD_POOL.GetThreadCount();
-		int NumberOfTrianglesPerThread = static_cast<int>(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size() / LocalThreadCount);
+		int NumberOfTrianglesPerThread = static_cast<int>(CurrentMeshAnalysisData->Triangles.size() / LocalThreadCount);
 		
 		if (LocalThreadCount > NumberOfTrianglesPerThread)
 		{
 			LocalThreadCount = 1;
-			NumberOfTrianglesPerThread = static_cast<int>(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size());
+			NumberOfTrianglesPerThread = static_cast<int>(CurrentMeshAnalysisData->Triangles.size());
 		}
 
 		std::vector<std::string> ThreadIDs;
@@ -212,7 +228,7 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 				NewThreadData->FirstIndexInTriangleArray = 0;
 
 			if (i == LocalThreadCount - 1)
-				NewThreadData->LastIndexInTriangleArray = static_cast<int>(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size() - 1);
+				NewThreadData->LastIndexInTriangleArray = static_cast<int>(CurrentMeshAnalysisData->Triangles.size() - 1);
 			else
 				NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
 
@@ -265,9 +281,9 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 
 		DebugTotalTrianglesInCells = 0;
 
-		for (int l = 0; l < ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size(); l++)
+		for (int l = 0; l < CurrentMeshAnalysisData->Triangles.size(); l++)
 		{
-			FEAABB TriangleAABB = FEAABB(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[l]);
+			FEAABB TriangleAABB = FEAABB(CurrentMeshAnalysisData->Triangles[l]);
 
 			int XEnd = static_cast<int>(Data.size());
 
@@ -316,7 +332,7 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 					{
 						if (Data[i][j][k].AABB.AABBIntersect(TriangleAABB))
 						{
-							if (GEOMETRY.IsAABBIntersectTriangle(Data[i][j][k].AABB, ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[l]))
+							if (GEOMETRY.IsAABBIntersectTriangle(Data[i][j][k].AABB, CurrentMeshAnalysisData->Triangles[l]))
 							{
 								Data[i][j][k].TrianglesInCell.push_back(l);
 								DebugTotalTrianglesInCells++;
@@ -335,6 +351,14 @@ void MeasurementGrid::FillCellsWithPointInfo()
 {
 	bTriangleMode = false;
 	TIME.BeginTimeStamp("Fill cells with points info");
+
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentPointCloudAnalysisData == nullptr)
+		return;
 
 	/*if (bUsingMultiThreading)
 	{*/
@@ -428,10 +452,9 @@ void MeasurementGrid::FillCellsWithPointInfo()
 
 		DebugTotalPointsInCells = 0;
 
-		PointCloudGeometryData* CurrentPointCloudData = ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData;
-		for (int l = 0; l < CurrentPointCloudData->RawPointCloudData.size(); l++)
+		for (int l = 0; l < CurrentPointCloudAnalysisData->RawPointCloudData.size(); l++)
 		{
-			glm::vec3 CurrentPoint = glm::vec3(CurrentPointCloudData->RawPointCloudData[l].X, CurrentPointCloudData->RawPointCloudData[l].Y, CurrentPointCloudData->RawPointCloudData[l].Z);
+			glm::vec3 CurrentPoint = glm::vec3(CurrentPointCloudAnalysisData->RawPointCloudData[l].X, CurrentPointCloudAnalysisData->RawPointCloudData[l].Y, CurrentPointCloudAnalysisData->RawPointCloudData[l].Z);
 
 		//	for (size_t i = 0; i < Data.size(); i++)
 		//	{
@@ -534,6 +557,14 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 		}
 	}
 
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
 	float DistanceToCell = 999999.0f;
 	float LastDistanceToCell = 999999.0f;
 	for (size_t i = 0; i < Data.size(); i++)
@@ -546,7 +577,7 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 				if (!Data[i][j][k].bWasRenderedLastFrame)
 					continue;
 
-				FEAABB FinalAABB = Data[i][j][k].AABB.Transform(TransformMat).Transform(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Position->GetWorldMatrix());
+				FEAABB FinalAABB = Data[i][j][k].AABB.Transform(TransformMat).Transform(CurrentMeshAnalysisData->Position->GetWorldMatrix());
 				if (FinalAABB.RayIntersect(MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE), MAIN_SCENE_MANAGER.GetMouseRayDirection(), DistanceToCell))
 				{
 					if (LastDistanceToCell > DistanceToCell)
@@ -565,14 +596,19 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 
 void MeasurementGrid::FillPerTriangleMeasurementData()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
 	TIME.BeginTimeStamp("FillMeasurementData");
 
 	std::vector<int> PointDataCount;
-	PerTriangleMeasurementData.resize(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size());
-	PointDataCount.resize(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size());
+	PerTriangleMeasurementData.resize(CurrentMeshAnalysisData->Triangles.size());
+	PointDataCount.resize(CurrentMeshAnalysisData->Triangles.size());
 
 	for (size_t i = 0; i < Data.size(); i++)
 	{
@@ -605,18 +641,22 @@ void MeasurementGrid::FillPerTriangleMeasurementData()
 
 void MeasurementGrid::FillPerPointMeasurementData()
 {
-	PointCloudGeometryData* CurrentPointCloudData = ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData;
-	if (CurrentPointCloudData == nullptr)
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return;
 
-	if (CurrentPointCloudData->RawPointCloudData.empty())
+	PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentPointCloudAnalysisData == nullptr)
+		return;
+
+	if (CurrentPointCloudAnalysisData->RawPointCloudData.empty())
 		return;
 
 	TIME.BeginTimeStamp("FillMeasurementData");
 
 	std::vector<int> PointDataCount;
-	PerPointMeasurementData.resize(CurrentPointCloudData->RawPointCloudData.size());
-	PointDataCount.resize(CurrentPointCloudData->RawPointCloudData.size());
+	PerPointMeasurementData.resize(CurrentPointCloudAnalysisData->RawPointCloudData.size());
+	PointDataCount.resize(CurrentPointCloudAnalysisData->RawPointCloudData.size());
 
 	for (size_t i = 0; i < Data.size(); i++)
 	{
@@ -657,6 +697,18 @@ void MeasurementGrid::FillMeasurementData()
 
 void MeasurementGrid::AddLinesOfGrid()
 {
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
+	FEEntity* CurrentEntity = CurrentObject->GetEntity();
+	if (CurrentEntity == nullptr)
+		return;
+
 	for (size_t i = 0; i < Data.size(); i++)
 	{
 		for (size_t j = 0; j < Data[i].size(); j++)
@@ -675,7 +727,7 @@ void MeasurementGrid::AddLinesOfGrid()
 					if (Data[i][j][k].bSelected)
 						Color = glm::vec3(0.9f, 0.1f, 0.1f);
 
-					LINE_RENDERER.RenderAABB(Data[i][j][k].AABB.Transform(SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
+					LINE_RENDERER.RenderAABB(Data[i][j][k].AABB.Transform(CurrentEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
 
 					Data[i][j][k].bWasRenderedLastFrame = true;
 
@@ -683,12 +735,12 @@ void MeasurementGrid::AddLinesOfGrid()
 					{
 						for (size_t l = 0; l < Data[i][j][k].TrianglesInCell.size(); l++)
 						{
-							const auto CurrentTriangle = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[Data[i][j][k].TrianglesInCell[l]];
+							const auto CurrentTriangle = CurrentMeshAnalysisData->Triangles[Data[i][j][k].TrianglesInCell[l]];
 
 							std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 							for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 							{
-								TranformedTrianglePoints[j] = SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+								TranformedTrianglePoints[j] = CurrentEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 							}
 
 							LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));

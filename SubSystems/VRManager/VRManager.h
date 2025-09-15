@@ -1,12 +1,12 @@
 #pragma once
-#include "../SceneResources.h"
+#include "../AnalysisObjectManager.h"
 using namespace FocalEngine;
 
 class VRManager
 {
 	SINGLETON_PRIVATE_PART(VRManager)
 
-	friend class SceneResources;
+	friend class AnalysisObjectManager;
 
 	float TranslateScale = 1.0f;
 

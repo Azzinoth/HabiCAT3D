@@ -124,14 +124,29 @@ std::string ScreenshotManager::SuitableNewFileName(std::string Base, std::string
 
 void ScreenshotManager::TakeScreenshot()
 {
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 	{
 		APPLICATION.EndFrame();
 		return;
 	}
 
-	if (SCENE_RESOURCES.ActiveEntity == nullptr)
+	// FIX ME: currently only mesh objects are supported
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+	{
+		APPLICATION.EndFrame();
+		return;
+	}
+
+	FEMesh* ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+	if (ActiveMesh == nullptr)
+	{
+		APPLICATION.EndFrame();
+		return;
+	}
+
+	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
 	{
 		APPLICATION.EndFrame();
 		return;
@@ -140,10 +155,7 @@ void ScreenshotManager::TakeScreenshot()
 	FrameBufferObject->Bind();
 	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-	if (SCENE_RESOURCES.ActiveEntity != nullptr)
-	{
-		RENDERER.RenderGameModelComponentForward(SCENE_RESOURCES.ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera());
-	}
+	RENDERER.RenderGameModelComponentForward(ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera());
 
 	UI.Render(true);
 
@@ -155,7 +167,7 @@ void ScreenshotManager::TakeScreenshot()
 
 	FrameBufferObject->UnBind();
 
-	RESOURCE_MANAGER.ExportFETextureToPNG(FrameBufferObject->GetColorAttachment(), SuitableNewFileName(CurrentMeshData->FileName, ".png").c_str());
+	RESOURCE_MANAGER.ExportFETextureToPNG(FrameBufferObject->GetColorAttachment(), SuitableNewFileName(FILE_SYSTEM.GetFileName(CurrentObject->GetFilePath(), false), ".png").c_str());
 }
 
 void ScreenshotManager::RenderTargetWasResized()

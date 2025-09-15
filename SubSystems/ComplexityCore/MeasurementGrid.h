@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../SceneResources.h"
+#include "../AnalysisObjectManager.h"
 #include "../SubSystems/FELinesRenderer.h"
 #include "Layers/DataLayer.h"
 

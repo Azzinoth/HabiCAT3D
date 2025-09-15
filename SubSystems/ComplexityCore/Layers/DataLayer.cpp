@@ -1,4 +1,5 @@
 #include "DataLayer.h"
+#include "../../AnalysisObjectManager.h"
 using namespace FocalEngine;
 
 DataLayer::DataLayer()
@@ -17,14 +18,19 @@ DataLayer::DataLayer(DATA_SOURCE_TYPE SourceType, const std::vector<float> Eleme
 	ID = APPLICATION.GetUniqueHexID();
 	DataSourceType = SourceType;
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return;
 
 	switch (SourceType)
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			if (ElementsToData.size() != ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size())
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+			if (CurrentMeshAnalysisData == nullptr)
+				return;
+
+			if (ElementsToData.size() != CurrentMeshAnalysisData->Triangles.size())
 				return;
 
 			break;
@@ -32,7 +38,11 @@ DataLayer::DataLayer(DATA_SOURCE_TYPE SourceType, const std::vector<float> Eleme
 			
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			if (ElementsToData.size() != ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData->RawPointCloudData.size())
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+			if (CurrentPointCloudAnalysisData == nullptr)
+				return;
+
+			if (ElementsToData.size() != CurrentPointCloudAnalysisData->RawPointCloudData.size())
 				return;
 
 			break;
@@ -76,7 +86,8 @@ void DataLayer::ComputeStatistics()
 	Mean = -FLT_MAX;
 	Median = -FLT_MAX;
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return;
 
 	double TotalSum = 0.0;
@@ -107,11 +118,12 @@ void DataLayer::ComputeStatistics()
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+			if (CurrentMeshAnalysisData == nullptr)
 				return;
 
-			for (int i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size(); i++)
-				ValueTriangleAreaAndIndex.push_back(std::make_tuple(ElementsToData[i], ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->TrianglesArea[i], i));
+			for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+				ValueTriangleAreaAndIndex.push_back(std::make_tuple(ElementsToData[i], CurrentMeshAnalysisData->TrianglesArea[i], i));
 
 			// sort() function will sort by 1st element of tuple.
 			std::sort(ValueTriangleAreaAndIndex.begin(), ValueTriangleAreaAndIndex.end());
@@ -121,7 +133,8 @@ void DataLayer::ComputeStatistics()
 
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			if (!ANALYSIS_OBJECT_MANAGER.HavePointCloudData())
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+			if (CurrentPointCloudAnalysisData == nullptr)
 				return;
 
 			break;
@@ -131,23 +144,28 @@ void DataLayer::ComputeStatistics()
 
 void DataLayer::FillRawData()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData() || ElementsToData.empty())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	if (ElementsToData.empty())
 		return;
 
 	switch (DataSourceType)
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+			if (CurrentMeshAnalysisData == nullptr)
 				return;
 
 			std::vector<int> IndexVector;
-			for (size_t i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Indices.size(); i++)
+			for (size_t i = 0; i < CurrentMeshAnalysisData->Indices.size(); i++)
 			{
-				IndexVector.push_back(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Indices[i]);
+				IndexVector.push_back(CurrentMeshAnalysisData->Indices[i]);
 			}
 
-			RawData.resize(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Vertices.size());
+			RawData.resize(CurrentMeshAnalysisData->Vertices.size());
 			auto GetVertexOfFace = [&](const int FaceIndex) {
 				std::vector<int> result;
 				result.push_back(IndexVector[FaceIndex * 3]);
@@ -172,14 +190,15 @@ void DataLayer::FillRawData()
 				}
 			};
 
-			for (size_t i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size(); i++)
+			for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
 				SetRugosityOfFace(static_cast<int>(i), ElementsToData[i]);
 
 			break;
 		}
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			if (!ANALYSIS_OBJECT_MANAGER.HavePointCloudData())
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+			if (CurrentPointCloudAnalysisData == nullptr)
 				return;
 
 			break;

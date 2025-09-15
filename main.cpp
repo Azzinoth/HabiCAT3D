@@ -27,103 +27,100 @@ void DropCallback(int Count, const char** Paths)
 	}
 }
 
-void AfterNewResourceLoads(DATA_SOURCE_TYPE DataSource)
+void AfterNewResourceLoads(AnalysisObject* NewObject)
 {
-	// Point cloud alternative is done in MeshManager
-	if (DataSource == DATA_SOURCE_TYPE::MESH)
+	if (NewObject == nullptr)
+		return;
+
+	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+	if (ActiveEntity == nullptr)
+		return;
+
+	ResourceAnalysisData* GeometryData = NewObject->GetGeometryData();
+
+	if (!APPLICATION.HasConsoleWindow())
 	{
-		if (SCENE_RESOURCES.ActiveEntity != nullptr)
-		{
-			SCENE_RESOURCES.ClearBuffers();
-
-			MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(SCENE_RESOURCES.ActiveEntity->GetObjectID());
-			SCENE_RESOURCES.ActiveEntity = nullptr;
-		}
-
-		FEGameModel* NewGameModel = RESOURCE_MANAGER.CreateGameModel(SCENE_RESOURCES.ActiveMesh, SCENE_RESOURCES.CustomMaterial);
-		SCENE_RESOURCES.ActiveEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Main entity");
-		SCENE_RESOURCES.ActiveEntity->AddComponent<FEGameModelComponent>(NewGameModel);
-
-		MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-		if (CurrentMeshData == nullptr)
-			return;
-
-		if (!APPLICATION.HasConsoleWindow())
-		{
-			SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().SetPosition(-SCENE_RESOURCES.ActiveMesh->GetAABB().GetCenter());
-			CurrentMeshData->Position->SetPosition(-SCENE_RESOURCES.ActiveMesh->GetAABB().GetCenter());
-		}
-
-		CurrentMeshData->UpdateAverageNormal();
-
-		if (!APPLICATION.HasConsoleWindow())
-		{
-			UI.SetIsModelCamera(true);
-			SCENE_RESOURCES.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(CurrentMeshData->GetAverageNormal()));
-		}
-
-		if (LAYER_MANAGER.GetLayerCount() == 0)
-			LAYER_MANAGER.AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
+		ActiveEntity->GetComponent<FETransformComponent>().SetPosition(-GeometryData->GetAABB().GetCenter());
+		GeometryData->Position->SetPosition(-GeometryData->GetAABB().GetCenter());
 	}
+
+	if (!APPLICATION.HasConsoleWindow())
+	{
+		UI.SetIsModelCamera(true);
+		if (NewObject->GetType() == DATA_SOURCE_TYPE::MESH)
+		{
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(NewObject->GetGeometryData());
+			if (CurrentMeshAnalysisData != nullptr)
+				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(CurrentMeshAnalysisData->GetAverageNormal()));
+		}
+	}
+
+	if (LAYER_MANAGER.GetLayerCount() == 0)
+		LAYER_MANAGER.AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
 }
 
 void LoadResource(std::string FileName)
 {
-	const FEMesh* TempMesh = SCENE_RESOURCES.LoadResource(FileName);
-	if (TempMesh == nullptr)
-	{
-		LOG.Add("Failed to load mesh with path: " + FileName);
-		return;
-	}
+	AnalysisObject* LoadedObject = ANALYSIS_OBJECT_MANAGER.LoadResource(FileName);
+	if (LoadedObject == nullptr)
+		LOG.Add("Failed to load object with path: " + FileName);
 }
 
 void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 {
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return;
 
-	if (CurrentMeshData->TriangleSelected.size() == 1)
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
+	if (CurrentMeshAnalysisData->TriangleSelected.size() == 1)
 	{
 		LINE_RENDERER.ClearAll();
 
-		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentMeshData->Triangles[CurrentMeshData->TriangleSelected[0]];
+		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[0]];
 		for (size_t i = 0; i < TranformedTrianglePoints.size(); i++)
 		{
-			TranformedTrianglePoints[i] = CurrentMeshData->Position->GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
+			TranformedTrianglePoints[i] = CurrentMeshAnalysisData->Position->GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
 		}
 
 		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
 		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
 
-		if (!CurrentMeshData->TrianglesNormals.empty())
+		if (!CurrentMeshAnalysisData->TrianglesNormals.empty())
 		{
 			glm::vec3 Point = TranformedTrianglePoints[0];
-			glm::vec3 Normal = CurrentMeshData->TrianglesNormals[CurrentMeshData->TriangleSelected[0]][0];
+			glm::vec3 Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][0];
 			LINE_RENDERER.AddLineToBuffer(FECustomLine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
 			Point = TranformedTrianglePoints[1];
-			Normal = CurrentMeshData->TrianglesNormals[CurrentMeshData->TriangleSelected[0]][1];
+			Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][1];
 			LINE_RENDERER.AddLineToBuffer(FECustomLine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 
 			Point = TranformedTrianglePoints[2];
-			Normal = CurrentMeshData->TrianglesNormals[CurrentMeshData->TriangleSelected[0]][2];
+			Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][2];
 			LINE_RENDERER.AddLineToBuffer(FECustomLine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
 		}
 
 		LINE_RENDERER.SyncWithGPU();
 	}
-	else if (CurrentMeshData->TriangleSelected.size() > 1)
+	else if (CurrentMeshAnalysisData->TriangleSelected.size() > 1)
 	{
-		LINE_RENDERER.ClearAll();
+		FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+		if (ActiveEntity == nullptr)
+			return;
 
-		for (size_t i = 0; i < CurrentMeshData->TriangleSelected.size(); i++)
+		LINE_RENDERER.ClearAll();
+		
+		for (size_t i = 0; i < CurrentMeshAnalysisData->TriangleSelected.size(); i++)
 		{
-			std::vector<glm::dvec3> TranformedTrianglePoints = CurrentMeshData->Triangles[CurrentMeshData->TriangleSelected[i]];
+			std::vector<glm::dvec3> TranformedTrianglePoints = CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[i]];
 			for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 			{
-				TranformedTrianglePoints[j] = SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+				TranformedTrianglePoints[j] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 			}
 
 			LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
@@ -137,14 +134,15 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 
 void OutputSelectedAreaInfoToFile()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return;
 
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
-	if (CurrentMeshData->TriangleSelected.size() < 2)
+	if (CurrentMeshAnalysisData->TriangleSelected.size() < 2)
 		return;
 
 	bool bCurrentSettings = LOG.IsFileOutputActive();
@@ -152,16 +150,16 @@ void OutputSelectedAreaInfoToFile()
 		LOG.SetFileOutput(true);
 
 	std::string Text = "Area radius : " + std::to_string(UI.GetRadiusOfAreaToMeasure());
-	LOG.Add(Text, CurrentMeshData->FileName);
+	LOG.Add(Text, FILE_SYSTEM.GetFileName(CurrentObject->GetFilePath()));
 
 	Text = "Area approximate center : X - ";
-	const glm::vec3 Center = CurrentMeshData->TrianglesCentroids[CurrentMeshData->TriangleSelected[0]];
+	const glm::vec3 Center = CurrentMeshAnalysisData->TrianglesCentroids[CurrentMeshAnalysisData->TriangleSelected[0]];
 	Text += std::to_string(Center.x);
 	Text += " Y - ";
 	Text += std::to_string(Center.y);
 	Text += " Z - ";
 	Text += std::to_string(Center.z);
-	LOG.Add(Text, CurrentMeshData->FileName);
+	LOG.Add(Text, FILE_SYSTEM.GetFileName(CurrentObject->GetFilePath()));
 
 	for (size_t i = 0; i < LAYER_MANAGER.Layers.size(); i++)
 	{
@@ -170,14 +168,14 @@ void OutputSelectedAreaInfoToFile()
 		Text = "Layer \"" + CurrentLayer->GetCaption() + "\" : \n";
 		Text += "Area average value : ";
 		float Total = 0.0f;
-		for (size_t j = 0; j < CurrentMeshData->TriangleSelected.size(); j++)
+		for (size_t j = 0; j < CurrentMeshAnalysisData->TriangleSelected.size(); j++)
 		{
-			Total += CurrentLayer->ElementsToData[CurrentMeshData->TriangleSelected[i]];
+			Total += CurrentLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[i]];
 		}
 
-		Total /= CurrentMeshData->TriangleSelected.size();
+		Total /= CurrentMeshAnalysisData->TriangleSelected.size();
 		Text += std::to_string(Total);
-		LOG.Add(Text, CurrentMeshData->FileName);
+		LOG.Add(Text, FILE_SYSTEM.GetFileName(CurrentObject->GetFilePath()));
 	}
 
 	if (!bCurrentSettings)
@@ -205,24 +203,29 @@ void mouseButtonCallback(int button, int action, int mods)
 	{
 		//LAYER_RASTERIZATION_MANAGER.DebugMouseClick();
 
-		if (SCENE_RESOURCES.ActiveMesh != nullptr)
+		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		FEMesh* ActiveMesh = nullptr;
+		if (CurrentObject != nullptr && CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH)
+			ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+
+		if (ActiveMesh != nullptr)
 		{
 			if (UI.GetLayerSelectionMode() == 1)
 			{
-				SCENE_RESOURCES.SelectTriangle(MAIN_SCENE_MANAGER.GetMouseRayDirection());
+				ANALYSIS_OBJECT_MANAGER.SelectTriangle(MAIN_SCENE_MANAGER.GetMouseRayDirection());
 			}
 			else if (UI.GetLayerSelectionMode() == 2)
 			{
-				if (SCENE_RESOURCES.SelectTrianglesInRadius(MAIN_SCENE_MANAGER.GetMouseRayDirection(), UI.GetRadiusOfAreaToMeasure()) && UI.GetOutputSelectionToFile())
+				if (ANALYSIS_OBJECT_MANAGER.SelectTrianglesInRadius(MAIN_SCENE_MANAGER.GetMouseRayDirection(), UI.GetRadiusOfAreaToMeasure()) && UI.GetOutputSelectionToFile())
 				{
 					OutputSelectedAreaInfoToFile();
 				}
 			}
 
-			UpdateMeshSelectedTrianglesRendering(SCENE_RESOURCES.ActiveMesh);
+			UpdateMeshSelectedTrianglesRendering(ActiveMesh);
 		}
 
-		if (SCENE_RESOURCES.ActiveMesh != nullptr && UI.GetDebugGrid() != nullptr)
+		if (ActiveMesh != nullptr && UI.GetDebugGrid() != nullptr)
 		{
 			if (UI.GetDebugGrid()->RenderingMode != 0)
 			{
@@ -353,43 +356,52 @@ void MainWindowRender()
 		}
 	}*/
 
-	if (SCENE_RESOURCES.ActiveEntity != nullptr)
+	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+	if (ActiveEntity != nullptr)
 	{
-		if (UI.GetWireFrameMode())
+		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		FEMesh* ActiveMesh = nullptr;
+		if (CurrentObject != nullptr && CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH)
+			ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+
+		if (ActiveMesh != nullptr)
 		{
-			SCENE_RESOURCES.ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(true);
+			if (UI.GetWireFrameMode())
+			{
+				ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(true);
+			}
+			else
+			{
+				ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(false);
+			}
+
+			// RenderFEMesh
+			ANALYSIS_OBJECT_MANAGER.UpdateUniforms();
+
+			// Unnecessary part
+			//ActiveEntity->SetComponentVisible(ComponentVisibilityType::ALL, true);
+
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+
+			// This part should be done by Engine.
+			FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
+
+			if (ActiveMesh->GetColorCount() > 0) FE_GL_ERROR(glEnableVertexAttribArray(1));
+			if (CurrentMeshAnalysisData->GetFirstLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(7));
+			if (CurrentMeshAnalysisData->GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
+			// This part should be done by Engine END.
+
+			// That should happen in Engine. In RenderingPipeline.
+			//RENDERER.RenderGameModelComponentForward(ANALYSIS_OBJECT_MANAGER.ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera(), false);
+
+
+			// Unnecessary part
+			//ANALYSIS_OBJECT_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetVisibility(false);
+
+			//MESH_RENDERER.RenderFEMesh(ANALYSIS_OBJECT_MANAGER.ActiveMesh);
+
+			// RenderFEMesh END
 		}
-		else
-		{
-			SCENE_RESOURCES.ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(false);
-		}
-
-		// RenderFEMesh
-		SCENE_RESOURCES.UpdateUniforms();
-
-		// Unnecessary part
-		SCENE_RESOURCES.ActiveEntity->SetComponentVisible(ComponentVisibilityType::ALL, true);
-
-		// This part should be done by Engine.
-		FE_GL_ERROR(glBindVertexArray(SCENE_RESOURCES.ActiveMesh->GetVaoID()));
-
-		if (SCENE_RESOURCES.ActiveMesh->GetColorCount() > 0) FE_GL_ERROR(glEnableVertexAttribArray(1));
-		if (SCENE_RESOURCES.GetFirstLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(7));
-		if (SCENE_RESOURCES.GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
-		// This part should be done by Engine END.
-
-		// That should happen in Engine. In RenderingPipeline.
-		//RENDERER.RenderGameModelComponentForward(SCENE_RESOURCES.ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera(), false);
-
-
-		// Unnecessary part
-		//SCENE_RESOURCES.ActiveEntity->GetComponent<FEGameModelComponent>().SetVisibility(false);
-
-		//MESH_RENDERER.RenderFEMesh(SCENE_RESOURCES.ActiveMesh);
-
-		// RenderFEMesh END
-
-		
 	}
 
 	LINE_RENDERER.Render();
@@ -516,7 +528,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		CameraComponent.SetNearPlane(0.1f);
 		CameraComponent.SetActive(false);
 
-		SCENE_RESOURCES.AddOnLoadCallback(AfterNewResourceLoads);
+		ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(AfterNewResourceLoads);
 
 		SCREENSHOT_MANAGER.Init();
 

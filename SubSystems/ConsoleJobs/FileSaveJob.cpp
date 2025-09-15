@@ -39,7 +39,11 @@ ConsoleJobInfo FileSaveJob::GetInfo()
 
 bool FileSaveJob::Execute(void* InputData, void* OutputData)
 {
-	ANALYSIS_OBJECT_MANAGER.SaveToRUGFile(FilePath);
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return false;
+
+	ANALYSIS_OBJECT_MANAGER.SaveToRUGFile(FilePath, CurrentObject->GetID());
 	OutputConsoleTextWithColor("File saved successfully.", 0, 255, 0);
 
 	return true;

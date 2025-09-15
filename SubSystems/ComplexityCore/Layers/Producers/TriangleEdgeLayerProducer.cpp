@@ -9,18 +9,20 @@ DataLayer TriangleEdgeLayerProducer::Calculate(int Mode)
 	DataLayer Result(DATA_SOURCE_TYPE::MESH);
 	Result.SetType(LAYER_TYPE::TRIANGLE_EDGE);
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return Result;
 
-	if (ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData == nullptr)
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	for (size_t i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size(); i++)
+	for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
 	{
-		double Edge0Length = glm::distance(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][0], ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][1]);
-		double Edge1Length = glm::distance(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][1], ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][2]);
-		double Edge2Length = glm::distance(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][2], ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[i][0]);
+		double Edge0Length = glm::distance(CurrentMeshAnalysisData->Triangles[i][0], CurrentMeshAnalysisData->Triangles[i][1]);
+		double Edge1Length = glm::distance(CurrentMeshAnalysisData->Triangles[i][1], CurrentMeshAnalysisData->Triangles[i][2]);
+		double Edge2Length = glm::distance(CurrentMeshAnalysisData->Triangles[i][2], CurrentMeshAnalysisData->Triangles[i][0]);
 
 		if (Mode == 0)
 		{

@@ -9,22 +9,24 @@ DataLayer HeightLayerProducer::Calculate()
 	DataLayer Result(DATA_SOURCE_TYPE::MESH);
 	Result.SetType(LAYER_TYPE::HEIGHT);
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return Result;
 
-	MeshGeometryData* CurrentMesh = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMesh == nullptr)
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
+	glm::mat4 WorldMatrix = CurrentMeshAnalysisData->Position->GetWorldMatrix();
 	double Min = DBL_MAX;
-	for (size_t i = 0; i < CurrentMesh->Triangles.size(); i++)
+	for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
 	{
 		double AverageTriangleHeight = 0.0;
 		for (size_t j = 0; j < 3; j++)
 		{
-			double CurrentHeight = glm::dot(glm::vec3(CurrentMesh->Position->GetWorldMatrix() * glm::vec4(CurrentMesh->Triangles[i][j], 1.0)), CurrentMesh->GetAverageNormal());
+			double CurrentHeight = glm::dot(glm::vec3(WorldMatrix * glm::vec4(CurrentMeshAnalysisData->Triangles[i][j], 1.0)), CurrentMeshAnalysisData->GetAverageNormal());
 			AverageTriangleHeight += CurrentHeight;
 		}
 

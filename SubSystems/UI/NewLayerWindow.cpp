@@ -113,6 +113,12 @@ void NewLayerWindow::InternalClose()
 
 void NewLayerWindow::AddLayer()
 {
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+
 	switch (SelectedLayerType)
 	{
 		case LAYER_TYPE::HEIGHT:
@@ -144,12 +150,12 @@ void NewLayerWindow::AddLayer()
 			if (bRunOnWholeModel)
 			{
 				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateOnWholeModel();
-				SCENE_RESOURCES.SetHeatMapType(-1);
+				CurrentMeshAnalysisData->SetHeatMapType(-1);
 			}
 			else
 			{
 				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-				SCENE_RESOURCES.SetHeatMapType(5);
+				CurrentMeshAnalysisData->SetHeatMapType(5);
 			}
 
 			InternalClose();
@@ -160,12 +166,12 @@ void NewLayerWindow::AddLayer()
 			if (bRunOnWholeModel)
 			{
 				RUGOSITY_LAYER_PRODUCER.CalculateOnWholeModel();
-				SCENE_RESOURCES.SetHeatMapType(-1);
+				CurrentMeshAnalysisData->SetHeatMapType(-1);
 			}
 			else
 			{
 				RUGOSITY_LAYER_PRODUCER.CalculateWithJitterAsync();
-				SCENE_RESOURCES.SetHeatMapType(5);
+				CurrentMeshAnalysisData->SetHeatMapType(5);
 			}
 
 			InternalClose();
@@ -176,12 +182,12 @@ void NewLayerWindow::AddLayer()
 			if (bRunOnWholeModel)
 			{
 				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateOnWholeModel();
-				SCENE_RESOURCES.SetHeatMapType(-1);
+				CurrentMeshAnalysisData->SetHeatMapType(-1);
 			}
 			else
 			{
 				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-				SCENE_RESOURCES.SetHeatMapType(5);
+				CurrentMeshAnalysisData->SetHeatMapType(5);
 			}
 
 			InternalClose();
@@ -192,12 +198,12 @@ void NewLayerWindow::AddLayer()
 			if (bRunOnWholeModel)
 			{
 				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel();
-				SCENE_RESOURCES.SetHeatMapType(-1);
+				CurrentMeshAnalysisData->SetHeatMapType(-1);
 			}
 			else
 			{
 				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-				SCENE_RESOURCES.SetHeatMapType(5);
+				CurrentMeshAnalysisData->SetHeatMapType(5);
 			}
 
 			InternalClose();
@@ -207,7 +213,7 @@ void NewLayerWindow::AddLayer()
 		{
 			LAYER_MANAGER.AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
 			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
-			SCENE_RESOURCES.SetHeatMapType(6);
+			CurrentMeshAnalysisData->SetHeatMapType(6);
 
 			InternalClose();
 			break;
@@ -587,7 +593,11 @@ void NewLayerWindow::CheckAvailableDataSources()
 	AvailableDataSources.clear();
 	AvailableLayerTypes.clear();
 
-	if (ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	if (CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
 		AvailableDataSources.push_back(DATA_SOURCE_TYPE::MESH);
 		AvailableLayerTypes.push_back(LAYER_TYPE::HEIGHT);
@@ -600,7 +610,7 @@ void NewLayerWindow::CheckAvailableDataSources()
 		AvailableLayerTypes.push_back(LAYER_TYPE::COMPARE);
 	}
 		
-	if (ANALYSIS_OBJECT_MANAGER.HavePointCloudData())
+	if (CurrentObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
 	{
 		AvailableDataSources.push_back(DATA_SOURCE_TYPE::POINT_CLOUD);
 		AvailableLayerTypes.push_back(LAYER_TYPE::POINT_DENSITY);

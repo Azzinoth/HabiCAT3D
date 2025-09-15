@@ -10,7 +10,12 @@ PointDensityLayerProducer::~PointDensityLayerProducer() {}
 
 void PointDensityLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HavePointCloudData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentPointCloudAnalysisData == nullptr)
 		return;
 
 	bWaitForJitterResult = true;
@@ -50,7 +55,7 @@ void PointDensityLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	//		Max = NewLayer.ElementsToData[i];
 	//}
 
-	//PointCloudGeometryData* CurrentPointCloudData = ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData;
+	//PointCloudAnalysisData* CurrentPointCloudData = ANALYSIS_OBJECT_MANAGER.CurrentPointCloudAnalysisData;
 
 	//// Update color based on min/max
 	//for (size_t i = 0; i < CurrentPointCloudData->RawPointCloudData.size(); i++)
@@ -64,8 +69,8 @@ void PointDensityLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 
 	//FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudData->RawPointCloudData);
 
-	//SCENE_RESOURCES.CurrentPointCloudEntity->RemoveComponent<FEPointCloudComponent>();
-	//RESOURCE_MANAGER.DeleteFEPointCloud(SCENE_RESOURCES.CurrentPointCloud);
-	//SCENE_RESOURCES.CurrentPointCloud = PointCloud;
-	//SCENE_RESOURCES.CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(SCENE_RESOURCES.CurrentPointCloud);
+	//ANALYSIS_OBJECT_MANAGER.CurrentPointCloudEntity->RemoveComponent<FEPointCloudComponent>();
+	//RESOURCE_MANAGER.DeleteFEPointCloud(ANALYSIS_OBJECT_MANAGER.CurrentPointCloud);
+	//ANALYSIS_OBJECT_MANAGER.CurrentPointCloud = PointCloud;
+	//ANALYSIS_OBJECT_MANAGER.CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(ANALYSIS_OBJECT_MANAGER.CurrentPointCloud);
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "ComplexityCore/AnalysisObjectManager.h"
+#include "ComplexityCore/Layers/DataLayer.h"
 using namespace FocalEngine;
 
 static const char* const CustomMesh_VS = R"(
@@ -353,66 +353,51 @@ void main(void)
 )";
 
 class FECGALWrapper;
-class SceneResources
+class AnalysisObjectManager
 {
 	friend FECGALWrapper;
 public:
-	SINGLETON_PUBLIC_PART(SceneResources)
+	SINGLETON_PUBLIC_PART(AnalysisObjectManager)
 
 	FEShader* CustomMeshShader = nullptr;
 	FEMaterial* CustomMaterial = nullptr;
 
-	FEMesh* LoadResource(std::string FileName);
-	FEMesh* ActiveMesh = nullptr;
-	FEEntity* ActiveEntity = nullptr;
+	AnalysisObject* ImportOBJ(const char* FilePath, bool bForceOneMesh);
+	AnalysisObject* LoadResource(std::string FilePath);
 
-	FEPointCloud* CurrentPointCloud = nullptr;
-	FEEntity* CurrentPointCloudEntity = nullptr;
+	// FIX ME: That function need to be refactored to save all objects.
+	void SaveToRUGFile(std::string FilePath, std::string AnalysisObjectID);
+	void SaveToRUGFileAskForFilePath(std::string AnalysisObjectID);
 
-	void AddOnLoadCallback(std::function<void(DATA_SOURCE_TYPE)> Callback);
-	void SaveRUGMesh(FEMesh* Mesh);
+	AnalysisObject* GetAnalysisObject(std::string ID);
+	bool SetActiveAnalysisObject(std::string ID);
+	AnalysisObject* GetActiveAnalysisObject();
+	std::vector<std::string> AnalysisObjectManager::GetAnalysisObjectsIDList();
 
-	float GetUnselectedAreaSaturationFactor();
-	void SetUnselectedAreaSaturationFactor(float NewValue);
-	float GetUnselectedAreaBrightnessFactor();
-	void SetUnselectedAreaBrightnessFactor(float NewValue);
+	FEEntity* GetActiveEntity();
 
-	int GetHeatMapType();
-	void SetHeatMapType(int NewValue);
+	void AddOnLoadCallback(std::function<void(AnalysisObject*)> Callback);
 
 	void ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex = 0);
-
-	GLuint GetFirstLayerBufferID();
-	GLuint GetSecondLayerBufferID();
-
-	void GetMeasuredRugosityArea(float& Radius, glm::vec3& Center);
-	void ClearMeasuredRugosityArea();
 
 	bool SelectTriangle(glm::dvec3 MouseRay);
 	bool SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius);
 	glm::vec3 IntersectTriangle(glm::dvec3 MouseRay);
-
-	void ClearBuffers();
 private:
-	SINGLETON_PRIVATE_PART(SceneResources)
+	SINGLETON_PRIVATE_PART(AnalysisObjectManager)
 
-	FEMesh* ImportOBJ(const char* FileName, bool bForceOneMesh);
-	FEMesh* LoadRUGMesh(std::string FileName);
+	AnalysisObject* LoadRUGMesh(std::string FilePath);
 
-	std::vector<std::function<void(DATA_SOURCE_TYPE)>> ClientOnLoadCallbacks;
+	std::vector<std::function<void(AnalysisObject*)>> ClientOnLoadCallbacks;
 
-	int HeatMapType = 5;
-	GLuint FirstLayerBufferID = 0;
-	GLuint SecondLayerBufferID = 0;
+	std::unordered_map<std::string, AnalysisObject*> AnalysisObjects;
+	std::string ActiveAnalysisObjectID = "";
+	MeshAnalysisData* ExtractAdditionalGeometryData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
+	PointCloudAnalysisData* ExtractAdditionalGeometryData(FEPointCloud* PointCloud);
 
-	float UnselectedAreaSaturationFactor = 0.3f;
-	float UnselectedAreaBrightnessFactor = 0.2f;
-
-	float MeasuredRugosityAreaRadius = -1.0f;
-	glm::vec3 MeasuredRugosityAreaCenter = glm::vec3(0.0f);
-
+	void InitializeSceneObjects(AnalysisObject* NewAnalysisObject);
 public:
 	void UpdateUniforms();
 };
 
-#define SCENE_RESOURCES SceneResources::GetInstance()
+#define ANALYSIS_OBJECT_MANAGER AnalysisObjectManager::GetInstance()

@@ -293,7 +293,8 @@ void ComplexityJob::SetRugosityAlgorithm()
 
 bool ComplexityJob::Execute(void* InputData, void* OutputData)
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 	{
 		std::string ErrorMessage = "Error: No file loaded. Please load a file before attempting to calculate complexity.";
 		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);

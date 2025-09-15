@@ -12,6 +12,14 @@ VectorDispersionLayerProducer::~VectorDispersionLayerProducer() {}
 
 void VectorDispersionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 {
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
 	if (CurrentNode->TrianglesInCell.empty())
 		return;
 
@@ -21,7 +29,7 @@ void VectorDispersionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 
 	for (size_t p = 0; p < CurrentNode->TrianglesInCell.size(); p++)
 	{
-		std::vector<glm::vec3> CurrentTriangleNormals = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->TrianglesNormals[CurrentNode->TrianglesInCell[p]];
+		std::vector<glm::vec3> CurrentTriangleNormals = CurrentMeshAnalysisData->TrianglesNormals[CurrentNode->TrianglesInCell[p]];
 
 		for (size_t l = 0; l < CurrentTriangleNormals.size(); l++)
 		{
@@ -59,7 +67,8 @@ void VectorDispersionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 
 void VectorDispersionLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return;
 
 	bWaitForJitterResult = true;
@@ -70,7 +79,12 @@ void VectorDispersionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 
 void VectorDispersionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
 	if (!VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult)
@@ -105,6 +119,18 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 
 void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid)
 {
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
+	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+	if (ActiveEntity == nullptr)
+		return;
+
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
 
@@ -113,12 +139,12 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	GridNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
 	for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
 	{
-		const auto CurrentTriangle = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
+		const auto CurrentTriangle = CurrentMeshAnalysisData->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
 
 		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
-			TranformedTrianglePoints[j] = SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+			TranformedTrianglePoints[j] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
 		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
@@ -131,7 +157,8 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 
 void VectorDispersionLayerProducer::CalculateOnWholeModel()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return;
 
 	bWaitForJitterResult = true;

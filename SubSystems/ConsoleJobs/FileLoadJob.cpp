@@ -41,16 +41,26 @@ bool FileLoadJob::Execute(void* InputData, void* OutputData)
 	std::cout << "Initiating file load process for: " << FilePath << std::endl;
 
 	if (!FILE_SYSTEM.DoesFileExist(FilePath.c_str()))
+	{
+		std::cout << "File not found: " << FilePath << std::endl;	
+		OutputConsoleTextWithColor("Failed to load file: ", 255, 0, 0);
+		OutputConsoleTextWithColor(FilePath, 255, 0, 0);
+		
 		return false;
+	}
 
 	std::cout << "File found. Loading file: " << FilePath << std::endl;
 
-	ANALYSIS_OBJECT_MANAGER.ImportOBJ(FilePath.c_str(), true);
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	AnalysisObject* NewAnalysisObject = ANALYSIS_OBJECT_MANAGER.LoadResource(FilePath);
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return false;
 
-	CurrentMeshData->UpdateAverageNormal();
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return false;
+
+	CurrentMeshAnalysisData->UpdateAverageNormal();
 
 	OutputConsoleTextWithColor("Successfully completed loading file: ", 0, 255, 0);
 	OutputConsoleTextWithColor(FilePath, 0, 255, 0);

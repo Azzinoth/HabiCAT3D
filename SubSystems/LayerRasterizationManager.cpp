@@ -33,14 +33,15 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 {
 	std::vector<std::vector<GridCell>> Grid;
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return Grid;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return Grid;
 
 	if (Axis.x + Axis.y + Axis.z != 1.0f)
-		return Grid;
-
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
 		return Grid;
 
 	glm::vec2 MinMaxResolutionInMeters = GetMinMaxResolutionInMeters(Axis);
@@ -50,7 +51,7 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 	if (CurrentResolutionInMeters < MinMaxResolutionInMeters.y)
 		CurrentResolutionInMeters = MinMaxResolutionInMeters.y;
 
-	FEAABB MeshAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB();
+	FEAABB MeshAABB = CurrentMeshAnalysisData->GetAABB();
 	float CellSize = CurrentResolutionInMeters;
 
 	if (CellSize <= 0.0f)
@@ -126,8 +127,12 @@ std::vector<std::vector<LayerRasterizationManager::GridCell>> LayerRasterization
 
 void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* OutputData)
 {
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
 	GridRasterizationThreadData* Input = reinterpret_cast<GridRasterizationThreadData*>(InputData);
@@ -153,7 +158,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 	{
 		for (int l = FirstIndexInTriangleArray; l <= LastIndexInTriangleArray; l++)
 		{
-			FEAABB TriangleAABB = FEAABB(CurrentMeshData->Triangles[l]);
+			FEAABB TriangleAABB = FEAABB(CurrentMeshAnalysisData->Triangles[l]);
 
 			FirstAxisEndIndex = Resolution;
 
@@ -185,7 +190,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 
 				for (size_t j = SecondAxisStartIndex; j < SecondAxisEndIndex; j++)
 				{
-					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, CurrentMeshData->Triangles[l]))
+					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, CurrentMeshAnalysisData->Triangles[l]))
 					{
 						if (LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Mean ||
 							LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Cumulative)
@@ -209,7 +214,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 	{
 		for (int l = FirstIndexInTriangleArray; l <= LastIndexInTriangleArray; l++)
 		{
-			FEAABB TriangleAABB = FEAABB(CurrentMeshData->Triangles[l]);
+			FEAABB TriangleAABB = FEAABB(CurrentMeshAnalysisData->Triangles[l]);
 
 			FirstAxisEndIndex = Resolution;
 
@@ -241,7 +246,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 
 				for (size_t j = SecondAxisStartIndex; j < SecondAxisEndIndex; j++)
 				{
-					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, CurrentMeshData->Triangles[l]))
+					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, CurrentMeshAnalysisData->Triangles[l]))
 					{
 						if (LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Mean ||
 							LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Cumulative)
@@ -265,7 +270,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 	{
 		for (int l = FirstIndexInTriangleArray; l <= LastIndexInTriangleArray; l++)
 		{
-			FEAABB TriangleAABB = FEAABB(CurrentMeshData->Triangles[l]);
+			FEAABB TriangleAABB = FEAABB(CurrentMeshAnalysisData->Triangles[l]);
 
 			FirstAxisEndIndex = Resolution;
 
@@ -297,7 +302,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 
 				for (size_t j = SecondAxisStartIndex; j < SecondAxisEndIndex; j++)
 				{
-					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, CurrentMeshData->Triangles[l]))
+					if (GEOMETRY.IsAABBIntersectTriangle(Grid[i][j].AABB, CurrentMeshAnalysisData->Triangles[l]))
 					{
 						if (LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Mean ||
 							LAYER_RASTERIZATION_MANAGER.Mode == GridRasterizationMode::Cumulative)
@@ -961,8 +966,12 @@ void LayerRasterizationManager::PrepareLayerForExport(DataLayer* LayerToExport, 
 	if (CurrentLayer == nullptr)
 		return;
 
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
 	OnCalculationsStart();
@@ -970,16 +979,16 @@ void LayerRasterizationManager::PrepareLayerForExport(DataLayer* LayerToExport, 
 	if (!GLMVec3Equal(ForceProjectionVector, glm::vec3(0.0f)))
 		CurrentProjectionVector = ForceProjectionVector;
 	else if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
-		CurrentProjectionVector = ConvertToClosestAxis(CurrentMeshData->GetAverageNormal());
+		CurrentProjectionVector = ConvertToClosestAxis(CurrentMeshAnalysisData->GetAverageNormal());
 
 	Grid = GenerateGridProjection(CurrentProjectionVector);
 
-	int NumberOfTrianglesPerThread = static_cast<int>(CurrentMeshData->Triangles.size() / LAYER_RASTERIZATION_MANAGER.THREAD_COUNT);
+	int NumberOfTrianglesPerThread = static_cast<int>(CurrentMeshAnalysisData->Triangles.size() / LAYER_RASTERIZATION_MANAGER.THREAD_COUNT);
 
 	if (LAYER_RASTERIZATION_MANAGER.THREAD_COUNT > NumberOfTrianglesPerThread)
 	{
 		LAYER_RASTERIZATION_MANAGER.THREAD_COUNT = 1;
-		NumberOfTrianglesPerThread = static_cast<int>(CurrentMeshData->Triangles.size());
+		NumberOfTrianglesPerThread = static_cast<int>(CurrentMeshAnalysisData->Triangles.size());
 	}
 
 	TemporaryThreadDataArray.clear();
@@ -992,7 +1001,7 @@ void LayerRasterizationManager::PrepareLayerForExport(DataLayer* LayerToExport, 
 		NewThreadData->FirstIndexInTriangleArray = i * NumberOfTrianglesPerThread;
 
 		if (i == LAYER_RASTERIZATION_MANAGER.THREAD_COUNT - 1)
-			NewThreadData->LastIndexInTriangleArray = static_cast<int>(CurrentMeshData->Triangles.size() - 1);
+			NewThreadData->LastIndexInTriangleArray = static_cast<int>(CurrentMeshAnalysisData->Triangles.size() - 1);
 		else
 			NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
 
@@ -1097,15 +1106,19 @@ double LayerRasterizationManager::GetTriangleIntersectionArea(size_t GridX, size
 {
 	double Result = 0.0;
 
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return Result;
 
-	auto CurrentTriangle = CurrentMeshData->Triangles[TriangleIndex];
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return Result;
+
+	auto CurrentTriangle = CurrentMeshAnalysisData->Triangles[TriangleIndex];
 	if (CurrentTriangle.size() != 3)
 		return Result;
 
-	if (CurrentMeshData->TrianglesArea[TriangleIndex] == 0.0)
+	if (CurrentMeshAnalysisData->TrianglesArea[TriangleIndex] == 0.0)
 		return Result;
 
 	if (bUsingCGAL)
@@ -1281,11 +1294,12 @@ glm::vec2 LayerRasterizationManager::GetMinMaxResolutionInMeters(glm::vec3 Proje
 {
 	glm::vec2 Result = glm::vec2(0.0f);
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return Result;
 
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
 	glm::vec3 Axis = CurrentProjectionVector;
@@ -1301,7 +1315,7 @@ glm::vec2 LayerRasterizationManager::GetMinMaxResolutionInMeters(glm::vec3 Proje
 	if (GLMVec3Equal(Axis, glm::vec3(0.0f)))
 		return Result;
 		
-	FEAABB MeshAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB();
+	FEAABB MeshAABB = CurrentMeshAnalysisData->GetAABB();
 
 	float UsableSize = 0.0f;
 	if (Axis.x > 0.0)
@@ -1378,8 +1392,16 @@ void LayerRasterizationManager::DebugRenderGrid()
 {
 	//LINE_RENDERER.ClearAll();
 
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
+	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+	if (ActiveEntity == nullptr)
 		return;
 
 	for (int i = 0; i < Grid.size(); i++)
@@ -1393,7 +1415,7 @@ void LayerRasterizationManager::DebugRenderGrid()
 			{
 				if (!Grid[i][j].TrianglesInCell.empty())
 				{
-					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
+					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
 				}
 			}
 			else if (bDebugShowOnlySelectedCells)
@@ -1401,16 +1423,16 @@ void LayerRasterizationManager::DebugRenderGrid()
 				if (DebugSelectedCell.x == i && DebugSelectedCell.y == j)
 				{
 					Color = glm::vec3(1.0f, 1.0f, 0.0f);
-					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
+					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
 
 					for (size_t k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
 					{
-						const auto CurrentTriangle = CurrentMeshData->Triangles[Grid[i][j].TrianglesInCell[k]];
+						const auto CurrentTriangle = CurrentMeshAnalysisData->Triangles[Grid[i][j].TrianglesInCell[k]];
 
 						std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 						for (size_t l = 0; l < TranformedTrianglePoints.size(); l++)
 						{
-							TranformedTrianglePoints[l] = SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[l], 1.0f);
+							TranformedTrianglePoints[l] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[l], 1.0f);
 						}
 
 						LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 0.0f, 1.0f)));
@@ -1421,7 +1443,7 @@ void LayerRasterizationManager::DebugRenderGrid()
 			}
 			else
 			{
-				LINE_RENDERER.RenderAABB(Cell.AABB.Transform(SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
+				LINE_RENDERER.RenderAABB(Cell.AABB.Transform(ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
 			}
 		}
 	}
@@ -1436,13 +1458,21 @@ void LayerRasterizationManager::DebugMouseClick()
 
 	DebugSelectedCell = glm::vec2(-1.0);
 
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
 	float DistanceToCell = 999999.0f;
 	float LastDistanceToCell = 999999.0f;
 	for (size_t i = 0; i < Grid.size(); i++)
 	{
 		for (size_t j = 0; j < Grid[i].size(); j++)
 		{
-			FEAABB FinalAABB = Grid[i][j].AABB.Transform(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Position->GetWorldMatrix());
+			FEAABB FinalAABB = Grid[i][j].AABB.Transform(CurrentMeshAnalysisData->Position->GetWorldMatrix());
 			if (FinalAABB.RayIntersect(MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE), MAIN_SCENE_MANAGER.GetMouseRayDirection(), DistanceToCell))
 			{
 				if (LastDistanceToCell > DistanceToCell)
@@ -1464,8 +1494,16 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 	if (X < 0 || X >= Grid.size() || Y < 0 || Y >= Grid[0].size())
 		return;
 
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
+	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+	if (ActiveEntity == nullptr)
 		return;
 
 	LINE_RENDERER.ClearAll();
@@ -1473,7 +1511,7 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 	DebugSelectedCell = glm::vec2(X, Y);
 	for (size_t i = 0; i < Grid[X][Y].TrianglesInCell.size(); i++)
 	{
-		auto CurrentTriangle = CurrentMeshData->Triangles[Grid[X][Y].TrianglesInCell[i]];
+		auto CurrentTriangle = CurrentMeshAnalysisData->Triangles[Grid[X][Y].TrianglesInCell[i]];
 		if (CurrentTriangle.size() != 3)
 			continue;
 
@@ -1505,7 +1543,7 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 
 		for (size_t l = 0; l < IntersectionPoints.size(); l++)
 		{
-			glm::dvec3 TransformedPoint = SCENE_RESOURCES.ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(IntersectionPoints[l], 1.0f);
+			glm::dvec3 TransformedPoint = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(IntersectionPoints[l], 1.0f);
 			LINE_RENDERER.AddLineToBuffer(FECustomLine(TransformedPoint, TransformedPoint + glm::dvec3(0.0, 1.0, 0.0), glm::vec3(1.0f, 0.0f, 0.0f)));
 		}
 
@@ -1518,10 +1556,15 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 
 void LayerRasterizationManager::UpdateProjectionVector()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return;
 
-	LAYER_RASTERIZATION_MANAGER.CurrentProjectionVector = ConvertToClosestAxis(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->GetAverageNormal());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
+	LAYER_RASTERIZATION_MANAGER.CurrentProjectionVector = ConvertToClosestAxis(CurrentMeshAnalysisData->GetAverageNormal());
 }
 
 glm::uvec2 LayerRasterizationManager::GetResolutionInPixelsBasedOnResolutionInMeters(glm::vec3 ProjectionVector, float ResolutionInMeters)
@@ -1537,10 +1580,15 @@ glm::uvec2 LayerRasterizationManager::GetResolutionInPixelsBasedOnResolutionInMe
 	if (ProjectionVector.x + ProjectionVector.y + ProjectionVector.z != 1.0f)
 		return Result;
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return Result;
 
-	FEAABB MeshAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB();
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return Result;
+
+	FEAABB MeshAABB = CurrentMeshAnalysisData->GetAABB();
 	unsigned int CountOfCellsToCoverAABB = 0;
 	float UsableSize = 0.0f;
 
@@ -1579,7 +1627,12 @@ float LayerRasterizationManager::GetResolutionInMetersBasedOnResolutionInPixels(
 	if (Pixels <= 0)
 		return Result;
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return Result;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
 	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
@@ -1588,7 +1641,7 @@ float LayerRasterizationManager::GetResolutionInMetersBasedOnResolutionInPixels(
 	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
 		return Result;
 
-	FEAABB MeshAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB();
+	FEAABB MeshAABB = CurrentMeshAnalysisData->GetAABB();
 	unsigned int CountOfCellToCoverAABB = 0;
 
 	float UsableSize = 0.0f;
@@ -1622,10 +1675,12 @@ int LayerRasterizationManager::GetResolutionInPixelsThatWouldGiveSuchResolutionI
 	if (Meters <= 0.0f)
 		return Result;
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return Result;
 
-	if (ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData == nullptr)
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
 	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
@@ -1634,7 +1689,7 @@ int LayerRasterizationManager::GetResolutionInPixelsThatWouldGiveSuchResolutionI
 	if (GLMVec3Equal(CurrentProjectionVector, glm::vec3(0.0f)))
 		return Result;
 
-	FEAABB MeshAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB();
+	FEAABB MeshAABB = CurrentMeshAnalysisData->GetAABB();
 	unsigned int CountOfCellToCoverAABB = 0;
 	float UsableSize = 0.0f;
 

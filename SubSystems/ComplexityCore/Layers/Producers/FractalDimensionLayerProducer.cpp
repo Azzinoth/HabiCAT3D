@@ -54,7 +54,8 @@ void FractalDimensionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 
 void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return;
 
 	bWaitForJitterResult = true;
@@ -80,7 +81,8 @@ void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 
 void FractalDimensionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return;
 
 	if (!FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult)
@@ -118,6 +120,15 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 
 void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid)
 {
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	// FIX ME: Should also work for point clouds.
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
 
@@ -128,7 +139,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	double FractalDimension = RunOnAllInternalNodesWithTriangles(CurrentNode, [&](int BoxSizeIndex, FEAABB BoxAABB) {
 		if (BoxSizeIndex == DebugBoxSizeIndex)
 		{
-			FEAABB TransformedBox = BoxAABB.Transform(ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Position->GetWorldMatrix());
+			FEAABB TransformedBox = BoxAABB.Transform(CurrentMeshAnalysisData->Position->GetWorldMatrix());
 			LINE_RENDERER.RenderAABB(TransformedBox, glm::vec3(1.0, 0.0, 0.0));
 			DebugBoxCount++;
 		}
@@ -200,7 +211,8 @@ void FractalDimensionLayerProducer::RenderDebugInfoWindow(MeasurementGrid* Grid)
 
 void FractalDimensionLayerProducer::CalculateOnWholeModel()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return;
 
 	bWaitForJitterResult = true;
@@ -242,6 +254,15 @@ void FractalDimensionLayerProducer::SetShouldCalculateStandardDeviation(bool New
 
 double FractalDimensionLayerProducer::RunOnAllInternalNodesWithTriangles(GridNode* OuterNode, std::function<void(int BoxSizeIndex, FEAABB BoxAABB)> FunctionWithAdditionalCode)
 {
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return 0.0;
+
+	// FIX ME: Should also work for point clouds.
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return 0.0;
+
 	if (OuterNode->TrianglesInCell.empty())
 		return 0.0;
 
@@ -272,7 +293,7 @@ double FractalDimensionLayerProducer::RunOnAllInternalNodesWithTriangles(GridNod
 		// Iterate through all the triangles
 		for (size_t j = 0; j < OuterNode->TrianglesInCell.size(); j++)
 		{
-			std::vector<glm::dvec3> CurrentTriangle = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles[OuterNode->TrianglesInCell[j]];
+			std::vector<glm::dvec3> CurrentTriangle = CurrentMeshAnalysisData->Triangles[OuterNode->TrianglesInCell[j]];
 
 			// Calculate the grid cells that the triangle intersects or is contained in
 			FEAABB TriangleBBox = FEAABB(CurrentTriangle);

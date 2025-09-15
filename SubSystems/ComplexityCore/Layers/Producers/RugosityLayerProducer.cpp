@@ -114,14 +114,18 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 	if (CurrentNode->TrianglesInCell.empty())
 		return;
 
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
 	float TotalArea = 0.0f;
 	for (size_t l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 	{
-		TotalArea += static_cast<float>(CurrentMeshData->TrianglesArea[CurrentNode->TrianglesInCell[l]]);
+		TotalArea += static_cast<float>(CurrentMeshAnalysisData->TrianglesArea[CurrentNode->TrianglesInCell[l]]);
 	}
 
 	float CGALCorrectTotalArea = TotalArea;
@@ -151,10 +155,10 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 				std::vector<Point_2> ProjectedPoints, ConvexHullOfProjectedPoints;
 				for (int i = 0; i < CurrentNode->TrianglesInCell.size(); i++)
 				{
-					if (CurrentMeshData->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
+					if (CurrentMeshAnalysisData->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
 						continue;
 
-					std::vector<glm::dvec3> CurrentTriangle = CurrentMeshData->Triangles[CurrentNode->TrianglesInCell[i]];
+					std::vector<glm::dvec3> CurrentTriangle = CurrentMeshAnalysisData->Triangles[CurrentNode->TrianglesInCell[i]];
 					for (size_t j = 0; j < CurrentTriangle.size(); j++)
 					{
 						ProjectedPoints.push_back(RUGOSITY_LAYER_PRODUCER.ProjectPointOntoPlane(Point_3(CurrentTriangle[j].x, CurrentTriangle[j].y, CurrentTriangle[j].z), PlaneToProjectOnto));
@@ -175,10 +179,10 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 
 				for (int i = 0; i < CurrentNode->TrianglesInCell.size(); i++)
 				{
-					if (CurrentMeshData->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
+					if (CurrentMeshAnalysisData->TrianglesArea[CurrentNode->TrianglesInCell[i]] == 0.0)
 						continue;
 
-					std::vector<glm::dvec3> CurrentTriangle = CurrentMeshData->Triangles[CurrentNode->TrianglesInCell[i]];
+					std::vector<glm::dvec3> CurrentTriangle = CurrentMeshAnalysisData->Triangles[CurrentNode->TrianglesInCell[i]];
 
 					Polygon_2 TempTriangle;
 					
@@ -212,7 +216,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 					
 					if (TempTriangle.area() == 0.0)
 					{
-						CGALCorrectTotalArea -= static_cast<float>(CurrentMeshData->TrianglesArea[CurrentNode->TrianglesInCell[i]]);
+						CGALCorrectTotalArea -= static_cast<float>(CurrentMeshAnalysisData->TrianglesArea[CurrentNode->TrianglesInCell[i]]);
 					}
 					else
 					{
@@ -244,7 +248,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 
 					for (size_t i = 0; i < CGALFailedIndexes.size(); i++)
 					{
-						CGALCorrectTotalArea -= static_cast<float>(CurrentMeshData->TrianglesArea[CurrentNode->TrianglesInCell[CGALFailedIndexes[i]]]);
+						CGALCorrectTotalArea -= static_cast<float>(CurrentMeshAnalysisData->TrianglesArea[CurrentNode->TrianglesInCell[CGALFailedIndexes[i]]]);
 					}
 				}
 
@@ -271,7 +275,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 
 			for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 			{
-				std::vector<glm::dvec3> CurrentTriangle = CurrentMeshData->Triangles[CurrentNode->TrianglesInCell[l]];
+				std::vector<glm::dvec3> CurrentTriangle = CurrentMeshAnalysisData->Triangles[CurrentNode->TrianglesInCell[l]];
 
 				double ProjectionArea = 0.0;
 				double OriginalArea = 0.0;
@@ -283,12 +287,12 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 					glm::dvec3 CProjection = ProjectionPlane->ProjectPoint(CurrentTriangle[2]);
 
 					ProjectionArea = GEOMETRY.CalculateTriangleArea(AProjection, BProjection, CProjection);
-					OriginalArea = CurrentMeshData->TrianglesArea[CurrentNode->TrianglesInCell[l]];
+					OriginalArea = CurrentMeshAnalysisData->TrianglesArea[CurrentNode->TrianglesInCell[l]];
 					Rugosities.push_back(static_cast<float>(OriginalArea / ProjectionArea));
 				}
 				else
 				{
-					OriginalArea = CurrentMeshData->TrianglesArea[CurrentNode->TrianglesInCell[l]];
+					OriginalArea = CurrentMeshAnalysisData->TrianglesArea[CurrentNode->TrianglesInCell[l]];
 
 					try
 					{
@@ -318,7 +322,7 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 			// Weighted by triangle area rugosity.
 			for (int l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 			{
-				const float CurrentTriangleCoef = static_cast<float>(CurrentMeshData->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
+				const float CurrentTriangleCoef = static_cast<float>(CurrentMeshAnalysisData->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
 				Result += Rugosities[l] * CurrentTriangleCoef;
 
 				if (isnan(Result))
@@ -343,19 +347,19 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 		{
 			const int TriangleIndex = CurrentNode->TrianglesInCell[l];
 
-			FEVerticesFinal.push_back(CurrentMeshData->Triangles[TriangleIndex][0][0]);
-			FEVerticesFinal.push_back(CurrentMeshData->Triangles[TriangleIndex][0][1]);
-			FEVerticesFinal.push_back(CurrentMeshData->Triangles[TriangleIndex][0][2]);
+			FEVerticesFinal.push_back(CurrentMeshAnalysisData->Triangles[TriangleIndex][0][0]);
+			FEVerticesFinal.push_back(CurrentMeshAnalysisData->Triangles[TriangleIndex][0][1]);
+			FEVerticesFinal.push_back(CurrentMeshAnalysisData->Triangles[TriangleIndex][0][2]);
 			FEIndicesFinal.push_back(l * 3);
 
-			FEVerticesFinal.push_back(CurrentMeshData->Triangles[TriangleIndex][1][0]);
-			FEVerticesFinal.push_back(CurrentMeshData->Triangles[TriangleIndex][1][1]);
-			FEVerticesFinal.push_back(CurrentMeshData->Triangles[TriangleIndex][1][2]);
+			FEVerticesFinal.push_back(CurrentMeshAnalysisData->Triangles[TriangleIndex][1][0]);
+			FEVerticesFinal.push_back(CurrentMeshAnalysisData->Triangles[TriangleIndex][1][1]);
+			FEVerticesFinal.push_back(CurrentMeshAnalysisData->Triangles[TriangleIndex][1][2]);
 			FEIndicesFinal.push_back(l * 3 + 1);
 
-			FEVerticesFinal.push_back(CurrentMeshData->Triangles[TriangleIndex][2][0]);
-			FEVerticesFinal.push_back(CurrentMeshData->Triangles[TriangleIndex][2][1]);
-			FEVerticesFinal.push_back(CurrentMeshData->Triangles[TriangleIndex][2][2]);
+			FEVerticesFinal.push_back(CurrentMeshAnalysisData->Triangles[TriangleIndex][2][0]);
+			FEVerticesFinal.push_back(CurrentMeshAnalysisData->Triangles[TriangleIndex][2][1]);
+			FEVerticesFinal.push_back(CurrentMeshAnalysisData->Triangles[TriangleIndex][2][2]);
 			FEIndicesFinal.push_back(l * 3 + 2);
 		}
 
@@ -407,12 +411,12 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 	// ******* Getting average normal *******
 	for (size_t l = 0; l < CurrentNode->TrianglesInCell.size(); l++)
 	{
-		std::vector<glm::dvec3> CurrentTriangle = CurrentMeshData->Triangles[CurrentNode->TrianglesInCell[l]];
-		std::vector<glm::vec3> CurrentTriangleNormals = CurrentMeshData->TrianglesNormals[CurrentNode->TrianglesInCell[l]];
+		std::vector<glm::dvec3> CurrentTriangle = CurrentMeshAnalysisData->Triangles[CurrentNode->TrianglesInCell[l]];
+		std::vector<glm::vec3> CurrentTriangleNormals = CurrentMeshAnalysisData->TrianglesNormals[CurrentNode->TrianglesInCell[l]];
 
 		if (RUGOSITY_LAYER_PRODUCER.bWeightedNormals)
 		{
-			const float CurrentTriangleCoef = static_cast<float>(CurrentMeshData->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
+			const float CurrentTriangleCoef = static_cast<float>(CurrentMeshAnalysisData->TrianglesArea[CurrentNode->TrianglesInCell[l]] / TotalArea);
 
 			CurrentNode->AverageCellNormal += CurrentTriangleNormals[0] * CurrentTriangleCoef;
 			CurrentNode->AverageCellNormal += CurrentTriangleNormals[1] * CurrentTriangleCoef;
@@ -476,7 +480,8 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 
 void RugosityLayerProducer::CalculateWithJitterAsync()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -487,7 +492,8 @@ void RugosityLayerProducer::CalculateWithJitterAsync()
 
 void RugosityLayerProducer::CalculateOnWholeModel()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -568,7 +574,8 @@ void RugosityLayerProducer::SetOnRugosityCalculationsStartCallback(void(*Func)(v
 
 void RugosityLayerProducer::OnRugosityCalculationsStart()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return;
 
 	JITTER_MANAGER.SetFallbackValue(1.0f);
@@ -659,8 +666,12 @@ void RugosityLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
 
-	MeshGeometryData* CurrentMeshData = ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData;
-	if (CurrentMeshData == nullptr)
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
 	Grid->UpdateRenderedLines();
@@ -668,12 +679,12 @@ void RugosityLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid
 	GridNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
 	for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
 	{
-		const auto CurrentTriangle = CurrentMeshData->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
+		const auto CurrentTriangle = CurrentMeshAnalysisData->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
 
 		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
 		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
 		{
-			TranformedTrianglePoints[j] = CurrentMeshData->Position->GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+			TranformedTrianglePoints[j] = CurrentMeshAnalysisData->Position->GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
 		}
 
 		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));

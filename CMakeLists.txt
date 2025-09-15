@@ -51,8 +51,8 @@ file(GLOB SubSystems_SRC
 	"SubSystems/CGALDeclarations.h"
 	"SubSystems/FELinesRenderer.cpp"
 	"SubSystems/FELinesRenderer.h"
-	"SubSystems/SceneResources.cpp"
-	"SubSystems/SceneResources.h"
+	"SubSystems/AnalysisObjectManager.cpp"
+	"SubSystems/AnalysisObjectManager.h"
 	"SubSystems/SphereVectors.h"
 	"SubSystems/LayerRasterizationManager.cpp"
 	"SubSystems/LayerRasterizationManager.h"
@@ -89,8 +89,8 @@ file(GLOB SubSystems_Layers_SRC
 )
 
 file(GLOB SubSystems_ComplexityCore_SRC
-	"SubSystems/ComplexityCore/AnalysisObjectManager.cpp"
-	"SubSystems/ComplexityCore/AnalysisObjectManager.h"
+	"SubSystems/ComplexityCore/AnalysisData.cpp"
+	"SubSystems/ComplexityCore/AnalysisData.h"
 	"SubSystems/ComplexityCore/MeasurementGrid.cpp"
 	"SubSystems/ComplexityCore/MeasurementGrid.h"
 	"SubSystems/ComplexityCore/JitterManager.cpp"
@@ -104,6 +104,8 @@ file(GLOB SubSystems_UI_SRC
 	"SubSystems/UI/UIWeightedHistogram.h"
 	"SubSystems/UI/NewLayerWindow.cpp"
 	"SubSystems/UI/NewLayerWindow.h"
+	"SubSystems/UI/ObjectViewerWindow.cpp"
+	"SubSystems/UI/ObjectViewerWindow.h"
 	"SubSystems/UI/UIManager.cpp"
 	"SubSystems/UI/UIManager.h"
 )

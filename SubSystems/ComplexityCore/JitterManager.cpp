@@ -3,14 +3,7 @@ using namespace FocalEngine;
 
 JitterManager::JitterManager()
 {
-	if (APPLICATION.HasConsoleWindow())
-	{
-		ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(JitterManager::OnNewObjectLoaded);
-	}
-	else
-	{
-		SCENE_RESOURCES.AddOnLoadCallback(JitterManager::OnNewObjectLoaded);
-	}
+	ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(JitterManager::OnNewObjectLoaded);
 
 	JitterVectorSetNames.push_back("1");
 	JitterVectorSetNames.push_back("7");
@@ -23,11 +16,18 @@ JitterManager::JitterManager()
 
 JitterManager::~JitterManager() {}
 
-void JitterManager::OnNewObjectLoaded(DATA_SOURCE_TYPE DataSource)
+void JitterManager::OnNewObjectLoaded(AnalysisObject* NewObject)
 {
+	if (NewObject == nullptr)
+		return;
+
+	ResourceAnalysisData* GeometryData = NewObject->GetGeometryData();
+	if (GeometryData == nullptr)
+		return;
+
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
-	FEAABB AABBToUse = DataSource == DATA_SOURCE_TYPE::MESH ? ANALYSIS_OBJECT_MANAGER.GetMeshAABB() : ANALYSIS_OBJECT_MANAGER.GetPointCloudAABB();
+	FEAABB AABBToUse = GeometryData->GetAABB();
 
 	FEAABB FinalAABB = AABBToUse.Transform(TransformMatrix);
 	const float MaxAABBSize = FinalAABB.GetLongestAxisLength();
@@ -36,15 +36,6 @@ void JitterManager::OnNewObjectLoaded(DATA_SOURCE_TYPE DataSource)
 	JITTER_MANAGER.HighestPossibleResolution = MaxAABBSize / 9;
 
 	JITTER_MANAGER.ResolutionInM = JITTER_MANAGER.LowestPossibleResolution;
-
-	/*if (DataSource == DATA_SOURCE_TYPE::MESH)
-	{
-
-	}
-	else if (DataSource == DATA_SOURCE_TYPE::POINT_CLOUD)
-	{
-
-	}*/
 
 	delete JITTER_MANAGER.LastUsedGrid;
 	JITTER_MANAGER.LastUsedGrid = nullptr;
@@ -236,6 +227,10 @@ float JitterManager::GetProgress()
 
 void JitterManager::RunNextJitter()
 {
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return;
+
 	JitterThreadFinishedCount = 0;
 
 	ShiftX = CurrentlyUsedShifts[CurrentJitterIndex * 4];
@@ -254,9 +249,7 @@ void JitterManager::RunNextJitter()
 
 	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(&LastUsedJitterSettings[CurrentJitterIndex], JITTER_MANAGER.GetResolutionInM());
 	Grid->Init(0, FinalAABB, JITTER_MANAGER.GetResolutionInM());
-
-	bool bUsingMeshData = ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData == nullptr;
-	bUsingMeshData ? Grid->FillCellsWithTriangleInfo() : Grid->FillCellsWithPointInfo();
+	CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? Grid->FillCellsWithTriangleInfo() : Grid->FillCellsWithPointInfo();
 
 	int NodesWithDataCount = 0;
 	int TotalObjectCountInNodes = 0;
@@ -267,9 +260,9 @@ void JitterManager::RunNextJitter()
 		{
 			for (size_t k = 0; k < Grid->Data.size(); k++)
 			{
-				if (!(bUsingMeshData ? Grid->Data[i][j][k].TrianglesInCell.empty() : Grid->Data[i][j][k].PointsInCell.empty()))
+				if (!(CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? Grid->Data[i][j][k].TrianglesInCell.empty() : Grid->Data[i][j][k].PointsInCell.empty()))
 				{
-					TotalObjectCountInNodes += bUsingMeshData ? static_cast<int>(Grid->Data[i][j][k].TrianglesInCell.size()) : static_cast<int>(Grid->Data[i][j][k].PointsInCell.size());
+					TotalObjectCountInNodes += CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? static_cast<int>(Grid->Data[i][j][k].TrianglesInCell.size()) : static_cast<int>(Grid->Data[i][j][k].PointsInCell.size());
 					NodesWithData.push_back(&Grid->Data[i][j][k]);
 				}
 			}
@@ -280,7 +273,7 @@ void JitterManager::RunNextJitter()
 	THREAD_COUNT = THREAD_POOL.GetThreadCount() * 10;
 	// It should be based on complexity of the algorithm
 	// not only triangle/point count.
-	THREAD_COUNT = static_cast<int>(TotalObjectCountInNodes / (bUsingMeshData ? 10000.0 : 100000.0));
+	THREAD_COUNT = static_cast<int>(TotalObjectCountInNodes / (CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? 10000.0 : 100000.0));
 	if (THREAD_COUNT < 1)
 		THREAD_COUNT = 1;
 	
@@ -432,7 +425,8 @@ void JitterManager::MoveResultDataFromGrid(MeasurementGrid* Grid)
 
 void JitterManager::OnCalculationsStart()
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveAnyData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return;
 
 	JITTER_MANAGER.Result.clear();
@@ -587,10 +581,15 @@ void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* CurrentNo
 
 void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)
 {
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
 		return;
 
-	FEAABB MeshAABB = ANALYSIS_OBJECT_MANAGER.GetMeshAABB();
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
+	FEAABB MeshAABB = CurrentMeshAnalysisData->GetAABB();
 
 	const glm::vec3 Center = MeshAABB.GetCenter() ;
 	const FEAABB GridAABB = FEAABB(Center - glm::vec3(MeshAABB.GetLongestAxisLength() / 2.0f), Center + glm::vec3(MeshAABB.GetLongestAxisLength() / 2.0f));
@@ -753,13 +752,18 @@ std::vector<float> JitterManager::ProduceStandardDeviationData()
 {
 	std::vector<float> Result;
 
-	if (!ANALYSIS_OBJECT_MANAGER.HaveMeshData())
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return Result;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetGeometryData());
+	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
 	if (PerJitterResult.empty())
 		return Result;
 
-	for (int i = 0; i < ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Triangles.size(); i++)
+	for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
 	{
 		std::vector<float> CurrentTriangleResults;
 		for (int j = 0; j < JitterToDoCount; j++)
@@ -775,19 +779,23 @@ std::vector<float> JitterManager::ProduceStandardDeviationData()
 
 FEAABB JitterManager::GetAABBForJitteredGrid(GridInitData_Jitter* Settings, float CurrentResolutionInM)
 {
-	// FIX ME: Should be based on different logic.
-	bool bUsingMeshData = ANALYSIS_OBJECT_MANAGER.CurrentPointCloudGeometryData == nullptr;
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (CurrentObject == nullptr)
+		return Result;
 
-	FEAABB ObjectAABB = bUsingMeshData ? ANALYSIS_OBJECT_MANAGER.GetMeshAABB() : ANALYSIS_OBJECT_MANAGER.GetPointCloudAABB();
-	FEAABB FinalAABB = ObjectAABB;
+	ResourceAnalysisData* GeometryData = CurrentObject->GetGeometryData();
+	if (GeometryData == nullptr)
+		return Result;
+
+	FEAABB GeometryAABB = GeometryData->GetAABB();
+	FEAABB FinalAABB = GeometryAABB;
 
 	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
-	if (bUsingMeshData)
-		TransformMatrix = glm::translate(TransformMatrix, ANALYSIS_OBJECT_MANAGER.CurrentMeshGeometryData->Position->GetPosition());
+	TransformMatrix = glm::translate(TransformMatrix, GeometryData->Position->GetPosition());
 	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(Settings->GridScale));
 	FinalAABB = FinalAABB.Transform(TransformMatrix);
 
-	const glm::vec3 Center = ObjectAABB.GetCenter() + glm::vec3(Settings->ShiftX, Settings->ShiftY, Settings->ShiftZ) * CurrentResolutionInM;
+	const glm::vec3 Center = GeometryAABB.GetCenter() + glm::vec3(Settings->ShiftX, Settings->ShiftY, Settings->ShiftZ) * CurrentResolutionInM;
 	const FEAABB GridAABB = FEAABB(Center - glm::vec3(FinalAABB.GetLongestAxisLength() / 2.0f), Center + glm::vec3(FinalAABB.GetLongestAxisLength() / 2.0f));
 	FinalAABB = GridAABB;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "NewLayerWindow.h"
+#include "ObjectViewerWindow.h"
 #include "../ComplexityCore/Layers/LayerManager.h"
 #include "../LayerRasterizationManager.h"
 
@@ -8,7 +9,6 @@ const COMDLG_FILTERSPEC MODEL_EXPORT_FILE_FILTER[] =
 {
 	{ L"3D Model file (*.obj)", L"*.obj" }
 };
-
 
 class UIManager
 {
@@ -32,7 +32,7 @@ public:
 	std::string CameraRotationToString();
 	void StringToCameraRotation(std::string Text);
 
-	static void OnNewObjectLoaded(DATA_SOURCE_TYPE DataSource);
+	static void OnNewObjectLoaded(AnalysisObject* NewObject);
 
 	float GetRadiusOfAreaToMeasure();
 	void SetRadiusOfAreaToMeasure(float NewValue);
@@ -132,7 +132,7 @@ private:
 	bool bNextFrameForScreenshot = false;
 	bool bUseTransparentBackground = false;
 
-	bool MeshAndCurrentLayerIsValid();
+	bool ObjectAndCurrentLayerIsValid();
 
 	float ProgressModalPopupCurrentValue = 0.0f;
 	void UpdateProgressModalPopupCurrentValue();
