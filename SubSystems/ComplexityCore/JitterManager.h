@@ -419,7 +419,7 @@ public:
 	void CalculateWithGridJitterAsync(std::function<void(GridNode* CurrentNode)> Func, bool bSmootherResult = false);
 	void CalculateOnWholeModel(std::function<void(GridNode* CurrentNode)> Func);
 	void SetOnCalculationsStartCallback(std::function<void()> Func);
-	void SetOnCalculationsEndCallback(std::function<void(DataLayer CurrentDataLayer)> Func);
+	void SetOnCalculationsEndCallback(std::function<void(DataLayer*)> Func);
 
 	float GetResolutionInM();
 	void SetResolutionInM(float NewResolutionInM);
@@ -522,7 +522,7 @@ private:
 	static void OnCalculationsEnd();
 
 	std::vector<std::function<void()>> OnCalculationsStartCallbacks;
-	std::vector<std::function<void(DataLayer CurrentDataLayer)>> OnCalculationsEndCallbacks;
+	std::vector<std::function<void(DataLayer*)>> OnCalculationsEndCallbacks;
 
 	float LastTimeTookForCalculation;
 	uint64_t StartTime;

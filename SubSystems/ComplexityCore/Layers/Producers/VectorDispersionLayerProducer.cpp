@@ -1,7 +1,7 @@
 #include "VectorDispersionLayerProducer.h"
 using namespace FocalEngine;
 
-void(*VectorDispersionLayerProducer::OnCalculationsEndCallbackImpl)(DataLayer) = nullptr;
+void(*VectorDispersionLayerProducer::OnCalculationsEndCallbackImpl)(DataLayer*) = nullptr;
 
 VectorDispersionLayerProducer::VectorDispersionLayerProducer()
 {
@@ -12,11 +12,11 @@ VectorDispersionLayerProducer::~VectorDispersionLayerProducer() {}
 
 void VectorDispersionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -67,8 +67,8 @@ void VectorDispersionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 
 void VectorDispersionLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr || ActiveObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return;
 
 	bWaitForJitterResult = true;
@@ -77,9 +77,14 @@ void VectorDispersionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 	JITTER_MANAGER.CalculateWithGridJitterAsync(WorkOnNode, bSmootherResult);
 }
 
-void VectorDispersionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
+void VectorDispersionLayerProducer::OnJitterCalculationsEnd(DataLayer* NewLayer)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (!VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult)
+		return;
+
+	VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult = false;
+
+	AnalysisObject* CurrentObject = NewLayer->GetMainParentObject();
 	if (CurrentObject == nullptr)
 		return;
 
@@ -87,30 +92,28 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
-	if (!VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult)
-		return;
+	NewLayer->SetType(LAYER_TYPE::VECTOR_DISPERSION);
 
-	NewLayer.SetType(LAYER_TYPE::VECTOR_DISPERSION);
-
-	VECTOR_DISPERSION_LAYER_PRODUCER.bWaitForJitterResult = false;
-	LAYER_MANAGER.AddLayer(NewLayer);
-	LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Vector dispersion"));
-	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
+	CurrentObject->AddLayer(NewLayer);
+	CurrentObject->SetActiveLayer(NewLayer->GetID());
 
 	if (VECTOR_DISPERSION_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{
 		uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
-		LAYER_MANAGER.AddLayer(DATA_SOURCE_TYPE::MESH, TrianglesToStandardDeviation);
-		LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+		DataLayer* StandardDeviationLayer = new DataLayer({ CurrentObject->GetID() }, TrianglesToStandardDeviation);
+		StandardDeviationLayer->SetType(LAYER_TYPE::STANDARD_DEVIATION);
+		StandardDeviationLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		LAYER_MANAGER.Layers.back().DebugInfo = new DataLayerDebugInfo();
-		DataLayerDebugInfo* DebugInfo = LAYER_MANAGER.Layers.back().DebugInfo;
+		StandardDeviationLayer->DebugInfo = new DataLayerDebugInfo();
+		DataLayerDebugInfo* DebugInfo = StandardDeviationLayer->DebugInfo;
 		DebugInfo->Type = "VectorDispersionDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer caption", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetCaption());
+		DebugInfo->AddEntry("Source layer ID", CurrentObject->Layers.back()->GetID());
+		DebugInfo->AddEntry("Source layer caption", CurrentObject->Layers.back()->GetCaption());
+
+		CurrentObject->AddLayer(StandardDeviationLayer);
 	}
 
 	if (OnCalculationsEndCallbackImpl != nullptr)
@@ -119,11 +122,11 @@ void VectorDispersionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 
 void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -157,8 +160,8 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 
 void VectorDispersionLayerProducer::CalculateOnWholeModel()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr || ActiveObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return;
 
 	bWaitForJitterResult = true;
@@ -167,7 +170,7 @@ void VectorDispersionLayerProducer::CalculateOnWholeModel()
 	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
 }
 
-void VectorDispersionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(DataLayer))
+void VectorDispersionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(DataLayer*))
 {
 	OnCalculationsEndCallbackImpl = Func;
 }

@@ -111,6 +111,8 @@ class AnalysisObject
 	ResourceAnalysisData* AnalysisData = nullptr;
 	DATA_SOURCE_TYPE Type = DATA_SOURCE_TYPE::UNKNOWN;
 
+	std::string ActiveLayerID = "";
+
 	FEObject* EngineResource = nullptr;
 	FEEntity* Entity = nullptr;
 public:
@@ -126,4 +128,15 @@ public:
 	FEEntity* GetEntity();
 
 	std::vector<DataLayer*> Layers;
+
+	size_t GetLayerCount();
+
+	DataLayer* GetActiveLayer();
+	int GetActiveLayerIndex();
+	bool SetActiveLayer(std::string LayerID);
+	void ClearActiveLayer();
+	bool RemoveLayer(std::string LayerID);
+
+	bool AddLayer(DataLayer* NewLayer);
+	DataLayer* GetLayer(std::string LayerID);
 };

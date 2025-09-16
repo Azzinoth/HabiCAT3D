@@ -55,8 +55,16 @@ void AfterNewResourceLoads(AnalysisObject* NewObject)
 		}
 	}
 
-	if (LAYER_MANAGER.GetLayerCount() == 0)
-		LAYER_MANAGER.AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr || ActiveObject->GetType() != DATA_SOURCE_TYPE::MESH)
+		return;
+
+	if (ActiveObject->Layers.empty())
+	{
+		DataLayer* NewLayer = HEIGHT_LAYER_PRODUCER.Calculate();
+		if (NewLayer != nullptr)
+			ActiveObject->AddLayer(NewLayer);
+	}
 }
 
 void LoadResource(std::string FileName)
@@ -68,11 +76,11 @@ void LoadResource(std::string FileName)
 
 void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -134,11 +142,11 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 
 void OutputSelectedAreaInfoToFile()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -150,7 +158,7 @@ void OutputSelectedAreaInfoToFile()
 		LOG.SetFileOutput(true);
 
 	std::string Text = "Area radius : " + std::to_string(UI.GetRadiusOfAreaToMeasure());
-	LOG.Add(Text, FILE_SYSTEM.GetFileName(CurrentObject->GetFilePath()));
+	LOG.Add(Text, FILE_SYSTEM.GetFileName(ActiveObject->GetFilePath()));
 
 	Text = "Area approximate center : X - ";
 	const glm::vec3 Center = CurrentMeshAnalysisData->TrianglesCentroids[CurrentMeshAnalysisData->TriangleSelected[0]];
@@ -159,11 +167,11 @@ void OutputSelectedAreaInfoToFile()
 	Text += std::to_string(Center.y);
 	Text += " Z - ";
 	Text += std::to_string(Center.z);
-	LOG.Add(Text, FILE_SYSTEM.GetFileName(CurrentObject->GetFilePath()));
+	LOG.Add(Text, FILE_SYSTEM.GetFileName(ActiveObject->GetFilePath()));
 
-	for (size_t i = 0; i < LAYER_MANAGER.Layers.size(); i++)
+	for (size_t i = 0; i < ActiveObject->Layers.size(); i++)
 	{
-		DataLayer* CurrentLayer = &LAYER_MANAGER.Layers[i];
+		DataLayer* CurrentLayer = ActiveObject->Layers[i];
 
 		Text = "Layer \"" + CurrentLayer->GetCaption() + "\" : \n";
 		Text += "Area average value : ";
@@ -175,7 +183,7 @@ void OutputSelectedAreaInfoToFile()
 
 		Total /= CurrentMeshAnalysisData->TriangleSelected.size();
 		Text += std::to_string(Total);
-		LOG.Add(Text, FILE_SYSTEM.GetFileName(CurrentObject->GetFilePath()));
+		LOG.Add(Text, FILE_SYSTEM.GetFileName(ActiveObject->GetFilePath()));
 	}
 
 	if (!bCurrentSettings)
@@ -203,10 +211,10 @@ void mouseButtonCallback(int button, int action, int mods)
 	{
 		//LAYER_RASTERIZATION_MANAGER.DebugMouseClick();
 
-		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 		FEMesh* ActiveMesh = nullptr;
-		if (CurrentObject != nullptr && CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH)
-			ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+		if (ActiveObject != nullptr && ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
+			ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
 
 		if (ActiveMesh != nullptr)
 		{
@@ -355,54 +363,6 @@ void MainWindowRender()
 			VRRigTransform.SetPosition(VRRigPosition);
 		}
 	}*/
-
-	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
-	if (ActiveEntity != nullptr)
-	{
-		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-		FEMesh* ActiveMesh = nullptr;
-		if (CurrentObject != nullptr && CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH)
-			ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
-
-		if (ActiveMesh != nullptr)
-		{
-			if (UI.GetWireFrameMode())
-			{
-				ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(true);
-			}
-			else
-			{
-				ActiveEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(false);
-			}
-
-			// RenderFEMesh
-			ANALYSIS_OBJECT_MANAGER.UpdateUniforms();
-
-			// Unnecessary part
-			//ActiveEntity->SetComponentVisible(ComponentVisibilityType::ALL, true);
-
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
-
-			// This part should be done by Engine.
-			FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
-
-			if (ActiveMesh->GetColorCount() > 0) FE_GL_ERROR(glEnableVertexAttribArray(1));
-			if (CurrentMeshAnalysisData->GetFirstLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(7));
-			if (CurrentMeshAnalysisData->GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
-			// This part should be done by Engine END.
-
-			// That should happen in Engine. In RenderingPipeline.
-			//RENDERER.RenderGameModelComponentForward(ANALYSIS_OBJECT_MANAGER.ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera(), false);
-
-
-			// Unnecessary part
-			//ANALYSIS_OBJECT_MANAGER.ActiveEntity->GetComponent<FEGameModelComponent>().SetVisibility(false);
-
-			//MESH_RENDERER.RenderFEMesh(ANALYSIS_OBJECT_MANAGER.ActiveMesh);
-
-			// RenderFEMesh END
-		}
-	}
 
 	LINE_RENDERER.Render();
 

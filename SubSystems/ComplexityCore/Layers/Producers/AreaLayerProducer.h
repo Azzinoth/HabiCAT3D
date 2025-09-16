@@ -8,7 +8,7 @@ class AreaLayerProducer
 public:
 	SINGLETON_PUBLIC_PART(AreaLayerProducer)
 
-	DataLayer Calculate();
+	DataLayer* Calculate();
 private:
 	SINGLETON_PRIVATE_PART(AreaLayerProducer)
 };

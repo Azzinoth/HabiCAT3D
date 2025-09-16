@@ -427,14 +427,14 @@ void UIManager::Render(bool bScreenshotMode)
 					ANALYSIS_OBJECT_MANAGER.LoadResource(FilePath);
 			}
 
-			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-			FEMesh* ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+			AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+			FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
 
 			if (ActiveMesh == nullptr)
 				ImGui::BeginDisabled();
 
 			if (ImGui::MenuItem("Save..."))
-				ANALYSIS_OBJECT_MANAGER.SaveToRUGFileAskForFilePath(CurrentObject->GetID());
+				ANALYSIS_OBJECT_MANAGER.SaveToRUGFileAskForFilePath(ActiveObject->GetID());
 
 			if (ActiveMesh == nullptr)
 				ImGui::EndDisabled();
@@ -676,7 +676,7 @@ void UIManager::OnJitterCalculationsStart()
 	UI.bShouldOpenProgressPopup = true;
 }
 
-void UIManager::OnJitterCalculationsEnd(DataLayer NewLayer)
+void UIManager::OnJitterCalculationsEnd(DataLayer* NewLayer)
 {
 	UI.bShouldCloseProgressPopup = true;
 	UI.CurrentJitterStepIndexVisualize = static_cast<int>(JITTER_MANAGER.GetLastUsedJitterSettings().size() - 1);
@@ -778,9 +778,9 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 	if (HeatMapColorRange.GetColorRangeFunction() == nullptr)
 		HeatMapColorRange.SetColorRangeFunction(GetTurboColorMap);
 
-	if (bScreenshotMode && ObjectAndCurrentLayerIsValid())
+	if (bScreenshotMode && IsActiveObjectAndLayerValid())
 	{
-		DataLayer* CurrentLayer = &LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
 		if (CurrentLayer->GetMin() == CurrentLayer->GetMax())
 		{
 			HeatMapColorRange.Legend.SetDummyValues();
@@ -805,9 +805,9 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 
 	static char CurrentRugosityMax[1024];
 	static float LastValue = HeatMapColorRange.GetSliderValue();
-	if (ObjectAndCurrentLayerIsValid())
+	if (IsActiveObjectAndLayerValid())
 	{
-		DataLayer* CurrentLayer = &LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
 		if (CurrentLayer->GetMin() == CurrentLayer->GetMax())
 		{
 			HeatMapColorRange.Legend.SetDummyValues();
@@ -832,7 +832,7 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 		}
 	}
 
-	if (!ObjectAndCurrentLayerIsValid())
+	if (!IsActiveObjectAndLayerValid())
 		ImGui::BeginDisabled();
 
 	ImGui::SetCursorPosX(10);
@@ -847,16 +847,16 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 	ImGui::SameLine();
 	if (ImGui::Button("Set", ImVec2(62, 19)))
 	{
-		DataLayer* CurrentLayer = &LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
 
 		float NewValue = float(atof(CurrentRugosityMax));
-		if (NewValue < CurrentLayer->GetMin())
-			NewValue = CurrentLayer->GetMin();
+		if (NewValue < ActiveLayer->GetMin())
+			NewValue = ActiveLayer->GetMin();
 
-		HeatMapColorRange.SetSliderValue((NewValue - CurrentLayer->GetMin()) / float(CurrentLayer->GetMax() - CurrentLayer->GetMin()));
+		HeatMapColorRange.SetSliderValue((NewValue - ActiveLayer->GetMin()) / float(ActiveLayer->GetMax() - ActiveLayer->GetMin()));
 	}
 
-	if (!ObjectAndCurrentLayerIsValid())
+	if (!IsActiveObjectAndLayerValid())
 		ImGui::EndDisabled();
 
 	ImGui::PopStyleVar();
@@ -898,7 +898,11 @@ int UIManager::TotalWidthNeededForLayerList(int ButtonUsed)
 	const int ButtonSpacing = 6;
 	const int FirstLastButtonPadding = 4;
 
-	ButtonUsed = static_cast<int>(std::min(size_t(ButtonUsed), LAYER_MANAGER.Layers.size()));
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return Result;
+
+	ButtonUsed = static_cast<int>(std::min(size_t(ButtonUsed), ActiveObject->Layers.size()));
 
 	if (ButtonUsed == 0)
 		return Result;
@@ -906,7 +910,7 @@ int UIManager::TotalWidthNeededForLayerList(int ButtonUsed)
 	Result += static_cast<int>(GetLayerListButtonSize("No Layer").x + 16);
 	for (int i = 0; i < ButtonUsed; i++)
 	{
-		Result += static_cast<int>(GetLayerListButtonSize(LAYER_MANAGER.Layers[i].GetCaption()).x + ButtonSpacing * 2.0f + 4);
+		Result += static_cast<int>(GetLayerListButtonSize(ActiveObject->Layers[i]->GetCaption()).x + ButtonSpacing * 2.0f + 4);
 	}
 
 	Result += static_cast<int>(FirstLastButtonPadding * 2.0f);
@@ -931,13 +935,13 @@ void UIManager::RenderLayerTabs()
 	int UsableSpaceWidth = static_cast<int>(UsableSpaceEnd.x - UsableSpaceStart.x);
 
 	int TotalWidthNeeded = 0;
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject != nullptr)
-		TotalWidthNeeded = TotalWidthNeededForLayerList(static_cast<int>(LAYER_MANAGER.Layers.size()));
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject != nullptr)
+		TotalWidthNeeded = TotalWidthNeededForLayerList(static_cast<int>(ActiveObject->Layers.size()));
 
 	if (TotalWidthNeeded == 0)
 	{
-		if (CurrentObject == nullptr)
+		if (ActiveObject == nullptr)
 		{
 			TotalWidthNeeded = static_cast<int>(ImGui::CalcTextSize(NoDataText.c_str()).x + 18);
 		}
@@ -965,7 +969,7 @@ void UIManager::RenderLayerTabs()
 									ImGuiWindowFlags_NoTitleBar);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f);
-	if (CurrentObject == nullptr)
+	if (ActiveObject == nullptr)
 	{
 		ImVec2 TextSize = ImGui::CalcTextSize(NoDataText.c_str());
 
@@ -981,7 +985,7 @@ void UIManager::RenderLayerTabs()
 	int CurrentRow = 0;
 	int PreviousButtonWidth = 0;
 	int YPosition = static_cast<int>(ImGui::GetCursorPosY() + 7);
-	for (int i = -1; i < int(LAYER_MANAGER.Layers.size()); i++)
+	for (int i = -1; i < int(ActiveObject->Layers.size()); i++)
 	{
 		ImGui::SameLine();
 		ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.1f, 0.6f, 0.8f));
@@ -1001,23 +1005,19 @@ void UIManager::RenderLayerTabs()
 		{
 			ImGui::SetCursorPosY(static_cast<float>(YPosition));
 			if (ImGui::Button("No Layer"))
-			{
-				LAYER_MANAGER.SetActiveLayerIndex(i);
-			}
+				ActiveObject->ClearActiveLayer();
 		}
 		else
 		{
-			if (ImGui::GetCursorPosX() + GetLayerListButtonSize(LAYER_MANAGER.Layers[i].GetCaption()).x + ButtonSpacing * 2.0f + 4 > (UsableSpaceWidth - 10))
+			if (ImGui::GetCursorPosX() + GetLayerListButtonSize(ActiveObject->Layers[i]->GetCaption()).x + ButtonSpacing * 2.0f + 4 > (UsableSpaceWidth - 10))
 			{
 				ImGui::SetCursorPosX(FirstLastButtonPadding * 2.0f);
 				CurrentRow++;
 			}
 
 			ImGui::SetCursorPosY(static_cast<float>(YPosition + CurrentRow * RowHeight));
-			if (ImGui::Button((LAYER_MANAGER.Layers[i].GetCaption() + "##" + std::to_string(i)).c_str()))
-			{
-				LAYER_MANAGER.SetActiveLayerIndex(i);
-			}
+			if (ImGui::Button((ActiveObject->Layers[i]->GetCaption() + "##" + std::to_string(i)).c_str()))
+				ActiveObject->SetActiveLayer(ActiveObject->Layers[i]->GetID());
 		}
 		
 		ImGui::PopStyleColor(4);
@@ -1136,10 +1136,10 @@ void UIManager::SetIsModelCamera(const bool NewValue, glm::vec3 ModelCameraFocus
 	if (CameraEntity == nullptr)
 		return;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject != nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject != nullptr)
 	{
-		ResourceAnalysisData* AnalysisData = CurrentObject->GetAnalysisData();
+		ResourceAnalysisData* AnalysisData = ActiveObject->GetAnalysisData();
 		if (AnalysisData != nullptr)
 		{
 			FEAABB ObjectAABB = AnalysisData->GetAABB();
@@ -1187,18 +1187,18 @@ void UIManager::UpdateHistogramData(DataLayer* FromLayer, int NewBinCount)
 void UIManager::RenderHistogramWindow()
 {
 	bool bLayerWithOneValue = false;
-	if (ObjectAndCurrentLayerIsValid())
+	if (IsActiveObjectAndLayerValid())
 	{
 		if (LAYER_MANAGER.GetActiveLayer()->GetMin() == LAYER_MANAGER.GetActiveLayer()->GetMax())
 			bLayerWithOneValue = true;
 	}
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
 	// FIX ME: Should it work only with meshes?
-	FEMesh* ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+	FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
 
 	static float LastWindowW = 0.0f;
 	static float LastWindowH = 0.0f;
@@ -1221,7 +1221,7 @@ void UIManager::RenderHistogramWindow()
 				bHistogramPixelBins &&
 				LAYER_MANAGER.GetActiveLayerIndex() != -1)
 			{
-				UpdateHistogramData(&LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()], Histogram.GetCurrentBinCount());
+				UpdateHistogramData(LAYER_MANAGER.GetActiveLayer(), Histogram.GetCurrentBinCount());
 			}
 
 			LastWindowW = HistogramWindow->SizeFull.x;
@@ -1234,7 +1234,7 @@ void UIManager::RenderHistogramWindow()
 
 	if (ImGui::Begin("Histogram", nullptr))
 	{
-		if (!ObjectAndCurrentLayerIsValid() || bLayerWithOneValue)
+		if (!IsActiveObjectAndLayerValid() || bLayerWithOneValue)
 			ImGui::BeginDisabled();
 		
 		ImGui::SetCursorPos(ImVec2(12.0f, 30.0f));
@@ -1269,7 +1269,7 @@ void UIManager::RenderHistogramWindow()
 			}
 		}
 
-		if (ObjectAndCurrentLayerIsValid() && !bLayerWithOneValue)
+		if (IsActiveObjectAndLayerValid() && !bLayerWithOneValue)
 			Histogram.Render();
 
 		if (bHistogramSelectRegionMode && ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
@@ -1295,11 +1295,11 @@ void UIManager::RenderHistogramWindow()
 
 			glm::vec2 MinValueDistribution = CalculateAreaDistributionAtValue(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
 			glm::vec2 MaxValueDistribution = CalculateAreaDistributionAtValue(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
-			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+			AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 			float PercentageOfAreaSelected = 0.0f;
-			if (CurrentObject != nullptr)
+			if (ActiveObject != nullptr)
 			{
-				MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+				MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 				if (CurrentMeshAnalysisData != nullptr)
 				{
 					PercentageOfAreaSelected = static_cast<float>((MaxValueDistribution.x / CurrentMeshAnalysisData->GetTotalArea() * 100.0) - (MinValueDistribution.x / CurrentMeshAnalysisData->GetTotalArea() * 100.0));
@@ -1332,7 +1332,7 @@ void UIManager::RenderHistogramWindow()
 													  ArrowPosition + ImVec2(1.0f, Histogram.GetSize().y - 1.0f),
 													  ImColor(156.0f / 255.0f, 105.0f / 255.0f, 137.0f / 255.0f, 165.0f / 255.0f));
 			
-			DataLayer* CurrentLayer = &LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+			DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
 			if (CurrentLayer != nullptr)
 			{
 				CurrentLayer->SetSelectedRangeMin(HistogramSelectRegionMin.GetRangePosition());
@@ -1355,7 +1355,7 @@ void UIManager::RenderHistogramWindow()
 			if (bHistogramPixelBins)
 				NewBinCount = static_cast<int>(HistogramWindow->SizeFull.x - 20);
 
-			UpdateHistogramData(&LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewBinCount);
+			UpdateHistogramData(LAYER_MANAGER.GetActiveLayer(), NewBinCount);
 		}
 
 		static char CurrentBinCountChar[1024] = "128";
@@ -1381,12 +1381,12 @@ void UIManager::RenderHistogramWindow()
 				if (Histogram.GetCurrentBinCount() != TempInt)
 				{
 					if (ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
-						UpdateHistogramData(&LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()], TempInt);
+						UpdateHistogramData(LAYER_MANAGER.GetActiveLayer(), TempInt);
 				}
 			}
 		}
 
-		if (!ObjectAndCurrentLayerIsValid() || bLayerWithOneValue)
+		if (!IsActiveObjectAndLayerValid() || bLayerWithOneValue)
 			ImGui::EndDisabled();
 	}
 
@@ -1484,11 +1484,11 @@ void UIManager::RenderAboutWindow()
 
 glm::dvec2 UIManager::CalculateAreaDistributionAtValue(DataLayer* Layer, float Value)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return glm::dvec2(0.0);
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return glm::dvec2(0.0);
 
@@ -1498,7 +1498,7 @@ glm::dvec2 UIManager::CalculateAreaDistributionAtValue(DataLayer* Layer, float V
 	float FirstBin = 0.0;
 	float SecondBin = 0.0;
 
-	FEMesh* ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+	FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
 	if (ActiveMesh == nullptr)
 		return glm::dvec2(0.0);
 
@@ -1519,8 +1519,8 @@ glm::dvec2 UIManager::CalculateAreaDistributionAtValue(DataLayer* Layer, float V
 
 void UIManager::OnLayerChange()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
 	LAYER_RASTERIZATION_MANAGER.ClearAllData();
@@ -1529,29 +1529,27 @@ void UIManager::OnLayerChange()
 	UI.Histogram.Clear();
 	UI.HeatMapColorRange.Clear();
 
-	if (LAYER_MANAGER.GetActiveLayerIndex() == -1)
+	DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
+	if (ActiveLayer == nullptr)
 		return;
 
 	LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMin(0.0f);
 	LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMax(0.0f);
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
-	if (LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMin() != LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()].GetMax())
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	if (ActiveLayer->GetMin() != ActiveLayer->GetMax())
 	{
-		UI.UpdateHistogramData(&LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()], UI.Histogram.GetCurrentBinCount());
+		UI.UpdateHistogramData(ActiveLayer, UI.Histogram.GetCurrentBinCount());
 
-		DataLayer* CurrentLayer = &LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-
-		
 		if (CurrentMeshAnalysisData != nullptr)
 			CurrentMeshAnalysisData->SetHeatMapType(5);
 		UI.HeatMapColorRange.SetColorRangeFunction(GetTurboColorMap);
 		UI.HeatMapColorRange.bRenderSlider = true;
 	
-		float MiddleOfRange = CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) / 2.0f;
-		UI.HeatMapColorRange.SetSliderValue(MiddleOfRange / CurrentLayer->GetMax());
+		float MiddleOfRange = ActiveLayer->GetMin() + (ActiveLayer->GetMax() - ActiveLayer->GetMin()) / 2.0f;
+		UI.HeatMapColorRange.SetSliderValue(MiddleOfRange / ActiveLayer->GetMax());
 
-		if (CurrentLayer->GetType() == LAYER_TYPE::COMPARE)
+		if (ActiveLayer->GetType() == LAYER_TYPE::COMPARE)
 		{
 			UI.HeatMapColorRange.SetColorRangeFunction(CompareColormapValue);
 			if (CurrentMeshAnalysisData != nullptr)
@@ -1567,7 +1565,7 @@ void UIManager::OnLayerChange()
 		for (size_t i = 0; i <= CaptionsCount; i++)
 		{
 			UI.Histogram.SetLegendCaption(i == 0 ? NormalizedPosition + 0.0075f : NormalizedPosition,
-				TruncateAfterDot(std::to_string(CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * NormalizedPosition)));
+				TruncateAfterDot(std::to_string(ActiveLayer->GetMin() + (ActiveLayer->GetMax() - ActiveLayer->GetMin()) * NormalizedPosition)));
 
 			NormalizedPosition += PositionStep;
 		}
@@ -1679,19 +1677,16 @@ void UIManager::InitDebugGrid(size_t JitterIndex)
 
 void UIManager::RenderLayerSettingsTab()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	FEMesh* ActiveMesh = nullptr;
-	if (CurrentObject != nullptr)
-		ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 
 	std::string NoInfoText;
-	if (ActiveMesh == nullptr)
-		NoInfoText = "No model loaded.";
+	if (ActiveObject == nullptr)
+		NoInfoText = "No object loaded.";
 
-	if (ActiveMesh != nullptr && LAYER_MANAGER.Layers.empty())
-		NoInfoText = "Model have no layers.";
+	if (ActiveObject != nullptr && ActiveObject->GetLayerCount() == 0)
+		NoInfoText = "Object have no layers.";
 
-	if (ActiveMesh != nullptr && !LAYER_MANAGER.Layers.empty() && LAYER_MANAGER.GetActiveLayerIndex() == -1)
+	if (ActiveObject != nullptr && !(ActiveObject->GetLayerCount() == 0) && LAYER_MANAGER.GetActiveLayerIndex() == -1)
 		NoInfoText = "Layer is not selected.";
 
 	if (!NoInfoText.empty())
@@ -1704,15 +1699,32 @@ void UIManager::RenderLayerSettingsTab()
 
 	if (NoInfoText.empty())
 	{
-		DataLayer* Layer = &LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()];
+		DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
 
-		ImGui::Text("Triangle count: ");
-		ImGui::SameLine();
-		ImGui::Text(std::to_string(ActiveMesh->GetVertexCount() / 3).c_str());
+		if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
+		{
+			FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
+			if (ActiveMesh == nullptr)
+				return;
 
-		ImGui::Text((std::string("ID: ") + Layer->GetID()).c_str());
+			ImGui::Text("Triangle count: ");
+			ImGui::SameLine();
+			ImGui::Text(std::to_string(ActiveMesh->GetVertexCount() / 3).c_str());
+		}
+		else if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+		{
+			FEPointCloud* ActivePointCloud = static_cast<FEPointCloud*>(ActiveObject->GetEngineResource());
+			if (ActivePointCloud == nullptr)
+				return;
+
+			ImGui::Text("Point count: ");
+			ImGui::SameLine();
+			ImGui::Text(std::to_string(ActivePointCloud->GetPointCount()).c_str());
+		}
+
+		ImGui::Text((std::string("ID: ") + ActiveLayer->GetID()).c_str());
 		static char CurrentLayerCaption[1024];
-		strcpy_s(CurrentLayerCaption, Layer->GetCaption().c_str());
+		strcpy_s(CurrentLayerCaption, ActiveLayer->GetCaption().c_str());
 		ImGui::Text("Caption: ");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(160);
@@ -1721,7 +1733,7 @@ void UIManager::RenderLayerSettingsTab()
 		if (ImGui::InputText("##LayerCaptionEdit", CurrentLayerCaption, IM_ARRAYSIZE(CurrentLayerCaption), ImGuiInputTextFlags_EnterReturnsTrue) ||
 			ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() || ImGui::GetFocusID() != ImGui::GetID("##LayerCaptionEdit"))
 		{
-			Layer->SetCaption(CurrentLayerCaption);
+			ActiveLayer->SetCaption(CurrentLayerCaption);
 		}
 
 		ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.6f, 0.1f, 0.2f));
@@ -1730,11 +1742,12 @@ void UIManager::RenderLayerSettingsTab()
 		ImGui::SameLine();
 		if (ImGui::Button("Delete Layer"))
 		{
-			int IndexToDelete = LAYER_MANAGER.GetActiveLayerIndex();
-			LAYER_MANAGER.SetActiveLayerIndex(-1);
+			ActiveObject->RemoveLayer(ActiveLayer->GetID());
+			//int IndexToDelete = LAYER_MANAGER.GetActiveLayerIndex();
+			//ActiveObject->ClearActiveLayer();
 
-			LAYER_MANAGER.Layers.erase(LAYER_MANAGER.Layers.begin() + IndexToDelete,
-				LAYER_MANAGER.Layers.begin() + IndexToDelete + 1);
+			//LAYER_MANAGER.Layers.erase(LAYER_MANAGER.Layers.begin() + IndexToDelete,
+			//	LAYER_MANAGER.Layers.begin() + IndexToDelete + 1);
 
 			ImGui::PopStyleColor(3);
 			return;
@@ -1744,31 +1757,29 @@ void UIManager::RenderLayerSettingsTab()
 		ImGui::Text("Mean:");
 		ImGui::SameLine();
 		std::string MeanText = "No data.";
-		if (Layer->GetMean() != -FLT_MAX)
-			MeanText = std::to_string(Layer->GetMean());
+		if (ActiveLayer->GetMean() != -FLT_MAX)
+			MeanText = std::to_string(ActiveLayer->GetMean());
 		ImGui::Text(MeanText.c_str());
 
 		ImGui::Text("Median:");
 		ImGui::SameLine();
 		std::string MedianText = "No data.";
-		if (Layer->GetMedian() != -FLT_MAX)
-			MedianText = std::to_string(Layer->GetMedian());
+		if (ActiveLayer->GetMedian() != -FLT_MAX)
+			MedianText = std::to_string(ActiveLayer->GetMedian());
 		ImGui::Text(MedianText.c_str());
 
 		ImGui::Text("Notes:");
 		static char CurrentLayerUserNotes[10000];
-		strcpy_s(CurrentLayerUserNotes, Layer->GetNote().c_str());
+		strcpy_s(CurrentLayerUserNotes, ActiveLayer->GetNote().c_str());
 		ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 15);
 		if (ImGui::InputTextMultiline("##Notes", CurrentLayerUserNotes, IM_ARRAYSIZE(CurrentLayerUserNotes)))
-		{
-			Layer->SetNote(CurrentLayerUserNotes);
-		}
-
+			ActiveLayer->SetNote(CurrentLayerUserNotes);
+		
 		ImGui::Text("Debug Info:");
 		static char CurrentLayerDebugInfo[10000];
 		std::string DebugInfo;
-		if (Layer->DebugInfo != nullptr)
-			DebugInfo = Layer->DebugInfo->ToString();
+		if (ActiveLayer->DebugInfo != nullptr)
+			DebugInfo = ActiveLayer->DebugInfo->ToString();
 		strcpy_s(CurrentLayerDebugInfo, DebugInfo.c_str());
 		ImGui::BeginDisabled();
 		ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 15);
@@ -1793,14 +1804,14 @@ void UIManager::RenderLayerSettingsTab()
 		{
 			float NewValue = float(atof(CurrentDistributionEdit));
 			LastDistributionValue = NewValue;
-			CurrentDistribution = CalculateAreaDistributionAtValue(&LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()], NewValue);
+			CurrentDistribution = CalculateAreaDistributionAtValue(ActiveLayer, NewValue);
 		}
 
-		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-		if (CurrentObject == nullptr)
+		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		if (ActiveObject == nullptr)
 			return;
 
-		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 		if (CurrentMeshAnalysisData == nullptr)
 			return;
 
@@ -2151,119 +2162,120 @@ void UIManager::RasterizationSettingsUI()
 
 void UIManager::RenderExportTab()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
-	if (CurrentMeshAnalysisData == nullptr)
-		return;
+	
 
-	ImGui::Text("Selection mode:");
-	if (ImGui::RadioButton("None", &LayerSelectionMode, 0))
+	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
-		CurrentMeshAnalysisData->TriangleSelected.clear();
-		LINE_RENDERER.ClearAll();
-		LINE_RENDERER.SyncWithGPU();
-	}
-
-	if (ImGui::RadioButton("Triangles", &LayerSelectionMode, 1))
-	{
-		CurrentMeshAnalysisData->TriangleSelected.clear();
-		LINE_RENDERER.ClearAll();
-		LINE_RENDERER.SyncWithGPU();
-	}
-
-	if (ImGui::RadioButton("Area", &LayerSelectionMode, 2))
-	{
-		CurrentMeshAnalysisData->TriangleSelected.clear();
-		LINE_RENDERER.ClearAll();
-		LINE_RENDERER.SyncWithGPU();
-	}
-
-	if (LayerSelectionMode == 2)
-	{
-		ImGui::Text("Radius of area to measure: ");
-		ImGui::SetNextItemWidth(128);
-		ImGui::DragFloat("##RadiusOfAreaToMeasure", &RadiusOfAreaToMeasure, 0.01f);
-		if (RadiusOfAreaToMeasure < 0.1f)
-			RadiusOfAreaToMeasure = 0.1f;
-
-		ImGui::Checkbox("Output selection data to file", &bOutputSelectionToFile);
-	}
-
-	if (CurrentMeshAnalysisData->TriangleSelected.size() == 1 && LAYER_MANAGER.GetActiveLayer() != nullptr)
-	{
-		DataLayer* CurrentLayer = &LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-
-		ImGui::Separator();
-		ImGui::Text("Selected triangle information :");
-
-		std::string Text = "Triangle value : ";
-		Text += std::to_string(CurrentLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[0]]);
-		ImGui::Text(Text.c_str());
-
-		int HeightLayerIndex = -1;
-		for (size_t i = 0; i < LAYER_MANAGER.Layers.size(); i++)
+		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+		if (CurrentMeshAnalysisData == nullptr)
+			return;
+		
+		ImGui::Text("Selection mode:");
+		if (ImGui::RadioButton("None", &LayerSelectionMode, 0))
 		{
-			if (LAYER_MANAGER.Layers[i].GetCaption() == "Height")
-				HeightLayerIndex = static_cast<int>(i);
+			CurrentMeshAnalysisData->TriangleSelected.clear();
+			LINE_RENDERER.ClearAll();
+			LINE_RENDERER.SyncWithGPU();
 		}
 
-		Text = "Triangle height : ";
-		double AverageHeight = 0.0;
-		if (HeightLayerIndex != -1)
+		if (ImGui::RadioButton("Triangles", &LayerSelectionMode, 1))
 		{
-			AverageHeight = LAYER_MANAGER.Layers[HeightLayerIndex].ElementsToData[CurrentMeshAnalysisData->TriangleSelected[0]];
-			AverageHeight -= LAYER_MANAGER.Layers[HeightLayerIndex].GetMin();
+			CurrentMeshAnalysisData->TriangleSelected.clear();
+			LINE_RENDERER.ClearAll();
+			LINE_RENDERER.SyncWithGPU();
 		}
 
-		Text += std::to_string(AverageHeight);
-		ImGui::Text(Text.c_str());
-	}
-	else if (CurrentMeshAnalysisData->TriangleSelected.size() > 1 && LAYER_MANAGER.GetActiveLayer() != nullptr)
-	{
-		DataLayer* CurrentLayer = &LAYER_MANAGER.Layers[LAYER_MANAGER.GetActiveLayerIndex()];
-
-		std::string Text = "Area average value : ";
-		float TotalRugosity = 0.0f;
-		for (size_t i = 0; i < CurrentMeshAnalysisData->TriangleSelected.size(); i++)
+		if (ImGui::RadioButton("Area", &LayerSelectionMode, 2))
 		{
-			TotalRugosity += CurrentLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[i]];
+			CurrentMeshAnalysisData->TriangleSelected.clear();
+			LINE_RENDERER.ClearAll();
+			LINE_RENDERER.SyncWithGPU();
 		}
 
-		TotalRugosity /= CurrentMeshAnalysisData->TriangleSelected.size();
-		Text += std::to_string(TotalRugosity);
-
-		ImGui::Text(Text.c_str());
-
-		Text = "Area average height : ";
-		double AverageHeight = 0.0;
-
-		int HeightLayerIndex = -1;
-		for (size_t i = 0; i < LAYER_MANAGER.Layers.size(); i++)
+		if (LayerSelectionMode == 2)
 		{
-			if (LAYER_MANAGER.Layers[i].GetCaption() == "Height")
-				HeightLayerIndex = static_cast<int>(i);
+			ImGui::Text("Radius of area to measure: ");
+			ImGui::SetNextItemWidth(128);
+			ImGui::DragFloat("##RadiusOfAreaToMeasure", &RadiusOfAreaToMeasure, 0.01f);
+			if (RadiusOfAreaToMeasure < 0.1f)
+				RadiusOfAreaToMeasure = 0.1f;
+
+			ImGui::Checkbox("Output selection data to file", &bOutputSelectionToFile);
 		}
 
-		if (HeightLayerIndex != -1)
+		DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
+		if (CurrentMeshAnalysisData->TriangleSelected.size() == 1 && ActiveLayer != nullptr)
 		{
-			DataLayer* CurrentLayer = &LAYER_MANAGER.Layers[HeightLayerIndex];
+			ImGui::Separator();
+			ImGui::Text("Selected triangle information :");
 
-			for (size_t i = 0; i < CurrentMeshAnalysisData->TriangleSelected.size(); i++)
+			std::string Text = "Triangle value : ";
+			Text += std::to_string(ActiveLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[0]]);
+			ImGui::Text(Text.c_str());
+
+			int HeightLayerIndex = -1;
+			for (size_t i = 0; i < ActiveObject->Layers.size(); i++)
 			{
-				double CurrentHeight = CurrentLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[i]];
-				AverageHeight += CurrentHeight;
+				if (ActiveObject->Layers[i]->GetCaption() == "Height")
+					HeightLayerIndex = static_cast<int>(i);
 			}
 
-			AverageHeight /= CurrentMeshAnalysisData->TriangleSelected.size();
-			AverageHeight -= CurrentLayer->GetMin();
+			Text = "Triangle height : ";
+			double AverageHeight = 0.0;
+			if (HeightLayerIndex != -1)
+			{
+				AverageHeight = ActiveObject->Layers[HeightLayerIndex]->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[0]];
+				AverageHeight -= ActiveObject->Layers[HeightLayerIndex]->GetMin();
+			}
+
+			Text += std::to_string(AverageHeight);
+			ImGui::Text(Text.c_str());
 		}
+		else if (CurrentMeshAnalysisData->TriangleSelected.size() > 1 && ActiveLayer != nullptr)
+		{
+			std::string Text = "Area average value : ";
+			float TotalRugosity = 0.0f;
+			for (size_t i = 0; i < CurrentMeshAnalysisData->TriangleSelected.size(); i++)
+			{
+				TotalRugosity += ActiveLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[i]];
+			}
 
-		Text += std::to_string(AverageHeight);
+			TotalRugosity /= CurrentMeshAnalysisData->TriangleSelected.size();
+			Text += std::to_string(TotalRugosity);
 
-		ImGui::Text(Text.c_str());
+			ImGui::Text(Text.c_str());
+
+			Text = "Area average height : ";
+			double AverageHeight = 0.0;
+
+			int HeightLayerIndex = -1;
+			for (size_t i = 0; i < ActiveObject->Layers.size(); i++)
+			{
+				if (ActiveObject->Layers[i]->GetCaption() == "Height")
+					HeightLayerIndex = static_cast<int>(i);
+			}
+
+			if (HeightLayerIndex != -1)
+			{
+				DataLayer* HeightLayer = ActiveObject->Layers[HeightLayerIndex];
+				for (size_t i = 0; i < CurrentMeshAnalysisData->TriangleSelected.size(); i++)
+				{
+					double CurrentHeight = HeightLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[i]];
+					AverageHeight += CurrentHeight;
+				}
+
+				AverageHeight /= CurrentMeshAnalysisData->TriangleSelected.size();
+				AverageHeight -= HeightLayer->GetMin();
+			}
+
+			Text += std::to_string(AverageHeight);
+
+			ImGui::Text(Text.c_str());
+		}
 	}
 
 	ImGui::Separator();
@@ -2293,15 +2305,15 @@ void UIManager::RenderExportTab()
 
 bool UIManager::ExportOBJ(std::string FilePath, int LayerIndex)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return false;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return false;
 
-	FEMesh* ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+	FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
 	if (ActiveMesh == nullptr)
 		return false;
 
@@ -2318,18 +2330,18 @@ bool UIManager::ExportOBJ(std::string FilePath, int LayerIndex)
 	}
 	else // Export model with layer.
 	{
-		if (LayerIndex >= LAYER_MANAGER.Layers.size())
+		if (LayerIndex >= ActiveObject->Layers.size())
 			return false;
 
 		// To export model with layer, we need to create a new mesh with vertex colors as layer data.
-		DataLayer* Layer = &LAYER_MANAGER.Layers[LayerIndex];
+		DataLayer* LayerToExport = ActiveObject->Layers[LayerIndex];
 
 		std::vector<float> ColorData;
 		ColorData.resize(CurrentMeshAnalysisData->Vertices.size());
-		for (size_t i = 0; i < Layer->ElementsToData.size(); i++)
+		for (size_t i = 0; i < LayerToExport->ElementsToData.size(); i++)
 		{
-			float CompexityValueForTriangle = Layer->ElementsToData[i];
-			float NormalizedValue = (CompexityValueForTriangle - Layer->GetMin()) / (Layer->MaxVisible - Layer->GetMin());
+			float CompexityValueForTriangle = LayerToExport->ElementsToData[i];
+			float NormalizedValue = (CompexityValueForTriangle - LayerToExport->GetMin()) / (LayerToExport->MaxVisible - LayerToExport->GetMin());
 			if (NormalizedValue > 1.0f)
 				NormalizedValue = 1.0f;
 			else if (NormalizedValue < 0.0f)
@@ -2393,16 +2405,16 @@ void UIManager::RenderSettingsWindow()
 
 		if (ImGui::BeginTabBar("##Settings", ImGuiTabBarFlags_None))
 		{
-			if (ImGui::BeginTabItem("Layer"))
+			if (ImGui::BeginTabItem("LayerToExport"))
 			{
 				RenderLayerSettingsTab();
 				ImGui::EndTabItem();
 			}
 
-			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+			AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 			FEMesh* ActiveMesh = nullptr;
-			if (CurrentObject != nullptr)
-				ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+			if (ActiveObject != nullptr)
+				ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
 
 			if (ActiveMesh == nullptr)
 				ImGui::BeginDisabled();
@@ -2507,9 +2519,16 @@ bool UIManager::ShouldUseTransparentBackground()
 	return bUseTransparentBackground;
 }
 
-bool UIManager::ObjectAndCurrentLayerIsValid()
+bool UIManager::IsActiveObjectAndLayerValid()
 {
-	return ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject() != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1 && LAYER_MANAGER.Layers.size() > LAYER_MANAGER.GetActiveLayerIndex();
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return false;
+
+	if (ActiveObject->GetActiveLayer() == nullptr)
+		return false;
+
+	return true;
 }
 
 void UIManager::UpdateProgressModalPopupCurrentValue()

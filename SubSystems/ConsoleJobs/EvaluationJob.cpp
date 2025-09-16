@@ -158,23 +158,14 @@ bool ComplexityEvaluationJob::Execute(void* InputData, void* OutputData)
 {
 	if (EvaluationType == "COMPLEXITY")
 	{
-		if (LAYER_MANAGER.Layers.empty())
+		if (LAYER_MANAGER.GetLayerCount() == 0)
 		{
 			std::string ErrorMessage = "Error: No layers to evaluate. Please calculate a layer before attempting to evaluate.";
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			return false;
 		}
 
-		DataLayer* LayerToEvaluate = nullptr;
-		if (GetLayerIndex() != -1)
-		{
-			LayerToEvaluate = &LAYER_MANAGER.Layers[GetLayerIndex()];
-		}
-		else
-		{
-			LayerToEvaluate = &LAYER_MANAGER.Layers.back();
-		}
-
+		DataLayer* LayerToEvaluate = LAYER_MANAGER.GetActiveLayer();
 		if (LayerToEvaluate == nullptr)
 		{
 			std::string ErrorMessage = "Error: Layer to evaluate is null. Please check the layer index and try again.";

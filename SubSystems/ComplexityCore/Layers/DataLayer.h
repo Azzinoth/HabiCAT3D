@@ -57,15 +57,14 @@ enum class LAYER_TYPE
 
 class DataLayer
 {
+	friend class AnalysisObject;
+	friend class AnalysisObjectManager;
 	friend class LayerManager;
 
 	std::string ID;
 	std::string Caption = "Layer caption";
 	std::string UserNote;
 	LAYER_TYPE Type = LAYER_TYPE::UNKNOWN;
-	// FIX ME: It should not be here.
-	DATA_SOURCE_TYPE DataSourceType = DATA_SOURCE_TYPE::MESH;
-	// FIX ME: DATA_SOURCE_TYPE should be taken from the AnalysisObject the layer belongs to.
 	std::vector<std::string> ParentObjectIDs;
 
 	float Max = -FLT_MAX;
@@ -79,8 +78,8 @@ class DataLayer
 	float SelectedRangeMax = 0.0f;
 public:
 	DataLayer();
-	DataLayer(DATA_SOURCE_TYPE SourceType);
-	DataLayer(DATA_SOURCE_TYPE SourceType, std::vector<float> ElementsToData);
+	DataLayer(std::vector<std::string> ParentIDs);
+	DataLayer(std::vector<std::string> ParentIDs, std::vector<float> ElementsToData);
 	~DataLayer();
 
 	static DATA_SOURCE_TYPE GetDataSourceTypeForLayerType(LAYER_TYPE Type);
@@ -89,6 +88,9 @@ public:
 
 	std::string GetID();
 	void ForceID(std::string ID);
+
+	AnalysisObject* GetMainParentObject();
+	std::vector<AnalysisObject*> GetAllParentObjects();
 
 	DataLayerDebugInfo* DebugInfo = nullptr;
 
@@ -115,9 +117,6 @@ public:
 
 	LAYER_TYPE GetType();
 	void SetType(LAYER_TYPE NewValue);
-
-	DATA_SOURCE_TYPE GetDataSourceType();
-	void SetDataSourceType(DATA_SOURCE_TYPE NewValue);
 
 	float GetSelectedRangeMin();
 	void SetSelectedRangeMin(float NewValue);

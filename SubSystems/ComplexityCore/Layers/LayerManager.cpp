@@ -1,75 +1,19 @@
 #include "LayerManager.h"
+#include "../../AnalysisObjectManager.h"
 using namespace FocalEngine;
+
+LayerEvent::LayerEvent() {}
+
+LayerEvent::LayerEvent(LAYER_EVENT_TYPE Type, std::string ParentObjectID, std::string PrimaryLayerID, std::vector<std::string> OtherLayerIDs)
+{
+	this->Type = Type;
+	this->ParentObjectID = ParentObjectID;
+	this->PrimaryLayerID = PrimaryLayerID;
+	this->OtherLayerIDs = OtherLayerIDs;
+}
 
 LayerManager::LayerManager() {}
 LayerManager::~LayerManager() {}
-
-void LayerManager::AddLayer(DATA_SOURCE_TYPE LayerDataSource, std::vector<float> ElementsToData)
-{
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr || CurrentObject->GetType() != LayerDataSource)
-		return;
-
-	switch (LayerDataSource)
-	{
-		case DATA_SOURCE_TYPE::MESH:
-		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
-			if (CurrentMeshAnalysisData == nullptr)
-				return;
-
-			if (ElementsToData.size() == CurrentMeshAnalysisData->Triangles.size())
-				Layers.push_back(DataLayer(DATA_SOURCE_TYPE::MESH, ElementsToData));
-
-			break;
-		}
-
-		case DATA_SOURCE_TYPE::POINT_CLOUD:
-		{
-			break;
-		}
-	}
-}
-
-void LayerManager::AddLayer(DataLayer NewLayer)
-{
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr || CurrentObject->GetType() != NewLayer.GetDataSourceType())
-		return;
-
-	switch (NewLayer.GetDataSourceType())
-	{
-		case DATA_SOURCE_TYPE::MESH:
-		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
-			if (CurrentMeshAnalysisData == nullptr)
-				return;
-
-			if (NewLayer.ElementsToData.size() == CurrentMeshAnalysisData->Triangles.size())
-			{
-				Layers.push_back(NewLayer);
-				Layers.back().ComputeStatistics();
-			}
-			
-			break;
-		}
-
-		case DATA_SOURCE_TYPE::POINT_CLOUD:
-		{
-			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
-			if (CurrentPointCloudAnalysisData == nullptr)
-				return;
-
-			if (NewLayer.ElementsToData.size() == CurrentPointCloudAnalysisData->RawPointCloudData.size())
-			{
-				Layers.push_back(NewLayer);
-				Layers.back().ComputeStatistics();
-			}
-
-			break;
-		}
-	}
-}
 
 int LayerManager::FindHighestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List)
 {
@@ -100,14 +44,14 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 {
 	std::string Result = Base;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return Result;
 
 	std::vector<std::string> CaptionList;
-	for (size_t i = 0; i < Layers.size(); i++)
+	for (size_t i = 0; i < ActiveObject->Layers.size(); i++)
 	{
-		CaptionList.push_back(Layers[i].GetCaption());
+		CaptionList.push_back(ActiveObject->Layers[i]->GetCaption());
 	}
 
 	int IndexToAdd = FindHighestIntPostfix(Base, "_", CaptionList);
@@ -118,9 +62,9 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 			return std::tolower(Character);
 		});
 
-		for (size_t i = 0; i < Layers.size(); i++)
+		for (size_t i = 0; i < ActiveObject->Layers.size(); i++)
 		{
-			std::string CurrentCaption = Layers[i].GetCaption();
+			std::string CurrentCaption = ActiveObject->Layers[i]->GetCaption();
 			std::transform(CurrentCaption.begin(), CurrentCaption.end(), CurrentCaption.begin(), [](const unsigned char C) { return std::tolower(C); });
 
 			if (CurrentCaption.find(Base) != std::string::npos)
@@ -137,111 +81,6 @@ std::string LayerManager::SuitableNewLayerCaption(std::string Base)
 	return Result;
 }
 
-#include "../../AnalysisObjectManager.h"
-void LayerManager::SetActiveLayerIndex(const int NewLayerIndex)
-{
-	if (NewLayerIndex < -1 || NewLayerIndex >= int(Layers.size()))
-		return;
-
-	if (NewLayerIndex == -1)
-	{
-		if (CurrentLayerIndex != -1)
-		{
-			// FIX ME: Not sure if that is a good solution.
-			DataLayer& CurrentLayer = Layers[CurrentLayerIndex];
-			if (CurrentLayer.GetDataSourceType() == DATA_SOURCE_TYPE::POINT_CLOUD)
-			{
-				AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-				if (CurrentObject == nullptr)
-					return;
-
-				PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
-				if (CurrentPointCloudAnalysisData == nullptr)
-					return;
-
-				for (size_t i = 0; i < CurrentPointCloudAnalysisData->RawPointCloudData.size(); i++)
-				{
-					std::vector<unsigned char> OriginalColor = CurrentPointCloudAnalysisData->OriginalColors[i];
-
-					CurrentPointCloudAnalysisData->RawPointCloudData[i].R = OriginalColor[0];
-					CurrentPointCloudAnalysisData->RawPointCloudData[i].G = OriginalColor[1];
-					CurrentPointCloudAnalysisData->RawPointCloudData[i].B = OriginalColor[2];
-					CurrentPointCloudAnalysisData->RawPointCloudData[i].A = OriginalColor[3];
-				}
-
-				FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudAnalysisData->RawPointCloudData);
-
-				// FIX ME: Should it be here?
-				FEEntity* PointCloudEntity = CurrentObject->GetEntity();
-				FEPointCloud* OldPointCloud = static_cast<FEPointCloud*>(CurrentObject->GetEngineResource());
-				if (PointCloudEntity != nullptr)
-				{
-					PointCloudEntity->RemoveComponent<FEPointCloudComponent>();
-					RESOURCE_MANAGER.DeleteFEPointCloud(OldPointCloud);
-					CurrentObject->EngineResource = PointCloud;
-					PointCloudEntity->AddComponent<FEPointCloudComponent>(PointCloud);
-				}
-				/*ANALYSIS_OBJECT_MANAGER.CurrentPointCloudEntity->RemoveComponent<FEPointCloudComponent>();
-				RESOURCE_MANAGER.DeleteFEPointCloud(ANALYSIS_OBJECT_MANAGER.CurrentPointCloud);
-				ANALYSIS_OBJECT_MANAGER.CurrentPointCloud = PointCloud;
-				ANALYSIS_OBJECT_MANAGER.CurrentPointCloudEntity->AddComponent<FEPointCloudComponent>(ANALYSIS_OBJECT_MANAGER.CurrentPointCloud);*/
-			}
-		}
-
-		CurrentLayerIndex = -1;
-
-		for (size_t i = 0; i < ClientAfterActiveLayerChangedCallbacks.size(); i++)
-		{
-			if (ClientAfterActiveLayerChangedCallbacks[i] == nullptr)
-				continue;
-
-			ClientAfterActiveLayerChangedCallbacks[i]();
-		}
-
-		return;
-	}
-
-	DataLayer& NewLayer = Layers[NewLayerIndex];
-	if (NewLayer.GetDataSourceType() == DATA_SOURCE_TYPE::MESH)
-	{
-		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-		if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
-			return;
-
-		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
-		if (CurrentMeshAnalysisData == nullptr || CurrentObject->GetEngineResource() == nullptr)
-			return;
-
-		CurrentLayerIndex = NewLayerIndex;
-
-		if (NewLayerIndex != -1)
-			ANALYSIS_OBJECT_MANAGER.ComplexityMetricDataToGPU(NewLayerIndex);
-	}
-	else if (NewLayer.GetDataSourceType() == DATA_SOURCE_TYPE::POINT_CLOUD)
-	{
-		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-		if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::POINT_CLOUD)
-			return;
-
-		PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
-		if (CurrentPointCloudAnalysisData == nullptr || CurrentObject->GetEngineResource() == nullptr)
-			return;
-
-		CurrentLayerIndex = NewLayerIndex;
-
-		if (NewLayerIndex != -1)
-			ANALYSIS_OBJECT_MANAGER.ComplexityMetricDataToGPU(NewLayerIndex);
-	}
-
-	for (size_t i = 0; i < ClientAfterActiveLayerChangedCallbacks.size(); i++)
-	{
-		if (ClientAfterActiveLayerChangedCallbacks[i] == nullptr)
-			continue;
-
-		ClientAfterActiveLayerChangedCallbacks[i]();
-	}
-}
-
 void LayerManager::AddActiveLayerChangedCallback(std::function<void()> Func)
 {
 	ClientAfterActiveLayerChangedCallbacks.push_back(Func);
@@ -249,24 +88,84 @@ void LayerManager::AddActiveLayerChangedCallback(std::function<void()> Func)
 
 int LayerManager::GetActiveLayerIndex()
 {
-	if (ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject() == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return -1;
 
-	return CurrentLayerIndex;
+	return ActiveObject->GetActiveLayerIndex();
 }
 
 DataLayer* LayerManager::GetActiveLayer()
 {
-	if (ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject() == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return nullptr;
 
-	if (CurrentLayerIndex == -1)
-		return nullptr;
-
-	return &Layers[CurrentLayerIndex];
+	return ActiveObject->GetActiveLayer();
 }
 
 size_t LayerManager::GetLayerCount()
 {
-	return Layers.size();
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return 0;
+
+	return ActiveObject->GetLayerCount();
+}
+
+void LayerManager::PropagateLayerEvent(LayerEvent Event)
+{
+	if (Event.Type == LAYER_EVENT_TYPE::UNKNOWN)
+		return;
+
+	if (Event.Type == LAYER_EVENT_TYPE::LAYER_ACTIVE_ID_CHANGED)
+	{
+		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		if (ActiveObject == nullptr)
+			return;
+
+		// FIX ME: Is it good idea to reset the colors here?
+		if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+		{
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(ActiveObject->GetAnalysisData());
+			if (CurrentPointCloudAnalysisData == nullptr)
+				return;
+
+			for (size_t i = 0; i < CurrentPointCloudAnalysisData->RawPointCloudData.size(); i++)
+			{
+				std::vector<unsigned char> OriginalColor = CurrentPointCloudAnalysisData->OriginalColors[i];
+
+				CurrentPointCloudAnalysisData->RawPointCloudData[i].R = OriginalColor[0];
+				CurrentPointCloudAnalysisData->RawPointCloudData[i].G = OriginalColor[1];
+				CurrentPointCloudAnalysisData->RawPointCloudData[i].B = OriginalColor[2];
+				CurrentPointCloudAnalysisData->RawPointCloudData[i].A = OriginalColor[3];
+			}
+
+			FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudAnalysisData->RawPointCloudData);
+
+			// FIX ME: Should it be here?
+			FEEntity* PointCloudEntity = ActiveObject->GetEntity();
+			FEPointCloud* OldPointCloud = static_cast<FEPointCloud*>(ActiveObject->GetEngineResource());
+			if (PointCloudEntity != nullptr)
+			{
+				PointCloudEntity->RemoveComponent<FEPointCloudComponent>();
+				RESOURCE_MANAGER.DeleteFEPointCloud(OldPointCloud);
+				ActiveObject->EngineResource = PointCloud;
+				PointCloudEntity->AddComponent<FEPointCloudComponent>(PointCloud);
+			}
+		}
+
+		ANALYSIS_OBJECT_MANAGER.ComplexityMetricDataToGPU(Event.PrimaryLayerID);
+	}
+
+	// FIX ME: Right now ClientAfterActiveLayerChangedCallbacks was not created to be called on every event.
+	if (Event.Type == LAYER_EVENT_TYPE::LAYER_REMOVED)
+		return;
+
+	for (size_t i = 0; i < ClientAfterActiveLayerChangedCallbacks.size(); i++)
+	{
+		if (ClientAfterActiveLayerChangedCallbacks[i] == nullptr)
+			continue;
+		ClientAfterActiveLayerChangedCallbacks[i]();
+	}
 }

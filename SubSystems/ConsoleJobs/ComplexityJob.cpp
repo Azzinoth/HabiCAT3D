@@ -293,8 +293,8 @@ void ComplexityJob::SetRugosityAlgorithm()
 
 bool ComplexityJob::Execute(void* InputData, void* OutputData)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 	{
 		std::string ErrorMessage = "Error: No file loaded. Please load a file before attempting to calculate complexity.";
 		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
@@ -313,7 +313,15 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 	{
 		std::cout << "Initiating Height Layer calculation." << std::endl;
 
-		LAYER_MANAGER.AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
+		DataLayer* NewLayer = HEIGHT_LAYER_PRODUCER.Calculate();
+		if (NewLayer == nullptr)
+		{
+			std::string ErrorMessage = "Error: Height Layer calculation failed.";
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return false;
+		}
+
+		ActiveObject->AddLayer(NewLayer);
 
 		std::cout << "Height Layer calculation completed." << std::endl;
 	}
@@ -321,7 +329,14 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 	{
 		std::cout << "Initiating Area Layer calculation." << std::endl;
 
-		LAYER_MANAGER.AddLayer(AREA_LAYER_PRODUCER.Calculate());
+		DataLayer* NewLayer = AREA_LAYER_PRODUCER.Calculate();
+		if (NewLayer == nullptr)
+		{
+			std::string ErrorMessage = "Error: Area Layer calculation failed.";
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return false;
+		}
+		ActiveObject->AddLayer(NewLayer);
 
 		std::cout << "Area Layer calculation completed." << std::endl;
 	}
@@ -339,7 +354,14 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 			Mode = 2;
 		}
 
-		LAYER_MANAGER.AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(Mode));
+		DataLayer* NewLayer = TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(Mode);
+		if (NewLayer == nullptr)
+		{
+			std::string ErrorMessage = "Error: Triangle Edge Layer calculation failed.";
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return false;
+		}
+		ActiveObject->AddLayer(NewLayer);
 
 		std::cout << "Triangle Edge Layer calculation completed." << std::endl;
 	}
@@ -437,7 +459,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		std::cout << "Initiating Compare Layer calculation." << std::endl;
 
 		int FirstLayerIndex = Settings.GetCompare_FirstLayerIndex();
-		if (FirstLayerIndex < 0 || FirstLayerIndex > LAYER_MANAGER.Layers.size())
+		if (FirstLayerIndex < 0 || FirstLayerIndex > ActiveObject->Layers.size())
 		{
 			std::string ErrorMessage = "Error: First layer index is out of range. Please check the layer index and try again.";
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
@@ -445,7 +467,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		}
 
 		int SecondLayerIndex = Settings.GetCompare_SecondLayerIndex();
-		if (SecondLayerIndex < 0 || SecondLayerIndex > LAYER_MANAGER.Layers.size())
+		if (SecondLayerIndex < 0 || SecondLayerIndex > ActiveObject->Layers.size())
 		{
 			std::string ErrorMessage = "Error: Second layer index is out of range. Please check the layer index and try again.";
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
@@ -453,7 +475,17 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		}
 
 		COMPARE_LAYER_PRODUCER.SetShouldNormalize(Settings.IsCompare_Normalize());
-		LAYER_MANAGER.AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstLayerIndex, SecondLayerIndex));
+
+		DataLayer* FirstLayer = ActiveObject->Layers[FirstLayerIndex];
+		DataLayer* SecondLayer = ActiveObject->Layers[SecondLayerIndex];
+		DataLayer* NewLayer = COMPARE_LAYER_PRODUCER.Calculate(FirstLayer, SecondLayer);
+		if (NewLayer == nullptr)
+		{
+			std::string ErrorMessage = "Error: Compare Layer calculation failed.";
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return false;
+		}
+		ActiveObject->AddLayer(NewLayer);
 
 		std::cout << "Compare Layer calculation completed." << std::endl;
 	}

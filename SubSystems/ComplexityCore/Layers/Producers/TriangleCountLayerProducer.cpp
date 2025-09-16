@@ -10,11 +10,11 @@ TriangleCountLayerProducer::~TriangleCountLayerProducer() {}
 
 void TriangleCountLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -31,9 +31,13 @@ void TriangleCountLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 	JITTER_MANAGER.CalculateWithGridJitterAsync(WorkOnNode, bSmootherResult);
 }
 
-void TriangleCountLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
+void TriangleCountLayerProducer::OnJitterCalculationsEnd(DataLayer* NewLayer)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (!TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult)
+		return;
+	TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult = false;
+
+	AnalysisObject* CurrentObject = NewLayer->GetMainParentObject();
 	if (CurrentObject == nullptr)
 		return;
 
@@ -41,25 +45,19 @@ void TriangleCountLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
-	if (!TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult)
-		return;
+	NewLayer->SetType(LAYER_TYPE::TRIANGLE_DENSITY);
 
-	NewLayer.SetType(LAYER_TYPE::TRIANGLE_DENSITY);
-
-	TRIANGLE_COUNT_LAYER_PRODUCER.bWaitForJitterResult = false;
-	LAYER_MANAGER.AddLayer(NewLayer);
-	LAYER_MANAGER.Layers.back().SetType(LAYER_TYPE::VECTOR_DISPERSION);
-	LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle density"));
-	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
+	CurrentObject->AddLayer(NewLayer);
+	CurrentObject->SetActiveLayer(NewLayer->GetID());
 }
 
 void TriangleCountLayerProducer::CalculateOnWholeModel()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 

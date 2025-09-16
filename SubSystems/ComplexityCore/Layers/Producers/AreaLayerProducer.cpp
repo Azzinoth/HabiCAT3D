@@ -4,30 +4,30 @@ using namespace FocalEngine;
 AreaLayerProducer::AreaLayerProducer() {}
 AreaLayerProducer::~AreaLayerProducer() {}
 
-DataLayer AreaLayerProducer::Calculate()
+DataLayer* AreaLayerProducer::Calculate()
 {
-	DataLayer Result(DATA_SOURCE_TYPE::MESH);
-	Result.SetType(LAYER_TYPE::TRIANGLE_AREA);
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr || ActiveObject->GetType() != DATA_SOURCE_TYPE::MESH)
+		return nullptr;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
-		return Result;
-
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
-		return Result;
+		return false;
+
+	DataLayer* NewLayer = new DataLayer({ ActiveObject->GetID() });
+	NewLayer->SetType(LAYER_TYPE::TRIANGLE_AREA);
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 	for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
 	{
-		Result.ElementsToData.push_back(static_cast<float>(CurrentMeshAnalysisData->TrianglesArea[i]));
+		NewLayer->ElementsToData.push_back(static_cast<float>(CurrentMeshAnalysisData->TrianglesArea[i]));
 	}
 	
-	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle area"));
-	Result.DebugInfo = new DataLayerDebugInfo();
+	NewLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle area"));
+	NewLayer->DebugInfo = new DataLayerDebugInfo();
 
-	Result.DebugInfo->AddEntry("Start time", StartTime);
-	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+	NewLayer->DebugInfo->AddEntry("Start time", StartTime);
+	NewLayer->DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 
-	return Result;
+	return NewLayer;
 }

@@ -4,18 +4,18 @@ using namespace FocalEngine;
 HeightLayerProducer::HeightLayerProducer() {}
 HeightLayerProducer::~HeightLayerProducer() {}
 
-DataLayer HeightLayerProducer::Calculate()
+DataLayer* HeightLayerProducer::Calculate()
 {
-	DataLayer Result(DATA_SOURCE_TYPE::MESH);
-	Result.SetType(LAYER_TYPE::HEIGHT);
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr || ActiveObject->GetType() != DATA_SOURCE_TYPE::MESH)
+		return nullptr;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
-		return Result;
-
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
-		return Result;
+		return nullptr;
+
+	DataLayer* NewLayer = new DataLayer({ ActiveObject->GetID() });
+	NewLayer->SetType(LAYER_TYPE::HEIGHT);
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
@@ -30,21 +30,21 @@ DataLayer HeightLayerProducer::Calculate()
 			AverageTriangleHeight += CurrentHeight;
 		}
 
-		Result.ElementsToData.push_back(static_cast<float>(AverageTriangleHeight / 3.0));
-		Min = std::min(float(Min), Result.ElementsToData.back());
+		NewLayer->ElementsToData.push_back(static_cast<float>(AverageTriangleHeight / 3.0));
+		Min = std::min(float(Min), NewLayer->ElementsToData.back());
 	}
 
 	// Smallest value should be 0.0f.
-	for (size_t i = 0; i < Result.ElementsToData.size(); i++)
+	for (size_t i = 0; i < NewLayer->ElementsToData.size(); i++)
 	{
-		Result.ElementsToData[i] += static_cast<float>(abs(Min));
+		NewLayer->ElementsToData[i] += static_cast<float>(abs(Min));
 	}
 	
-	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Height"));
-	Result.DebugInfo = new DataLayerDebugInfo();
+	NewLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Height"));
+	NewLayer->DebugInfo = new DataLayerDebugInfo();
 
-	Result.DebugInfo->AddEntry("Start time", StartTime);
-	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+	NewLayer->DebugInfo->AddEntry("Start time", StartTime);
+	NewLayer->DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 
-	return Result;
+	return NewLayer;
 }

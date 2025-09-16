@@ -63,32 +63,42 @@ std::vector<float> CompareLayerProducer::Normalize(std::vector<float> Original)
 	return Result;
 }
 
-DataLayer CompareLayerProducer::Calculate(const int FirstLayer, const int SecondLayer)
+DataLayer* CompareLayerProducer::Calculate(DataLayer* FirstLayer, DataLayer* SecondLayer)
 {
-	DataLayer Result(DATA_SOURCE_TYPE::MESH);
-	Result.SetType(LAYER_TYPE::COMPARE);
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr || ActiveObject->GetType() != DATA_SOURCE_TYPE::MESH)
+		return nullptr;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
-		return Result;
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	if (CurrentMeshAnalysisData == nullptr)
+		return nullptr;
 
-	if (FirstLayer == -1 || SecondLayer == -1)
-		return Result;
+	if (FirstLayer == nullptr || SecondLayer == nullptr)
+		return nullptr;
+
+	if (FirstLayer->GetMainParentObject() == nullptr || SecondLayer->GetMainParentObject() == nullptr)
+		return nullptr;
+
+	if (FirstLayer->GetMainParentObject() != SecondLayer->GetMainParentObject())
+		return nullptr;
+
+	if (FirstLayer->GetType() != SecondLayer->GetType())
+		return nullptr;
+
+	DataLayer* NewLayer = new DataLayer({ ActiveObject->GetID() });
+	NewLayer->SetType(LAYER_TYPE::COMPARE);
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	DataLayer* First = &LAYER_MANAGER.Layers[FirstLayer];
-	DataLayer* Second = &LAYER_MANAGER.Layers[SecondLayer];
-
 	std::vector<float> NewData;
-	NewData.resize(First->ElementsToData.size());
+	NewData.resize(FirstLayer->ElementsToData.size());
 
 	if (bNormalize)
 	{
-		std::vector<float> FirstLayerData = Normalize(First->ElementsToData);
-		std::vector<float> SecondLayerData = Normalize(Second->ElementsToData);
+		std::vector<float> FirstLayerData = Normalize(FirstLayer->ElementsToData);
+		std::vector<float> SecondLayerData = Normalize(SecondLayer->ElementsToData);
 
-		for (size_t i = 0; i < First->ElementsToData.size(); i++)
+		for (size_t i = 0; i < FirstLayer->ElementsToData.size(); i++)
 		{
 			NewData[i] = FirstLayerData[i] - SecondLayerData[i];
 		}
@@ -97,9 +107,9 @@ DataLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 	}
 	else
 	{
-		for (size_t i = 0; i < First->ElementsToData.size(); i++)
+		for (size_t i = 0; i < FirstLayer->ElementsToData.size(); i++)
 		{
-			NewData[i] = First->ElementsToData[i] - Second->ElementsToData[i];
+			NewData[i] = FirstLayer->ElementsToData[i] - SecondLayer->ElementsToData[i];
 		}
 
 		bool bDeleteOutliers = true;
@@ -110,23 +120,21 @@ DataLayer CompareLayerProducer::Calculate(const int FirstLayer, const int Second
 		}
 	}
 
-	Result.ElementsToData = NewData;
-	Result.SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Compare"));
+	NewLayer->ElementsToData = NewData;
+	NewLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Compare"));
 
-	Result.DebugInfo = new DataLayerDebugInfo();
-	Result.DebugInfo->Type = "CompareDataLayerDebugInfo";
-	Result.DebugInfo->AddEntry("Start time", StartTime);
-	Result.DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
+	NewLayer->DebugInfo = new DataLayerDebugInfo();
+	NewLayer->DebugInfo->Type = "CompareDataLayerDebugInfo";
+	NewLayer->DebugInfo->AddEntry("Start time", StartTime);
+	NewLayer->DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 
 	std::string TempString = bNormalize ? "Yes" : "No";
-	Result.DebugInfo->AddEntry("Normalized", TempString);
+	NewLayer->DebugInfo->AddEntry("Normalized", TempString);
 
-	//auto& Layer = LAYER_MANAGER.Layers[FirstLayer];
+	NewLayer->DebugInfo->AddEntry("First layer ID", FirstLayer->GetID());
+	NewLayer->DebugInfo->AddEntry("First layer caption", FirstLayer->GetCaption());
+	NewLayer->DebugInfo->AddEntry("Second layer ID", SecondLayer->GetID());
+	NewLayer->DebugInfo->AddEntry("Second layer caption", SecondLayer->GetCaption());
 
-	Result.DebugInfo->AddEntry("First layer ID", LAYER_MANAGER.Layers[FirstLayer].GetID());
-	Result.DebugInfo->AddEntry("First layer caption", LAYER_MANAGER.Layers[FirstLayer].GetCaption());
-	Result.DebugInfo->AddEntry("Second layer ID", LAYER_MANAGER.Layers[SecondLayer].GetID());
-	Result.DebugInfo->AddEntry("Second layer caption", LAYER_MANAGER.Layers[SecondLayer].GetCaption());
-
-	return Result;
+	return NewLayer;
 }

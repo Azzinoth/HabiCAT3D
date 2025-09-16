@@ -52,11 +52,11 @@ bool FileLoadJob::Execute(void* InputData, void* OutputData)
 	std::cout << "File found. Loading file: " << FilePath << std::endl;
 
 	AnalysisObject* NewAnalysisObject = ANALYSIS_OBJECT_MANAGER.LoadResource(FilePath);
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return false;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return false;
 

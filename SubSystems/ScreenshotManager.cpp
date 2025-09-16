@@ -124,22 +124,22 @@ std::string ScreenshotManager::SuitableNewFileName(std::string Base, std::string
 
 void ScreenshotManager::TakeScreenshot()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 	{
 		APPLICATION.EndFrame();
 		return;
 	}
 
 	// FIX ME: currently only mesh objects are supported
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 	{
 		APPLICATION.EndFrame();
 		return;
 	}
 
-	FEMesh* ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+	FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
 	if (ActiveMesh == nullptr)
 	{
 		APPLICATION.EndFrame();
@@ -167,7 +167,7 @@ void ScreenshotManager::TakeScreenshot()
 
 	FrameBufferObject->UnBind();
 
-	RESOURCE_MANAGER.ExportFETextureToPNG(FrameBufferObject->GetColorAttachment(), SuitableNewFileName(FILE_SYSTEM.GetFileName(CurrentObject->GetFilePath(), false), ".png").c_str());
+	RESOURCE_MANAGER.ExportFETextureToPNG(FrameBufferObject->GetColorAttachment(), SuitableNewFileName(FILE_SYSTEM.GetFileName(ActiveObject->GetFilePath(), false), ".png").c_str());
 }
 
 void ScreenshotManager::RenderTargetWasResized()

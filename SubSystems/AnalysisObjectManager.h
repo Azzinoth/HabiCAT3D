@@ -370,15 +370,18 @@ public:
 	void SaveToRUGFileAskForFilePath(std::string AnalysisObjectID);
 
 	AnalysisObject* GetAnalysisObject(std::string ID);
-	bool SetActiveAnalysisObject(std::string ID);
-	AnalysisObject* GetActiveAnalysisObject();
 	std::vector<std::string> AnalysisObjectManager::GetAnalysisObjectsIDList();
 
+	bool SetActiveAnalysisObject(std::string ID);
+	AnalysisObject* GetActiveAnalysisObject();
 	FEEntity* GetActiveEntity();
 
+	//bool DeleteAnalysisObject(std::string ID);
+
+	void AddOnActiveObjectChangeCallback(std::function<void(AnalysisObject*)> Callback);
 	void AddOnLoadCallback(std::function<void(AnalysisObject*)> Callback);
 
-	void ComplexityMetricDataToGPU(int LayerIndex, int GPULayerIndex = 0);
+	void ComplexityMetricDataToGPU(std::string LayerID, int GPULayerIndex = 0);
 
 	bool SelectTriangle(glm::dvec3 MouseRay);
 	bool SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius);
@@ -389,6 +392,7 @@ private:
 	AnalysisObject* LoadRUGMesh(std::string FilePath);
 
 	std::vector<std::function<void(AnalysisObject*)>> ClientOnLoadCallbacks;
+	std::vector<std::function<void(AnalysisObject*)>> ClientOnActiveObjectChangeCallbacks;
 
 	std::unordered_map<std::string, AnalysisObject*> AnalysisObjects;
 	std::string ActiveAnalysisObjectID = "";
@@ -396,8 +400,9 @@ private:
 	PointCloudAnalysisData* ExtractAdditionalGeometryData(FEPointCloud* PointCloud);
 
 	void InitializeSceneObjects(AnalysisObject* NewAnalysisObject);
-public:
-	void UpdateUniforms();
+
+	void UpdateMeshUniforms(AnalysisObject* Object);
+	static void BeforeRender(FEEntity* CurrentEntity);
 };
 
 #define ANALYSIS_OBJECT_MANAGER AnalysisObjectManager::GetInstance()

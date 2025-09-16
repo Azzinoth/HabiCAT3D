@@ -222,7 +222,7 @@ void ExportLayerAsImageJob::SetLayerIndex(int NewValue)
 
 bool ExportLayerAsImageJob::Execute(void* InputData, void* OutputData)
 {
-	if (LAYER_MANAGER.Layers.empty())
+	if (LAYER_MANAGER.GetLayerCount() == 0)
 	{
 		std::string ErrorMessage = "Error: No layers to export. Please calculate a layer before attempting to export.";
 		LOG.Add(ErrorMessage, "CONSOLE_LOG");
@@ -230,19 +230,7 @@ bool ExportLayerAsImageJob::Execute(void* InputData, void* OutputData)
 		return false;
 	}
 
-	DataLayer* LayerToExport = nullptr;
-	if (GetLayerIndex() >= 0 && GetLayerIndex() < LAYER_MANAGER.Layers.size())
-	{
-		LayerToExport = &LAYER_MANAGER.Layers[GetLayerIndex()];
-	}
-	else
-	{
-		std::string ErrorMessage = "Error: Layer index is out of range. Please check the layer index and try again.";
-		LOG.Add(ErrorMessage, "CONSOLE_LOG");
-		OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
-		return false;
-	}
-
+	DataLayer* LayerToExport = LAYER_MANAGER.GetActiveLayer();
 	if (LayerToExport == nullptr)
 	{
 		std::string ErrorMessage = "Error: Layer to export is null. Please check the layer index and try again.";

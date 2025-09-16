@@ -12,7 +12,7 @@ public:
 private:
 	SINGLETON_PRIVATE_PART(PointDensityLayerProducer)
 
-	static void OnJitterCalculationsEnd(DataLayer NewLayer);
+	static void OnJitterCalculationsEnd(DataLayer* NewLayer);
 	bool bWaitForJitterResult = false;
 };
 

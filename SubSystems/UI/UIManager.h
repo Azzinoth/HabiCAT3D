@@ -101,7 +101,7 @@ private:
 
 	bool bJitterCalculationsInProgress = false;
 	static void OnJitterCalculationsStart();
-	static void OnJitterCalculationsEnd(DataLayer NewLayer);
+	static void OnJitterCalculationsEnd(DataLayer* NewLayer);
 
 	bool bOutputSelectionToFile = false;
 
@@ -132,7 +132,7 @@ private:
 	bool bNextFrameForScreenshot = false;
 	bool bUseTransparentBackground = false;
 
-	bool ObjectAndCurrentLayerIsValid();
+	bool IsActiveObjectAndLayerValid();
 
 	float ProgressModalPopupCurrentValue = 0.0f;
 	void UpdateProgressModalPopupCurrentValue();

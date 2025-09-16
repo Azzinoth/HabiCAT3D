@@ -1,4 +1,5 @@
 #include "AnalysisData.h"
+#include "Layers/LayerManager.h"
 using namespace FocalEngine;
 
 double MeshAnalysisData::GetTotalArea()
@@ -132,4 +133,118 @@ FEObject* AnalysisObject::GetEngineResource()
 FEEntity* AnalysisObject::GetEntity()
 { 
 	return Entity;
+}
+
+bool AnalysisObject::AddLayer(DataLayer* NewLayer)
+{
+	if (NewLayer == nullptr)
+		return false;
+
+	if (NewLayer->GetMainParentObject() != nullptr && NewLayer->GetMainParentObject() != this)
+		return false;
+
+	if (NewLayer->GetMainParentObject() == nullptr)
+		NewLayer->ParentObjectIDs.push_back(ID);
+	
+	for (size_t i = 0; i < Layers.size(); i++)
+	{
+		if (Layers[i] == NewLayer)
+			return false;
+	}
+
+	Layers.push_back(NewLayer);
+	Layers.back()->ComputeStatistics();
+	return true;
+}
+
+DataLayer* AnalysisObject::GetLayer(std::string LayerID)
+{
+	DataLayer* Result = nullptr;
+	if (LayerID.empty())
+		return Result;
+
+	for (size_t i = 0; i < Layers.size(); i++)
+	{
+		if (Layers[i]->GetID() == LayerID)
+		{
+			Result = Layers[i];
+			return Result;
+		}
+	}
+
+	return Result;
+}
+
+void AnalysisObject::ClearActiveLayer()
+{
+	SetActiveLayer("");
+}
+
+DataLayer* AnalysisObject::GetActiveLayer()
+{
+	DataLayer* Result = nullptr;
+	if (ActiveLayerID.empty())
+		return Result;
+
+	Result = GetLayer(ActiveLayerID);
+	if (Result == nullptr)
+		ActiveLayerID = "";
+	
+	return Result;
+}
+
+bool AnalysisObject::SetActiveLayer(std::string LayerID)
+{
+	DataLayer* NewActiveLayer = GetLayer(LayerID);
+	if (NewActiveLayer == nullptr && !LayerID.empty())
+		return false;
+
+	ActiveLayerID = LayerID;
+	LayerEvent NewEvent = LayerEvent(LAYER_EVENT_TYPE::LAYER_ACTIVE_ID_CHANGED, ID, ActiveLayerID, { LayerID });
+	LAYER_MANAGER.PropagateLayerEvent(NewEvent);
+	
+	return true;
+}
+
+size_t AnalysisObject::GetLayerCount()
+{
+	return Layers.size();
+}
+
+int AnalysisObject::GetActiveLayerIndex()
+{
+	if (ActiveLayerID.empty())
+		return -1;
+
+	for (size_t i = 0; i < Layers.size(); i++)
+	{
+		if (Layers[i]->GetID() == ActiveLayerID)
+			return static_cast<int>(i);
+	}
+
+	return -1;
+}
+
+bool AnalysisObject::RemoveLayer(std::string LayerID)
+{
+	if (LayerID.empty())
+		return false;
+
+	for (size_t i = 0; i < Layers.size(); i++)
+	{
+		if (Layers[i]->GetID() == LayerID)
+		{
+			if (Layers[i]->GetID() == ActiveLayerID)
+				ClearActiveLayer();
+
+			delete Layers[i];
+			Layers.erase(Layers.begin() + i);
+
+			LayerEvent NewEvent = LayerEvent(LAYER_EVENT_TYPE::LAYER_REMOVED, ID, LayerID, { LayerID });
+			LAYER_MANAGER.PropagateLayerEvent(NewEvent);
+			return true;
+		}
+	}
+
+	return false;
 }

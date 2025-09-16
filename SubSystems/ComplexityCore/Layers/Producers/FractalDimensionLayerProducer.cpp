@@ -1,7 +1,7 @@
 #include "FractalDimensionLayerProducer.h"
 using namespace FocalEngine;
 
-void(*FractalDimensionLayerProducer::OnCalculationsEndCallbackImpl)(DataLayer) = nullptr;
+void(*FractalDimensionLayerProducer::OnCalculationsEndCallbackImpl)(DataLayer*) = nullptr;
 
 FractalDimensionLayerProducer::FractalDimensionLayerProducer()
 {
@@ -54,8 +54,8 @@ void FractalDimensionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 
 void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
 	bWaitForJitterResult = true;
@@ -79,39 +79,41 @@ void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 	JITTER_MANAGER.CalculateWithGridJitterAsync(WorkOnNode, bSmootherResult);
 }
 
-void FractalDimensionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
+void FractalDimensionLayerProducer::OnJitterCalculationsEnd(DataLayer* NewLayer)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	AnalysisObject* CurrentObject = NewLayer->GetMainParentObject();
 	if (CurrentObject == nullptr)
 		return;
 
 	if (!FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult)
 		return;
 
-	NewLayer.SetType(LAYER_TYPE::FRACTAL_DIMENSION);
+	NewLayer->SetType(LAYER_TYPE::FRACTAL_DIMENSION);
 
 	FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult = false;
 
-	NewLayer.DebugInfo->AddEntry("FD outliers: ", std::string(FRACTAL_DIMENSION_LAYER_PRODUCER.bFilterFractalDimensionValues ? "Yes" : "No"));
-	LAYER_MANAGER.AddLayer(NewLayer);
-	LAYER_MANAGER.Layers.back().SetType(LAYER_TYPE::FRACTAL_DIMENSION);
-	LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal dimension"));
-	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
+	NewLayer->DebugInfo->AddEntry("FD outliers: ", std::string(FRACTAL_DIMENSION_LAYER_PRODUCER.bFilterFractalDimensionValues ? "Yes" : "No"));
+
+	CurrentObject->AddLayer(NewLayer);
+	CurrentObject->SetActiveLayer(NewLayer->GetID());
 
 	if (FRACTAL_DIMENSION_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{
 		uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
-		LAYER_MANAGER.AddLayer(DATA_SOURCE_TYPE::MESH, TrianglesToStandardDeviation);
-		LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
-
-		LAYER_MANAGER.Layers.back().DebugInfo = new DataLayerDebugInfo();
-		DataLayerDebugInfo* DebugInfo = LAYER_MANAGER.Layers.back().DebugInfo;
+		DataLayer* StandardDeviationLayer = new DataLayer({ CurrentObject->GetID() }, TrianglesToStandardDeviation);
+		StandardDeviationLayer->SetType(LAYER_TYPE::STANDARD_DEVIATION);
+		StandardDeviationLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+		
+		StandardDeviationLayer->DebugInfo = new DataLayerDebugInfo();
+		DataLayerDebugInfo* DebugInfo = StandardDeviationLayer->DebugInfo;
 		DebugInfo->Type = "FractalDimensionDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer caption", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetCaption());
+		DebugInfo->AddEntry("Source layer ID", CurrentObject->Layers.back()->GetID());
+		DebugInfo->AddEntry("Source layer caption", CurrentObject->Layers.back()->GetCaption());
+
+		CurrentObject->AddLayer(StandardDeviationLayer);
 	}
 
 	if (OnCalculationsEndCallbackImpl != nullptr)
@@ -120,12 +122,12 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 
 void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
 	// FIX ME: Should also work for point clouds.
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -211,8 +213,8 @@ void FractalDimensionLayerProducer::RenderDebugInfoWindow(MeasurementGrid* Grid)
 
 void FractalDimensionLayerProducer::CalculateOnWholeModel()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
 	bWaitForJitterResult = true;
@@ -227,7 +229,7 @@ void FractalDimensionLayerProducer::CalculateOnWholeModel()
 	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
 }
 
-void FractalDimensionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(DataLayer))
+void FractalDimensionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(DataLayer*))
 {
 	OnCalculationsEndCallbackImpl = Func;
 }
@@ -254,12 +256,12 @@ void FractalDimensionLayerProducer::SetShouldCalculateStandardDeviation(bool New
 
 double FractalDimensionLayerProducer::RunOnAllInternalNodesWithTriangles(GridNode* OuterNode, std::function<void(int BoxSizeIndex, FEAABB BoxAABB)> FunctionWithAdditionalCode)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return 0.0;
 
 	// FIX ME: Should also work for point clouds.
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return 0.0;
 

@@ -227,8 +227,8 @@ float JitterManager::GetProgress()
 
 void JitterManager::RunNextJitter()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
 	JitterThreadFinishedCount = 0;
@@ -249,7 +249,7 @@ void JitterManager::RunNextJitter()
 
 	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(&LastUsedJitterSettings[CurrentJitterIndex], JITTER_MANAGER.GetResolutionInM());
 	Grid->Init(0, FinalAABB, JITTER_MANAGER.GetResolutionInM());
-	CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? Grid->FillCellsWithTriangleInfo() : Grid->FillCellsWithPointInfo();
+	ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? Grid->FillCellsWithTriangleInfo() : Grid->FillCellsWithPointInfo();
 
 	int NodesWithDataCount = 0;
 	int TotalObjectCountInNodes = 0;
@@ -260,9 +260,9 @@ void JitterManager::RunNextJitter()
 		{
 			for (size_t k = 0; k < Grid->Data.size(); k++)
 			{
-				if (!(CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? Grid->Data[i][j][k].TrianglesInCell.empty() : Grid->Data[i][j][k].PointsInCell.empty()))
+				if (!(ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? Grid->Data[i][j][k].TrianglesInCell.empty() : Grid->Data[i][j][k].PointsInCell.empty()))
 				{
-					TotalObjectCountInNodes += CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? static_cast<int>(Grid->Data[i][j][k].TrianglesInCell.size()) : static_cast<int>(Grid->Data[i][j][k].PointsInCell.size());
+					TotalObjectCountInNodes += ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? static_cast<int>(Grid->Data[i][j][k].TrianglesInCell.size()) : static_cast<int>(Grid->Data[i][j][k].PointsInCell.size());
 					NodesWithData.push_back(&Grid->Data[i][j][k]);
 				}
 			}
@@ -273,7 +273,7 @@ void JitterManager::RunNextJitter()
 	THREAD_COUNT = THREAD_POOL.GetThreadCount() * 10;
 	// It should be based on complexity of the algorithm
 	// not only triangle/point count.
-	THREAD_COUNT = static_cast<int>(TotalObjectCountInNodes / (CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? 10000.0 : 100000.0));
+	THREAD_COUNT = static_cast<int>(TotalObjectCountInNodes / (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? 10000.0 : 100000.0));
 	if (THREAD_COUNT < 1)
 		THREAD_COUNT = 1;
 	
@@ -425,8 +425,8 @@ void JitterManager::MoveResultDataFromGrid(MeasurementGrid* Grid)
 
 void JitterManager::OnCalculationsStart()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
 	JITTER_MANAGER.Result.clear();
@@ -457,17 +457,21 @@ void JitterManager::OnCalculationsEnd()
 	JITTER_MANAGER.FallbackValue = 1.0f;
 	JITTER_MANAGER.TotalJitterIndex = 0;
 
-	DataLayer NewLayer;
-	NewLayer.ElementsToData = JITTER_MANAGER.Result;
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
 
-	NewLayer.DebugInfo = new DataLayerDebugInfo();
-	NewLayer.DebugInfo->Type = "JitterDataLayerDebugInfo";
-	NewLayer.DebugInfo->AddEntry("Start time", JITTER_MANAGER.StartTime);
+	DataLayer* NewLayer = new DataLayer({ ActiveObject->GetID() });
+	NewLayer->ElementsToData = JITTER_MANAGER.Result;
+
+	NewLayer->DebugInfo = new DataLayerDebugInfo();
+	NewLayer->DebugInfo->Type = "JitterDataLayerDebugInfo";
+	NewLayer->DebugInfo->AddEntry("Start time", JITTER_MANAGER.StartTime);
 	uint64_t EndTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
-	NewLayer.DebugInfo->AddEntry("End time", EndTime);
-	NewLayer.DebugInfo->AddEntry("Time taken", TIME.TimeToFormattedString(EndTime - JITTER_MANAGER.StartTime));
-	NewLayer.DebugInfo->AddEntry("Jitter count", JITTER_MANAGER.JitterDoneCount);
-	NewLayer.DebugInfo->AddEntry("Resolution used", std::to_string(JITTER_MANAGER.ResolutionInM) + " m.");
+	NewLayer->DebugInfo->AddEntry("End time", EndTime);
+	NewLayer->DebugInfo->AddEntry("Time taken", TIME.TimeToFormattedString(EndTime - JITTER_MANAGER.StartTime));
+	NewLayer->DebugInfo->AddEntry("Jitter count", JITTER_MANAGER.JitterDoneCount);
+	NewLayer->DebugInfo->AddEntry("Resolution used", std::to_string(JITTER_MANAGER.ResolutionInM) + " m.");
 
 	JITTER_MANAGER.LastTimeTookForCalculation = float(TIME.EndTimeStamp("JitterCalculateTotal"));
 
@@ -479,10 +483,10 @@ void JitterManager::OnCalculationsEnd()
 
 	for (size_t i = 0; i < JITTER_MANAGER.LastUsedJitterSettings.size(); i++)
 	{
-		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftX", JITTER_MANAGER.LastUsedJitterSettings[i].ShiftX);
-		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftY", JITTER_MANAGER.LastUsedJitterSettings[i].ShiftY);
-		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftZ", JITTER_MANAGER.LastUsedJitterSettings[i].ShiftZ);
-		NewLayer.DebugInfo->AddEntry("Jitter " + std::to_string(i) + " GridScale", JITTER_MANAGER.LastUsedJitterSettings[i].GridScale);
+		NewLayer->DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftX", JITTER_MANAGER.LastUsedJitterSettings[i].ShiftX);
+		NewLayer->DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftY", JITTER_MANAGER.LastUsedJitterSettings[i].ShiftY);
+		NewLayer->DebugInfo->AddEntry("Jitter " + std::to_string(i) + " ShiftZ", JITTER_MANAGER.LastUsedJitterSettings[i].ShiftZ);
+		NewLayer->DebugInfo->AddEntry("Jitter " + std::to_string(i) + " GridScale", JITTER_MANAGER.LastUsedJitterSettings[i].GridScale);
 	}
 }
 
@@ -491,7 +495,7 @@ void JitterManager::SetOnCalculationsStartCallback(std::function<void()> Func)
 	OnCalculationsStartCallbacks.push_back(Func);
 }
 
-void JitterManager::SetOnCalculationsEndCallback(std::function<void(DataLayer CurrentDataLayer)> Func)
+void JitterManager::SetOnCalculationsEndCallback(std::function<void(DataLayer*)> Func)
 {
 	OnCalculationsEndCallbacks.push_back(Func);
 }
@@ -581,11 +585,11 @@ void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* CurrentNo
 
 void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -752,11 +756,11 @@ std::vector<float> JitterManager::ProduceStandardDeviationData()
 {
 	std::vector<float> Result;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return Result;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
@@ -779,11 +783,11 @@ std::vector<float> JitterManager::ProduceStandardDeviationData()
 
 FEAABB JitterManager::GetAABBForJitteredGrid(GridInitData_Jitter* Settings, float CurrentResolutionInM)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return Result;
 
-	ResourceAnalysisData* AnalysisData = CurrentObject->GetAnalysisData();
+	ResourceAnalysisData* AnalysisData = ActiveObject->GetAnalysisData();
 	if (AnalysisData == nullptr)
 		return Result;
 

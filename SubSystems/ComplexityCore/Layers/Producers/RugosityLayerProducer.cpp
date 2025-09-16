@@ -3,7 +3,7 @@ using namespace FocalEngine;
 
 float RugosityLayerProducer::LastTimeTookForCalculation = 0.0f;
 void(*RugosityLayerProducer::OnRugosityCalculationsStartCallbackImpl)(void) = nullptr;
-void(*RugosityLayerProducer::OnRugosityCalculationsEndCallbackImpl)(DataLayer) = nullptr;
+void(*RugosityLayerProducer::OnRugosityCalculationsEndCallbackImpl)(DataLayer*) = nullptr;
 
 RugosityLayerProducer::RugosityLayerProducer()
 {
@@ -114,11 +114,11 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 	if (CurrentNode->TrianglesInCell.empty())
 		return;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -480,8 +480,8 @@ void RugosityLayerProducer::CalculateOneNodeRugosity(GridNode* CurrentNode)
 
 void RugosityLayerProducer::CalculateWithJitterAsync()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr || ActiveObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -492,8 +492,8 @@ void RugosityLayerProducer::CalculateWithJitterAsync()
 
 void RugosityLayerProducer::CalculateOnWholeModel()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr || ActiveObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return;
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
@@ -574,8 +574,8 @@ void RugosityLayerProducer::SetOnRugosityCalculationsStartCallback(void(*Func)(v
 
 void RugosityLayerProducer::OnRugosityCalculationsStart()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr || CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr || ActiveObject->GetType() != DATA_SOURCE_TYPE::MESH)
 		return;
 
 	JITTER_MANAGER.SetFallbackValue(1.0f);
@@ -588,19 +588,24 @@ void RugosityLayerProducer::OnRugosityCalculationsStart()
 		OnRugosityCalculationsStartCallbackImpl();
 }
 
-void RugosityLayerProducer::SetOnRugosityCalculationsEndCallback(void(*Func)(DataLayer))
+void RugosityLayerProducer::SetOnRugosityCalculationsEndCallback(void(*Func)(DataLayer*))
 {
 	OnRugosityCalculationsEndCallbackImpl = Func;
 }
 
-void RugosityLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
+void RugosityLayerProducer::OnJitterCalculationsEnd(DataLayer* NewLayer)
 {
 	if (!RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult)
 		return;
 
-	NewLayer.SetType(LAYER_TYPE::RUGOSITY);
 	RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = false;
-	NewLayer.DebugInfo->Type = "RugosityDataLayerDebugInfo";
+
+	AnalysisObject* CurrentObject = NewLayer->GetMainParentObject();
+	if (CurrentObject == nullptr)
+		return;
+
+	NewLayer->SetType(LAYER_TYPE::RUGOSITY);
+	NewLayer->DebugInfo->Type = "RugosityDataLayerDebugInfo";
 
 	std::string AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[0];
 	if (RUGOSITY_LAYER_PRODUCER.bUseFindSmallestRugosity)
@@ -609,52 +614,52 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(DataLayer NewLayer)
 	if (RUGOSITY_LAYER_PRODUCER.bUseCGALVariant)
 		AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[2];
 
-	NewLayer.DebugInfo->AddEntry("Algorithm used", AlgorithmUsed);
+	NewLayer->DebugInfo->AddEntry("Algorithm used", AlgorithmUsed);
 
 	if (AlgorithmUsed == "Min Rugosity(default)")
-		NewLayer.DebugInfo->AddEntry("Orientation set name", RUGOSITY_LAYER_PRODUCER.GetOrientationSetForMinRugosityName());
+		NewLayer->DebugInfo->AddEntry("Orientation set name", RUGOSITY_LAYER_PRODUCER.GetOrientationSetForMinRugosityName());
 	
 	std::string DeleteOutliers = "No";
 	// Remove outliers.
 	if (RUGOSITY_LAYER_PRODUCER.bDeleteOutliers || (RUGOSITY_LAYER_PRODUCER.bUseFindSmallestRugosity && RUGOSITY_LAYER_PRODUCER.OrientationSetForMinRugosity == "1"))
 	{
 		DeleteOutliers = "Yes";
-		JITTER_MANAGER.AdjustOutliers(NewLayer.ElementsToData, 0.00f, 0.99f);
+		JITTER_MANAGER.AdjustOutliers(NewLayer->ElementsToData, 0.00f, 0.99f);
 	}
-	NewLayer.DebugInfo->AddEntry("Delete outliers", DeleteOutliers);
+	NewLayer->DebugInfo->AddEntry("Delete outliers", DeleteOutliers);
 
 	std::string OverlapAware = "No";
 	if (RUGOSITY_LAYER_PRODUCER.bUniqueProjectedArea)
 		OverlapAware = "Yes";
-	NewLayer.DebugInfo->AddEntry("Unique projected area (very slow)", OverlapAware);
+	NewLayer->DebugInfo->AddEntry("Unique projected area (very slow)", OverlapAware);
 
 	std::string OverlapAwareApproximation = "No";
 	if (RUGOSITY_LAYER_PRODUCER.bUniqueProjectedAreaApproximation)
 		OverlapAwareApproximation = "Yes";
-	NewLayer.DebugInfo->AddEntry("Approximation of unique projected area", OverlapAwareApproximation);
+	NewLayer->DebugInfo->AddEntry("Approximation of unique projected area", OverlapAwareApproximation);
 
 	LastTimeTookForCalculation = float(TIME.EndTimeStamp("CalculateRugorsityTotal"));
 
-	LAYER_MANAGER.AddLayer(NewLayer);
-	LAYER_MANAGER.Layers.back().SetType(LAYER_TYPE::RUGOSITY);
-	LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
-
-	LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
+	CurrentObject->AddLayer(NewLayer);
+	CurrentObject->SetActiveLayer(NewLayer->GetID());
 
 	if (RUGOSITY_LAYER_PRODUCER.bCalculateStandardDeviation)
 	{
 		uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 		std::vector<float> TrianglesToStandardDeviation = JITTER_MANAGER.ProduceStandardDeviationData();
-		LAYER_MANAGER.AddLayer(DATA_SOURCE_TYPE::MESH, TrianglesToStandardDeviation);
-		LAYER_MANAGER.Layers.back().SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
+		DataLayer* StandardDeviationLayer = new DataLayer({ CurrentObject->GetID() }, TrianglesToStandardDeviation);
+		StandardDeviationLayer->SetType(LAYER_TYPE::STANDARD_DEVIATION);
+		StandardDeviationLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Standard deviation"));
 
-		LAYER_MANAGER.Layers.back().DebugInfo = new DataLayerDebugInfo();
-		DataLayerDebugInfo* DebugInfo = LAYER_MANAGER.Layers.back().DebugInfo;
+		StandardDeviationLayer->DebugInfo = new DataLayerDebugInfo();
+		DataLayerDebugInfo* DebugInfo = StandardDeviationLayer->DebugInfo;
 		DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetID());
-		DebugInfo->AddEntry("Source layer caption", LAYER_MANAGER.Layers[LAYER_MANAGER.Layers.size() - 2].GetCaption());
+		DebugInfo->AddEntry("Source layer ID", CurrentObject->Layers.back()->GetID());
+		DebugInfo->AddEntry("Source layer caption", CurrentObject->Layers.back()->GetCaption());
+
+		CurrentObject->AddLayer(StandardDeviationLayer);
 	}
 
 	if (OnRugosityCalculationsEndCallbackImpl != nullptr)
@@ -666,11 +671,11 @@ void RugosityLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 

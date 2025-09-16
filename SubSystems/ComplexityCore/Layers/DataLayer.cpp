@@ -5,24 +5,39 @@ using namespace FocalEngine;
 DataLayer::DataLayer()
 {
 	ID = APPLICATION.GetUniqueHexID();
-};
+}
 
-DataLayer::DataLayer(DATA_SOURCE_TYPE SourceType)
+DataLayer::DataLayer(std::vector<std::string> ParentIDs)
 {
 	ID = APPLICATION.GetUniqueHexID();
-	DataSourceType = SourceType;
-};
 
-DataLayer::DataLayer(DATA_SOURCE_TYPE SourceType, const std::vector<float> ElementsToData)
+	for (size_t i = 0; i < ParentIDs.size(); i++)
+	{
+		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentIDs[i]);
+		if (CurrentObject != nullptr)
+			ParentObjectIDs.push_back(ParentIDs[i]);
+	}
+}
+
+DataLayer::DataLayer(std::vector<std::string> ParentIDs, const std::vector<float> ElementsToData)
 {
 	ID = APPLICATION.GetUniqueHexID();
-	DataSourceType = SourceType;
+	for (size_t i = 0; i < ParentIDs.size(); i++)
+	{
+		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentIDs[i]);
+		if (CurrentObject != nullptr)
+			ParentObjectIDs.push_back(ParentIDs[i]);
+	}
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ParentObjectIDs.empty())
+		return;
+
+	// FIX ME: Right now we only support one parent object.
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentObjectIDs[0]);
 	if (CurrentObject == nullptr)
 		return;
 
-	switch (SourceType)
+	switch (CurrentObject->GetType())
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
@@ -59,21 +74,42 @@ DATA_SOURCE_TYPE DataLayer::GetDataSourceTypeForLayerType(LAYER_TYPE Type)
 {
 	switch (Type)
 	{
-	case LAYER_TYPE::HEIGHT:
-	case LAYER_TYPE::TRIANGLE_EDGE:
-	case LAYER_TYPE::TRIANGLE_AREA:
-	case LAYER_TYPE::COMPARE:
-	case LAYER_TYPE::STANDARD_DEVIATION:
-	case LAYER_TYPE::RUGOSITY:
-	case LAYER_TYPE::VECTOR_DISPERSION:
-	case LAYER_TYPE::FRACTAL_DIMENSION:
-	case LAYER_TYPE::TRIANGLE_DENSITY:
-		return DATA_SOURCE_TYPE::MESH;
-	case LAYER_TYPE::POINT_DENSITY:
-		return DATA_SOURCE_TYPE::POINT_CLOUD;
-	default:
-		return DATA_SOURCE_TYPE::UNKNOWN;
+		case LAYER_TYPE::HEIGHT:
+		case LAYER_TYPE::TRIANGLE_EDGE:
+		case LAYER_TYPE::TRIANGLE_AREA:
+		case LAYER_TYPE::COMPARE:
+		case LAYER_TYPE::STANDARD_DEVIATION:
+		case LAYER_TYPE::RUGOSITY:
+		case LAYER_TYPE::VECTOR_DISPERSION:
+		case LAYER_TYPE::FRACTAL_DIMENSION:
+		case LAYER_TYPE::TRIANGLE_DENSITY:
+			return DATA_SOURCE_TYPE::MESH;
+		case LAYER_TYPE::POINT_DENSITY:
+			return DATA_SOURCE_TYPE::POINT_CLOUD;
+		default:
+			return DATA_SOURCE_TYPE::UNKNOWN;
 	}
+}
+
+AnalysisObject* DataLayer::GetMainParentObject()
+{
+	if (ParentObjectIDs.empty())
+		return nullptr;
+
+	return ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentObjectIDs[0]);
+}
+
+std::vector<AnalysisObject*> DataLayer::GetAllParentObjects()
+{
+	std::vector<AnalysisObject*> Result;
+	for (size_t i = 0; i < ParentObjectIDs.size(); i++)
+	{
+		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentObjectIDs[i]);
+		if (CurrentObject != nullptr)
+			Result.push_back(CurrentObject);
+	}
+
+	return Result;
 }
 
 void DataLayer::ComputeStatistics()
@@ -86,7 +122,7 @@ void DataLayer::ComputeStatistics()
 	Mean = -FLT_MAX;
 	Median = -FLT_MAX;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	AnalysisObject* CurrentObject = GetMainParentObject();
 	if (CurrentObject == nullptr)
 		return;
 
@@ -114,7 +150,7 @@ void DataLayer::ComputeStatistics()
 
 	ValueTriangleAreaAndIndex.clear();
 
-	switch (DataSourceType)
+	switch (CurrentObject->GetType())
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
@@ -144,14 +180,14 @@ void DataLayer::ComputeStatistics()
 
 void DataLayer::FillRawData()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	AnalysisObject* CurrentObject = GetMainParentObject();
 	if (CurrentObject == nullptr)
 		return;
 
 	if (ElementsToData.empty())
 		return;
 
-	switch (DataSourceType)
+	switch (CurrentObject->GetType())
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
@@ -254,16 +290,6 @@ LAYER_TYPE DataLayer::GetType()
 void DataLayer::SetType(LAYER_TYPE NewValue)
 {
 	Type = NewValue;
-}
-
-DATA_SOURCE_TYPE DataLayer::GetDataSourceType()
-{
-	return DataSourceType;
-}
-
-void DataLayer::SetDataSourceType(DATA_SOURCE_TYPE NewValue)
-{
-	DataSourceType = NewValue;
 }
 
 float DataLayer::GetSelectedRangeMin()

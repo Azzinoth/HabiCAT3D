@@ -39,6 +39,26 @@ void NewLayerWindow::Render()
 {
 	CheckAvailableDataSources();
 
+	if (SelectedLayerType != LAYER_TYPE::UNKNOWN)
+	{
+		const DATA_SOURCE_TYPE RequiredDataSource = DataLayer::GetDataSourceTypeForLayerType(SelectedLayerType);
+
+		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		if (CurrentObject == nullptr)
+		{
+			SelectedLayerType = LAYER_TYPE::UNKNOWN;
+			CurrentDataSource = DATA_SOURCE_TYPE::UNKNOWN;
+		}
+		else
+		{
+			if (CurrentObject->GetType() != CurrentDataSource || RequiredDataSource != CurrentDataSource)
+			{
+				SelectedLayerType = LAYER_TYPE::UNKNOWN;
+				CurrentDataSource = DATA_SOURCE_TYPE::UNKNOWN;
+			}
+		}
+	}
+
 	const ImVec2 CurrentWinowSize = ImVec2(512, 420);
 	const ImVec2 CurrentWinowPosition = ImVec2(APPLICATION.GetMainWindow()->GetWidth() / 2.0f - CurrentWinowSize.x / 2.0f, APPLICATION.GetMainWindow()->GetHeight() / 2.0f - CurrentWinowSize.y / 2.0f);
 
@@ -113,40 +133,57 @@ void NewLayerWindow::InternalClose()
 
 void NewLayerWindow::AddLayer()
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
-
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
 
 	switch (SelectedLayerType)
 	{
 		case LAYER_TYPE::HEIGHT:
 		{
-			LAYER_MANAGER.AddLayer(HEIGHT_LAYER_PRODUCER.Calculate());
-			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
+			DataLayer* NewLayer = HEIGHT_LAYER_PRODUCER.Calculate();
+			if (NewLayer != nullptr)
+			{
+				ActiveObject->AddLayer(NewLayer);
+				ActiveObject->SetActiveLayer(NewLayer->GetID());
+			}
 
 			InternalClose();
 			break;
 		}
 		case LAYER_TYPE::TRIANGLE_AREA:
 		{
-			LAYER_MANAGER.AddLayer(AREA_LAYER_PRODUCER.Calculate());
-			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
-
+			DataLayer* NewLayer = AREA_LAYER_PRODUCER.Calculate();
+			if (NewLayer != nullptr)
+			{
+				ActiveObject->AddLayer(NewLayer);
+				ActiveObject->SetActiveLayer(NewLayer->GetID());
+			}
+			
 			InternalClose();
 			break;
 		}
 		case LAYER_TYPE::TRIANGLE_EDGE:
 		{
-			LAYER_MANAGER.AddLayer(TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(TrianglesEdgesMode));
-			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
+			DataLayer* NewLayer = TRIANGLE_EDGE_LAYER_PRODUCER.Calculate(TrianglesEdgesMode);
+			if (NewLayer != nullptr)
+			{
+				ActiveObject->AddLayer(NewLayer);
+				ActiveObject->SetActiveLayer(NewLayer->GetID());
+			}
 
 			InternalClose();
 			break;
 		}
 		case LAYER_TYPE::TRIANGLE_DENSITY:
 		{
+			if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+			{
+				InternalClose();
+				return;
+			}
+
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 			if (bRunOnWholeModel)
 			{
 				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateOnWholeModel();
@@ -163,6 +200,13 @@ void NewLayerWindow::AddLayer()
 		}
 		case LAYER_TYPE::RUGOSITY:
 		{
+			if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+			{
+				InternalClose();
+				return;
+			}
+
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 			if (bRunOnWholeModel)
 			{
 				RUGOSITY_LAYER_PRODUCER.CalculateOnWholeModel();
@@ -179,6 +223,13 @@ void NewLayerWindow::AddLayer()
 		}
 		case LAYER_TYPE::VECTOR_DISPERSION:
 		{
+			if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+			{
+				InternalClose();
+				return;
+			}
+
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 			if (bRunOnWholeModel)
 			{
 				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateOnWholeModel();
@@ -195,6 +246,13 @@ void NewLayerWindow::AddLayer()
 		}
 		case LAYER_TYPE::FRACTAL_DIMENSION:
 		{
+			if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+			{
+				InternalClose();
+				return;
+			}
+
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
 			if (bRunOnWholeModel)
 			{
 				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel();
@@ -211,8 +269,29 @@ void NewLayerWindow::AddLayer()
 		}
 		case LAYER_TYPE::COMPARE:
 		{
-			LAYER_MANAGER.AddLayer(COMPARE_LAYER_PRODUCER.Calculate(FirstChoosenLayerIndex, SecondChoosenLayerIndex));
-			LAYER_MANAGER.SetActiveLayerIndex(static_cast<int>(LAYER_MANAGER.Layers.size() - 1));
+			if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+			{
+				InternalClose();
+				return;
+			}
+
+			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+
+			if (FirstChoosenLayerIndex == -1 || SecondChoosenLayerIndex == -1 || FirstChoosenLayerIndex == SecondChoosenLayerIndex ||
+				FirstChoosenLayerIndex >= ActiveObject->Layers.size() || SecondChoosenLayerIndex >= ActiveObject->Layers.size())
+			{
+				InternalClose();
+				return;
+			}
+
+			DataLayer* FirstLayer = ActiveObject->Layers[FirstChoosenLayerIndex];
+			DataLayer* SecondLayer = ActiveObject->Layers[SecondChoosenLayerIndex];
+			DataLayer* NewLayer = COMPARE_LAYER_PRODUCER.Calculate(FirstLayer, SecondLayer);
+			if (NewLayer != nullptr)
+			{
+				ActiveObject->AddLayer(NewLayer);
+				ActiveObject->SetActiveLayer(NewLayer->GetID());
+			}
 			CurrentMeshAnalysisData->SetHeatMapType(6);
 
 			InternalClose();
@@ -422,7 +501,11 @@ void NewLayerWindow::RenderFractalDimentionSettings()
 
 void NewLayerWindow::RenderCompareLayerSettings()
 {
-	if (LAYER_MANAGER.Layers.size() < 2)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
+
+	if (ActiveObject->GetLayerCount() < 2)
 	{
 		const std::string Text = "To compare layers, you should have at least two layers.";
 
@@ -435,7 +518,7 @@ void NewLayerWindow::RenderCompareLayerSettings()
 
 	std::string FirstString = "Choose layer";
 	if (FirstChoosenLayerIndex != -1)
-		FirstString = LAYER_MANAGER.Layers[FirstChoosenLayerIndex].GetCaption();
+		FirstString = ActiveObject->Layers[FirstChoosenLayerIndex]->GetCaption();
 
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
 	ImGui::Text("First layer: ");
@@ -444,10 +527,10 @@ void NewLayerWindow::RenderCompareLayerSettings()
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
 	if (ImGui::BeginCombo("##ChooseFirstLayer", FirstString.c_str(), ImGuiWindowFlags_None))
 	{
-		for (size_t i = 0; i < LAYER_MANAGER.Layers.size(); i++)
+		for (size_t i = 0; i < ActiveObject->GetLayerCount(); i++)
 		{
 			bool is_selected = (i == FirstChoosenLayerIndex);
-			if (ImGui::Selectable(LAYER_MANAGER.Layers[i].GetCaption().c_str(), is_selected))
+			if (ImGui::Selectable(ActiveObject->Layers[i]->GetCaption().c_str(), is_selected))
 			{
 				FirstChoosenLayerIndex = static_cast<int>(i);
 			}
@@ -460,7 +543,7 @@ void NewLayerWindow::RenderCompareLayerSettings()
 
 	std::string SecondString = "Choose layer";
 	if (SecondChoosenLayerIndex != -1)
-		SecondString = LAYER_MANAGER.Layers[SecondChoosenLayerIndex].GetCaption();
+		SecondString = ActiveObject->Layers[SecondChoosenLayerIndex]->GetCaption();
 
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
 	ImGui::Text("Second layer: ");
@@ -469,10 +552,10 @@ void NewLayerWindow::RenderCompareLayerSettings()
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
 	if (ImGui::BeginCombo("##ChooseSecondLayer", SecondString.c_str(), ImGuiWindowFlags_None))
 	{
-		for (size_t i = 0; i < LAYER_MANAGER.Layers.size(); i++)
+		for (size_t i = 0; i < ActiveObject->Layers.size(); i++)
 		{
 			bool is_selected = (i == SecondChoosenLayerIndex);
-			if (ImGui::Selectable(LAYER_MANAGER.Layers[i].GetCaption().c_str(), is_selected))
+			if (ImGui::Selectable(ActiveObject->Layers[i]->GetCaption().c_str(), is_selected))
 			{
 				SecondChoosenLayerIndex = static_cast<int>(i);
 			}
@@ -593,11 +676,11 @@ void NewLayerWindow::CheckAvailableDataSources()
 	AvailableDataSources.clear();
 	AvailableLayerTypes.clear();
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (CurrentObject == nullptr)
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
 		return;
 
-	if (CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH)
+	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
 		AvailableDataSources.push_back(DATA_SOURCE_TYPE::MESH);
 		AvailableLayerTypes.push_back(LAYER_TYPE::HEIGHT);
@@ -610,7 +693,7 @@ void NewLayerWindow::CheckAvailableDataSources()
 		AvailableLayerTypes.push_back(LAYER_TYPE::COMPARE);
 	}
 		
-	if (CurrentObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
 	{
 		AvailableDataSources.push_back(DATA_SOURCE_TYPE::POINT_CLOUD);
 		AvailableLayerTypes.push_back(LAYER_TYPE::POINT_DENSITY);
