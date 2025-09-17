@@ -108,7 +108,7 @@ AnalysisObject* AnalysisObjectManager::ImportOBJ(const char* FilePath, bool bFor
 	return Result;
 }
 
-AnalysisObject* AnalysisObjectManager::LoadRUGMesh(std::string FilePath)
+AnalysisObject* AnalysisObjectManager::LoadRUGFile(std::string FilePath)
 {
 	std::fstream File;
 
@@ -116,7 +116,7 @@ AnalysisObject* AnalysisObjectManager::LoadRUGMesh(std::string FilePath)
 	const std::streamsize FileSize = File.tellg();
 	if (FileSize < 0)
 	{
-		LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadRUGMesh.");
+		LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadRUGFile.");
 		return nullptr;
 	}
 
@@ -128,7 +128,7 @@ AnalysisObject* AnalysisObjectManager::LoadRUGMesh(std::string FilePath)
 	const float Version = *(float*)Buffer;
 	if (Version > APP_VERSION && abs(Version - APP_VERSION) > 0.0001)
 	{
-		LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadRUGMesh. File was created in different Version of application!");
+		LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadRUGFile. File was created in different Version of application!");
 		return nullptr;
 	}
 
@@ -354,7 +354,7 @@ AnalysisObject* AnalysisObjectManager::LoadResource(std::string FilePath)
 	}
 	else if (FileExtension == ".rug")
 	{
-		Result = LoadRUGMesh(FilePath);
+		Result = LoadRUGFile(FilePath);
 		Result->Name = FILE_SYSTEM.GetFileName(FilePath, false);
 	}
 	else if (FileExtension == ".ply")
@@ -422,7 +422,7 @@ void AnalysisObjectManager::ComplexityMetricDataToGPU(std::string LayerID, int G
 
 	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
-		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+		MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 		if (CurrentMeshAnalysisData == nullptr)
 			return;
 
@@ -455,7 +455,7 @@ void AnalysisObjectManager::ComplexityMetricDataToGPU(std::string LayerID, int G
 	}
 	else if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
 	{
-		PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(ActiveObject->GetAnalysisData());
+		PointCloudAnalysisData* CurrentPointCloudAnalysisData = ActiveObject->GetPointCloudAnalysisData();
 		if (CurrentPointCloudAnalysisData == nullptr)
 			return;
 
@@ -496,7 +496,7 @@ bool AnalysisObjectManager::SelectTriangle(glm::dvec3 MouseRay)
 	if (ActiveMesh == nullptr)
 		return false;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return false;
 
@@ -546,7 +546,7 @@ glm::vec3 AnalysisObjectManager::IntersectTriangle(glm::dvec3 MouseRay)
 	if (ActiveMesh == nullptr)
 		return glm::vec3(0.0f);
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return glm::vec3(0.0f);
 
@@ -592,7 +592,7 @@ bool AnalysisObjectManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float R
 	if (ActiveMesh == nullptr)
 		return Result;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 	
@@ -633,7 +633,7 @@ void AnalysisObjectManager::UpdateMeshUniforms(AnalysisObject* Object)
 		if (ActiveMesh == nullptr)
 			return;
 
-		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(Object->GetAnalysisData());
+		MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
 		if (CurrentMeshAnalysisData == nullptr)
 			return;
 
@@ -683,6 +683,11 @@ void AnalysisObjectManager::UpdateMeshUniforms(AnalysisObject* Object)
 	}
 }
 
+size_t AnalysisObjectManager::GetAnalysisObjectCount()
+{
+	return AnalysisObjects.size();
+}
+
 AnalysisObject* AnalysisObjectManager::GetAnalysisObject(std::string ID)
 {
 	if (AnalysisObjects.find(ID) != AnalysisObjects.end())
@@ -698,13 +703,29 @@ AnalysisObject* AnalysisObjectManager::GetActiveAnalysisObject()
 
 bool AnalysisObjectManager::SetActiveAnalysisObject(std::string ID)
 {
+	if (ID == ActiveAnalysisObjectID)
+		return true;
+
+	if (ID.empty())
+	{
+		ActiveAnalysisObjectID = "";
+		for (size_t i = 0; i < ClientOnActiveObjectChangeCallbacks.size(); i++)
+		{
+			if (ClientOnActiveObjectChangeCallbacks[i] == nullptr)
+				continue;
+			ClientOnActiveObjectChangeCallbacks[i](nullptr);
+		}
+
+		return true;
+	}
+
 	if (AnalysisObjects.find(ID) != AnalysisObjects.end())
 	{
 		ActiveAnalysisObjectID = ID;
 		AnalysisObject* NewActiveObject = GetActiveAnalysisObject();
 		DataLayer* ActiveLayer = NewActiveObject->GetActiveLayer();
 		if (ActiveLayer != nullptr)
-			NewActiveObject->SetActiveLayer(ActiveLayer->GetID());
+			NewActiveObject->SetActiveLayer(ActiveLayer->GetID(), true);
 
 		for (size_t i = 0; i < ClientOnActiveObjectChangeCallbacks.size(); i++)
 		{
@@ -758,6 +779,48 @@ FEEntity* AnalysisObjectManager::GetActiveEntity()
 	return ActiveObject->GetEntity();
 }
 
+bool AnalysisObjectManager::DeleteAnalysisObject(std::string ID)
+{
+	AnalysisObject* ObjectToDelete = GetAnalysisObject(ID);
+	if (ObjectToDelete == nullptr)
+		return false;
+
+	for (size_t i = 0; i < ClientOnObjectDeleteCallbacks.size(); i++)
+	{
+		if (ClientOnObjectDeleteCallbacks[i] == nullptr)
+			continue;
+
+		ClientOnObjectDeleteCallbacks[i](ObjectToDelete);
+	}
+
+	if (GetActiveAnalysisObject() == ObjectToDelete)
+		SetActiveAnalysisObject("");
+
+	FEEntity* EntityToDelete = ObjectToDelete->GetEntity();
+	if (EntityToDelete != nullptr)
+	{
+		RENDERER.RemoveBeforeRenderCallback(ObjectToDelete->Entity, AnalysisObjectManager::BeforeRender);
+		MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(EntityToDelete);
+	}
+
+	if (ObjectToDelete->GetType() == DATA_SOURCE_TYPE::MESH)
+	{
+		FEMesh* MeshToDelete = static_cast<FEMesh*>(ObjectToDelete->GetEngineResource());
+		if (MeshToDelete != nullptr)
+			RESOURCE_MANAGER.DeleteFEMesh(MeshToDelete);
+	}
+	else if (ObjectToDelete->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+		FEPointCloud* PointCloudToDelete = static_cast<FEPointCloud*>(ObjectToDelete->GetEngineResource());
+		if (PointCloudToDelete != nullptr)
+			RESOURCE_MANAGER.DeleteFEPointCloud(PointCloudToDelete);
+	}
+
+	delete ObjectToDelete;
+	AnalysisObjects.erase(ID);
+	return true;
+}
+
 void AnalysisObjectManager::InitializeSceneObjects(AnalysisObject* NewAnalysisObject)
 {
 	if (APPLICATION.HasConsoleWindow())
@@ -774,7 +837,6 @@ void AnalysisObjectManager::InitializeSceneObjects(AnalysisObject* NewAnalysisOb
 
 		FEGameModel* NewGameModel = RESOURCE_MANAGER.CreateGameModel(ActiveMesh, ANALYSIS_OBJECT_MANAGER.CustomMaterial);
 		NewAnalysisObject->Entity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Mesh entity");
-		RENDERER.AddBeforeRenderCallback(NewAnalysisObject->Entity, AnalysisObjectManager::BeforeRender);
 		NewAnalysisObject->Entity->AddComponent<FEGameModelComponent>(NewGameModel);
 	}
 	else if (NewAnalysisObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
@@ -784,6 +846,8 @@ void AnalysisObjectManager::InitializeSceneObjects(AnalysisObject* NewAnalysisOb
 		NewAnalysisObject->Entity->AddComponent<FEPointCloudComponent>(PointCloud);
 		PointCloud->SetAdvancedRenderingEnabled(true);
 	}
+
+	RENDERER.AddBeforeRenderCallback(NewAnalysisObject->Entity, AnalysisObjectManager::BeforeRender);
 }
 
 void AnalysisObjectManager::SaveToRUGFileAskForFilePath(std::string AnalysisObjectID)
@@ -796,19 +860,11 @@ void AnalysisObjectManager::SaveToRUGFileAskForFilePath(std::string AnalysisObje
 
 void AnalysisObjectManager::SaveToRUGFile(std::string FilePath, std::string AnalysisObjectID)
 {
-	AnalysisObject* CurrentObject = GetAnalysisObject(AnalysisObjectID);
-	if (CurrentObject == nullptr)
-		return;
-
 	if (FilePath.empty())
 		return;
 
 	if (FilePath.find(".rug") == std::string::npos)
 		FilePath += ".rug";
-
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
-	if (CurrentMeshAnalysisData == nullptr)
-		return;
 
 	std::fstream File;
 	File.open(FilePath, std::ios::out | std::ios::binary);
@@ -817,69 +873,92 @@ void AnalysisObjectManager::SaveToRUGFile(std::string FilePath, std::string Anal
 	float Version = APP_VERSION;
 	File.write((char*)&Version, sizeof(float));
 
-	int Count = static_cast<int>(CurrentMeshAnalysisData->Vertices.size());
-	File.write((char*)&Count, sizeof(int));
-	File.write((char*)CurrentMeshAnalysisData->Vertices.data(), sizeof(double) * Count);
-
-	Count = static_cast<int>(CurrentMeshAnalysisData->Colors.size());
-	File.write((char*)&Count, sizeof(int));
-	File.write((char*)CurrentMeshAnalysisData->Colors.data(), sizeof(float) * Count);
-
-	Count = static_cast<int>(CurrentMeshAnalysisData->UVs.size());
-	File.write((char*)&Count, sizeof(int));
-	File.write((char*)CurrentMeshAnalysisData->UVs.data(), sizeof(float) * Count);
-
-	Count = static_cast<int>(CurrentMeshAnalysisData->Normals.size());
-	File.write((char*)&Count, sizeof(int));
-	File.write((char*)CurrentMeshAnalysisData->Normals.data(), sizeof(float) * Count);
-
-	Count = static_cast<int>(CurrentMeshAnalysisData->Tangents.size());
-	File.write((char*)&Count, sizeof(int));
-	File.write((char*)CurrentMeshAnalysisData->Tangents.data(), sizeof(float) * Count);
-
-	Count = static_cast<int>(CurrentMeshAnalysisData->Indices.size());
-	File.write((char*)&Count, sizeof(int));
-	File.write((char*)CurrentMeshAnalysisData->Indices.data(), sizeof(int) * Count);
-
-	// FIX ME: That portion should not be here.
-	/*Count = static_cast<int>(ActiveComplexityMetricInfo->Layers.size());
-	File.write((char*)&Count, sizeof(int));
-
-	for (size_t i = 0; i < ActiveComplexityMetricInfo->Layers.size(); i++)
+	auto ObjectsMapIterator = ANALYSIS_OBJECT_MANAGER.AnalysisObjects.begin();
+	while (ObjectsMapIterator != ANALYSIS_OBJECT_MANAGER.AnalysisObjects.end())
 	{
-		int LayerType = ActiveComplexityMetricInfo->Layers[i].GetType();
-		File.write((char*)&LayerType, sizeof(int));
+		AnalysisObject* CurrentObject = ObjectsMapIterator->second;
+		if (CurrentObject != nullptr)
+		{
+			MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
+			if (CurrentMeshAnalysisData == nullptr)
+				continue;
 
-		int LayerIDSize = static_cast<int>(ActiveComplexityMetricInfo->Layers[i].GetID().size() + 1);
-		File.write((char*)&LayerIDSize, sizeof(int));
-		File.write((char*)ActiveComplexityMetricInfo->Layers[i].GetID().c_str(), sizeof(char) * LayerIDSize);
+			int Count = static_cast<int>(CurrentMeshAnalysisData->Vertices.size());
+			File.write((char*)&Count, sizeof(int));
+			File.write((char*)CurrentMeshAnalysisData->Vertices.data(), sizeof(double) * Count);
 
-		Count = static_cast<int>(ActiveComplexityMetricInfo->Layers[i].GetCaption().size());
-		File.write((char*)&Count, sizeof(int));
-		File.write((char*)ActiveComplexityMetricInfo->Layers[i].GetCaption().c_str(), sizeof(char) * Count);
+			Count = static_cast<int>(CurrentMeshAnalysisData->Colors.size());
+			File.write((char*)&Count, sizeof(int));
+			File.write((char*)CurrentMeshAnalysisData->Colors.data(), sizeof(float) * Count);
 
-		Count = static_cast<int>(ActiveComplexityMetricInfo->Layers[i].GetNote().size());
-		File.write((char*)&Count, sizeof(int));
-		File.write((char*)ActiveComplexityMetricInfo->Layers[i].GetNote().c_str(), sizeof(char) * Count);
+			Count = static_cast<int>(CurrentMeshAnalysisData->UVs.size());
+			File.write((char*)&Count, sizeof(int));
+			File.write((char*)CurrentMeshAnalysisData->UVs.data(), sizeof(float) * Count);
 
-		Count = static_cast<int>(ActiveComplexityMetricInfo->Layers[i].ElementsToData.size());
-		File.write((char*)&Count, sizeof(int));
-		File.write((char*)ActiveComplexityMetricInfo->Layers[i].ElementsToData.data(), sizeof(float) * Count);
+			Count = static_cast<int>(CurrentMeshAnalysisData->Normals.size());
+			File.write((char*)&Count, sizeof(int));
+			File.write((char*)CurrentMeshAnalysisData->Normals.data(), sizeof(float) * Count);
 
-		Count = ActiveComplexityMetricInfo->Layers[i].DebugInfo != nullptr;
-		File.write((char*)&Count, sizeof(int));
-		if (Count)
-			ActiveComplexityMetricInfo->Layers[i].DebugInfo->ToFile(File);
-	}*/
+			Count = static_cast<int>(CurrentMeshAnalysisData->Tangents.size());
+			File.write((char*)&Count, sizeof(int));
+			File.write((char*)CurrentMeshAnalysisData->Tangents.data(), sizeof(float) * Count);
 
-	FEAABB TempAABB(CurrentMeshAnalysisData->Vertices.data(), static_cast<int>(CurrentMeshAnalysisData->Vertices.size()));
-	File.write((char*)&TempAABB.GetMin()[0], sizeof(float));
-	File.write((char*)&TempAABB.GetMin()[1], sizeof(float));
-	File.write((char*)&TempAABB.GetMin()[2], sizeof(float));
+			Count = static_cast<int>(CurrentMeshAnalysisData->Indices.size());
+			File.write((char*)&Count, sizeof(int));
+			File.write((char*)CurrentMeshAnalysisData->Indices.data(), sizeof(int) * Count);
 
-	File.write((char*)&TempAABB.GetMax()[0], sizeof(float));
-	File.write((char*)&TempAABB.GetMax()[1], sizeof(float));
-	File.write((char*)&TempAABB.GetMax()[2], sizeof(float));
+			Count = static_cast<int>(CurrentObject->Layers.size());
+			File.write((char*)&Count, sizeof(int));
+
+			for (size_t i = 0; i < CurrentObject->Layers.size(); i++)
+			{
+				DataLayer* CurrentLayer = CurrentObject->Layers[i];
+				LAYER_TYPE LayerType = CurrentLayer->GetType();
+				File.write((char*)&LayerType, sizeof(LAYER_TYPE));
+
+				int LayerIDSize = static_cast<int>(CurrentLayer->GetID().size() + 1);
+				File.write((char*)&LayerIDSize, sizeof(int));
+				File.write((char*)CurrentLayer->GetID().c_str(), sizeof(char) * LayerIDSize);
+
+				int ParentIDSize = CurrentLayer->ParentObjectIDs.size();
+				File.write((char*)&ParentIDSize, sizeof(int));
+				for (size_t j = 0; j < CurrentLayer->ParentObjectIDs.size(); j++)
+				{
+					int SingleParentIDSize = static_cast<int>(CurrentLayer->ParentObjectIDs[j].size() + 1);
+					File.write((char*)&SingleParentIDSize, sizeof(int));
+					File.write((char*)CurrentLayer->ParentObjectIDs[j].c_str(), sizeof(char) * SingleParentIDSize);
+				}
+
+				Count = static_cast<int>(CurrentLayer->GetCaption().size());
+				File.write((char*)&Count, sizeof(int));
+				File.write((char*)CurrentLayer->GetCaption().c_str(), sizeof(char) * Count);
+
+				Count = static_cast<int>(CurrentLayer->GetNote().size());
+				File.write((char*)&Count, sizeof(int));
+				File.write((char*)CurrentLayer->GetNote().c_str(), sizeof(char) * Count);
+
+				Count = static_cast<int>(CurrentLayer->ElementsToData.size());
+				File.write((char*)&Count, sizeof(int));
+				File.write((char*)CurrentLayer->ElementsToData.data(), sizeof(float) * Count);
+
+				Count = CurrentLayer->DebugInfo != nullptr;
+				File.write((char*)&Count, sizeof(int));
+				if (Count)
+					CurrentLayer->DebugInfo->ToFile(File);
+			}
+
+			FEAABB CurrentAABB = CurrentMeshAnalysisData->GetAABB();
+			File.write((char*)&CurrentAABB.GetMin()[0], sizeof(float));
+			File.write((char*)&CurrentAABB.GetMin()[1], sizeof(float));
+			File.write((char*)&CurrentAABB.GetMin()[2], sizeof(float));
+
+			File.write((char*)&CurrentAABB.GetMax()[0], sizeof(float));
+			File.write((char*)&CurrentAABB.GetMax()[1], sizeof(float));
+			File.write((char*)&CurrentAABB.GetMax()[2], sizeof(float));
+		}
+
+		ObjectsMapIterator++;
+	}
 
 	File.close();
 }
@@ -890,7 +969,20 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 	while (ObjectsMapIterator != ANALYSIS_OBJECT_MANAGER.AnalysisObjects.end())
 	{
 		AnalysisObject* CurrentObject = ObjectsMapIterator->second;
-		if (CurrentObject != nullptr && CurrentObject->GetEntity() != nullptr &&
+		if (CurrentObject->GetEntity() == nullptr)
+		{
+			ObjectsMapIterator++;
+			continue;
+		}
+
+		CurrentObject->GetEntity()->SetComponentVisible(ComponentVisibilityType::ALL, CurrentObject->IsRenderedInScene());
+		if (!CurrentObject->IsRenderedInScene())
+		{
+			ObjectsMapIterator++;
+			continue;
+		}
+
+		if (CurrentObject != nullptr &&
 			CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH &&
 			CurrentObject->GetEntity() == CurrentEntity)
 		{
@@ -911,7 +1003,7 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 				FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
 
 				if (ActiveMesh->GetColorCount() > 0) FE_GL_ERROR(glEnableVertexAttribArray(1));
-				MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+				MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
 				if (CurrentMeshAnalysisData->GetFirstLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(7));
 				if (CurrentMeshAnalysisData->GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
 			}
@@ -924,4 +1016,80 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 void AnalysisObjectManager::AddOnActiveObjectChangeCallback(std::function<void(AnalysisObject*)> Callback)
 {
 	ClientOnActiveObjectChangeCallbacks.push_back(Callback);
+}
+
+FEAABB AnalysisObjectManager::GetAllObjectsAABB()
+{
+	FEAABB Result;
+	bool bFirst = true;
+	auto ObjectsMapIterator = ANALYSIS_OBJECT_MANAGER.AnalysisObjects.begin();
+	while (ObjectsMapIterator != ANALYSIS_OBJECT_MANAGER.AnalysisObjects.end())
+	{
+		AnalysisObject* CurrentObject = ObjectsMapIterator->second;
+		if (CurrentObject != nullptr)
+		{
+			if (bFirst)
+			{
+				Result = CurrentObject->AnalysisData->GetAABB();
+				bFirst = false;
+			}
+			else
+			{
+				Result = Result.Merge(CurrentObject->AnalysisData->GetAABB());
+			}
+		}
+
+		ObjectsMapIterator++;
+	}
+
+	return Result;
+}
+
+double AnalysisObjectManager::GetAllMeshObjectsTotalArea()
+{
+	double Result = 0.0;
+	auto ObjectsMapIterator = ANALYSIS_OBJECT_MANAGER.AnalysisObjects.begin();
+	while (ObjectsMapIterator != ANALYSIS_OBJECT_MANAGER.AnalysisObjects.end())
+	{
+		AnalysisObject* CurrentObject = ObjectsMapIterator->second;
+		if (CurrentObject != nullptr && CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH)
+		{
+			MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
+			if (CurrentMeshAnalysisData != nullptr)
+				Result += CurrentMeshAnalysisData->GetTotalArea();
+		}
+
+		ObjectsMapIterator++;
+	}
+
+	return Result;
+}
+
+glm::vec3 AnalysisObjectManager::GetAllMeshObjectsAverageNormal()
+{
+	glm::vec3 Result = glm::vec3(0.0f);
+	double TotalArea = GetAllMeshObjectsTotalArea();
+	auto ObjectsMapIterator = ANALYSIS_OBJECT_MANAGER.AnalysisObjects.begin();
+	while (ObjectsMapIterator != ANALYSIS_OBJECT_MANAGER.AnalysisObjects.end())
+	{
+		AnalysisObject* CurrentObject = ObjectsMapIterator->second;
+		if (CurrentObject != nullptr && CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH)
+		{
+			MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
+			if (CurrentMeshAnalysisData != nullptr)
+			{
+				glm::vec3 CurrentNormal = CurrentMeshAnalysisData->GetAverageNormal();
+				double AreaFactor = CurrentMeshAnalysisData->GetTotalArea() / TotalArea;
+				Result += CurrentNormal * float(AreaFactor);
+			}
+		}
+		ObjectsMapIterator++;
+	}
+
+	return Result;
+}
+
+void AnalysisObjectManager::AddOnObjectDeleteCallback(std::function<void(AnalysisObject*)> Callback)
+{
+	ClientOnObjectDeleteCallbacks.push_back(Callback);
 }

@@ -118,40 +118,47 @@ void LayerManager::PropagateLayerEvent(LayerEvent Event)
 	if (Event.Type == LAYER_EVENT_TYPE::UNKNOWN)
 		return;
 
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
+
 	if (Event.Type == LAYER_EVENT_TYPE::LAYER_ACTIVE_ID_CHANGED)
 	{
-		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-		if (ActiveObject == nullptr)
-			return;
-
-		// FIX ME: Is it good idea to reset the colors here?
-		if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+		if (Event.PrimaryLayerID == "")
 		{
-			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(ActiveObject->GetAnalysisData());
-			if (CurrentPointCloudAnalysisData == nullptr)
-				return;
-
-			for (size_t i = 0; i < CurrentPointCloudAnalysisData->RawPointCloudData.size(); i++)
+			if (Event.PrimaryLayerID == "" && !Event.OtherLayerIDs.empty() && Event.OtherLayerIDs[0] != "")
 			{
-				std::vector<unsigned char> OriginalColor = CurrentPointCloudAnalysisData->OriginalColors[i];
+				// FIX ME: Is it good idea to reset the colors here?
+				if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+				{
+					PointCloudAnalysisData* CurrentPointCloudAnalysisData = ActiveObject->GetPointCloudAnalysisData();
+					auto* OriginalColors = &CurrentPointCloudAnalysisData->OriginalColors;
+					if (CurrentPointCloudAnalysisData == nullptr)
+						return;
 
-				CurrentPointCloudAnalysisData->RawPointCloudData[i].R = OriginalColor[0];
-				CurrentPointCloudAnalysisData->RawPointCloudData[i].G = OriginalColor[1];
-				CurrentPointCloudAnalysisData->RawPointCloudData[i].B = OriginalColor[2];
-				CurrentPointCloudAnalysisData->RawPointCloudData[i].A = OriginalColor[3];
-			}
+					for (size_t i = 0; i < CurrentPointCloudAnalysisData->RawPointCloudData.size(); i++)
+					{
+						std::vector<unsigned char> OriginalColor = CurrentPointCloudAnalysisData->OriginalColors[i];
 
-			FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudAnalysisData->RawPointCloudData);
+						CurrentPointCloudAnalysisData->RawPointCloudData[i].R = OriginalColor[0];
+						CurrentPointCloudAnalysisData->RawPointCloudData[i].G = OriginalColor[1];
+						CurrentPointCloudAnalysisData->RawPointCloudData[i].B = OriginalColor[2];
+						CurrentPointCloudAnalysisData->RawPointCloudData[i].A = OriginalColor[3];
+					}
 
-			// FIX ME: Should it be here?
-			FEEntity* PointCloudEntity = ActiveObject->GetEntity();
-			FEPointCloud* OldPointCloud = static_cast<FEPointCloud*>(ActiveObject->GetEngineResource());
-			if (PointCloudEntity != nullptr)
-			{
-				PointCloudEntity->RemoveComponent<FEPointCloudComponent>();
-				RESOURCE_MANAGER.DeleteFEPointCloud(OldPointCloud);
-				ActiveObject->EngineResource = PointCloud;
-				PointCloudEntity->AddComponent<FEPointCloudComponent>(PointCloud);
+					FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudAnalysisData->RawPointCloudData);
+
+					// FIX ME: Should it be here?
+					FEEntity* PointCloudEntity = ActiveObject->GetEntity();
+					FEPointCloud* OldPointCloud = static_cast<FEPointCloud*>(ActiveObject->GetEngineResource());
+					if (PointCloudEntity != nullptr)
+					{
+						PointCloudEntity->RemoveComponent<FEPointCloudComponent>();
+						RESOURCE_MANAGER.DeleteFEPointCloud(OldPointCloud);
+						ActiveObject->EngineResource = PointCloud;
+						PointCloudEntity->AddComponent<FEPointCloudComponent>(PointCloud);
+					}
+				}
 			}
 		}
 

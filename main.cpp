@@ -46,20 +46,17 @@ void AfterNewResourceLoads(AnalysisObject* NewObject)
 
 	if (!APPLICATION.HasConsoleWindow())
 	{
-		UI.SetIsModelCamera(true);
+		if (ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount() == 1)
+			UI.SetIsModelCamera(true);
+
 		if (NewObject->GetType() == DATA_SOURCE_TYPE::MESH)
-		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(NewObject->GetAnalysisData());
-			if (CurrentMeshAnalysisData != nullptr)
-				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(CurrentMeshAnalysisData->GetAverageNormal()));
-		}
+			ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(ANALYSIS_OBJECT_MANAGER.GetAllMeshObjectsAverageNormal()));
 	}
 
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (ActiveObject == nullptr || ActiveObject->GetType() != DATA_SOURCE_TYPE::MESH)
-		return;
-
-	if (ActiveObject->Layers.empty())
+	if (ActiveObject != nullptr &&
+		ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH &&
+		ActiveObject->Layers.empty())
 	{
 		DataLayer* NewLayer = HEIGHT_LAYER_PRODUCER.Calculate();
 		if (NewLayer != nullptr)
@@ -80,7 +77,7 @@ void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
 	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -146,7 +143,7 @@ void OutputSelectedAreaInfoToFile()
 	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -190,7 +187,7 @@ void OutputSelectedAreaInfoToFile()
 		LOG.SetFileOutput(false);
 }
 
-void mouseButtonCallback(int button, int action, int mods)
+void MouseButtonCallback(int button, int action, int mods)
 {
 	if (ImGui::GetIO().WantCaptureMouse)
 	{
@@ -478,7 +475,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		APPLICATION.GetMainWindow()->SetRenderFunction(MainWindowRender);
 		APPLICATION.GetMainWindow()->AddOnDropCallback(DropCallback);
 		APPLICATION.GetMainWindow()->AddOnMouseMoveCallback(MouseMoveCallback);
-		APPLICATION.GetMainWindow()->AddOnMouseButtonCallback(mouseButtonCallback);
+		APPLICATION.GetMainWindow()->AddOnMouseButtonCallback(MouseButtonCallback);
 		APPLICATION.GetMainWindow()->AddOnResizeCallback(WindowResizeCallback);
 
 		FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();

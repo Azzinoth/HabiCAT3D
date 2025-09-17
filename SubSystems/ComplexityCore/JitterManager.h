@@ -407,6 +407,13 @@ struct GridInitData_Jitter
 	float GridScale = 2.5f;
 };
 
+struct PerAnalysisObjectJitterData
+{
+	float ResolutionInM = 1.0f;
+	float LowestPossibleResolution = -1.0f;
+	float HighestPossibleResolution = -1.0f;
+};
+
 class JitterManager
 {
 	friend class UIManager;
@@ -414,7 +421,8 @@ class JitterManager
 public:
 	SINGLETON_PUBLIC_PART(JitterManager)
 
-	static void OnNewObjectLoaded(AnalysisObject* NewObject);
+	static void OnNewAnalysisObjectLoaded(AnalysisObject* NewObject);
+	static void OnAnalysisObjectDeleted(AnalysisObject* DeletedObject);
 
 	void CalculateWithGridJitterAsync(std::function<void(GridNode* CurrentNode)> Func, bool bSmootherResult = false);
 	void CalculateOnWholeModel(std::function<void(GridNode* CurrentNode)> Func);
@@ -496,9 +504,7 @@ private:
 	std::vector<std::string> JitterVectorSetNames;
 	std::string CurrentJitterVectorSetName = "55";
 
-	float ResolutionInM = 1.0f;
-	float LowestPossibleResolution = -1.0f;
-	float HighestPossibleResolution = -1.0f;
+	std::unordered_map<std::string, PerAnalysisObjectJitterData> PerObjectData;
 
 	float ShiftX = 0.0f;
 	float ShiftY = 0.0f;

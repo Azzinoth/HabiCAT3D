@@ -369,6 +369,7 @@ public:
 	void SaveToRUGFile(std::string FilePath, std::string AnalysisObjectID);
 	void SaveToRUGFileAskForFilePath(std::string AnalysisObjectID);
 
+	size_t GetAnalysisObjectCount();
 	AnalysisObject* GetAnalysisObject(std::string ID);
 	std::vector<std::string> AnalysisObjectManager::GetAnalysisObjectsIDList();
 
@@ -376,9 +377,10 @@ public:
 	AnalysisObject* GetActiveAnalysisObject();
 	FEEntity* GetActiveEntity();
 
-	//bool DeleteAnalysisObject(std::string ID);
+	bool DeleteAnalysisObject(std::string ID);
 
 	void AddOnActiveObjectChangeCallback(std::function<void(AnalysisObject*)> Callback);
+	void AddOnObjectDeleteCallback(std::function<void(AnalysisObject*)> Callback);
 	void AddOnLoadCallback(std::function<void(AnalysisObject*)> Callback);
 
 	void ComplexityMetricDataToGPU(std::string LayerID, int GPULayerIndex = 0);
@@ -386,13 +388,18 @@ public:
 	bool SelectTriangle(glm::dvec3 MouseRay);
 	bool SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius);
 	glm::vec3 IntersectTriangle(glm::dvec3 MouseRay);
+
+	FEAABB GetAllObjectsAABB();
+	double GetAllMeshObjectsTotalArea();
+	glm::vec3 GetAllMeshObjectsAverageNormal();
 private:
 	SINGLETON_PRIVATE_PART(AnalysisObjectManager)
 
-	AnalysisObject* LoadRUGMesh(std::string FilePath);
+	AnalysisObject* LoadRUGFile(std::string FilePath);
 
 	std::vector<std::function<void(AnalysisObject*)>> ClientOnLoadCallbacks;
 	std::vector<std::function<void(AnalysisObject*)>> ClientOnActiveObjectChangeCallbacks;
+	std::vector<std::function<void(AnalysisObject*)>> ClientOnObjectDeleteCallbacks;
 
 	std::unordered_map<std::string, AnalysisObject*> AnalysisObjects;
 	std::string ActiveAnalysisObjectID = "";

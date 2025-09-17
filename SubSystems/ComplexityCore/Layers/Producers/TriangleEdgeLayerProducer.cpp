@@ -10,7 +10,7 @@ DataLayer* TriangleEdgeLayerProducer::Calculate(int Mode)
 	if (ActiveObject == nullptr)
 		return nullptr;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return nullptr;
 

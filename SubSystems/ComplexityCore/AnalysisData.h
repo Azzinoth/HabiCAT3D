@@ -108,6 +108,8 @@ class AnalysisObject
 	std::string Name;
 	std::string FilePath;
 
+	bool bRenderInScene = true;
+
 	ResourceAnalysisData* AnalysisData = nullptr;
 	DATA_SOURCE_TYPE Type = DATA_SOURCE_TYPE::UNKNOWN;
 
@@ -117,12 +119,19 @@ class AnalysisObject
 	FEEntity* Entity = nullptr;
 public:
 	AnalysisObject();
+	~AnalysisObject();
 
 	std::string GetID();
 	std::string GetName();
+	void SetName(std::string NewName);
 	std::string GetFilePath();
 
+	bool IsRenderedInScene();
+	void SetRenderInScene(bool NewValue);
+
 	ResourceAnalysisData* GetAnalysisData();
+	MeshAnalysisData* GetMeshAnalysisData();
+	PointCloudAnalysisData* GetPointCloudAnalysisData();
 	DATA_SOURCE_TYPE GetType();
 	FEObject* GetEngineResource();
 	FEEntity* GetEntity();
@@ -133,7 +142,7 @@ public:
 
 	DataLayer* GetActiveLayer();
 	int GetActiveLayerIndex();
-	bool SetActiveLayer(std::string LayerID);
+	bool SetActiveLayer(std::string LayerID, bool bForceUpdate = false);
 	void ClearActiveLayer();
 	bool RemoveLayer(std::string LayerID);
 

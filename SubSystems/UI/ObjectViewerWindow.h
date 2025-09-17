@@ -1,3 +1,4 @@
+#pragma once
 #include "../AnalysisObjectManager.h"
 
 class ObjectViewerWindow
@@ -5,6 +6,14 @@ class ObjectViewerWindow
 	SINGLETON_PRIVATE_PART(ObjectViewerWindow)
 
 	bool bVisible = true;
+
+	FETexture* VisibilityOnIcon = nullptr;
+	FETexture* VisibilityOffIcon = nullptr;
+	FETexture* TrashBinIcon = nullptr;
+	FETexture* MeshIcon = nullptr;
+	FETexture* PointCloudIcon = nullptr;
+
+	std::string ClipTextToWidth(const std::string& Text, float MaxWidth);
 public:
 	SINGLETON_PUBLIC_PART(ObjectViewerWindow)
 

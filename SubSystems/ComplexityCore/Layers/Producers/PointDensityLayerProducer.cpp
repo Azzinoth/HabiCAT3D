@@ -14,7 +14,7 @@ void PointDensityLayerProducer::CalculateWithJitterAsync(bool bSmootherResult)
 	if (ActiveObject == nullptr)
 		return;
 
-	PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(ActiveObject->GetAnalysisData());
+	PointCloudAnalysisData* CurrentPointCloudAnalysisData = ActiveObject->GetPointCloudAnalysisData();
 	if (CurrentPointCloudAnalysisData == nullptr)
 		return;
 
@@ -43,6 +43,7 @@ void PointDensityLayerProducer::OnJitterCalculationsEnd(DataLayer* NewLayer)
 		return;
 
 	NewLayer->DebugInfo->Type = "PointDensityDataLayerDebugInfo";
+	NewLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Point Density"));
 	CurrentObject->AddLayer(NewLayer);
 	CurrentObject->SetActiveLayer(NewLayer->GetID());
 }

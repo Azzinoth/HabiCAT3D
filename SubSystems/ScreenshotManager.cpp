@@ -132,7 +132,7 @@ void ScreenshotManager::TakeScreenshot()
 	}
 
 	// FIX ME: currently only mesh objects are supported
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 	{
 		APPLICATION.EndFrame();

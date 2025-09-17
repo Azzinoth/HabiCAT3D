@@ -637,6 +637,9 @@ void UIManager::StringToCameraRotation(std::string Text)
 
 void UIManager::OnNewObjectLoaded(AnalysisObject* NewObject)
 {
+	UI.AdjustCameraNearFarPlanes();
+	UI.bModelCamera ? UI.ModelCameraAdjustment() : UI.FreeCameraAdjustment();
+
 	LINE_RENDERER.ClearAll();
 	LINE_RENDERER.SyncWithGPU();
 
@@ -777,6 +780,12 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 
 	if (HeatMapColorRange.GetColorRangeFunction() == nullptr)
 		HeatMapColorRange.SetColorRangeFunction(GetTurboColorMap);
+
+	static bool bLastFrameActiveLayerWasValid = false;
+	if (bLastFrameActiveLayerWasValid && LAYER_MANAGER.GetActiveLayer() == nullptr)
+		HeatMapColorRange.Clear();
+
+	bLastFrameActiveLayerWasValid = LAYER_MANAGER.GetActiveLayer() != nullptr;
 
 	if (bScreenshotMode && IsActiveObjectAndLayerValid())
 	{
@@ -1126,43 +1135,64 @@ void UIManager::SwitchCameraMode(bool bModelCamera, glm::vec3 ModelCameraFocusPo
 	}
 }
 
+void UIManager::AdjustCameraNearFarPlanes()
+{
+	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
+	if (CameraEntity == nullptr)
+		return;
+
+	if (ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount() == 0)
+		return;
+
+	FEAABB AllObjectsAABB = ANALYSIS_OBJECT_MANAGER.GetAllObjectsAABB();
+
+	FECameraComponent& CameraComponent = CameraEntity->GetComponent<FECameraComponent>();
+	CameraComponent.SetNearPlane(AllObjectsAABB.GetLongestAxisLength() * 0.001f);
+	CameraComponent.SetFarPlane(AllObjectsAABB.GetLongestAxisLength() * 5.0f);
+}
+
+void UIManager::ModelCameraAdjustment(AnalysisObject* Object)
+{
+	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
+	if (CameraEntity == nullptr)
+		return;
+
+	if (ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount() == 0)
+		return;
+
+	FEAABB AABBToWorkWith = Object == nullptr ? ANALYSIS_OBJECT_MANAGER.GetAllObjectsAABB() : Object->GetAnalysisData()->GetAABB();
+
+	FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
+	NativeScriptComponent.SetVariableValue("DistanceToModel", AABBToWorkWith.GetLongestAxisLength() * 1.5f);
+	NativeScriptComponent.SetVariableValue("MouseWheelSensitivity", AABBToWorkWith.GetLongestAxisLength() * 0.1f);
+}
+
+void UIManager::FreeCameraAdjustment(AnalysisObject* Object)
+{
+	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
+	if (CameraEntity == nullptr)
+		return;
+
+	if (ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount() == 0)
+		return;
+
+	FEAABB AABBToWorkWith = Object == nullptr ? ANALYSIS_OBJECT_MANAGER.GetAllObjectsAABB() : Object->GetAnalysisData()->GetAABB();
+
+	FETransformComponent& TransformComponent = CameraEntity->GetComponent<FETransformComponent>();
+	TransformComponent.SetPosition(glm::vec3(0.0f, 0.0f, AABBToWorkWith.GetLongestAxisLength() * 1.5f));
+	TransformComponent.SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
+
+	FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
+	NativeScriptComponent.SetVariableValue("MovementSpeed", AABBToWorkWith.GetLongestAxisLength() / 5.0f);
+}
+
 void UIManager::SetIsModelCamera(const bool NewValue, glm::vec3 ModelCameraFocusPoint)
 {
 	bChooseCameraFocusPointMode = false;
 
 	SwitchCameraMode(NewValue, ModelCameraFocusPoint);
-
-	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
-	if (CameraEntity == nullptr)
-		return;
-
-	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (ActiveObject != nullptr)
-	{
-		ResourceAnalysisData* AnalysisData = ActiveObject->GetAnalysisData();
-		if (AnalysisData != nullptr)
-		{
-			FEAABB ObjectAABB = AnalysisData->GetAABB();
-
-			FECameraComponent& CameraComponent = CameraEntity->GetComponent<FECameraComponent>();
-			CameraComponent.SetFarPlane(ObjectAABB.GetLongestAxisLength() * 5.0f);
-
-			if (NewValue)
-			{
-				FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
-				NativeScriptComponent.SetVariableValue("DistanceToModel", ObjectAABB.GetLongestAxisLength() * 1.5f);
-			}
-			else
-			{
-				FETransformComponent& TransformComponent = CameraEntity->GetComponent<FETransformComponent>();
-				TransformComponent.SetPosition(glm::vec3(0.0f, 0.0f, ObjectAABB.GetLongestAxisLength() * 1.5f));
-				TransformComponent.SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-
-				FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
-				NativeScriptComponent.SetVariableValue("MovementSpeed", ObjectAABB.GetLongestAxisLength() / 5.0f);
-			}
-		}
-	}
+	AdjustCameraNearFarPlanes();
+	NewValue ? ModelCameraAdjustment() : FreeCameraAdjustment();
 
 	bModelCamera = NewValue;
 }
@@ -1299,7 +1329,7 @@ void UIManager::RenderHistogramWindow()
 			float PercentageOfAreaSelected = 0.0f;
 			if (ActiveObject != nullptr)
 			{
-				MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+				MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 				if (CurrentMeshAnalysisData != nullptr)
 				{
 					PercentageOfAreaSelected = static_cast<float>((MaxValueDistribution.x / CurrentMeshAnalysisData->GetTotalArea() * 100.0) - (MinValueDistribution.x / CurrentMeshAnalysisData->GetTotalArea() * 100.0));
@@ -1488,7 +1518,7 @@ glm::dvec2 UIManager::CalculateAreaDistributionAtValue(DataLayer* Layer, float V
 	if (ActiveObject == nullptr)
 		return glm::dvec2(0.0);
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return glm::dvec2(0.0);
 
@@ -1536,7 +1566,7 @@ void UIManager::OnLayerChange()
 	LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMin(0.0f);
 	LAYER_MANAGER.GetActiveLayer()->SetSelectedRangeMax(0.0f);
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (ActiveLayer->GetMin() != ActiveLayer->GetMax())
 	{
 		UI.UpdateHistogramData(ActiveLayer, UI.Histogram.GetCurrentBinCount());
@@ -1811,7 +1841,7 @@ void UIManager::RenderLayerSettingsTab()
 		if (ActiveObject == nullptr)
 			return;
 
-		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+		MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 		if (CurrentMeshAnalysisData == nullptr)
 			return;
 
@@ -1825,17 +1855,24 @@ void UIManager::RenderLayerSettingsTab()
 
 void UIManager::RenderGeneralSettingsTab()
 {
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
+
 	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
 
-	ImGui::Checkbox("Wireframe", &bWireframeMode);
-
-	ImGui::Text("Ambiant light intensity:");
-	ImGui::SetNextItemWidth(150);
-	ImGui::DragFloat("##AmbiantLightScale", &AmbientLightFactor, 0.025f);
-	ImGui::SameLine();
-	if (ImGui::Button("Reset"))
+	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
-		AmbientLightFactor = 2.2f;
+		ImGui::Checkbox("Wireframe", &bWireframeMode);
+
+		ImGui::Text("Ambiant light intensity:");
+		ImGui::SetNextItemWidth(150);
+		ImGui::DragFloat("##AmbiantLightScale", &AmbientLightFactor, 0.025f);
+		ImGui::SameLine();
+		if (ImGui::Button("Reset"))
+		{
+			AmbientLightFactor = 2.2f;
+		}
 	}
 
 	bool TempBool = bModelCamera;
@@ -2170,7 +2207,7 @@ void UIManager::RenderExportTab()
 
 	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
-		MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+		MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 		if (CurrentMeshAnalysisData == nullptr)
 			return;
 		
@@ -2309,7 +2346,7 @@ bool UIManager::ExportOBJ(std::string FilePath, int LayerIndex)
 	if (ActiveObject == nullptr)
 		return false;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return false;
 
@@ -2405,7 +2442,7 @@ void UIManager::RenderSettingsWindow()
 
 		if (ImGui::BeginTabBar("##Settings", ImGuiTabBarFlags_None))
 		{
-			if (ImGui::BeginTabItem("LayerToExport"))
+			if (ImGui::BeginTabItem("Layer"))
 			{
 				RenderLayerSettingsTab();
 				ImGui::EndTabItem();

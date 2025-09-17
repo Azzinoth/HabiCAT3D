@@ -183,7 +183,7 @@ void NewLayerWindow::AddLayer()
 				return;
 			}
 
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+			MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 			if (bRunOnWholeModel)
 			{
 				TRIANGLE_COUNT_LAYER_PRODUCER.CalculateOnWholeModel();
@@ -206,7 +206,7 @@ void NewLayerWindow::AddLayer()
 				return;
 			}
 
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+			MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 			if (bRunOnWholeModel)
 			{
 				RUGOSITY_LAYER_PRODUCER.CalculateOnWholeModel();
@@ -229,7 +229,7 @@ void NewLayerWindow::AddLayer()
 				return;
 			}
 
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+			MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 			if (bRunOnWholeModel)
 			{
 				VECTOR_DISPERSION_LAYER_PRODUCER.CalculateOnWholeModel();
@@ -252,7 +252,7 @@ void NewLayerWindow::AddLayer()
 				return;
 			}
 
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+			MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 			if (bRunOnWholeModel)
 			{
 				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel();
@@ -275,7 +275,7 @@ void NewLayerWindow::AddLayer()
 				return;
 			}
 
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+			MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 
 			if (FirstChoosenLayerIndex == -1 || SecondChoosenLayerIndex == -1 || FirstChoosenLayerIndex == SecondChoosenLayerIndex ||
 				FirstChoosenLayerIndex >= ActiveObject->Layers.size() || SecondChoosenLayerIndex >= ActiveObject->Layers.size())

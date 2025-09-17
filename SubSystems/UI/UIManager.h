@@ -12,6 +12,7 @@ const COMDLG_FILTERSPEC MODEL_EXPORT_FILE_FILTER[] =
 
 class UIManager
 {
+	friend class ObjectViewerWindow;
 public:
 	SINGLETON_PUBLIC_PART(UIManager)
 
@@ -141,6 +142,10 @@ private:
 	static void OnLayerRasterizationCalculationsStart();
 	static void OnLayerRasterizationCalculationsEnd();
 	void RasterizationSettingsUI();
+
+	void AdjustCameraNearFarPlanes();
+	void ModelCameraAdjustment(AnalysisObject* Object = nullptr);
+	void FreeCameraAdjustment(AnalysisObject* Object = nullptr);
 };
 
 #define UI UIManager::GetInstance()

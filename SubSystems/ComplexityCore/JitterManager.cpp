@@ -3,7 +3,8 @@ using namespace FocalEngine;
 
 JitterManager::JitterManager()
 {
-	ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(JitterManager::OnNewObjectLoaded);
+	ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(JitterManager::OnNewAnalysisObjectLoaded);
+	ANALYSIS_OBJECT_MANAGER.AddOnObjectDeleteCallback(JitterManager::OnAnalysisObjectDeleted);
 
 	JitterVectorSetNames.push_back("1");
 	JitterVectorSetNames.push_back("7");
@@ -16,7 +17,7 @@ JitterManager::JitterManager()
 
 JitterManager::~JitterManager() {}
 
-void JitterManager::OnNewObjectLoaded(AnalysisObject* NewObject)
+void JitterManager::OnNewAnalysisObjectLoaded(AnalysisObject* NewObject)
 {
 	if (NewObject == nullptr)
 		return;
@@ -32,38 +33,78 @@ void JitterManager::OnNewObjectLoaded(AnalysisObject* NewObject)
 	FEAABB FinalAABB = AABBToUse.Transform(TransformMatrix);
 	const float MaxAABBSize = FinalAABB.GetLongestAxisLength();
 
-	JITTER_MANAGER.LowestPossibleResolution = MaxAABBSize / 120;
-	JITTER_MANAGER.HighestPossibleResolution = MaxAABBSize / 9;
-
-	JITTER_MANAGER.ResolutionInM = JITTER_MANAGER.LowestPossibleResolution;
+	PerAnalysisObjectJitterData NewPerObjectData;
+	NewPerObjectData.LowestPossibleResolution = MaxAABBSize / 120;
+	NewPerObjectData.HighestPossibleResolution = MaxAABBSize / 9;
+	NewPerObjectData.ResolutionInM = NewPerObjectData.LowestPossibleResolution;
+	JITTER_MANAGER.PerObjectData[NewObject->GetID()] = NewPerObjectData;
 
 	delete JITTER_MANAGER.LastUsedGrid;
 	JITTER_MANAGER.LastUsedGrid = nullptr;
 }
 
+void JitterManager::OnAnalysisObjectDeleted(AnalysisObject* DeletedObject)
+{
+	if (DeletedObject == nullptr)
+		return;
+
+	if (JITTER_MANAGER.PerObjectData.find(DeletedObject->GetID()) != JITTER_MANAGER.PerObjectData.end())
+		JITTER_MANAGER.PerObjectData.erase(DeletedObject->GetID());
+}
+
 float JitterManager::GetResolutionInM()
 {
-	return ResolutionInM;
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return 0.0f;
+
+	if (PerObjectData.find(ActiveObject->GetID()) == PerObjectData.end())
+		return 0.0f;
+
+	return PerObjectData[ActiveObject->GetID()].ResolutionInM;
 }
 
 void JitterManager::SetResolutionInM(float NewResolutionInM)
 {
-	if (NewResolutionInM < LowestPossibleResolution)
-		NewResolutionInM = LowestPossibleResolution;
-	if (NewResolutionInM > HighestPossibleResolution)
-		NewResolutionInM = HighestPossibleResolution;
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
 
-	ResolutionInM = NewResolutionInM;
+	if (PerObjectData.find(ActiveObject->GetID()) == PerObjectData.end())
+		return;
+
+	PerAnalysisObjectJitterData& Data = PerObjectData[ActiveObject->GetID()];
+
+	if (NewResolutionInM < Data.LowestPossibleResolution)
+		NewResolutionInM = Data.LowestPossibleResolution;
+	if (NewResolutionInM > Data.HighestPossibleResolution)
+		NewResolutionInM = Data.HighestPossibleResolution;
+
+	Data.ResolutionInM = NewResolutionInM;
 }
 
 float JitterManager::GetLowestPossibleResolution()
 {
-	return LowestPossibleResolution;
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return 0.0f;
+
+	if (PerObjectData.find(ActiveObject->GetID()) == PerObjectData.end())
+		return 0.0f;
+
+	return PerObjectData[ActiveObject->GetID()].LowestPossibleResolution;
 }
 
 float JitterManager::GetHighestPossibleResolution()
 {
-	return HighestPossibleResolution;
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return 0.0f;
+
+	if (PerObjectData.find(ActiveObject->GetID()) == PerObjectData.end())
+		return 0.0f;
+
+	return PerObjectData[ActiveObject->GetID()].HighestPossibleResolution;
 }
 
 int JitterManager::GetJitterDoneCount()
@@ -336,8 +377,8 @@ void JitterManager::RunCalculationOnGridAsync(void* InputData, void* OutputData)
 	GridInitData_Jitter* Input = reinterpret_cast<GridInitData_Jitter*>(InputData);
 	MeasurementGrid* Output = reinterpret_cast<MeasurementGrid*>(OutputData);
 
-	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(Input, JITTER_MANAGER.ResolutionInM);
-	Output->Init(0, FinalAABB, JITTER_MANAGER.ResolutionInM);
+	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(Input, JITTER_MANAGER.GetResolutionInM());
+	Output->Init(0, FinalAABB, JITTER_MANAGER.GetResolutionInM());
 
 	Output->FillCellsWithTriangleInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");
@@ -471,7 +512,7 @@ void JitterManager::OnCalculationsEnd()
 	NewLayer->DebugInfo->AddEntry("End time", EndTime);
 	NewLayer->DebugInfo->AddEntry("Time taken", TIME.TimeToFormattedString(EndTime - JITTER_MANAGER.StartTime));
 	NewLayer->DebugInfo->AddEntry("Jitter count", JITTER_MANAGER.JitterDoneCount);
-	NewLayer->DebugInfo->AddEntry("Resolution used", std::to_string(JITTER_MANAGER.ResolutionInM) + " m.");
+	NewLayer->DebugInfo->AddEntry("Resolution used", std::to_string(JITTER_MANAGER.GetResolutionInM()) + " m.");
 
 	JITTER_MANAGER.LastTimeTookForCalculation = float(TIME.EndTimeStamp("JitterCalculateTotal"));
 
@@ -545,6 +586,10 @@ void JitterManager::SetFallbackValue(float NewValue)
 
 void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* CurrentNode)> Func)
 {
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
+
 	if (Func == nullptr)
 		return;
 
@@ -552,7 +597,7 @@ void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* CurrentNo
 	CurrentFunc = Func;
 
 	JitterToDoCount = 1;
-	ResolutionInM = -1.0f;
+	PerObjectData[ActiveObject->GetID()].ResolutionInM = -1.0f;
 
 	LastUsedJitterSettings.clear();
 	LastUsedJitterSettings.resize(1);
@@ -580,7 +625,7 @@ void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* CurrentNo
 	RunCalculationOnWholeModel(OutputData);
 	AfterCalculationFinishGridCallback(OutputData);
 
-	ResolutionInM = JITTER_MANAGER.GetLowestPossibleResolution();
+	JITTER_MANAGER.SetResolutionInM(JITTER_MANAGER.GetLowestPossibleResolution());
 }
 
 void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)
@@ -589,7 +634,7 @@ void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)
 	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
@@ -760,7 +805,7 @@ std::vector<float> JitterManager::ProduceStandardDeviationData()
 	if (ActiveObject == nullptr)
 		return Result;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(ActiveObject->GetAnalysisData());
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 

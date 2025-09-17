@@ -41,7 +41,7 @@ DataLayer::DataLayer(std::vector<std::string> ParentIDs, const std::vector<float
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+			MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
 			if (CurrentMeshAnalysisData == nullptr)
 				return;
 
@@ -53,7 +53,7 @@ DataLayer::DataLayer(std::vector<std::string> ParentIDs, const std::vector<float
 			
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = CurrentObject->GetPointCloudAnalysisData();
 			if (CurrentPointCloudAnalysisData == nullptr)
 				return;
 
@@ -154,7 +154,7 @@ void DataLayer::ComputeStatistics()
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+			MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
 			if (CurrentMeshAnalysisData == nullptr)
 				return;
 
@@ -169,7 +169,7 @@ void DataLayer::ComputeStatistics()
 
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = CurrentObject->GetPointCloudAnalysisData();
 			if (CurrentPointCloudAnalysisData == nullptr)
 				return;
 
@@ -191,7 +191,7 @@ void DataLayer::FillRawData()
 	{
 		case DATA_SOURCE_TYPE::MESH:
 		{
-			MeshAnalysisData* CurrentMeshAnalysisData = static_cast<MeshAnalysisData*>(CurrentObject->GetAnalysisData());
+			MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
 			if (CurrentMeshAnalysisData == nullptr)
 				return;
 
@@ -233,7 +233,7 @@ void DataLayer::FillRawData()
 		}
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			PointCloudAnalysisData* CurrentPointCloudAnalysisData = static_cast<PointCloudAnalysisData*>(CurrentObject->GetAnalysisData());
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = CurrentObject->GetPointCloudAnalysisData();
 			if (CurrentPointCloudAnalysisData == nullptr)
 				return;
 

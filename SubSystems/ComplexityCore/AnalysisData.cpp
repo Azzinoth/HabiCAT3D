@@ -100,38 +100,85 @@ AnalysisObject::AnalysisObject()
 	ID = APPLICATION.GetUniqueHexID();
 }
 
+AnalysisObject::~AnalysisObject()
+{
+	for (size_t i = 0; i < Layers.size(); i++)
+	{
+		if (Layers[i] != nullptr)
+			delete Layers[i];
+	}
+	Layers.clear();
+
+	if (AnalysisData != nullptr)
+	{
+		delete AnalysisData;
+		AnalysisData = nullptr;
+	}
+}
+
 std::string AnalysisObject::GetID()
-{ 
+{
 	return ID;
 }
 
 std::string AnalysisObject::GetName()
-{ 
+{
 	return Name;
 }
 
+void AnalysisObject::SetName(std::string NewName)
+{
+	Name = NewName;
+}
+
+bool AnalysisObject::IsRenderedInScene()
+{
+	return bRenderInScene;
+}
+
+void AnalysisObject::SetRenderInScene(bool NewValue)
+{
+	bRenderInScene = NewValue;
+}
+
 std::string AnalysisObject::GetFilePath() 
-{ 
+{
 	return FilePath;
 }
 
 ResourceAnalysisData* AnalysisObject::GetAnalysisData()
-{ 
+{
 	return AnalysisData;
 }
 
+MeshAnalysisData* AnalysisObject::GetMeshAnalysisData()
+{
+	if (Type != DATA_SOURCE_TYPE::MESH)
+		return nullptr;
+
+	return static_cast<MeshAnalysisData*>(AnalysisData);
+}
+
+PointCloudAnalysisData* AnalysisObject::GetPointCloudAnalysisData()
+{
+	if (Type != DATA_SOURCE_TYPE::POINT_CLOUD)
+		return nullptr;
+
+	return static_cast<PointCloudAnalysisData*>(AnalysisData);
+}
+
 DATA_SOURCE_TYPE AnalysisObject::GetType()
-{ 
+{
 	return Type;
 }
 
 FEObject* AnalysisObject::GetEngineResource()
-{ 
+{
 	return EngineResource;
 }
 
 FEEntity* AnalysisObject::GetEntity()
-{ 
+{
 	return Entity;
 }
 
@@ -193,14 +240,17 @@ DataLayer* AnalysisObject::GetActiveLayer()
 	return Result;
 }
 
-bool AnalysisObject::SetActiveLayer(std::string LayerID)
+bool AnalysisObject::SetActiveLayer(std::string LayerID, bool bForceUpdate)
 {
+	if (LayerID == ActiveLayerID && !bForceUpdate)
+		return true;
+
 	DataLayer* NewActiveLayer = GetLayer(LayerID);
 	if (NewActiveLayer == nullptr && !LayerID.empty())
 		return false;
 
+	LayerEvent NewEvent = LayerEvent(LAYER_EVENT_TYPE::LAYER_ACTIVE_ID_CHANGED, ID, LayerID, { ActiveLayerID });
 	ActiveLayerID = LayerID;
-	LayerEvent NewEvent = LayerEvent(LAYER_EVENT_TYPE::LAYER_ACTIVE_ID_CHANGED, ID, ActiveLayerID, { LayerID });
 	LAYER_MANAGER.PropagateLayerEvent(NewEvent);
 	
 	return true;
