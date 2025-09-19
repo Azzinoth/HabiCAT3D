@@ -148,7 +148,7 @@ void DataLayer::ComputeStatistics()
 		Median = SortedData[SortedData.size() / 2];
 	}
 
-	ValueTriangleAreaAndIndex.clear();
+	ValueWeightAndIndex.clear();
 
 	switch (CurrentObject->GetType())
 	{
@@ -159,10 +159,10 @@ void DataLayer::ComputeStatistics()
 				return;
 
 			for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
-				ValueTriangleAreaAndIndex.push_back(std::make_tuple(ElementsToData[i], CurrentMeshAnalysisData->TrianglesArea[i], i));
+				ValueWeightAndIndex.push_back(std::make_tuple(ElementsToData[i], CurrentMeshAnalysisData->TrianglesArea[i], i));
 
 			// sort() function will sort by 1st element of tuple.
-			std::sort(ValueTriangleAreaAndIndex.begin(), ValueTriangleAreaAndIndex.end());
+			std::sort(ValueWeightAndIndex.begin(), ValueWeightAndIndex.end());
 
 			break;
 		}
@@ -172,6 +172,12 @@ void DataLayer::ComputeStatistics()
 			PointCloudAnalysisData* CurrentPointCloudAnalysisData = CurrentObject->GetPointCloudAnalysisData();
 			if (CurrentPointCloudAnalysisData == nullptr)
 				return;
+
+			for (int i = 0; i < CurrentPointCloudAnalysisData->RawPointCloudData.size(); i++)
+				ValueWeightAndIndex.push_back(std::make_tuple(ElementsToData[i], 1.0f, i));
+			
+			// sort() function will sort by 1st element of tuple.
+			std::sort(ValueWeightAndIndex.begin(), ValueWeightAndIndex.end());
 
 			break;
 		}

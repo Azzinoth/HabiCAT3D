@@ -48,10 +48,22 @@ void ObjectViewerWindow::Render()
 	if (!bVisible)
 		return;
 
+	static bool bFirstTime = true;
+	if (bFirstTime)
+	{
+		ImGui::SetNextWindowPos(ImVec2(155, 110), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(350, 300), ImGuiCond_FirstUseEver);
+
+		bFirstTime = false;
+	}
+
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 	if (ImGui::Begin("Objects", nullptr))
 	{
+		ImVec2 CurrentWindowPosition = ImGui::GetWindowPos();
+		ImVec2 CurrentWindowSize = ImGui::GetWindowSize();
+
 		std::vector<std::string> ObjectIDs = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectsIDList();
 		std::vector<AnalysisObject*> Objects;
 		std::vector<FEPointCloud*> PointClouds;

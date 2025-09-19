@@ -363,11 +363,10 @@ public:
 	FEMaterial* CustomMaterial = nullptr;
 
 	AnalysisObject* ImportOBJ(const char* FilePath, bool bForceOneMesh);
-	AnalysisObject* LoadResource(std::string FilePath);
+	void LoadResource(std::string FilePath);
 
-	// FIX ME: That function need to be refactored to save all objects.
-	void SaveToRUGFile(std::string FilePath, std::string AnalysisObjectID);
-	void SaveToRUGFileAskForFilePath(std::string AnalysisObjectID);
+	void SaveToRUGFile(std::string FilePath);
+	void SaveToRUGFileAskForFilePath();
 
 	size_t GetAnalysisObjectCount();
 	AnalysisObject* GetAnalysisObject(std::string ID);
@@ -395,7 +394,21 @@ public:
 private:
 	SINGLETON_PRIVATE_PART(AnalysisObjectManager)
 
+	float CheckRUGFileVersion(std::string FilePath);
+
+	void OnAnalysisObjectLoad(AnalysisObject* NewObject);
 	AnalysisObject* LoadRUGFile(std::string FilePath);
+	bool NewLoadRUGFile(std::string FilePath);
+	void SaveAnalysisDataToRUGFile(std::fstream& File, AnalysisObject* Object);
+
+	void LoadMeshDataFromRUGFile(std::fstream& File, AnalysisObject* Object);
+	void SaveMeshDataToRUGFile(std::fstream& File, AnalysisObject* Object);
+
+	void LoadPointCloudDataFromRUGFile(std::fstream& File, AnalysisObject* Object);
+	void SavePointCloudToRUGFile(std::fstream& File, AnalysisObject* Object);
+
+	void LoadLayersDataFromRUGFile(std::fstream& File, AnalysisObject* Object);
+	void SaveLayersDataToRUGFile(std::fstream& File, AnalysisObject* Object);
 
 	std::vector<std::function<void(AnalysisObject*)>> ClientOnLoadCallbacks;
 	std::vector<std::function<void(AnalysisObject*)>> ClientOnActiveObjectChangeCallbacks;

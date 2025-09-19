@@ -427,16 +427,14 @@ void UIManager::Render(bool bScreenshotMode)
 					ANALYSIS_OBJECT_MANAGER.LoadResource(FilePath);
 			}
 
-			AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-			FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
-
-			if (ActiveMesh == nullptr)
+			size_t ObjectCount = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount();
+			if (ObjectCount == 0)
 				ImGui::BeginDisabled();
 
 			if (ImGui::MenuItem("Save..."))
-				ANALYSIS_OBJECT_MANAGER.SaveToRUGFileAskForFilePath(ActiveObject->GetID());
+				ANALYSIS_OBJECT_MANAGER.SaveToRUGFileAskForFilePath();
 
-			if (ActiveMesh == nullptr)
+			if (ObjectCount == 0)
 				ImGui::EndDisabled();
 
 			ImGui::Separator();
@@ -1202,10 +1200,10 @@ void UIManager::UpdateHistogramData(DataLayer* FromLayer, int NewBinCount)
 	std::vector<double> Values;
 	std::vector<double> Weights;
 
-	if (FromLayer->ValueTriangleAreaAndIndex.empty())
+	if (FromLayer->ValueWeightAndIndex.empty())
 		return;
 
-	for (const auto& Tuple : FromLayer->ValueTriangleAreaAndIndex)
+	for (const auto& Tuple : FromLayer->ValueWeightAndIndex)
 	{
 		Values.push_back(std::get<0>(Tuple));
 		Weights.push_back(std::get<1>(Tuple));

@@ -111,9 +111,7 @@ public:
 	std::vector<float> RawData;
 	// This vector contains the data for each triangle/point.
 	std::vector<float> ElementsToData;
-
-	// Mesh specific data.
-	std::vector<std::tuple<double, double, int>> ValueTriangleAreaAndIndex = std::vector<std::tuple<double, double, int>>();
+	std::vector<std::tuple<double, double, int>> ValueWeightAndIndex = std::vector<std::tuple<double, double, int>>();
 
 	LAYER_TYPE GetType();
 	void SetType(LAYER_TYPE NewValue);

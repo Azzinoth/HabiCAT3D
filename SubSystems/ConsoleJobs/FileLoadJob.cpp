@@ -51,7 +51,7 @@ bool FileLoadJob::Execute(void* InputData, void* OutputData)
 
 	std::cout << "File found. Loading file: " << FilePath << std::endl;
 
-	AnalysisObject* NewAnalysisObject = ANALYSIS_OBJECT_MANAGER.LoadResource(FilePath);
+	ANALYSIS_OBJECT_MANAGER.LoadResource(FilePath);
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
 		return false;

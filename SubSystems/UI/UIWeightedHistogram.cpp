@@ -71,10 +71,10 @@ void FEWeightedHistogram::SetCeiling(float NewValue)
 void FEWeightedHistogram::FillDataBins(const std::vector<double>& Values, const std::vector<double>& Weights, size_t BinsCount)
 {
 	std::vector<float> DataPoints;
-	std::vector<float> MinRugosity;
-	MinRugosity.resize(BinsCount);
-	std::vector<float> MaxRugosity;
-	MaxRugosity.resize(BinsCount);
+	std::vector<float> BinLowerBounds;
+	BinLowerBounds.resize(BinsCount);
+	std::vector<float> BinUpperBounds;
+	BinUpperBounds.resize(BinsCount);
 
 	MinValue = *std::min_element(Values.begin(), Values.end());
 	MaxValue = *std::max_element(Values.begin(), Values.end());
@@ -84,8 +84,8 @@ void FEWeightedHistogram::FillDataBins(const std::vector<double>& Values, const 
 		const double NormalizedPixelPosition = double(i) / (BinsCount);
 		const double NextNormalizedPixelPosition = double(i + 1) / (BinsCount);
 
-		MinRugosity[i] = static_cast<float>(MinValue + (MaxValue - MinValue) * NormalizedPixelPosition);
-		MaxRugosity[i] = static_cast<float>(MinValue + (MaxValue - MinValue) * NextNormalizedPixelPosition);
+		BinLowerBounds[i] = static_cast<float>(MinValue + (MaxValue - MinValue) * NormalizedPixelPosition);
+		BinUpperBounds[i] = static_cast<float>(MinValue + (MaxValue - MinValue) * NextNormalizedPixelPosition);
 	}
 
 	for (size_t i = 0; i < BinsCount; i++)
@@ -94,7 +94,7 @@ void FEWeightedHistogram::FillDataBins(const std::vector<double>& Values, const 
 		for (int j = 0; j < Values.size(); j++)
 		{
 			const double CurrentValue = Values[j];
-			if (CurrentValue >= MinRugosity[i] && (i == BinsCount - 1 ? CurrentValue <= MaxRugosity[i] : CurrentValue < MaxRugosity[i]))
+			if (CurrentValue >= BinLowerBounds[i] && (i == BinsCount - 1 ? CurrentValue <= BinUpperBounds[i] : CurrentValue < BinUpperBounds[i]))
 			{
 				CurrentArea += Weights[j];
 			}
@@ -103,11 +103,11 @@ void FEWeightedHistogram::FillDataBins(const std::vector<double>& Values, const 
 		DataPoints.push_back(static_cast<float>(CurrentArea));
 	}
 
-	double TotalArea = 0.0;
+	double TotalWeight = 0.0;
 	float MaxValue = -FLT_MAX;
 	for (size_t i = 0; i < BinsCount; i++)
 	{
-		TotalArea += DataPoints[i];
+		TotalWeight += DataPoints[i];
 		MaxValue = std::max(DataPoints[i], MaxValue);
 	}
 

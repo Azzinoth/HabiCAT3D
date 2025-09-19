@@ -66,9 +66,7 @@ void AfterNewResourceLoads(AnalysisObject* NewObject)
 
 void LoadResource(std::string FileName)
 {
-	AnalysisObject* LoadedObject = ANALYSIS_OBJECT_MANAGER.LoadResource(FileName);
-	if (LoadedObject == nullptr)
-		LOG.Add("Failed to load object with path: " + FileName);
+	ANALYSIS_OBJECT_MANAGER.LoadResource(FileName);
 }
 
 void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)

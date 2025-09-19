@@ -43,7 +43,7 @@ bool FileSaveJob::Execute(void* InputData, void* OutputData)
 	if (ActiveObject == nullptr)
 		return false;
 
-	ANALYSIS_OBJECT_MANAGER.SaveToRUGFile(FilePath, ActiveObject->GetID());
+	ANALYSIS_OBJECT_MANAGER.SaveToRUGFile(FilePath);
 	OutputConsoleTextWithColor("File saved successfully.", 0, 255, 0);
 
 	return true;

@@ -68,6 +68,40 @@ MeshAnalysisData* AnalysisObjectManager::ExtractAdditionalGeometryData(std::vect
 	return Result;
 }
 
+float AnalysisObjectManager::CheckRUGFileVersion(std::string FilePath)
+{
+	float Result = -1.0f;
+	if (!FILE_SYSTEM.DoesFileExist(FilePath))
+	{
+		LOG.Add(std::string("Can't find file: ") + FilePath + " in function CheckRUGFileVersion.");
+		return Result;
+	}
+
+	std::fstream File;
+	File.open(FilePath, std::ios::in | std::ios::binary);
+	if (!File.is_open())
+	{
+		LOG.Add(std::string("Can't open file: ") + FilePath + " in function CheckRUGFileVersion.");
+		return Result;
+	}
+
+	File.seekg(0, std::ios::end);
+	const std::streamsize FileSize = File.tellg();
+	File.seekg(0, std::ios::beg);
+	if (FileSize <= 0)
+	{
+		LOG.Add(std::string("Can't get file size: ") + FilePath + " in function CheckRUGFileVersion.");
+		return Result;
+	}
+
+	char* Buffer = new char[4];
+	File.read(Buffer, 4);
+	Result = *(float*)Buffer;
+	delete[] Buffer;
+
+	return Result;
+}
+
 AnalysisObject* AnalysisObjectManager::ImportOBJ(const char* FilePath, bool bForceOneMesh)
 {
 	AnalysisObject* Result = new AnalysisObject();
@@ -111,13 +145,20 @@ AnalysisObject* AnalysisObjectManager::ImportOBJ(const char* FilePath, bool bFor
 AnalysisObject* AnalysisObjectManager::LoadRUGFile(std::string FilePath)
 {
 	std::fstream File;
-
 	File.open(FilePath, std::ios::in | std::ios::binary);
-	const std::streamsize FileSize = File.tellg();
-	if (FileSize < 0)
+	if (!File.is_open())
 	{
-		LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadRUGFile.");
-		return nullptr;
+		LOG.Add(std::string("Can't open file: ") + FilePath + " in function LoadRUGFile.");
+		return false;
+	}
+
+	File.seekg(0, std::ios::end);
+	const std::streamsize FileSize = File.tellg();
+	File.seekg(0, std::ios::beg);
+	if (FileSize <= 0)
+	{
+		LOG.Add(std::string("Can't get file size: ") + FilePath + " in function LoadRUGFile.");
+		return false;
 	}
 
 	char* Buffer = new char[4];
@@ -336,11 +377,32 @@ AnalysisObject* AnalysisObjectManager::LoadRUGFile(std::string FilePath)
 	return Result;
 }
 
-AnalysisObject* AnalysisObjectManager::LoadResource(std::string FilePath)
+void AnalysisObjectManager::OnAnalysisObjectLoad(AnalysisObject* NewObject)
 {
-	AnalysisObject* Result = nullptr;
+	if (NewObject == nullptr)
+		return;
+	
+	InitializeSceneObjects(NewObject);
+	AnalysisObjects[NewObject->ID] = NewObject;
+	SetActiveAnalysisObject(NewObject->ID);
+
+	for (size_t i = 0; i < NewObject->Layers.size(); i++)
+		NewObject->Layers[i]->ComputeStatistics();
+
+	for (size_t i = 0; i < ClientOnLoadCallbacks.size(); i++)
+	{
+		if (ClientOnLoadCallbacks[i] == nullptr)
+			continue;
+
+		ClientOnLoadCallbacks[i](NewObject);
+	}
+}
+
+void AnalysisObjectManager::LoadResource(std::string FilePath)
+{
+	AnalysisObject* LoadedResource = nullptr;
 	if (!FILE_SYSTEM.DoesFileExist(FilePath.c_str()))
-		return Result;
+		return;
 
 	std::string FileExtension = FILE_SYSTEM.GetFileExtension(FilePath.c_str());
 	// Convert to lower case.
@@ -350,59 +412,58 @@ AnalysisObject* AnalysisObjectManager::LoadResource(std::string FilePath)
 
 	if (FileExtension == ".obj")
 	{
-		Result = ImportOBJ(FilePath.c_str(), true);
+		LoadedResource = ImportOBJ(FilePath.c_str(), true);
 	}
 	else if (FileExtension == ".rug")
 	{
-		Result = LoadRUGFile(FilePath);
-		Result->Name = FILE_SYSTEM.GetFileName(FilePath, false);
+		float Version = CheckRUGFileVersion(FilePath);
+		if (Version >= 0.91f)
+		{
+			NewLoadRUGFile(FilePath);
+			return;
+		}
+		else
+		{
+			LoadedResource = LoadRUGFile(FilePath);
+			if (LoadedResource == nullptr)
+				return;
+			LoadedResource->Name = FILE_SYSTEM.GetFileName(FilePath, false);
+		}
 	}
 	else if (FileExtension == ".ply")
 	{
 		FEObject* LoadedObject = RESOURCE_MANAGER.ImportPLYFile(FilePath);
+		if (LoadedObject == nullptr)
+			return;
+
 		if (LoadedObject->GetType() == FE_POINT_CLOUD)
 		{
-			Result = new AnalysisObject();
-			Result->Type = DATA_SOURCE_TYPE::POINT_CLOUD;
-			Result->FilePath = FilePath;
-			Result->Name = FILE_SYSTEM.GetFileName(FilePath, false);
-			Result->EngineResource = LoadedObject;
-			Result->AnalysisData = ExtractAdditionalGeometryData(static_cast<FEPointCloud*>(LoadedObject));
+			LoadedResource = new AnalysisObject();
+			LoadedResource->Type = DATA_SOURCE_TYPE::POINT_CLOUD;
+			LoadedResource->FilePath = FilePath;
+			LoadedResource->Name = FILE_SYSTEM.GetFileName(FilePath, false);
+			LoadedResource->EngineResource = LoadedObject;
+			LoadedResource->AnalysisData = ExtractAdditionalGeometryData(static_cast<FEPointCloud*>(LoadedObject));
 		}
 	}
 	else if (FileExtension == ".las" || FileExtension == ".laz")
 	{
 		FEPointCloud* PointCloud = RESOURCE_MANAGER.ImportPointCloud(FilePath);
+		if (PointCloud == nullptr)
+			return;
+
 		if (PointCloud != nullptr)
 		{
-			Result = new AnalysisObject();
-			Result->Type = DATA_SOURCE_TYPE::POINT_CLOUD;
-			Result->FilePath = FilePath;
-			Result->Name = FILE_SYSTEM.GetFileName(FilePath, false);
-			Result->EngineResource = PointCloud;
-			Result->AnalysisData = ExtractAdditionalGeometryData(PointCloud);
+			LoadedResource = new AnalysisObject();
+			LoadedResource->Type = DATA_SOURCE_TYPE::POINT_CLOUD;
+			LoadedResource->FilePath = FilePath;
+			LoadedResource->Name = FILE_SYSTEM.GetFileName(FilePath, false);
+			LoadedResource->EngineResource = PointCloud;
+			LoadedResource->AnalysisData = ExtractAdditionalGeometryData(PointCloud);
 		}
 	}
 
-	if (Result != nullptr)
-	{
-		InitializeSceneObjects(Result);
-		AnalysisObjects[Result->ID] = Result;
-		SetActiveAnalysisObject(Result->ID);
-
-		for (size_t i = 0; i < Result->Layers.size(); i++)
-			Result->Layers[i]->ComputeStatistics();
-
-		for (size_t i = 0; i < ClientOnLoadCallbacks.size(); i++)
-		{
-			if (ClientOnLoadCallbacks[i] == nullptr)
-				continue;
-
-			ClientOnLoadCallbacks[i](Result);
-		}
-	}
-
-	return Result;
+	OnAnalysisObjectLoad(LoadedResource);
 }
 
 void AnalysisObjectManager::AddOnLoadCallback(std::function<void(AnalysisObject*)> Callback)
@@ -850,15 +911,170 @@ void AnalysisObjectManager::InitializeSceneObjects(AnalysisObject* NewAnalysisOb
 	RENDERER.AddBeforeRenderCallback(NewAnalysisObject->Entity, AnalysisObjectManager::BeforeRender);
 }
 
-void AnalysisObjectManager::SaveToRUGFileAskForFilePath(std::string AnalysisObjectID)
+void AnalysisObjectManager::SaveToRUGFileAskForFilePath()
 {
 	std::string FilePath;
 	FILE_SYSTEM.ShowFileSaveDialog(FilePath, RUGOSITY_SAVE_FILE_FILTER, 1);
 
-	SaveToRUGFile(FilePath, AnalysisObjectID);
+	SaveToRUGFile(FilePath);
 }
 
-void AnalysisObjectManager::SaveToRUGFile(std::string FilePath, std::string AnalysisObjectID)
+void AnalysisObjectManager::SaveAnalysisDataToRUGFile(std::fstream& File, AnalysisObject* Object)
+{
+	ResourceAnalysisData* AnalysisData = Object->GetAnalysisData();
+	if (AnalysisData == nullptr)
+		return;
+
+	switch (Object->GetType())
+	{
+		case DATA_SOURCE_TYPE::MESH:
+			SaveMeshDataToRUGFile(File, Object);
+		break;
+
+		case DATA_SOURCE_TYPE::POINT_CLOUD:
+			SavePointCloudToRUGFile(File, Object);
+		break;
+	default:
+		break;
+	}
+}
+
+void AnalysisObjectManager::SaveMeshDataToRUGFile(std::fstream& File, AnalysisObject* Object)
+{
+	MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
+	int DebugWrittenBytes = 0;
+
+	int Count = static_cast<int>(CurrentMeshAnalysisData->Vertices.size());
+	File.write((char*)&Count, sizeof(int));
+	DebugWrittenBytes += sizeof(int);
+	File.write((char*)CurrentMeshAnalysisData->Vertices.data(), sizeof(double) * Count);
+	DebugWrittenBytes += sizeof(double) * Count;
+
+	Count = static_cast<int>(CurrentMeshAnalysisData->Colors.size());
+	File.write((char*)&Count, sizeof(int));
+	DebugWrittenBytes += sizeof(int);
+	File.write((char*)CurrentMeshAnalysisData->Colors.data(), sizeof(float) * Count);
+	DebugWrittenBytes += sizeof(float) * Count;
+
+	Count = static_cast<int>(CurrentMeshAnalysisData->UVs.size());
+	File.write((char*)&Count, sizeof(int));
+	DebugWrittenBytes += sizeof(int);
+	File.write((char*)CurrentMeshAnalysisData->UVs.data(), sizeof(float) * Count);
+	DebugWrittenBytes += sizeof(float) * Count;
+
+	Count = static_cast<int>(CurrentMeshAnalysisData->Normals.size());
+	File.write((char*)&Count, sizeof(int));
+	DebugWrittenBytes += sizeof(int);
+	File.write((char*)CurrentMeshAnalysisData->Normals.data(), sizeof(float) * Count);
+	DebugWrittenBytes += sizeof(float) * Count;
+
+	Count = static_cast<int>(CurrentMeshAnalysisData->Tangents.size());
+	File.write((char*)&Count, sizeof(int));
+	DebugWrittenBytes += sizeof(int);
+	File.write((char*)CurrentMeshAnalysisData->Tangents.data(), sizeof(float) * Count);
+	DebugWrittenBytes += sizeof(float) * Count;
+
+	Count = static_cast<int>(CurrentMeshAnalysisData->Indices.size());
+	File.write((char*)&Count, sizeof(int));
+	DebugWrittenBytes += sizeof(int);
+	File.write((char*)CurrentMeshAnalysisData->Indices.data(), sizeof(int) * Count);
+	DebugWrittenBytes += sizeof(int) * Count;
+
+	FEAABB CurrentAABB = CurrentMeshAnalysisData->GetAABB();
+	File.write((char*)&CurrentAABB.GetMin()[0], sizeof(float));
+	File.write((char*)&CurrentAABB.GetMin()[1], sizeof(float));
+	File.write((char*)&CurrentAABB.GetMin()[2], sizeof(float));
+
+	File.write((char*)&CurrentAABB.GetMax()[0], sizeof(float));
+	File.write((char*)&CurrentAABB.GetMax()[1], sizeof(float));
+	File.write((char*)&CurrentAABB.GetMax()[2], sizeof(float));
+
+	DebugWrittenBytes += sizeof(float) * 6;
+}
+
+void AnalysisObjectManager::SavePointCloudToRUGFile(std::fstream& File, AnalysisObject* Object)
+{
+	FEPointCloud* PointCloud = static_cast<FEPointCloud*>(Object->GetEngineResource());
+	if (PointCloud == nullptr)
+		return;
+
+	std::vector<FEPointCloudVertex> RawData = PointCloud->GetRawData();
+
+	size_t Count = PointCloud->GetPointCount() * 3;
+	float* Positions = new float[Count];
+	for (size_t i = 0; i < PointCloud->GetPointCount(); i++)
+	{
+		Positions[i * 3] = RawData[i].X;
+		Positions[i * 3 + 1] = RawData[i].Y;
+		Positions[i * 3 + 2] = RawData[i].Z;
+	}
+
+	File.write((char*)&Count, sizeof(size_t));
+	File.write((char*)Positions, sizeof(float) * Count);
+
+	Count = PointCloud->GetPointCount() * 4;
+	unsigned char* Colors = new unsigned char[PointCloud->GetPointCount() * 4];
+	for (size_t i = 0; i < PointCloud->GetPointCount(); i++)
+	{
+		Colors[i * 4] = RawData[i].R;
+		Colors[i * 4 + 1] = RawData[i].G;
+		Colors[i * 4 + 2] = RawData[i].B;
+		Colors[i * 4 + 3] = RawData[i].A;
+	}
+
+	File.write((char*)&Count, sizeof(size_t));
+	File.write((char*)Colors, sizeof(unsigned char) * Count);
+
+	delete[] Positions;
+	delete[] Colors;
+}
+
+void AnalysisObjectManager::SaveLayersDataToRUGFile(std::fstream& File, AnalysisObject* Object)
+{
+	int Count = static_cast<int>(Object->Layers.size());
+	File.write((char*)&Count, sizeof(int));
+	for (size_t i = 0; i < Object->Layers.size(); i++)
+	{
+		DataLayer* CurrentLayer = Object->Layers[i];
+		LAYER_TYPE LayerType = CurrentLayer->GetType();
+		File.write((char*)&LayerType, sizeof(LAYER_TYPE));
+
+		int LayerIDSize = static_cast<int>(CurrentLayer->GetID().size() + 1);
+		File.write((char*)&LayerIDSize, sizeof(int));
+		File.write((char*)CurrentLayer->GetID().c_str(), sizeof(char) * LayerIDSize);
+
+		int ParentIDSize = (int)CurrentLayer->ParentObjectIDs.size();
+		File.write((char*)&ParentIDSize, sizeof(int));
+		for (size_t j = 0; j < CurrentLayer->ParentObjectIDs.size(); j++)
+		{
+			int SingleParentIDSize = static_cast<int>(CurrentLayer->ParentObjectIDs[j].size() + 1);
+			File.write((char*)&SingleParentIDSize, sizeof(int));
+			File.write((char*)CurrentLayer->ParentObjectIDs[j].c_str(), sizeof(char) * SingleParentIDSize);
+		}
+
+		Count = static_cast<int>(CurrentLayer->GetCaption().size());
+		File.write((char*)&Count, sizeof(int));
+		File.write((char*)CurrentLayer->GetCaption().c_str(), sizeof(char) * Count);
+
+		Count = static_cast<int>(CurrentLayer->GetNote().size());
+		File.write((char*)&Count, sizeof(int));
+		File.write((char*)CurrentLayer->GetNote().c_str(), sizeof(char) * Count);
+
+		Count = static_cast<int>(CurrentLayer->ElementsToData.size());
+		File.write((char*)&Count, sizeof(int));
+		File.write((char*)CurrentLayer->ElementsToData.data(), sizeof(float) * Count);
+
+		Count = CurrentLayer->DebugInfo != nullptr;
+		File.write((char*)&Count, sizeof(int));
+		if (Count)
+			CurrentLayer->DebugInfo->ToFile(File);
+	}
+}
+
+void AnalysisObjectManager::SaveToRUGFile(std::string FilePath)
 {
 	if (FilePath.empty())
 		return;
@@ -869,9 +1085,11 @@ void AnalysisObjectManager::SaveToRUGFile(std::string FilePath, std::string Anal
 	std::fstream File;
 	File.open(FilePath, std::ios::out | std::ios::binary);
 
-	// Version of file.
 	float Version = APP_VERSION;
 	File.write((char*)&Version, sizeof(float));
+
+	size_t ObjectCount = ANALYSIS_OBJECT_MANAGER.AnalysisObjects.size();
+	File.write((char*)&ObjectCount, sizeof(size_t));
 
 	auto ObjectsMapIterator = ANALYSIS_OBJECT_MANAGER.AnalysisObjects.begin();
 	while (ObjectsMapIterator != ANALYSIS_OBJECT_MANAGER.AnalysisObjects.end())
@@ -879,88 +1097,358 @@ void AnalysisObjectManager::SaveToRUGFile(std::string FilePath, std::string Anal
 		AnalysisObject* CurrentObject = ObjectsMapIterator->second;
 		if (CurrentObject != nullptr)
 		{
-			MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
-			if (CurrentMeshAnalysisData == nullptr)
-				continue;
+			int ObjectIDSize = static_cast<int>(CurrentObject->GetID().size() + 1);
+			File.write((char*)&ObjectIDSize, sizeof(int));
+			File.write((char*)CurrentObject->GetID().c_str(), sizeof(char) * ObjectIDSize);
 
-			int Count = static_cast<int>(CurrentMeshAnalysisData->Vertices.size());
-			File.write((char*)&Count, sizeof(int));
-			File.write((char*)CurrentMeshAnalysisData->Vertices.data(), sizeof(double) * Count);
+			int ObjectNameSize = static_cast<int>(CurrentObject->GetName().size() + 1);
+			File.write((char*)&ObjectNameSize, sizeof(int));
+			File.write((char*)CurrentObject->GetName().c_str(), sizeof(char) * ObjectNameSize);
 
-			Count = static_cast<int>(CurrentMeshAnalysisData->Colors.size());
-			File.write((char*)&Count, sizeof(int));
-			File.write((char*)CurrentMeshAnalysisData->Colors.data(), sizeof(float) * Count);
+			DATA_SOURCE_TYPE ObjectType = CurrentObject->GetType();
+			File.write((char*)&ObjectType, sizeof(DATA_SOURCE_TYPE));
 
-			Count = static_cast<int>(CurrentMeshAnalysisData->UVs.size());
-			File.write((char*)&Count, sizeof(int));
-			File.write((char*)CurrentMeshAnalysisData->UVs.data(), sizeof(float) * Count);
+			int FilePathSize = static_cast<int>(CurrentObject->GetFilePath().size() + 1);
+			File.write((char*)&FilePathSize, sizeof(int));
+			File.write((char*)CurrentObject->GetFilePath().c_str(), sizeof(char) * FilePathSize);
 
-			Count = static_cast<int>(CurrentMeshAnalysisData->Normals.size());
-			File.write((char*)&Count, sizeof(int));
-			File.write((char*)CurrentMeshAnalysisData->Normals.data(), sizeof(float) * Count);
+			int RenderedInScene = CurrentObject->IsRenderedInScene();
+			File.write((char*)&RenderedInScene, sizeof(int));
 
-			Count = static_cast<int>(CurrentMeshAnalysisData->Tangents.size());
-			File.write((char*)&Count, sizeof(int));
-			File.write((char*)CurrentMeshAnalysisData->Tangents.data(), sizeof(float) * Count);
-
-			Count = static_cast<int>(CurrentMeshAnalysisData->Indices.size());
-			File.write((char*)&Count, sizeof(int));
-			File.write((char*)CurrentMeshAnalysisData->Indices.data(), sizeof(int) * Count);
-
-			Count = static_cast<int>(CurrentObject->Layers.size());
-			File.write((char*)&Count, sizeof(int));
-
-			for (size_t i = 0; i < CurrentObject->Layers.size(); i++)
-			{
-				DataLayer* CurrentLayer = CurrentObject->Layers[i];
-				LAYER_TYPE LayerType = CurrentLayer->GetType();
-				File.write((char*)&LayerType, sizeof(LAYER_TYPE));
-
-				int LayerIDSize = static_cast<int>(CurrentLayer->GetID().size() + 1);
-				File.write((char*)&LayerIDSize, sizeof(int));
-				File.write((char*)CurrentLayer->GetID().c_str(), sizeof(char) * LayerIDSize);
-
-				int ParentIDSize = CurrentLayer->ParentObjectIDs.size();
-				File.write((char*)&ParentIDSize, sizeof(int));
-				for (size_t j = 0; j < CurrentLayer->ParentObjectIDs.size(); j++)
-				{
-					int SingleParentIDSize = static_cast<int>(CurrentLayer->ParentObjectIDs[j].size() + 1);
-					File.write((char*)&SingleParentIDSize, sizeof(int));
-					File.write((char*)CurrentLayer->ParentObjectIDs[j].c_str(), sizeof(char) * SingleParentIDSize);
-				}
-
-				Count = static_cast<int>(CurrentLayer->GetCaption().size());
-				File.write((char*)&Count, sizeof(int));
-				File.write((char*)CurrentLayer->GetCaption().c_str(), sizeof(char) * Count);
-
-				Count = static_cast<int>(CurrentLayer->GetNote().size());
-				File.write((char*)&Count, sizeof(int));
-				File.write((char*)CurrentLayer->GetNote().c_str(), sizeof(char) * Count);
-
-				Count = static_cast<int>(CurrentLayer->ElementsToData.size());
-				File.write((char*)&Count, sizeof(int));
-				File.write((char*)CurrentLayer->ElementsToData.data(), sizeof(float) * Count);
-
-				Count = CurrentLayer->DebugInfo != nullptr;
-				File.write((char*)&Count, sizeof(int));
-				if (Count)
-					CurrentLayer->DebugInfo->ToFile(File);
-			}
-
-			FEAABB CurrentAABB = CurrentMeshAnalysisData->GetAABB();
-			File.write((char*)&CurrentAABB.GetMin()[0], sizeof(float));
-			File.write((char*)&CurrentAABB.GetMin()[1], sizeof(float));
-			File.write((char*)&CurrentAABB.GetMin()[2], sizeof(float));
-
-			File.write((char*)&CurrentAABB.GetMax()[0], sizeof(float));
-			File.write((char*)&CurrentAABB.GetMax()[1], sizeof(float));
-			File.write((char*)&CurrentAABB.GetMax()[2], sizeof(float));
+			SaveAnalysisDataToRUGFile(File, CurrentObject);
+			SaveLayersDataToRUGFile(File, CurrentObject);
 		}
 
 		ObjectsMapIterator++;
 	}
 
 	File.close();
+}
+
+void AnalysisObjectManager::LoadMeshDataFromRUGFile(std::fstream& File, AnalysisObject* Object)
+{
+	char* Buffer = new char[4];
+	long long ArraySize = 0;
+
+	File.read(Buffer, 4);
+	const int VertexCount = *(int*)Buffer;
+
+	int BytesPerVertex = 8;
+	ArraySize = long long(VertexCount) * long long(BytesPerVertex);
+	char* VertexBuffer = new char[ArraySize];
+	File.read(VertexBuffer, ArraySize);
+
+	File.read(Buffer, 4);
+	const int ColorCount = *(int*)Buffer;
+	char* ColorBuffer = nullptr;
+	if (ColorCount != 0)
+	{
+		ArraySize = long long(ColorCount) * long long(4);
+		ColorBuffer = new char[ArraySize];
+		File.read(ColorBuffer, ArraySize);
+	}
+
+	File.read(Buffer, 4);
+	const int TexCout = *(int*)Buffer;
+	ArraySize = long long(TexCout) * long long(4);
+	char* TexBuffer = new char[ArraySize];
+	File.read(TexBuffer, ArraySize);
+
+	File.read(Buffer, 4);
+	const int NormCout = *(int*)Buffer;
+	ArraySize = long long(NormCout) * long long(4);
+	char* NormBuffer = new char[ArraySize];
+	File.read(NormBuffer, ArraySize);
+
+	File.read(Buffer, 4);
+	const int TangCout = *(int*)Buffer;
+	ArraySize = long long(TangCout) * long long(4);
+	char* TangBuffer = new char[ArraySize];
+	File.read(TangBuffer, ArraySize);
+
+	File.read(Buffer, 4);
+	const int IndexCout = *(int*)Buffer;
+	ArraySize = long long(IndexCout) * long long(4);
+	char* IndexBuffer = new char[ArraySize];
+	File.read(IndexBuffer, ArraySize);
+	
+	FEAABB MeshAABB;
+	glm::vec3 Min;
+	File.read(Buffer, 4);
+	Min.x = *(float*)Buffer;
+	File.read(Buffer, 4);
+	Min.y = *(float*)Buffer;
+	File.read(Buffer, 4);
+	Min.z = *(float*)Buffer;
+
+	glm::vec3 Max;
+	File.read(Buffer, 4);
+	Max.x = *(float*)Buffer;
+	File.read(Buffer, 4);
+	Max.y = *(float*)Buffer;
+	File.read(Buffer, 4);
+	Max.z = *(float*)Buffer;
+
+	MeshAABB = FEAABB(Min, Max);
+
+	std::vector<double> FEVertices;
+	FEMesh* NewMesh = nullptr;
+
+	std::vector<float> FEFloatVertices;
+	FEFloatVertices.resize(VertexCount);
+	for (size_t i = 0; i < VertexCount; i++)
+		FEFloatVertices[i] = static_cast<float>(((double*)VertexBuffer)[i]);
+	
+	NewMesh = RESOURCE_MANAGER.RawDataToMesh((float*)FEFloatVertices.data(), VertexCount,
+											 (float*)TexBuffer, TexCout,
+											 (float*)NormBuffer, NormCout,
+											 (float*)TangBuffer, TangCout,
+											 (int*)IndexBuffer, IndexCout,
+											 (float*)ColorBuffer, ColorCount,
+											 nullptr, 0, 0, "");
+
+	FEVertices.resize(VertexCount);
+	for (size_t i = 0; i < VertexCount; i++)
+	{
+		FEVertices[i] = ((double*)VertexBuffer)[i];
+	}
+
+	std::vector<float> FEColors;
+	FEColors.resize(ColorCount);
+	for (size_t i = 0; i < ColorCount; i++)
+		FEColors[i] = ((float*)ColorBuffer)[i];
+	
+	std::vector<float> FEUVs;
+	FEUVs.resize(TexCout);
+	for (size_t i = 0; i < TexCout; i++)
+		FEUVs[i] = ((float*)TexBuffer)[i];
+	
+	std::vector<float> FETangents;
+	FETangents.resize(TangCout);
+	for (size_t i = 0; i < TangCout; i++)
+		FETangents[i] = ((float*)TangBuffer)[i];
+	
+	std::vector<int> FEIndices;
+	FEIndices.resize(IndexCout);
+	for (size_t i = 0; i < IndexCout; i++)
+		FEIndices[i] = ((int*)IndexBuffer)[i];
+	
+	std::vector<float> FENormals;
+	FENormals.resize(NormCout);
+	for (size_t i = 0; i < NormCout; i++)
+		FENormals[i] = ((float*)NormBuffer)[i];
+	
+	Object->EngineResource = NewMesh;
+	Object->AnalysisData = ExtractAdditionalGeometryData(FEVertices, FEColors, FEUVs, FETangents, FEIndices, FENormals);
+
+	delete[] Buffer;
+	delete[] VertexBuffer;
+	delete[] TexBuffer;
+	delete[] NormBuffer;
+	delete[] TangBuffer;
+	delete[] IndexBuffer;
+	if (ColorBuffer != nullptr)
+		delete[] ColorBuffer;
+}
+
+void AnalysisObjectManager::LoadPointCloudDataFromRUGFile(std::fstream& File, AnalysisObject* Object)
+{
+	char* Buffer_8Byte = new char[8];
+	File.read(Buffer_8Byte, sizeof(size_t));
+	const size_t VertexCout = *(size_t*)Buffer_8Byte;
+	char* VertexBuffer = new char[VertexCout * sizeof(float)];
+	File.read(VertexBuffer, VertexCout * sizeof(float));
+
+	File.read(Buffer_8Byte, sizeof(size_t));
+	const size_t ColorCout = *(size_t*)Buffer_8Byte;
+	char* ColorBuffer = new char[ColorCout * sizeof(unsigned char)];
+	File.read(ColorBuffer, ColorCout * sizeof(unsigned char));
+
+	std::vector<FEPointCloudVertex> PointCloudData;
+	for (size_t i = 0; i < VertexCout / 3; i++)
+	{
+		PointCloudData.push_back(FEPointCloudVertex());
+		PointCloudData[i].X = *(float*)(VertexBuffer + i * 3 * sizeof(float));
+		PointCloudData[i].Y = *(float*)(VertexBuffer + i * 3 * sizeof(float) + sizeof(float));
+		PointCloudData[i].Z = *(float*)(VertexBuffer + i * 3 * sizeof(float) + sizeof(float) * 2);
+
+		PointCloudData[i].R = *(unsigned char*)(ColorBuffer + i * 4 * sizeof(unsigned char));
+		PointCloudData[i].G = *(unsigned char*)(ColorBuffer + i * 4 * sizeof(unsigned char) + sizeof(unsigned char));
+		PointCloudData[i].B = *(unsigned char*)(ColorBuffer + i * 4 * sizeof(unsigned char) + sizeof(unsigned char) * 2);
+		PointCloudData[i].A = *(unsigned char*)(ColorBuffer + i * 4 * sizeof(unsigned char) + sizeof(unsigned char) * 3);
+	}
+
+	FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(PointCloudData, "", "", false);
+	Object->EngineResource = NewPointCloud;
+	Object->AnalysisData = ExtractAdditionalGeometryData(NewPointCloud);
+
+	delete[] Buffer_8Byte;
+	delete[] VertexBuffer;
+	delete[] ColorBuffer;
+}
+
+void AnalysisObjectManager::LoadLayersDataFromRUGFile(std::fstream& File, AnalysisObject* Object)
+{
+	char* Buffer = new char[4];
+	File.read(Buffer, 4);
+	const int LayerCount = *(int*)Buffer;
+	Object->Layers.resize(LayerCount);
+
+	for (size_t i = 0; i < Object->Layers.size(); i++)
+	{
+		Object->Layers[i] = new DataLayer();
+
+		File.read(Buffer, 4);
+		const int LayerType = *(int*)Buffer;
+		Object->Layers[i]->SetType(LAYER_TYPE(LayerType));
+
+		Object->Layers[i]->ForceID(FILE_SYSTEM.ReadFEString(File));
+
+		File.read(Buffer, 4);
+		const int ParentsIDsCount = *(int*)Buffer;
+		Object->Layers[i]->ParentObjectIDs.resize(ParentsIDsCount);
+		for (size_t j = 0; j < ParentsIDsCount; j++)
+			Object->Layers[i]->ParentObjectIDs[j] = FILE_SYSTEM.ReadFEString(File);
+		
+		Object->Layers[i]->SetCaption(FILE_SYSTEM.ReadFEString(File));
+		Object->Layers[i]->SetNote(FILE_SYSTEM.ReadFEString(File));
+
+		// ElementsToData
+		File.read(Buffer, 4);
+		const int ElementsToDataCout = *(int*)Buffer;
+		std::vector<float> TrianglesData;
+		Object->Layers[i]->ElementsToData.resize(ElementsToDataCout);
+		File.read((char*)Object->Layers[i]->ElementsToData.data(), ElementsToDataCout * 4);
+
+		// Debug info.
+		File.read(Buffer, 4);
+		const int DebugInfoPresent = *(int*)Buffer;
+		if (DebugInfoPresent)
+		{
+			Object->Layers[i]->DebugInfo = new DataLayerDebugInfo();
+			Object->Layers[i]->DebugInfo->FromFile(File);
+		}
+	}
+
+	delete[] Buffer;
+}
+
+bool AnalysisObjectManager::NewLoadRUGFile(std::string FilePath)
+{
+	std::fstream File;
+	File.open(FilePath, std::ios::in | std::ios::binary);
+	if (!File.is_open())
+	{
+		LOG.Add(std::string("Can't open file: ") + FilePath + " in function NewLoadRUGFile.");
+		return false;
+	}
+
+	File.seekg(0, std::ios::end);
+	const std::streamsize FileSize = File.tellg();
+	File.seekg(0, std::ios::beg);
+	if (FileSize <= 0)
+	{
+		LOG.Add(std::string("Can't get file size: ") + FilePath + " in function NewLoadRUGFile.");
+		return false;
+	}
+
+	char* Buffer32 = new char[4];
+	char* Buffer64 = new char[8];
+	long long ArraySize = 0;
+
+	File.read(Buffer32, 4);
+	const float Version = *(float*)Buffer32;
+	if (Version > APP_VERSION && abs(Version - APP_VERSION) > 0.0001f || APP_VERSION < 0.91f)
+	{
+		LOG.Add(std::string("Can't load file: ") + FilePath + " in function NewLoadRUGFile. File was created in different Version of application!");
+		return false;
+	}
+
+	File.read(Buffer64, 8);
+	const size_t AnalysisObjectCount = *(size_t*)Buffer64;
+
+	for (size_t i = 0; i < AnalysisObjectCount; i++)
+	{
+		AnalysisObject* NewAnalysisObject = new AnalysisObject();
+
+		File.read(Buffer32, 4);
+		const int ObjectIDSize = *(int*)Buffer32;
+		char* ObjectIDBuffer = new char[ObjectIDSize];
+		File.read(ObjectIDBuffer, ObjectIDSize);
+		const std::string ObjectID = std::string(ObjectIDBuffer);
+
+		// FIX ME: It is not good solution, it would not delete all previously loaded objects.
+		// Better solution would to have header in the file with all object IDs and check it before loading.
+		if (AnalysisObjects.find(ObjectID) != AnalysisObjects.end())
+		{
+			LOG.Add(std::string("Can't load file: ") + FilePath + " in function NewLoadRUGFile. Object with ID " + ObjectID + " already exists in the scene!");
+			delete NewAnalysisObject;
+			delete[] ObjectIDBuffer;
+			delete[] Buffer32;
+			delete[] Buffer64;
+			File.close();
+			return false;
+		}
+		NewAnalysisObject->ID = ObjectID;
+		delete[] ObjectIDBuffer;
+
+		File.read(Buffer32, 4);
+		const int ObjectNameSize = *(int*)Buffer32;
+		char* ObjectNameBuffer = new char[ObjectNameSize];
+		File.read(ObjectNameBuffer, ObjectNameSize);
+		const std::string ObjectName = std::string(ObjectNameBuffer);
+		NewAnalysisObject->Name = ObjectName;
+		delete[] ObjectNameBuffer;
+
+		File.read(Buffer32, 4);
+		const DATA_SOURCE_TYPE ObjectType = *(DATA_SOURCE_TYPE*)Buffer32;
+		NewAnalysisObject->Type = ObjectType;
+		File.read(Buffer32, 4);
+
+		const int FilePathSize = *(int*)Buffer32;
+		char* FilePathBuffer = new char[FilePathSize];
+		File.read(FilePathBuffer, FilePathSize);
+		const std::string ObjectFilePath = std::string(FilePathBuffer);
+		NewAnalysisObject->FilePath = ObjectFilePath;
+		delete[] FilePathBuffer;
+
+		File.read(Buffer32, 4);
+		const int RenderedInScene = *(int*)Buffer32;
+		NewAnalysisObject->SetRenderInScene(RenderedInScene);
+
+		switch (ObjectType)
+		{
+			case DATA_SOURCE_TYPE::MESH:
+			{
+				LoadMeshDataFromRUGFile(File, NewAnalysisObject);
+				break;
+			}
+
+			case DATA_SOURCE_TYPE::POINT_CLOUD:
+			{
+				LoadPointCloudDataFromRUGFile(File, NewAnalysisObject);
+				break;
+			}
+			
+			default:
+			{
+				LOG.Add(std::string("Can't load file: ") + FilePath + " in function NewLoadRUGFile. Unknown data source type!");
+				delete NewAnalysisObject;
+				continue;
+				break;
+			}
+		}
+
+		LoadLayersDataFromRUGFile(File, NewAnalysisObject);
+		AnalysisObjects[NewAnalysisObject->GetID()] = NewAnalysisObject;
+		OnAnalysisObjectLoad(NewAnalysisObject);
+	}
+
+	delete[] Buffer32;
+	delete[] Buffer64;
+	File.close();
+
+	return true;
 }
 
 void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
