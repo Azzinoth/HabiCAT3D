@@ -141,8 +141,8 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 	std::vector<std::vector<GridCell>>& Grid = *Input->Grid;
 	const glm::vec3 UpAxis = Input->UpAxis;
 	const int Resolution = Input->Resolution;
-	const int FirstIndexInTriangleArray = Input->FirstIndexInTriangleArray;
-	const int LastIndexInTriangleArray = Input->LastIndexInTriangleArray;
+	const int FirstIndexInArray = Input->FirstIndexInArray;
+	const int LastIndexInArray = Input->LastIndexInArray;
 
 	glm::vec3 CellSize = Grid[0][0].AABB.GetSize();
 	const glm::vec3 GridMin = Grid[0][0].AABB.GetMin();
@@ -156,7 +156,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 
 	if (UpAxis.x > 0.0)
 	{
-		for (int l = FirstIndexInTriangleArray; l <= LastIndexInTriangleArray; l++)
+		for (int l = FirstIndexInArray; l <= LastIndexInArray; l++)
 		{
 			FEAABB TriangleAABB = FEAABB(CurrentMeshAnalysisData->Triangles[l]);
 
@@ -212,7 +212,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 	}
 	if (UpAxis.y > 0.0)
 	{
-		for (int l = FirstIndexInTriangleArray; l <= LastIndexInTriangleArray; l++)
+		for (int l = FirstIndexInArray; l <= LastIndexInArray; l++)
 		{
 			FEAABB TriangleAABB = FEAABB(CurrentMeshAnalysisData->Triangles[l]);
 
@@ -268,7 +268,7 @@ void LayerRasterizationManager::GridRasterizationThread(void* InputData, void* O
 	}
 	else if (UpAxis.z > 0.0)
 	{
-		for (int l = FirstIndexInTriangleArray; l <= LastIndexInTriangleArray; l++)
+		for (int l = FirstIndexInArray; l <= LastIndexInArray; l++)
 		{
 			FEAABB TriangleAABB = FEAABB(CurrentMeshAnalysisData->Triangles[l]);
 
@@ -412,7 +412,7 @@ void LayerRasterizationManager::AfterAllGridRasterizationThreadFinished()
 
 	for (int i = 0; i < MainThreadGridUpdateTasks.size(); i++)
 	{
-		Grid[MainThreadGridUpdateTasks[i].FirstIndex][MainThreadGridUpdateTasks[i].SecondIndex].TrianglesInCell.push_back(MainThreadGridUpdateTasks[i].TriangleIndexToAdd);
+		Grid[MainThreadGridUpdateTasks[i].FirstIndex][MainThreadGridUpdateTasks[i].SecondIndex].TrianglesInCell.push_back(MainThreadGridUpdateTasks[i].GeometryElementIndexToAdd);
 		Grid[MainThreadGridUpdateTasks[i].FirstIndex][MainThreadGridUpdateTasks[i].SecondIndex].TrianglesInCellArea.push_back(MainThreadGridUpdateTasks[i].TriangleArea);
 	}
 
@@ -998,12 +998,12 @@ void LayerRasterizationManager::PrepareLayerForExport(DataLayer* LayerToExport, 
 		NewThreadData->Grid = &Grid;
 		NewThreadData->UpAxis = CurrentProjectionVector;
 		NewThreadData->Resolution = CurrentResolution;
-		NewThreadData->FirstIndexInTriangleArray = i * NumberOfTrianglesPerThread;
+		NewThreadData->FirstIndexInArray = i * NumberOfTrianglesPerThread;
 
 		if (i == LAYER_RASTERIZATION_MANAGER.THREAD_COUNT - 1)
-			NewThreadData->LastIndexInTriangleArray = static_cast<int>(CurrentMeshAnalysisData->Triangles.size() - 1);
+			NewThreadData->LastIndexInArray = static_cast<int>(CurrentMeshAnalysisData->Triangles.size() - 1);
 		else
-			NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
+			NewThreadData->LastIndexInArray = (i + 1) * NumberOfTrianglesPerThread;
 
 		std::vector<GridUpdateTask>* OutputTasks = new std::vector<GridUpdateTask>();
 		TemporaryThreadDataArray.push_back(NewThreadData);

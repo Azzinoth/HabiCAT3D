@@ -26,13 +26,13 @@ void MeasurementGrid::InitializeSegment(size_t BeginIndex, size_t EndIndex, size
 	}
 }
 
-void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionInM)
+void MeasurementGrid::Init(FEAABB AABB, const float ResolutionInM)
 {
 	TIME.BeginTimeStamp("Measurement grid Generation");
 
 	const glm::vec3 Center = AABB.GetCenter();
 	int AdditionalDimensions = 0;
-	Dimensions = 1;
+	int Dimensions = 1;
 
 	if (ResolutionInM > 0)
 	{
@@ -112,7 +112,7 @@ void MeasurementGrid::Init(int Dimensions, FEAABB AABB, const float ResolutionIn
 	}
 }
 
-void MeasurementGrid::GridFillingThread(void* InputData, void* OutputData)
+void MeasurementGrid::FillGridWithTrianglesDataThread(void* InputData, void* OutputData)
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
@@ -129,7 +129,7 @@ void MeasurementGrid::GridFillingThread(void* InputData, void* OutputData)
 	const glm::vec3 GridMin = Data[0][0][0].AABB.GetMin();
 	const glm::vec3 GridMax = Data[Data.size() - 1][Data.size() - 1][Data.size() - 1].AABB.GetMax();
 
-	for (int l = Input->FirstIndexInTriangleArray; l <= Input->LastIndexInTriangleArray; l++)
+	for (int l = Input->FirstIndexInArray; l <= Input->LastIndexInArray; l++)
 	{
 		FEAABB TriangleAABB = FEAABB(CurrentMeshAnalysisData->Triangles[l]);
 
@@ -222,22 +222,22 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 		{
 			GridThreadData* NewThreadData = new GridThreadData();
 			ThreadData.push_back(NewThreadData);
-			NewThreadData->FirstIndexInTriangleArray = i * NumberOfTrianglesPerThread + 1;
+			NewThreadData->FirstIndexInArray = i * NumberOfTrianglesPerThread + 1;
 
 			if (i == 0)
-				NewThreadData->FirstIndexInTriangleArray = 0;
+				NewThreadData->FirstIndexInArray = 0;
 
 			if (i == LocalThreadCount - 1)
-				NewThreadData->LastIndexInTriangleArray = static_cast<int>(CurrentMeshAnalysisData->Triangles.size() - 1);
+				NewThreadData->LastIndexInArray = static_cast<int>(CurrentMeshAnalysisData->Triangles.size() - 1);
 			else
-				NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
+				NewThreadData->LastIndexInArray = (i + 1) * NumberOfTrianglesPerThread;
 
 			std::vector<GridUpdateTask>* OutputTasks = new std::vector<GridUpdateTask>();
 			AllOutputTasks.push_back(OutputTasks);
 
 			ThreadIDs.push_back(THREAD_POOL.CreateLightThread());
 			THREAD_POOL.ExecuteLightThread(ThreadIDs.back(), [=]() {
-				GridFillingThread(NewThreadData, OutputTasks);
+				FillGridWithTrianglesDataThread(NewThreadData, OutputTasks);
 			});
 		}
 
@@ -263,9 +263,9 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 				const int FirstIndex = AllOutputTasks[i]->at(j).FirstIndex;
 				const int SecondIndex = AllOutputTasks[i]->at(j).SecondIndex;
 				const int ThirdIndex = AllOutputTasks[i]->at(j).ThirdIndex;
-				const int TriangleIndexToAdd = AllOutputTasks[i]->at(j).TriangleIndexToAdd;
+				const int GeometryElementIndexToAdd = AllOutputTasks[i]->at(j).GeometryElementIndexToAdd;
 
-				Data[FirstIndex][SecondIndex][ThirdIndex].TrianglesInCell.push_back(TriangleIndexToAdd);
+				Data[FirstIndex][SecondIndex][ThirdIndex].TrianglesInCell.push_back(GeometryElementIndexToAdd);
 			}
 
 			delete AllOutputTasks[i];
@@ -347,6 +347,74 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 	TimeTakenFillCellsWithTriangleInfo = static_cast<float>(TIME.EndTimeStamp("Fill cells with triangle info"));
 }
 
+void MeasurementGrid::FillGridWithPointsDataThread(void* InputData, void* OutputData)
+{
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
+
+	PointCloudAnalysisData* CurrentPointCloudAnalysisData = ActiveObject->GetPointCloudAnalysisData();
+	if (CurrentPointCloudAnalysisData == nullptr)
+		return;
+
+	GridThreadData* Input = reinterpret_cast<GridThreadData*>(InputData);
+	std::vector<GridUpdateTask>* Output = reinterpret_cast<std::vector<GridUpdateTask>*>(OutputData);
+
+	const float CellSize = Data[0][0][0].AABB.GetLongestAxisLength();
+	const glm::vec3 GridMin = Data[0][0][0].AABB.GetMin();
+	const glm::vec3 GridMax = Data[Data.size() - 1][Data.size() - 1][Data.size() - 1].AABB.GetMax();
+
+	for (int l = Input->FirstIndexInArray; l <= Input->LastIndexInArray; l++)
+	{
+		glm::vec3 CurrentPoint = glm::vec3(CurrentPointCloudAnalysisData->RawPointCloudData[l].X, CurrentPointCloudAnalysisData->RawPointCloudData[l].Y, CurrentPointCloudAnalysisData->RawPointCloudData[l].Z);
+		
+		int XEnd = static_cast<int>(Data.size());
+
+		float Distance = CurrentPoint.x - GridMin.x;
+		int XBegin = static_cast<int>(Distance / CellSize) - 1;
+		if (XBegin < 0)
+			XBegin = 0;
+
+		XEnd = XBegin + 3;
+		if (XEnd > Data.size())
+			XEnd = static_cast<int>(Data.size());
+
+		for (size_t i = XBegin; i < XEnd; i++)
+		{
+			int YEnd = static_cast<int>(Data.size());
+
+			Distance = CurrentPoint.y - GridMin.y;
+			int YBegin = static_cast<int>(Distance / CellSize) - 1;
+			if (YBegin < 0)
+				YBegin = 0;
+
+			YEnd = YBegin + 3;
+			if (YEnd > Data.size())
+				YEnd = static_cast<int>(Data.size());
+
+			for (size_t j = YBegin; j < YEnd; j++)
+			{
+				int ZEnd = static_cast<int>(Data.size());
+
+				Distance = CurrentPoint.z - GridMin.z;
+				int ZBegin = static_cast<int>(Distance / CellSize) - 1;
+				if (ZBegin < 0)
+					ZBegin = 0;
+
+				ZEnd = ZBegin + 3;
+				if (ZEnd > Data.size())
+					ZEnd = static_cast<int>(Data.size());
+
+				for (size_t k = ZBegin; k < ZEnd; k++)
+				{
+					if (Data[i][j][k].AABB.ContainsPoint(CurrentPoint))
+						Output->push_back(GridUpdateTask(static_cast<int>(i), static_cast<int>(j), static_cast<int>(k), l));
+				}
+			}
+		}
+	}
+}
+
 void MeasurementGrid::FillCellsWithPointInfo()
 {
 	bTriangleMode = false;
@@ -360,15 +428,15 @@ void MeasurementGrid::FillCellsWithPointInfo()
 	if (CurrentPointCloudAnalysisData == nullptr)
 		return;
 
-	/*if (bUsingMultiThreading)
-	{*/
-		/*int LocalThreadCount = THREAD_POOL.GetThreadCount();
-		int NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() / LocalThreadCount);
+	if (bUsingMultiThreading)
+	{
+		int LocalThreadCount = THREAD_POOL.GetThreadCount();
+		int NumberOfPointsPerThread = static_cast<int>(CurrentPointCloudAnalysisData->RawPointCloudData.size() / LocalThreadCount);
 
-		if (LocalThreadCount > NumberOfTrianglesPerThread)
+		if (LocalThreadCount > NumberOfPointsPerThread)
 		{
 			LocalThreadCount = 1;
-			NumberOfTrianglesPerThread = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size());
+			NumberOfPointsPerThread = static_cast<int>(CurrentPointCloudAnalysisData->RawPointCloudData.size());
 		}
 
 		std::vector<std::string> ThreadIDs;
@@ -379,23 +447,23 @@ void MeasurementGrid::FillCellsWithPointInfo()
 		{
 			GridThreadData* NewThreadData = new GridThreadData();
 			ThreadData.push_back(NewThreadData);
-			NewThreadData->FirstIndexInTriangleArray = i * NumberOfTrianglesPerThread + 1;
+			NewThreadData->FirstIndexInArray = i * NumberOfPointsPerThread + 1;
 
 			if (i == 0)
-				NewThreadData->FirstIndexInTriangleArray = 0;
+				NewThreadData->FirstIndexInArray = 0;
 
 			if (i == LocalThreadCount - 1)
-				NewThreadData->LastIndexInTriangleArray = static_cast<int>(COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles.size() - 1);
+				NewThreadData->LastIndexInArray = static_cast<int>(CurrentPointCloudAnalysisData->RawPointCloudData.size() - 1);
 			else
-				NewThreadData->LastIndexInTriangleArray = (i + 1) * NumberOfTrianglesPerThread;
+				NewThreadData->LastIndexInArray = (i + 1) * NumberOfPointsPerThread;
 
 			std::vector<GridUpdateTask>* OutputTasks = new std::vector<GridUpdateTask>();
 			AllOutputTasks.push_back(OutputTasks);
 
 			ThreadIDs.push_back(THREAD_POOL.CreateLightThread());
 			THREAD_POOL.ExecuteLightThread(ThreadIDs.back(), [=]() {
-				GridFillingThread(NewThreadData, OutputTasks);
-				});
+				FillGridWithPointsDataThread(NewThreadData, OutputTasks);
+			});
 		}
 
 		for (size_t i = 0; i < ThreadIDs.size(); i++)
@@ -420,59 +488,26 @@ void MeasurementGrid::FillCellsWithPointInfo()
 				const int FirstIndex = AllOutputTasks[i]->at(j).FirstIndex;
 				const int SecondIndex = AllOutputTasks[i]->at(j).SecondIndex;
 				const int ThirdIndex = AllOutputTasks[i]->at(j).ThirdIndex;
-				const int TriangleIndexToAdd = AllOutputTasks[i]->at(j).TriangleIndexToAdd;
+				const int GeometryElementIndexToAdd = AllOutputTasks[i]->at(j).GeometryElementIndexToAdd;
 
-				Data[FirstIndex][SecondIndex][ThirdIndex].TrianglesInCell.push_back(TriangleIndexToAdd);
+				Data[FirstIndex][SecondIndex][ThirdIndex].PointsInCell.push_back(GeometryElementIndexToAdd);
 			}
 
 			delete AllOutputTasks[i];
 		}
 
-		AllOutputTasks.clear();*/
-	/*}
+		AllOutputTasks.clear();
+	}
 	else
-	{*/
+	{
 		const float CellSize = Data[0][0][0].AABB.GetLongestAxisLength();
 		const glm::vec3 GridMin = Data[0][0][0].AABB.GetMin();
 		const glm::vec3 GridMax = Data[Data.size() - 1][Data.size() - 1][Data.size() - 1].AABB.GetMax();
 
-		//DebugTotalTrianglesInCells = 0;
-
-		/*for (size_t i = 0; i < COMPLEXITY_METRIC_MANAGER.RawPointCloudData.size(); i++)
-		{
-			if (Data[i][j][k].AABB.AABBIntersect(TriangleAABB))
-			{
-				if (GEOMETRY.IsAABBIntersectTriangle(Data[i][j][k].AABB, COMPLEXITY_METRIC_MANAGER.ActiveComplexityMetricInfo->Triangles[l]))
-				{
-					Data[i][j][k].TrianglesInCell.push_back(l);
-					DebugTotalTrianglesInCells++;
-				}
-			}
-		}*/
-
 		DebugTotalPointsInCells = 0;
-
 		for (int l = 0; l < CurrentPointCloudAnalysisData->RawPointCloudData.size(); l++)
 		{
 			glm::vec3 CurrentPoint = glm::vec3(CurrentPointCloudAnalysisData->RawPointCloudData[l].X, CurrentPointCloudAnalysisData->RawPointCloudData[l].Y, CurrentPointCloudAnalysisData->RawPointCloudData[l].Z);
-
-		//	for (size_t i = 0; i < Data.size(); i++)
-		//	{
-		//		for (size_t j = 0; j < Data[i].size(); j++)
-		//		{
-		//			for (size_t k = 0; k < Data[i][j].size(); k++)
-		//			{
-		//				if (Data[i][j][k].AABB.ContainsPoint(CurrentPoint))
-		//				{
-		//					Data[i][j][k].PointsInCell.push_back(l);
-		//					DebugTotalPointsInCells++;
-		//				}
-		//			}
-		//		}
-		//	}
-		//}
-
-
 
 			int XEnd = static_cast<int>(Data.size());
 
@@ -519,25 +554,10 @@ void MeasurementGrid::FillCellsWithPointInfo()
 							DebugTotalPointsInCells++;
 						}
 					}
-
-					/*for (size_t i = 0; i < Data.size(); i++)
-					{
-						for (size_t j = 0; j < Data[i].size(); j++)
-						{
-							for (size_t k = 0; k < Data[i][j].size(); k++)
-							{
-								if (Data[i][j][k].AABB.ContainsPoint(CurrentPoint))
-								{
-									Data[i][j][k].PointsInCell.push_back(l);
-									DebugTotalPointsInCells++;
-								}
-							}
-						}
-					}*/
 				}
 			}
 		}
-	//}
+	}
 
 	TimeTakenFillCellsWithTriangleInfo = static_cast<float>(TIME.EndTimeStamp("Fill cells with points info"));
 }

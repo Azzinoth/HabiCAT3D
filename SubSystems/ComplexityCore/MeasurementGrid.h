@@ -37,7 +37,7 @@ struct MeasurementGrid
     MeasurementGrid();
     ~MeasurementGrid();
 
-    void Init(int Dimensions, FEAABB AABB, float ResolutionInM = 0.0f);
+    void Init(FEAABB AABB, float ResolutionInM = 0.0f);
     void FillCellsWithTriangleInfo();
 	void FillCellsWithPointInfo();
 
@@ -61,8 +61,8 @@ private:
 
     struct GridThreadData
     {
-        int FirstIndexInTriangleArray;
-        int LastIndexInTriangleArray;
+        int FirstIndexInArray;
+        int LastIndexInArray;
     };
 
     struct GridUpdateTask
@@ -70,11 +70,12 @@ private:
         int FirstIndex = -1;
         int SecondIndex = -1;
         int ThirdIndex = -1;
-        int TriangleIndexToAdd = -1;
+        int GeometryElementIndexToAdd = -1;
 
-        GridUpdateTask::GridUpdateTask(int FirstIndex, int SecondIndex, int ThirdIndex, int TriangleIndexToAdd)
-            : FirstIndex(FirstIndex), SecondIndex(SecondIndex), ThirdIndex(ThirdIndex), TriangleIndexToAdd(TriangleIndexToAdd) {}
+        GridUpdateTask::GridUpdateTask(int FirstIndex, int SecondIndex, int ThirdIndex, int GeometryElementIndexToAdd)
+            : FirstIndex(FirstIndex), SecondIndex(SecondIndex), ThirdIndex(ThirdIndex), GeometryElementIndexToAdd(GeometryElementIndexToAdd) {}
     };
 
-    void GridFillingThread(void* InputData, void* OutputData);
+    void FillGridWithTrianglesDataThread(void* InputData, void* OutputData);
+	void FillGridWithPointsDataThread(void* InputData, void* OutputData);
 };

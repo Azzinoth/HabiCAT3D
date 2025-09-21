@@ -439,6 +439,9 @@ void UIManager::Render(bool bScreenshotMode)
 
 			ImGui::Separator();
 
+			if (ImGui::MenuItem("Close all"))
+				ANALYSIS_OBJECT_MANAGER.ClearAll();
+
 			if (ImGui::MenuItem("Exit"))
 				APPLICATION.Close();
 
@@ -1317,26 +1320,57 @@ void UIManager::RenderHistogramWindow()
 				HistogramSelectRegionMax.SetPixelPosition(ImVec2(Histogram.GetSize().x * HistogramSelectRegionMax.GetRangePosition(), 0.0f));
 			}
 
-			// Render a text about what percentage of the area is selected
+			// Show the percentage selected area/points.
 			float MinValueSelected = LAYER_MANAGER.GetActiveLayer()->GetMin() + (LAYER_MANAGER.GetActiveLayer()->GetMax() - LAYER_MANAGER.GetActiveLayer()->GetMin()) * HistogramSelectRegionMin.GetRangePosition();
 			float MaxValueSelected = LAYER_MANAGER.GetActiveLayer()->GetMin() + (LAYER_MANAGER.GetActiveLayer()->GetMax() - LAYER_MANAGER.GetActiveLayer()->GetMin()) * HistogramSelectRegionMax.GetRangePosition();
 
-			glm::vec2 MinValueDistribution = CalculateAreaDistributionAtValue(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
-			glm::vec2 MaxValueDistribution = CalculateAreaDistributionAtValue(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
+			glm::vec2 MinValueDistribution = CalculateWeightDistributionAtValue(LAYER_MANAGER.GetActiveLayer(), MinValueSelected);
+			glm::vec2 MaxValueDistribution = CalculateWeightDistributionAtValue(LAYER_MANAGER.GetActiveLayer(), MaxValueSelected);
+
 			AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-			float PercentageOfAreaSelected = 0.0f;
+			float PercentageOfWeightSelected = 0.0f;
+			std::string WeightLabel = "weight";
+
 			if (ActiveObject != nullptr)
 			{
-				MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-				if (CurrentMeshAnalysisData != nullptr)
+				double TotalWeight = 0.0;
+				switch (ActiveObject->GetType())
 				{
-					PercentageOfAreaSelected = static_cast<float>((MaxValueDistribution.x / CurrentMeshAnalysisData->GetTotalArea() * 100.0) - (MinValueDistribution.x / CurrentMeshAnalysisData->GetTotalArea() * 100.0));
+					case DATA_SOURCE_TYPE::MESH:
+					{
+						MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+						if (CurrentMeshAnalysisData != nullptr)
+						{
+							TotalWeight = CurrentMeshAnalysisData->GetTotalArea();
+							WeightLabel = "area";
+						}
+						break;
+					}
+
+					case DATA_SOURCE_TYPE::POINT_CLOUD:
+					{
+						PointCloudAnalysisData* CurrentPointCloudAnalysisData = ActiveObject->GetPointCloudAnalysisData();
+						if (CurrentPointCloudAnalysisData != nullptr)
+						{
+							TotalWeight = static_cast<double>(CurrentPointCloudAnalysisData->RawPointCloudData.size());
+							WeightLabel = "points";
+						}
+						break;
+					}
+				}
+
+				if (TotalWeight > 0.0)
+				{
+					double PercentageAtMax = (MaxValueDistribution.x / TotalWeight) * 100.0;
+					double PercentageAtMin = (MinValueDistribution.x / TotalWeight) * 100.0;
+					PercentageOfWeightSelected = static_cast<float>(PercentageAtMax - PercentageAtMin);
 				}
 			}
 
 			ImGui::SetCursorPos(ImVec2(200.0f, 33.0f));
-			std::string CurrentText = "Selected area: " + TruncateAfterDot(std::to_string(PercentageOfAreaSelected), 3) + " %%";
+			std::string CurrentText = "Selected " + WeightLabel + ": " + TruncateAfterDot(std::to_string(PercentageOfWeightSelected), 3) + " %%";
 			ImGui::Text(CurrentText.c_str());
+			// Show the percentage selected area/points END.
 
 			// Render text that corresponds to the min value
 			ImGui::SetCursorPos(Histogram.GetPosition() + HistogramSelectRegionMin.GetPixelPosition() - ImVec2(HistogramSelectRegionMin.GetSize() * 0.90f, HistogramSelectRegionMin.GetSize() * 1.65f));
@@ -1510,39 +1544,64 @@ void UIManager::RenderAboutWindow()
 	}
 }
 
-glm::dvec2 UIManager::CalculateAreaDistributionAtValue(DataLayer* Layer, float Value)
+glm::dvec2 UIManager::CalculateWeightDistributionAtValue(DataLayer* Layer, float Value)
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
 		return glm::dvec2(0.0);
 
-	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
+	if (Layer == nullptr || Layer->ElementsToData.empty())
 		return glm::dvec2(0.0);
 
-	if (Layer == nullptr || Layer->ElementsToData.empty() || CurrentMeshAnalysisData->TrianglesArea.empty())
-		return glm::dvec2(0.0);
-
-	float FirstBin = 0.0;
-	float SecondBin = 0.0;
-
-	FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
-	if (ActiveMesh == nullptr)
-		return glm::dvec2(0.0);
-
-	for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+	float WeightBelowOrEqual = 0.0;
+	float WeightAbove = 0.0;
+	switch (ActiveObject->GetType())
 	{
-		if (Layer->ElementsToData[i] <= Value)
+		case DATA_SOURCE_TYPE::MESH:
 		{
-			FirstBin += float(CurrentMeshAnalysisData->TrianglesArea[i]);
+			MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+			if (CurrentMeshAnalysisData == nullptr || CurrentMeshAnalysisData->TrianglesArea.empty())
+				return glm::dvec2(0.0);
+
+			for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+			{
+				if (Layer->ElementsToData[i] <= Value)
+				{
+					WeightBelowOrEqual += float(CurrentMeshAnalysisData->TrianglesArea[i]);
+				}
+				else
+				{
+					WeightAbove += float(CurrentMeshAnalysisData->TrianglesArea[i]);
+				}
+			}
+			break;
 		}
-		else
+		case DATA_SOURCE_TYPE::POINT_CLOUD:
 		{
-			SecondBin += float(CurrentMeshAnalysisData->TrianglesArea[i]);
+			PointCloudAnalysisData* CurrentPointCloudAnalysisData = ActiveObject->GetPointCloudAnalysisData();
+			if (CurrentPointCloudAnalysisData == nullptr)
+				return glm::dvec2(0.0);
+
+			// For point clouds, each point has weight equal to 1.0.
+			for (int i = 0; i < CurrentPointCloudAnalysisData->RawPointCloudData.size(); i++)
+			{
+				if (Layer->ElementsToData[i] <= Value)
+				{
+					WeightBelowOrEqual += 1.0;
+				}
+				else
+				{
+					WeightAbove += 1.0;
+				}
+			}
+			break;
 		}
+
+		default:
+			return glm::dvec2(0.0);
 	}
 
-	return glm::dvec2(FirstBin, SecondBin);
+	return glm::dvec2(WeightBelowOrEqual, WeightAbove);
 }
 
 void UIManager::OnLayerChange()
@@ -1556,6 +1615,8 @@ void UIManager::OnLayerChange()
 	UI.bHistogramSelectRegionMode = false;
 	UI.Histogram.Clear();
 	UI.HeatMapColorRange.Clear();
+	UI.CurrentDistribution = glm::vec2(0.0f);
+	strcpy_s(UI.CurrentDistributionEdit, "");
 
 	DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
 	if (ActiveLayer == nullptr)
@@ -1698,7 +1759,7 @@ void UIManager::InitDebugGrid(size_t JitterIndex)
 	GridInitData_Jitter* CurrentSettings = &UsedSettings[JitterIndex];
 	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(CurrentSettings, CurrentLayerResolutionInM);
 
-	DebugGrid->Init(0, FinalAABB, CurrentLayerResolutionInM);
+	DebugGrid->Init(FinalAABB, CurrentLayerResolutionInM);
 	DebugGrid->FillCellsWithTriangleInfo();
 	DebugGrid->bFullyLoaded = true;
 }
@@ -1771,11 +1832,6 @@ void UIManager::RenderLayerSettingsTab()
 		if (ImGui::Button("Delete Layer"))
 		{
 			ActiveObject->RemoveLayer(ActiveLayer->GetID());
-			//int IndexToDelete = LAYER_MANAGER.GetActiveLayerIndex();
-			//ActiveObject->ClearActiveLayer();
-
-			//LAYER_MANAGER.Layers.erase(LAYER_MANAGER.Layers.begin() + IndexToDelete,
-			//	LAYER_MANAGER.Layers.begin() + IndexToDelete + 1);
 
 			ImGui::PopStyleColor(3);
 			return;
@@ -1816,8 +1872,6 @@ void UIManager::RenderLayerSettingsTab()
 
 		ImGui::Separator();
 		ImGui::Text("Distribution : ");
-		static char CurrentDistributionEdit[1024];
-		static glm::vec2 CurrentDistribution = glm::vec2();
 		static float LastDistributionValue = 0.0f;
 
 		ImGui::SetNextItemWidth(62);
@@ -1832,21 +1886,53 @@ void UIManager::RenderLayerSettingsTab()
 		{
 			float NewValue = float(atof(CurrentDistributionEdit));
 			LastDistributionValue = NewValue;
-			CurrentDistribution = CalculateAreaDistributionAtValue(ActiveLayer, NewValue);
+			CurrentDistribution = CalculateWeightDistributionAtValue(ActiveLayer, NewValue);
 		}
 
 		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 		if (ActiveObject == nullptr)
 			return;
 
-		MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-		if (CurrentMeshAnalysisData == nullptr)
-			return;
-
+		double TotalWeight = 0.0;
+		std::string WeightUnit;
 		if (CurrentDistribution != glm::vec2())
 		{
-			ImGui::Text(("Area below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.x / CurrentMeshAnalysisData->GetTotalArea() * 100.0f) + " %%").c_str());
-			ImGui::Text(("Area with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(CurrentDistribution.y / CurrentMeshAnalysisData->GetTotalArea() * 100.0f) + " %%").c_str());
+			switch (ActiveObject->GetType())
+			{
+				case DATA_SOURCE_TYPE::MESH:
+				{
+					MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+					if (CurrentMeshAnalysisData == nullptr)
+						return;
+
+					TotalWeight = CurrentMeshAnalysisData->GetTotalArea();
+					WeightUnit = "area";
+					break;
+				}
+
+				case DATA_SOURCE_TYPE::POINT_CLOUD:
+				{
+					PointCloudAnalysisData* CurrentPointCloudAnalysisData = ActiveObject->GetPointCloudAnalysisData();
+					if (CurrentPointCloudAnalysisData == nullptr)
+						return;
+
+					TotalWeight = static_cast<double>(CurrentPointCloudAnalysisData->RawPointCloudData.size());
+					WeightUnit = "points";
+					break;
+				}
+
+				default:
+					return;
+			}
+
+			if (TotalWeight > 0.0)
+			{
+				double PercentageBelowOrEqual = (CurrentDistribution.x / TotalWeight) * 100.0;
+				double PercentageAbove = (CurrentDistribution.y / TotalWeight) * 100.0;
+
+				ImGui::Text((WeightUnit + " below and at " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(PercentageBelowOrEqual) + " %%").c_str());
+				ImGui::Text((WeightUnit + " with higher than " + TruncateAfterDot(std::to_string(LastDistributionValue)) + " value : " + std::to_string(PercentageAbove) + " %%").c_str());
+			}
 		}
 	}
 }

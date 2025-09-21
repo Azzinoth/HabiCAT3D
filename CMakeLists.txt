@@ -135,6 +135,15 @@ file(GLOB SubSystems_ConsoleJobs_SRC
 	"SubSystems/ConsoleJobs/ConsoleJobManager.cpp"
 )
 
+file(GLOB MeshShaders_SRC
+	"SubSystems/Shaders/CustomMeshShader/VS.glsl"
+	"SubSystems/Shaders/CustomMeshShader/FS.glsl"
+)
+
+file(GLOB PointCloudShaders_SRC
+	"SubSystems/Shaders/PointCloudColorShader/CS.glsl"
+)
+
 file(GLOB SubSystems_VRManager_SRC
 	"SubSystems/VRManager/VRManager.h"
 	"SubSystems/VRManager/VRManager.cpp"
@@ -164,6 +173,8 @@ link_directories(${GLFW_LIB_DIR})
 add_executable(HabiCAT3D WIN32
 					     ${MAIN_SOURCE_FILES}
 						 ${EXTRACTED_NATIVE_SCRIPTS}
+						 ${MeshShaders_SRC}
+						 ${PointCloudShaders_SRC}
 					     # *************** SUB_SYSTEM ***************
 					     ${SubSystems_SRC}
 					     ${SubSystems_Layers_SRC}
@@ -191,6 +202,8 @@ source_group("Source Files/SubSystems/ComplexityCore" FILES ${SubSystems_Complex
 source_group("Source Files/SubSystems/ComplexityCore/Layers" FILES ${SubSystems_Layers_SRC})
 source_group("Source Files/SubSystems/ComplexityCore/Layers/Producers" FILES ${SubSystems_Layers_Producers_SRC})
 source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
+source_group("Source Files/Shaders/Mesh/" FILES ${MeshShaders_SRC})
+source_group("Source Files/Shaders/PointCloud/" FILES ${PointCloudShaders_SRC})
 source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJobs_SRC})
 source_group("Source Files/SubSystems/VRManager" FILES ${SubSystems_VRManager_SRC})
 

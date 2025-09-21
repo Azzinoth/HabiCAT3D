@@ -289,7 +289,7 @@ void JitterManager::RunNextJitter()
 	JITTER_MANAGER.LastUsedGrid = Grid;
 
 	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(&LastUsedJitterSettings[CurrentJitterIndex], JITTER_MANAGER.GetResolutionInM());
-	Grid->Init(0, FinalAABB, JITTER_MANAGER.GetResolutionInM());
+	Grid->Init(FinalAABB, JITTER_MANAGER.GetResolutionInM());
 	ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? Grid->FillCellsWithTriangleInfo() : Grid->FillCellsWithPointInfo();
 
 	int NodesWithDataCount = 0;
@@ -378,7 +378,7 @@ void JitterManager::RunCalculationOnGridAsync(void* InputData, void* OutputData)
 	MeasurementGrid* Output = reinterpret_cast<MeasurementGrid*>(OutputData);
 
 	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(Input, JITTER_MANAGER.GetResolutionInM());
-	Output->Init(0, FinalAABB, JITTER_MANAGER.GetResolutionInM());
+	Output->Init(FinalAABB, JITTER_MANAGER.GetResolutionInM());
 
 	Output->FillCellsWithTriangleInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");
@@ -644,7 +644,7 @@ void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)
 	const FEAABB GridAABB = FEAABB(Center - glm::vec3(MeshAABB.GetLongestAxisLength() / 2.0f), Center + glm::vec3(MeshAABB.GetLongestAxisLength() / 2.0f));
 	MeshAABB = GridAABB;
 
-	ResultGrid->Init(0, MeshAABB, -1);
+	ResultGrid->Init(MeshAABB, -1);
 
 	ResultGrid->FillCellsWithTriangleInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");

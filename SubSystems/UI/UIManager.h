@@ -49,7 +49,7 @@ public:
 
 	void ApplyStandardWindowsSizeAndPosition();
 
-	glm::dvec2 CalculateAreaDistributionAtValue(DataLayer* Layer, float Value);
+	glm::dvec2 CalculateWeightDistributionAtValue(DataLayer* Layer, float Value);
 
 	float GetAmbientLightFactor();
 	void SetAmbientLightFactor(float NewValue);
@@ -83,6 +83,9 @@ private:
 
 	bool bShouldOpenProgressPopup = false;
 	bool bShouldCloseProgressPopup = true;
+
+	char CurrentDistributionEdit[1024];
+	glm::vec2 CurrentDistribution = glm::vec2();
 
 	float RadiusOfAreaToMeasure = 1.0f;
 	int LayerSelectionMode = 0;

@@ -148,7 +148,7 @@ void LayerManager::PropagateLayerEvent(LayerEvent Event)
 
 					FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudAnalysisData->RawPointCloudData);
 
-					// FIX ME: Should it be here?
+					// FIX ME: Should it be done in a better way?
 					FEEntity* PointCloudEntity = ActiveObject->GetEntity();
 					FEPointCloud* OldPointCloud = static_cast<FEPointCloud*>(ActiveObject->GetEngineResource());
 					if (PointCloudEntity != nullptr)

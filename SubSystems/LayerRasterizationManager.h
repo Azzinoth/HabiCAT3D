@@ -59,11 +59,11 @@ private:
 	{
 		int FirstIndex = -1;
 		int SecondIndex = -1;
-		int TriangleIndexToAdd = -1;
+		int GeometryElementIndexToAdd = -1;
 		double TriangleArea = -1.0;
 
-		GridUpdateTask::GridUpdateTask(int FirstIndex, int SecondIndex, int TriangleIndexToAdd, double TriangleArea = -1.0)
-			: FirstIndex(FirstIndex), SecondIndex(SecondIndex), TriangleIndexToAdd(TriangleIndexToAdd), TriangleArea(TriangleArea) {}
+		GridUpdateTask::GridUpdateTask(int FirstIndex, int SecondIndex, int GeometryElementIndexToAdd, double TriangleArea = -1.0)
+			: FirstIndex(FirstIndex), SecondIndex(SecondIndex), GeometryElementIndexToAdd(GeometryElementIndexToAdd), TriangleArea(TriangleArea) {}
 	};
 
 	struct GridRasterizationThreadData
@@ -71,8 +71,8 @@ private:
 		std::vector<std::vector<GridCell>>* Grid;
 		glm::vec3 UpAxis;
 		int Resolution;
-		int FirstIndexInTriangleArray;
-		int LastIndexInTriangleArray;
+		int FirstIndexInArray;
+		int LastIndexInArray;
 	};
 
 	int THREAD_COUNT = 10;

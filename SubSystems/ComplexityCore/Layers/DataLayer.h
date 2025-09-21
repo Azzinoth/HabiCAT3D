@@ -76,6 +76,8 @@ class DataLayer
 
 	float SelectedRangeMin = 0.0f;
 	float SelectedRangeMax = 0.0f;
+
+	std::vector<GLuint> ValuesComputeShaderBuffers;
 public:
 	DataLayer();
 	DataLayer(std::vector<std::string> ParentIDs);
