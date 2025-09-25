@@ -89,6 +89,7 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(DataLayer* NewLayer)
 		return;
 
 	NewLayer->SetType(LAYER_TYPE::FRACTAL_DIMENSION);
+	NewLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Fractal Dimension"));
 
 	FRACTAL_DIMENSION_LAYER_PRODUCER.bWaitForJitterResult = false;
 
@@ -126,6 +127,10 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	if (ActiveObject == nullptr)
 		return;
 
+	FEEntity* ActiveEntity = ActiveObject->GetEntity();
+	if (ActiveEntity == nullptr)
+		return;
+
 	// FIX ME: Should also work for point clouds.
 	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
@@ -134,18 +139,28 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
 
-	Grid->UpdateRenderedLines();
+	Grid->UpdateLineRepresentation();
 
 	GridNode* CurrentNode = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
 
+	std::vector<FELine> LinesToRender;
 	double FractalDimension = RunOnAllInternalNodesWithTriangles(CurrentNode, [&](int BoxSizeIndex, FEAABB BoxAABB) {
 		if (BoxSizeIndex == DebugBoxSizeIndex)
 		{
-			FEAABB TransformedBox = BoxAABB.Transform(CurrentMeshAnalysisData->Position->GetWorldMatrix());
-			LINE_RENDERER.RenderAABB(TransformedBox, glm::vec3(1.0, 0.0, 0.0));
+			std::vector<FELine> AABBLines = GEOMETRY.GetAABBEdges(BoxAABB);
+			for (size_t i = 0; i < AABBLines.size(); i++)
+			{
+				AABBLines[i].Color = glm::vec3(1.0, 0.0, 0.0);
+				AABBLines[i].Width = 0.2f;
+				LinesToRender.push_back(AABBLines[i]);
+			}
 			DebugBoxCount++;
 		}
 	});
+
+	MAIN_SCENE_MANAGER.AddLinesToEntity(&DebugLinesEntity, LinesToRender);
+	if (DebugLinesEntity != nullptr && DebugLinesEntity->GetParentEntity() != ActiveEntity)
+		ActiveEntity->AttachChild(DebugLinesEntity, false);
 
 	if (isnan(FractalDimension))
 		FractalDimension = 0;
@@ -154,8 +169,6 @@ void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	/*DebugLogInverseSizes = LogInverseSizes;
 	DebugLogCounts = LogCounts;
 	DebugCounts = Counts;*/
-
-	LINE_RENDERER.SyncWithGPU();
 }
 
 void FractalDimensionLayerProducer::RenderDebugInfoWindow(MeasurementGrid* Grid)

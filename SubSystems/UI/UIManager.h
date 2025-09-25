@@ -66,6 +66,8 @@ public:
 	bool IsProgressModalPopupOpen();
 
 	bool ExportOBJ(std::string FilePath, int LayerIndex);
+
+	void UpdateMeshSelectedTrianglesRendering();
 private:
 	SINGLETON_PRIVATE_PART(UIManager)
 
@@ -78,6 +80,8 @@ private:
 	bool bModelCamera = true;
 	//float ModelCameraMouseWheelSensitivity = 0.05f;
 	bool bChooseCameraFocusPointMode = false;
+	FEEntity* SelectionLinesEntity = nullptr;
+	void CleanUpSelectionLinesComponent();
 
 	std::string NoDataText = "No Data.(Drag & Drop model or point cloud)";
 

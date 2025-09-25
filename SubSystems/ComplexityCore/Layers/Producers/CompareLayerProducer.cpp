@@ -86,6 +86,7 @@ DataLayer* CompareLayerProducer::Calculate(DataLayer* FirstLayer, DataLayer* Sec
 		return nullptr;
 
 	DataLayer* NewLayer = new DataLayer({ ActiveObject->GetID() });
+	NewLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Compare"));
 	NewLayer->SetType(LAYER_TYPE::COMPARE);
 
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);

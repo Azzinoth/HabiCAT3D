@@ -137,25 +137,7 @@ void VectorDispersionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGr
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
 
-	Grid->UpdateRenderedLines();
-
-	GridNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
-	for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
-	{
-		const auto CurrentTriangle = CurrentMeshAnalysisData->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
-
-		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
-		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
-		{
-			TranformedTrianglePoints[j] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
-		}
-
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-	}
-
-	LINE_RENDERER.SyncWithGPU();
+	Grid->UpdateLineRepresentation();
 }
 
 void VectorDispersionLayerProducer::CalculateOnWholeModel()

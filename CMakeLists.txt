@@ -49,8 +49,6 @@ endif()
 
 file(GLOB SubSystems_SRC
 	"SubSystems/CGALDeclarations.h"
-	"SubSystems/FELinesRenderer.cpp"
-	"SubSystems/FELinesRenderer.h"
 	"SubSystems/AnalysisObjectManager.cpp"
 	"SubSystems/AnalysisObjectManager.h"
 	"SubSystems/SphereVectors.h"

@@ -46,6 +46,7 @@ void TriangleCountLayerProducer::OnJitterCalculationsEnd(DataLayer* NewLayer)
 		return;
 
 	NewLayer->SetType(LAYER_TYPE::TRIANGLE_DENSITY);
+	NewLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Triangle Count"));
 
 	CurrentObject->AddLayer(NewLayer);
 	CurrentObject->SetActiveLayer(NewLayer->GetID());

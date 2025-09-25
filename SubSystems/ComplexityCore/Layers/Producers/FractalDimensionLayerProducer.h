@@ -29,6 +29,7 @@ private:
 	bool bFilterFractalDimensionValues = true;
 	bool bCalculateStandardDeviation = false;
 
+	FEEntity* DebugLinesEntity = nullptr;
 	int DebugBoxSizeIndex = 0;
 	int DebugBoxCount = 0;
 	double DebugFractalDimension = 0.0;

@@ -69,72 +69,6 @@ void LoadResource(std::string FileName)
 	ANALYSIS_OBJECT_MANAGER.LoadResource(FileName);
 }
 
-void UpdateMeshSelectedTrianglesRendering(FEMesh* Mesh)
-{
-	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (ActiveObject == nullptr)
-		return;
-
-	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
-		return;
-
-	if (CurrentMeshAnalysisData->TriangleSelected.size() == 1)
-	{
-		LINE_RENDERER.ClearAll();
-
-		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[0]];
-		for (size_t i = 0; i < TranformedTrianglePoints.size(); i++)
-		{
-			TranformedTrianglePoints[i] = CurrentMeshAnalysisData->Position->GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[i], 1.0f);
-		}
-
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-
-		if (!CurrentMeshAnalysisData->TrianglesNormals.empty())
-		{
-			glm::vec3 Point = TranformedTrianglePoints[0];
-			glm::vec3 Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][0];
-			LINE_RENDERER.AddLineToBuffer(FECustomLine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
-
-			Point = TranformedTrianglePoints[1];
-			Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][1];
-			LINE_RENDERER.AddLineToBuffer(FECustomLine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
-
-			Point = TranformedTrianglePoints[2];
-			Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][2];
-			LINE_RENDERER.AddLineToBuffer(FECustomLine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
-		}
-
-		LINE_RENDERER.SyncWithGPU();
-	}
-	else if (CurrentMeshAnalysisData->TriangleSelected.size() > 1)
-	{
-		FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
-		if (ActiveEntity == nullptr)
-			return;
-
-		LINE_RENDERER.ClearAll();
-		
-		for (size_t i = 0; i < CurrentMeshAnalysisData->TriangleSelected.size(); i++)
-		{
-			std::vector<glm::dvec3> TranformedTrianglePoints = CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[i]];
-			for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
-			{
-				TranformedTrianglePoints[j] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
-			}
-
-			LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-			LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-			LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-		}
-
-		LINE_RENDERER.SyncWithGPU();
-	}
-}
-
 void OutputSelectedAreaInfoToFile()
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
@@ -225,10 +159,10 @@ void MouseButtonCallback(int button, int action, int mods)
 				}
 			}
 
-			UpdateMeshSelectedTrianglesRendering(ActiveMesh);
+			UI.UpdateMeshSelectedTrianglesRendering();
 		}
 
-		if (ActiveMesh != nullptr && UI.GetDebugGrid() != nullptr)
+		if (ActiveObject != nullptr && UI.GetDebugGrid() != nullptr)
 		{
 			if (UI.GetDebugGrid()->RenderingMode != 0)
 			{
@@ -316,7 +250,7 @@ void MainWindowRender()
 		return;
 	}
 
-	/*bool bVRMode = ENGINE.IsVREnabled();
+	bool bVRMode = ENGINE.IsVREnabled();
 	if (ImGui::Checkbox("Enter VR mode", &bVRMode))
 	{
 		if (bVRMode)
@@ -357,9 +291,7 @@ void MainWindowRender()
 
 			VRRigTransform.SetPosition(VRRigPosition);
 		}
-	}*/
-
-	LINE_RENDERER.Render();
+	}
 
 	UI.Render();
 
@@ -494,9 +426,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			AddFontOnSecondFrame();
 
 			ENGINE.BeginFrame();
-
 			ENGINE.Render();
-
 			ENGINE.EndFrame();
 		}
 	}

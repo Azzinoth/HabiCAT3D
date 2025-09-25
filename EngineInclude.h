@@ -27,6 +27,9 @@ public:
 	FEEntity* GetMainCamera();
 
 	glm::dvec3 GetMouseRayDirection();
+
+	bool AddLinesToEntity(FEEntity** Entity, std::vector<FELine> LinesToAdd);
+	bool ClearLinesFromEntity(FEEntity* Entity);
 private:
 	SINGLETON_PRIVATE_PART(MainSceneManager)
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../AnalysisObjectManager.h"
-#include "../SubSystems/FELinesRenderer.h"
 #include "Layers/DataLayer.h"
 
 struct GridNode
@@ -45,16 +44,17 @@ struct MeasurementGrid
 
     void FillMeasurementData();
 
-    void UpdateRenderedLines();
-    void RunOnAllNodes(std::function<void(GridNode* currentNode)> Func);
-    void AddLinesOfGrid();
+    void RunOnAllNodes(std::function<void(GridNode* CurrentNode)> Func);
 
     bool IsInTriangleMode();
+	void UpdateLineRepresentation();
 private:
     void InitializeSegment(size_t BeginIndex, size_t EndIndex, size_t Dimensions, FEAABB GridAABB, float CellSize);
 
     bool bUsingMultiThreading = true;
 	bool bTriangleMode = true;
+
+	FEEntity* GridLinesEntity = nullptr;
 
     void FillPerTriangleMeasurementData();
     void FillPerPointMeasurementData();

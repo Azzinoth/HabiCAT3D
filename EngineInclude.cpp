@@ -41,3 +41,45 @@ glm::dvec3 MainSceneManager::GetMouseRayDirection()
 										  CameraComponent.GetViewMatrix(), CameraComponent.GetProjectionMatrix(),
 										  ViewportPosition, ViewportSize);
 }
+
+bool MainSceneManager::AddLinesToEntity(FEEntity** Entity, std::vector<FELine> LinesToAdd)
+{
+	if (*Entity == nullptr)
+	{
+		*Entity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Debug lines entity");
+		if (*Entity == nullptr)
+			return false;
+		(*Entity)->AddComponent<FELineComponent>();
+	}
+	else if (*Entity != nullptr && (*Entity)->HasComponent<FELineComponent>())
+	{
+		RESOURCE_MANAGER.DeleteFELineCollection((*Entity)->GetComponent<FELineComponent>().GetLineCollection());
+	}
+	else if ((*Entity) != nullptr && !(*Entity)->HasComponent<FELineComponent>())
+	{
+		(*Entity)->AddComponent<FELineComponent>();
+		if (!(*Entity)->HasComponent<FELineComponent>())
+			return false;
+	}
+
+	if (LinesToAdd.empty())
+		return false;
+
+	FELineCollection* NewLineCollection = RESOURCE_MANAGER.RawDataToFELineCollection(LinesToAdd);
+	if (NewLineCollection == nullptr)
+		return false;
+
+	(*Entity)->GetComponent<FELineComponent>().SetLineCollection(NewLineCollection);
+	return true;
+}
+
+bool MainSceneManager::ClearLinesFromEntity(FEEntity* Entity)
+{
+	if (Entity == nullptr || !Entity->HasComponent<FELineComponent>())
+		return false;
+
+	RESOURCE_MANAGER.DeleteFELineCollection(Entity->GetComponent<FELineComponent>().GetLineCollection());
+	Entity->RemoveComponent<FELineComponent>();
+
+	return true;
+}

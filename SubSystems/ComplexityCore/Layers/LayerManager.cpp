@@ -147,6 +147,7 @@ void LayerManager::PropagateLayerEvent(LayerEvent Event)
 					}
 
 					FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudAnalysisData->RawPointCloudData);
+					PointCloud->SetAdvancedRenderingEnabled(true);
 
 					// FIX ME: Should it be done in a better way?
 					FEEntity* PointCloudEntity = ActiveObject->GetEntity();

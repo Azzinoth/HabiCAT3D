@@ -125,11 +125,12 @@ private:
 	bool bDebugShowOnlyCellsWithTriangles = true;
 	bool bDebugShowOnlySelectedCells = false;
 
+	FEEntity* DebugLinesEntity = nullptr;
 	void ShowDebugWindow();
 	void DebugMouseClick();
 	void UpdateGridDebugDistributionInfo();
 	void DebugSelectCell(int X, int Y);
-	void DebugRenderGrid();
+	void DebugRenderGrid(std::vector<FELine>& LinesToRender = std::vector<FELine>{});
 
 	float Progress = 0.0f;
 	static void OnCalculationsStart();

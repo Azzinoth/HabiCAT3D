@@ -5,6 +5,13 @@ MeasurementGrid::MeasurementGrid() {}
 
 MeasurementGrid::~MeasurementGrid()
 {
+	if (GridLinesEntity != nullptr)
+	{
+		if (GridLinesEntity->HasComponent<FELineComponent>())
+			RESOURCE_MANAGER.DeleteFELineCollection(GridLinesEntity->GetComponent<FELineComponent>().GetLineCollection());
+		MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(GridLinesEntity);
+	}
+
 	Data.clear();
 }
 
@@ -581,8 +588,8 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
+	FEEntity* CurrentEntity = ActiveObject->GetEntity();
+	if (CurrentEntity == nullptr)
 		return;
 
 	float DistanceToCell = 999999.0f;
@@ -597,7 +604,7 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 				if (!Data[i][j][k].bWasRenderedLastFrame)
 					continue;
 
-				FEAABB FinalAABB = Data[i][j][k].AABB.Transform(TransformMat).Transform(CurrentMeshAnalysisData->Position->GetWorldMatrix());
+				FEAABB FinalAABB = Data[i][j][k].AABB.Transform(TransformMat).Transform(CurrentEntity->GetComponent<FETransformComponent>().GetWorldMatrix());
 				if (FinalAABB.RayIntersect(MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE), MAIN_SCENE_MANAGER.GetMouseRayDirection(), DistanceToCell))
 				{
 					if (LastDistanceToCell > DistanceToCell)
@@ -715,20 +722,24 @@ void MeasurementGrid::FillMeasurementData()
 		FillPerPointMeasurementData();
 }
 
-void MeasurementGrid::AddLinesOfGrid()
+void MeasurementGrid::UpdateLineRepresentation()
 {
+	if (APPLICATION.GetConsoleWindow() != nullptr)
+		return;
+
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
 		return;
 
 	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
+	if (CurrentMeshAnalysisData == nullptr && ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
 		return;
 
 	FEEntity* CurrentEntity = ActiveObject->GetEntity();
 	if (CurrentEntity == nullptr)
 		return;
 
+	std::vector<FELine> LinesToRender;
 	for (size_t i = 0; i < Data.size(); i++)
 	{
 		for (size_t j = 0; j < Data[i].size(); j++)
@@ -738,7 +749,8 @@ void MeasurementGrid::AddLinesOfGrid()
 				bool bNeedToRender = false;
 				Data[i][j][k].bWasRenderedLastFrame = false;
 
-				if (!Data[i][j][k].TrianglesInCell.empty() || RenderingMode == 2)
+				bool bHaveGeometryInCell = ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? !Data[i][j][k].TrianglesInCell.empty() : !Data[i][j][k].PointsInCell.empty();
+				if ((bHaveGeometryInCell || RenderingMode == 2) && 	RenderingMode != 0)
 					bNeedToRender = true;
 
 				if (bNeedToRender)
@@ -747,8 +759,13 @@ void MeasurementGrid::AddLinesOfGrid()
 					if (Data[i][j][k].bSelected)
 						Color = glm::vec3(0.9f, 0.1f, 0.1f);
 
-					LINE_RENDERER.RenderAABB(Data[i][j][k].AABB.Transform(CurrentEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
-
+					std::vector<FELine> AABBLines = GEOMETRY.GetAABBEdges(Data[i][j][k].AABB);
+					for (size_t i = 0; i < AABBLines.size(); i++)
+					{
+						AABBLines[i].Color = Color;
+						AABBLines[i].Width = 0.2f;
+						LinesToRender.push_back(AABBLines[i]);
+					}
 					Data[i][j][k].bWasRenderedLastFrame = true;
 
 					if (bShowTrianglesInCells && Data[i][j][k].bSelected)
@@ -756,35 +773,28 @@ void MeasurementGrid::AddLinesOfGrid()
 						for (size_t l = 0; l < Data[i][j][k].TrianglesInCell.size(); l++)
 						{
 							const auto CurrentTriangle = CurrentMeshAnalysisData->Triangles[Data[i][j][k].TrianglesInCell[l]];
-
-							std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
-							for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
-							{
-								TranformedTrianglePoints[j] = CurrentEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
-							}
-
-							LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-							LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-							LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+							LinesToRender.push_back(FELine(CurrentTriangle[0], CurrentTriangle[1], glm::vec3(1.0f, 1.0f, 0.0f), 0.2f));
+							LinesToRender.push_back(FELine(CurrentTriangle[0], CurrentTriangle[2], glm::vec3(1.0f, 1.0f, 0.0f), 0.2f));
+							LinesToRender.push_back(FELine(CurrentTriangle[1], CurrentTriangle[2], glm::vec3(1.0f, 1.0f, 0.0f), 0.2f));
 						}
 					}
 				}
 			}
 		}
 	}
+	
+	if (LinesToRender.empty())
+	{
+		MAIN_SCENE_MANAGER.ClearLinesFromEntity(GridLinesEntity);
+		return;
+	}
+
+	MAIN_SCENE_MANAGER.AddLinesToEntity(&GridLinesEntity, LinesToRender);
+	if (GridLinesEntity != nullptr && GridLinesEntity->GetParentEntity() != CurrentEntity)
+		CurrentEntity->AttachChild(GridLinesEntity, false);
 }
 
-void MeasurementGrid::UpdateRenderedLines()
-{
-#ifndef NEW_LINES
-	LINE_RENDERER.ClearAll();
-	if (RenderingMode != 0)
-		AddLinesOfGrid();
-	LINE_RENDERER.SyncWithGPU();
-#endif
-}
-
-void MeasurementGrid::RunOnAllNodes(std::function<void(GridNode* currentNode)> Func)
+void MeasurementGrid::RunOnAllNodes(std::function<void(GridNode* CurrentNode)> Func)
 {
 	if (Func == nullptr)
 		return;

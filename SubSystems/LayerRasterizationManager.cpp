@@ -1383,15 +1383,12 @@ void LayerRasterizationManager::ShowDebugWindow()
 			DebugSelectCell(TempCellX, TempCellY);
 		}
 
-
 		ImGui::End();
 	}
 }
 
-void LayerRasterizationManager::DebugRenderGrid()
+void LayerRasterizationManager::DebugRenderGrid(std::vector<FELine>& LinesToRender)
 {
-	//LINE_RENDERER.ClearAll();
-
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
 		return;
@@ -1415,7 +1412,13 @@ void LayerRasterizationManager::DebugRenderGrid()
 			{
 				if (!Grid[i][j].TrianglesInCell.empty())
 				{
-					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
+					std::vector<FELine> AABBLines = GEOMETRY.GetAABBEdges(Cell.AABB);
+					for (size_t i = 0; i < AABBLines.size(); i++)
+					{
+						AABBLines[i].Color = Color;
+						AABBLines[i].Width = 0.2f;
+						LinesToRender.push_back(AABBLines[i]);
+					}
 				}
 			}
 			else if (bDebugShowOnlySelectedCells)
@@ -1423,32 +1426,45 @@ void LayerRasterizationManager::DebugRenderGrid()
 				if (DebugSelectedCell.x == i && DebugSelectedCell.y == j)
 				{
 					Color = glm::vec3(1.0f, 1.0f, 0.0f);
-					LINE_RENDERER.RenderAABB(Cell.AABB.Transform(ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
+					std::vector<FELine> AABBLines = GEOMETRY.GetAABBEdges(Cell.AABB);
+					for (size_t i = 0; i < AABBLines.size(); i++)
+					{
+						AABBLines[i].Color = Color;
+						AABBLines[i].Width = 0.2f;
+						LinesToRender.push_back(AABBLines[i]);
+					}
 
 					for (size_t k = 0; k < Grid[i][j].TrianglesInCell.size(); k++)
 					{
 						const auto CurrentTriangle = CurrentMeshAnalysisData->Triangles[Grid[i][j].TrianglesInCell[k]];
-
-						std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
-						for (size_t l = 0; l < TranformedTrianglePoints.size(); l++)
-						{
-							TranformedTrianglePoints[l] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[l], 1.0f);
-						}
-
-						LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 0.0f, 1.0f)));
-						LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 0.0f, 1.0f)));
-						LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 0.0f, 1.0f)));
+						LinesToRender.push_back(FELine(CurrentTriangle[0], CurrentTriangle[1], glm::vec3(1.0f, 0.0f, 1.0f), 0.2f));
+						LinesToRender.push_back(FELine(CurrentTriangle[0], CurrentTriangle[2], glm::vec3(1.0f, 0.0f, 1.0f), 0.2f));
+						LinesToRender.push_back(FELine(CurrentTriangle[1], CurrentTriangle[2], glm::vec3(1.0f, 0.0f, 1.0f), 0.2f));
 					}
 				}
 			}
 			else
 			{
-				LINE_RENDERER.RenderAABB(Cell.AABB.Transform(ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix()), Color);
+				std::vector<FELine> AABBLines = GEOMETRY.GetAABBEdges(Cell.AABB);
+				for (size_t i = 0; i < AABBLines.size(); i++)
+				{
+					AABBLines[i].Color = Color;
+					AABBLines[i].Width = 0.2f;
+					LinesToRender.push_back(AABBLines[i]);
+				}
 			}
 		}
 	}
 
-	LINE_RENDERER.SyncWithGPU();
+	if (LinesToRender.empty())
+	{
+		MAIN_SCENE_MANAGER.ClearLinesFromEntity(DebugLinesEntity);
+		return;
+	}
+
+	MAIN_SCENE_MANAGER.AddLinesToEntity(&DebugLinesEntity, LinesToRender);
+	if (DebugLinesEntity != nullptr && DebugLinesEntity->GetParentEntity() != ActiveEntity)
+		ActiveEntity->AttachChild(DebugLinesEntity, false);
 }
 
 void LayerRasterizationManager::DebugMouseClick()
@@ -1506,7 +1522,7 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 	if (ActiveEntity == nullptr)
 		return;
 
-	LINE_RENDERER.ClearAll();
+	std::vector<FELine> LinesToRender;
 
 	DebugSelectedCell = glm::vec2(X, Y);
 	for (size_t i = 0; i < Grid[X][Y].TrianglesInCell.size(); i++)
@@ -1544,14 +1560,14 @@ void LayerRasterizationManager::DebugSelectCell(int X, int Y)
 		for (size_t l = 0; l < IntersectionPoints.size(); l++)
 		{
 			glm::dvec3 TransformedPoint = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(IntersectionPoints[l], 1.0f);
-			LINE_RENDERER.AddLineToBuffer(FECustomLine(TransformedPoint, TransformedPoint + glm::dvec3(0.0, 1.0, 0.0), glm::vec3(1.0f, 0.0f, 0.0f)));
+			LinesToRender.push_back(FELine(TransformedPoint, TransformedPoint + glm::dvec3(0.0, 1.0, 0.0), glm::vec3(1.0f, 0.0f, 0.0f), 0.2f));
 		}
 
 		double CurrentTrianlgeArea = 0.0;
 		CurrentTrianlgeArea = LAYER_RASTERIZATION_MANAGER.GetArea(IntersectionPoints);
 	}
 
-	DebugRenderGrid();
+	DebugRenderGrid(LinesToRender);
 }
 
 void LayerRasterizationManager::UpdateProjectionVector()

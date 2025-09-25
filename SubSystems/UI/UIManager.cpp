@@ -641,8 +641,7 @@ void UIManager::OnNewObjectLoaded(AnalysisObject* NewObject)
 	UI.AdjustCameraNearFarPlanes();
 	UI.bModelCamera ? UI.ModelCameraAdjustment() : UI.FreeCameraAdjustment();
 
-	LINE_RENDERER.ClearAll();
-	LINE_RENDERER.SyncWithGPU();
+	UI.CleanUpSelectionLinesComponent();
 
 	UI.Histogram.Clear();
 	UI.HeatMapColorRange.Clear();
@@ -1618,6 +1617,12 @@ void UIManager::OnLayerChange()
 	UI.CurrentDistribution = glm::vec2(0.0f);
 	strcpy_s(UI.CurrentDistributionEdit, "");
 
+	if (UI.DebugGrid != nullptr)
+	{
+		delete UI.DebugGrid;
+		UI.DebugGrid = nullptr;
+	}
+
 	DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
 	if (ActiveLayer == nullptr)
 		return;
@@ -1679,12 +1684,12 @@ std::vector<GridInitData_Jitter> ReadJitterSettingsFromDebugInfo(DataLayerDebugI
 	if (DebugInfo == nullptr)
 		return Result;
 
-	std::istringstream iss(DebugInfo->ToString());
+	std::istringstream StringStream(DebugInfo->ToString());
 	std::string Line;
 	GridInitData_Jitter CurrentData;
 	bool bNewData = true;
 
-	while (std::getline(iss, Line))
+	while (std::getline(StringStream, Line))
 	{
 		if (Line.find("ShiftX:") != std::string::npos)
 		{
@@ -1720,6 +1725,10 @@ std::vector<GridInitData_Jitter> ReadJitterSettingsFromDebugInfo(DataLayerDebugI
 
 void UIManager::InitDebugGrid(size_t JitterIndex)
 {
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
+
 	if (LAYER_MANAGER.GetActiveLayer() == nullptr)
 		return;
 
@@ -1760,7 +1769,7 @@ void UIManager::InitDebugGrid(size_t JitterIndex)
 	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(CurrentSettings, CurrentLayerResolutionInM);
 
 	DebugGrid->Init(FinalAABB, CurrentLayerResolutionInM);
-	DebugGrid->FillCellsWithTriangleInfo();
+	ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? DebugGrid->FillCellsWithTriangleInfo() : DebugGrid->FillCellsWithPointInfo();
 	DebugGrid->bFullyLoaded = true;
 }
 
@@ -1944,7 +1953,6 @@ void UIManager::RenderGeneralSettingsTab()
 		return;
 
 	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
-
 	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
 		ImGui::Checkbox("Wireframe", &bWireframeMode);
@@ -1995,7 +2003,6 @@ void UIManager::RenderGeneralSettingsTab()
 	if (ImGui::Checkbox("Developer mode", &TempBool))
 		SetDeveloperMode(TempBool);
 
-
 	if (!IsInDeveloperMode())
 	{
 		if (DebugGrid != nullptr && DebugGrid->RenderingMode != 0)
@@ -2034,8 +2041,8 @@ void UIManager::RenderGeneralSettingsTab()
 				{
 					for (size_t i = 0; i < UsedSettings.size(); i++)
 					{
-						bool is_selected = (CurrentJitterStepIndexVisualize == i);
-						if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
+						bool bIsSelected = (CurrentJitterStepIndexVisualize == i);
+						if (ImGui::Selectable(std::to_string(i).c_str(), bIsSelected))
 						{
 							CurrentJitterStepIndexVisualize = static_cast<int>(i);
 							int LastGridRendetingMode = DebugGrid->RenderingMode;
@@ -2044,12 +2051,10 @@ void UIManager::RenderGeneralSettingsTab()
 
 							DebugGrid->RenderingMode = LastGridRendetingMode;
 							if (DebugGrid->RenderingMode == 1)
-							{
 								UpdateRenderingMode(DebugGrid, 1);
-							}
 						}
 
-						if (is_selected)
+						if (bIsSelected)
 							ImGui::SetItemDefaultFocus();
 					}
 					ImGui::EndCombo();
@@ -2069,7 +2074,8 @@ void UIManager::RenderGeneralSettingsTab()
 				UpdateRenderingMode(DebugGrid, 0);
 			}
 
-			if (ImGui::RadioButton("Show cells with triangles", &DebugGrid->RenderingMode, 1))
+			std::string CurrentGeometryType = ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? "triangles" : "points";
+			if (ImGui::RadioButton(("Show cells with " + CurrentGeometryType).c_str(), &DebugGrid->RenderingMode, 1))
 			{
 #ifdef NEW_LINES
 				InitDebugGrid(CurrentJitterStepIndexVisualize);
@@ -2088,37 +2094,6 @@ void UIManager::RenderGeneralSettingsTab()
 				DebugGrid->AddLinesOfGrid();
 			}
 #endif
-
-			if (DebugGrid->RenderingMode == 1)
-			{
-				DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
-				if (CurrentLayer == nullptr)
-					return;
-
-				switch (CurrentLayer->GetType())
-				{
-				case LAYER_TYPE::RUGOSITY:
-				{
-					//RUGOSITY_MANAGER.RenderDebugInfoForSelectedNode(DebugGrid);
-					break;
-				}
-
-				case LAYER_TYPE::VECTOR_DISPERSION:
-				{
-					//VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugGrid);
-					break;
-				}
-
-				case LAYER_TYPE::FRACTAL_DIMENSION:
-				{
-					FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoWindow(DebugGrid);
-					break;
-				}
-
-				default:
-					break;
-				}
-			}
 
 			ImGui::Separator();
 		}
@@ -2287,8 +2262,6 @@ void UIManager::RenderExportTab()
 	if (ActiveObject == nullptr)
 		return;
 
-	
-
 	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
 		MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
@@ -2299,22 +2272,19 @@ void UIManager::RenderExportTab()
 		if (ImGui::RadioButton("None", &LayerSelectionMode, 0))
 		{
 			CurrentMeshAnalysisData->TriangleSelected.clear();
-			LINE_RENDERER.ClearAll();
-			LINE_RENDERER.SyncWithGPU();
+			CleanUpSelectionLinesComponent();
 		}
 
 		if (ImGui::RadioButton("Triangles", &LayerSelectionMode, 1))
 		{
 			CurrentMeshAnalysisData->TriangleSelected.clear();
-			LINE_RENDERER.ClearAll();
-			LINE_RENDERER.SyncWithGPU();
+			CleanUpSelectionLinesComponent();
 		}
 
 		if (ImGui::RadioButton("Area", &LayerSelectionMode, 2))
 		{
 			CurrentMeshAnalysisData->TriangleSelected.clear();
-			LINE_RENDERER.ClearAll();
-			LINE_RENDERER.SyncWithGPU();
+			CleanUpSelectionLinesComponent();
 		}
 
 		if (LayerSelectionMode == 2)
@@ -2583,7 +2553,7 @@ void UIManager::UpdateRenderingMode(MeasurementGrid* Grid, int NewRenderingMode)
 		return;
 
 	Grid->RenderingMode = NewRenderingMode;
-	Grid->UpdateRenderedLines();
+	Grid->UpdateLineRepresentation();
 
 	if (NewRenderingMode == 0)
 		return;
@@ -2612,6 +2582,12 @@ void UIManager::UpdateRenderingMode(MeasurementGrid* Grid, int NewRenderingMode)
 		case LAYER_TYPE::FRACTAL_DIMENSION:
 		{
 			FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
+			break;
+		}
+
+		case LAYER_TYPE::POINT_DENSITY:
+		{
+			POINT_DENSITY_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
 			break;
 		}
 
@@ -2680,4 +2656,60 @@ void UIManager::OnLayerRasterizationCalculationsEnd()
 bool UIManager::IsProgressModalPopupOpen()
 {
 	return !bShouldCloseProgressPopup;
+}
+
+void UIManager::UpdateMeshSelectedTrianglesRendering()
+{
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
+	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+	std::vector<FELine> LinesToRender;
+	if (CurrentMeshAnalysisData->TriangleSelected.size() == 1)
+	{
+		std::vector<glm::dvec3> SelectedTrianglePoints = CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[0]];
+		LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LinesToRender.push_back(FELine(SelectedTrianglePoints[1], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+
+		if (!CurrentMeshAnalysisData->TrianglesNormals.empty())
+		{
+			glm::vec3 Point = SelectedTrianglePoints[0];
+			glm::vec3 Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][0];
+			LinesToRender.push_back(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+
+			Point = SelectedTrianglePoints[1];
+			Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][1];
+			LinesToRender.push_back(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+
+			Point = SelectedTrianglePoints[2];
+			Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][2];
+			LinesToRender.push_back(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+		}
+	}
+	else if (CurrentMeshAnalysisData->TriangleSelected.size() > 1)
+	{
+		for (size_t i = 0; i < CurrentMeshAnalysisData->TriangleSelected.size(); i++)
+		{
+			std::vector<glm::dvec3> SelectedTrianglePoints = CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[i]];
+			LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
+			LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+			LinesToRender.push_back(FELine(SelectedTrianglePoints[1], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+		}
+	}
+
+	MAIN_SCENE_MANAGER.AddLinesToEntity(&SelectionLinesEntity, LinesToRender);
+
+	if (SelectionLinesEntity != nullptr && SelectionLinesEntity->GetParentEntity() != ActiveEntity)
+		ActiveEntity->AttachChild(SelectionLinesEntity, false);
+}
+
+void UIManager::CleanUpSelectionLinesComponent()
+{
+	MAIN_SCENE_MANAGER.ClearLinesFromEntity(SelectionLinesEntity);
 }

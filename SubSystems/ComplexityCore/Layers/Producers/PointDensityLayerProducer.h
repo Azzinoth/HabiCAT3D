@@ -9,6 +9,7 @@ public:
 	SINGLETON_PUBLIC_PART(PointDensityLayerProducer)
 
 	void CalculateWithJitterAsync(bool bSmootherResult);
+	void RenderDebugInfoForSelectedNode(MeasurementGrid* Grid);
 private:
 	SINGLETON_PRIVATE_PART(PointDensityLayerProducer)
 

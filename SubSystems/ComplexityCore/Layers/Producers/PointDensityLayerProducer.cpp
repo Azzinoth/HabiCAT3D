@@ -47,3 +47,23 @@ void PointDensityLayerProducer::OnJitterCalculationsEnd(DataLayer* NewLayer)
 	CurrentObject->AddLayer(NewLayer);
 	CurrentObject->SetActiveLayer(NewLayer->GetID());
 }
+
+void PointDensityLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid)
+{
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
+
+	PointCloudAnalysisData* CurrentPointCloudAnalysisData = ActiveObject->GetPointCloudAnalysisData();
+	if (CurrentPointCloudAnalysisData == nullptr)
+		return;
+
+	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+	if (ActiveEntity == nullptr)
+		return;
+
+	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
+		return;
+
+	Grid->UpdateLineRepresentation();
+}

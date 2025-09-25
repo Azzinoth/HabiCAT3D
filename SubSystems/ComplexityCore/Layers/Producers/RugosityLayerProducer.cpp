@@ -605,6 +605,7 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(DataLayer* NewLayer)
 		return;
 
 	NewLayer->SetType(LAYER_TYPE::RUGOSITY);
+	NewLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Rugosity"));
 	NewLayer->DebugInfo->Type = "RugosityDataLayerDebugInfo";
 
 	std::string AlgorithmUsed = RUGOSITY_LAYER_PRODUCER.RugosityAlgorithmList[0];
@@ -679,25 +680,7 @@ void RugosityLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid
 	if (CurrentMeshAnalysisData == nullptr)
 		return;
 
-	Grid->UpdateRenderedLines();
-
-	GridNode* CurrentlySelectedCell = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
-	for (size_t i = 0; i < CurrentlySelectedCell->TrianglesInCell.size(); i++)
-	{
-		const auto CurrentTriangle = CurrentMeshAnalysisData->Triangles[CurrentlySelectedCell->TrianglesInCell[i]];
-
-		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentTriangle;
-		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
-		{
-			TranformedTrianglePoints[j] = CurrentMeshAnalysisData->Position->GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
-		}
-
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[0], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-		LINE_RENDERER.AddLineToBuffer(FECustomLine(TranformedTrianglePoints[1], TranformedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-	}
-
-	LINE_RENDERER.SyncWithGPU();
+	Grid->UpdateLineRepresentation();
 }
 
 std::string RugosityLayerProducer::GetOrientationSetForMinRugosityName()

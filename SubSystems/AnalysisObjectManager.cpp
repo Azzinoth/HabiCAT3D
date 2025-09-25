@@ -531,10 +531,9 @@ void AnalysisObjectManager::ComplexityMetricDataToGPU(std::string LayerID, int G
 		for (size_t i = 0; i < CurrentLayer->ValuesComputeShaderBuffers.size(); i++)
 		{
 			if (CurrentLayer->ValuesComputeShaderBuffers[i] != GLuint(-1))
-			{
 				FE_GL_ERROR(glDeleteBuffers(1, &CurrentLayer->ValuesComputeShaderBuffers[i]));
-				CurrentLayer->ValuesComputeShaderBuffers[i] = GLuint(-1);
-			}
+			
+			CurrentLayer->ValuesComputeShaderBuffers.clear();
 		}
 
 		FEPointCloud* PointCloud = static_cast<FEPointCloud*>(ActiveObject->GetEngineResource());
