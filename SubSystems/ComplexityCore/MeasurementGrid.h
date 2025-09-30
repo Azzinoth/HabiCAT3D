@@ -41,6 +41,7 @@ struct MeasurementGrid
 	void FillCellsWithPointInfo();
 
     void MouseClick(double MouseX, double MouseY, glm::mat4 TransformMat = glm::identity<glm::mat4>());
+	void ClearSelection();
 
     void FillMeasurementData();
 
@@ -48,6 +49,8 @@ struct MeasurementGrid
 
     bool IsInTriangleMode();
 	void UpdateLineRepresentation();
+
+	void AddOnSelectedCellChangedCallback(std::function<void(glm::vec3 SelectedCellIndex)> Callback);
 private:
     void InitializeSegment(size_t BeginIndex, size_t EndIndex, size_t Dimensions, FEAABB GridAABB, float CellSize);
 
@@ -78,4 +81,7 @@ private:
 
     void FillGridWithTrianglesDataThread(void* InputData, void* OutputData);
 	void FillGridWithPointsDataThread(void* InputData, void* OutputData);
+
+	void InternalSetSelectedCell(glm::vec3 NewSelectedCell);
+	std::vector<std::function<void(glm::vec3 SelectedCellIndex)>> ClientOnSelectedCellChangedCallbacks;
 };

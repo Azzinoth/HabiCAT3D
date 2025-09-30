@@ -5,6 +5,8 @@ MeasurementGrid::MeasurementGrid() {}
 
 MeasurementGrid::~MeasurementGrid()
 {
+	ClearSelection();
+
 	if (GridLinesEntity != nullptr)
 	{
 		if (GridLinesEntity->HasComponent<FELineComponent>())
@@ -571,26 +573,21 @@ void MeasurementGrid::FillCellsWithPointInfo()
 
 void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const glm::mat4 TransformMat)
 {
-	SelectedCell = glm::vec3(-1.0);
-
-	for (size_t i = 0; i < Data.size(); i++)
-	{
-		for (size_t j = 0; j < Data[i].size(); j++)
-		{
-			for (size_t k = 0; k < Data[i][j].size(); k++)
-			{
-				Data[i][j][k].bSelected = false;
-			}
-		}
-	}
+	glm::vec3 SelectedCellCandidate = glm::vec3(-1.0);
 
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
+	{
+		InternalSetSelectedCell(SelectedCellCandidate);
 		return;
+	}
 
 	FEEntity* CurrentEntity = ActiveObject->GetEntity();
 	if (CurrentEntity == nullptr)
+	{
+		InternalSetSelectedCell(SelectedCellCandidate);
 		return;
+	}
 
 	float DistanceToCell = 999999.0f;
 	float LastDistanceToCell = 999999.0f;
@@ -600,7 +597,6 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 		{
 			for (size_t k = 0; k < Data[i][j].size(); k++)
 			{
-				Data[i][j][k].bSelected = false;
 				if (!Data[i][j][k].bWasRenderedLastFrame)
 					continue;
 
@@ -610,7 +606,7 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 					if (LastDistanceToCell > DistanceToCell)
 					{
 						LastDistanceToCell = DistanceToCell;
-						SelectedCell = glm::vec3(i, j, k);
+						SelectedCellCandidate = glm::vec3(i, j, k);
 					}
 				}
 			}
@@ -618,7 +614,17 @@ void MeasurementGrid::MouseClick(const double MouseX, const double MouseY, const
 	}
 
 	if (DistanceToCell != 999999.0f)
-		Data[static_cast<int>(SelectedCell.x)][static_cast<int>(SelectedCell.y)][static_cast<int>(SelectedCell.z)].bSelected = true;
+	{
+		InternalSetSelectedCell(SelectedCellCandidate);
+		return;
+	}
+
+	InternalSetSelectedCell(glm::vec3(-1.0));
+}
+
+void MeasurementGrid::ClearSelection()
+{
+	InternalSetSelectedCell(glm::vec3(-1.0));
 }
 
 void MeasurementGrid::FillPerTriangleMeasurementData()
@@ -814,4 +820,38 @@ void MeasurementGrid::RunOnAllNodes(std::function<void(GridNode* CurrentNode)> F
 bool MeasurementGrid::IsInTriangleMode()
 {
 	return bTriangleMode;
+}
+
+void MeasurementGrid::InternalSetSelectedCell(glm::vec3 NewSelectedCell)
+{
+	SelectedCell = NewSelectedCell;
+	for (size_t i = 0; i < Data.size(); i++)
+	{
+		for (size_t j = 0; j < Data[i].size(); j++)
+		{
+			for (size_t k = 0; k < Data[i][j].size(); k++)
+			{
+				Data[i][j][k].bSelected = false;
+			}
+		}
+	}
+
+	if (NewSelectedCell.x >= 0 && NewSelectedCell.y >= 0 && NewSelectedCell.z >= 0 &&
+		NewSelectedCell.x < Data.size() && NewSelectedCell.y < Data.size() && NewSelectedCell.z < Data.size())
+	{
+		Data[static_cast<int>(NewSelectedCell.x)][static_cast<int>(NewSelectedCell.y)][static_cast<int>(NewSelectedCell.z)].bSelected = true;
+	}
+
+	for (size_t i = 0; i < ClientOnSelectedCellChangedCallbacks.size(); i++)
+	{
+		ClientOnSelectedCellChangedCallbacks[i](NewSelectedCell);
+	}
+}
+
+void MeasurementGrid::AddOnSelectedCellChangedCallback(std::function<void(glm::vec3 SelectedCellIndex)> Callback)
+{
+	if (Callback == nullptr)
+		return;
+
+	ClientOnSelectedCellChangedCallbacks.push_back(Callback);
 }

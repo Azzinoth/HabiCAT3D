@@ -72,5 +72,5 @@ void TriangleCountLayerProducer::CalculateOnWholeModel()
 		CurrentNode->UserData = static_cast<double>(CurrentNode->TrianglesInCell.size());
 	};
 
-	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
+	JITTER_MANAGER.CalculateOnEntireObject(WorkOnNode);
 }

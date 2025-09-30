@@ -86,72 +86,76 @@ void ObjectViewerWindow::Render()
 			Objects.push_back(CurrentObject);
 		}
 
-		ImGui::BeginListBox("##Objects ListBox", ImVec2(ImGui::GetContentRegionAvail()));
-		for (size_t i = 0; i < Objects.size(); i++)
+		if (ImGui::BeginListBox("##Objects ListBox", ImVec2(ImGui::GetContentRegionAvail())))
 		{
-			AnalysisObject* CurrentObject = Objects[i];
-
-			if (ImGui::GetIO().Fonts->Fonts.Size > 0)
-				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
-
-			ImGui::Image(CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? MeshIcon->GetTextureID() : PointCloudIcon->GetTextureID(), ImVec2(32.0f, 32.0f));
-			ImGui::SameLine();
-
-			std::string TruncatedName = ClipTextToWidth(CurrentObject->GetName(), ImGui::GetContentRegionAvail().x - 80.0f - 4.0f);
-			bool bIsSelected = false;
-			if (ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject() != nullptr)
-				bIsSelected = CurrentObject->GetID() == ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject()->GetID();
-			if (ImGui::Selectable(TruncatedName.c_str(), bIsSelected, ImGuiSelectableFlags_None, ImVec2(ImGui::GetContentRegionAvail().x - 80, 32)))
+			for (size_t i = 0; i < Objects.size(); i++)
 			{
-				ANALYSIS_OBJECT_MANAGER.SetActiveAnalysisObject(CurrentObject->GetID());
-			}
+				AnalysisObject* CurrentObject = Objects[i];
 
-			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-			{
-				UI.bModelCamera ? UI.ModelCameraAdjustment(CurrentObject) : UI.FreeCameraAdjustment(CurrentObject);
-			}
+				if (ImGui::GetIO().Fonts->Fonts.Size > 0)
+					ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 
-			float IconSize = ImGui::GetItemRectSize().y - 6.0f;
+				ImGui::Image(CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? MeshIcon->GetTextureID() : PointCloudIcon->GetTextureID(), ImVec2(32.0f, 32.0f));
+				ImGui::SameLine();
 
-			ImGui::SameLine();
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.2f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.3f));
-			FETexture* IconToUse = CurrentObject->IsRenderedInScene() ? VisibilityOnIcon : VisibilityOffIcon;
-			if (ImGui::ImageButton(("##VisibilityOnOff" + CurrentObject->GetID()).c_str(), IconToUse->GetTextureID(), ImVec2(IconSize, IconSize)))
-				CurrentObject->SetRenderInScene(!CurrentObject->IsRenderedInScene());
-			ImGui::PopStyleColor(3);
+				std::string TruncatedName = ClipTextToWidth(CurrentObject->GetName(), ImGui::GetContentRegionAvail().x - 80.0f - 4.0f);
+				TruncatedName += "##" + CurrentObject->GetID(); // To have unique names for ImGui.
 
-			ImGui::SameLine();
-			ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 6.0f);
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.4f, 0.4f, 0.2f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.4f, 0.4f, 0.3f));
-			if (ImGui::ImageButton(("##DeleteObject" + CurrentObject->GetID()).c_str(), TrashBinIcon->GetTextureID(), ImVec2(IconSize, IconSize)))
-			{
-				ANALYSIS_OBJECT_MANAGER.DeleteAnalysisObject(CurrentObject->GetID());
+				bool bIsSelected = false;
+				if (ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject() != nullptr)
+					bIsSelected = CurrentObject->GetID() == ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject()->GetID();
+				if (ImGui::Selectable(TruncatedName.c_str(), bIsSelected, ImGuiSelectableFlags_None, ImVec2(ImGui::GetContentRegionAvail().x - 80, 32)))
+				{
+					ANALYSIS_OBJECT_MANAGER.SetActiveAnalysisObject(CurrentObject->GetID());
+				}
+
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+				{
+					UI.bModelCamera ? UI.ModelCameraAdjustment(CurrentObject) : UI.FreeCameraAdjustment(CurrentObject);
+				}
+
+				float IconSize = ImGui::GetItemRectSize().y - 6.0f;
+
+				ImGui::SameLine();
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.2f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.3f));
+				FETexture* IconToUse = CurrentObject->IsRenderedInScene() ? VisibilityOnIcon : VisibilityOffIcon;
+				if (ImGui::ImageButton(("##VisibilityOnOff" + CurrentObject->GetID()).c_str(), IconToUse->GetTextureID(), ImVec2(IconSize, IconSize)))
+					CurrentObject->SetRenderInScene(!CurrentObject->IsRenderedInScene());
+				ImGui::PopStyleColor(3);
+
+				ImGui::SameLine();
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 6.0f);
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.4f, 0.4f, 0.2f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.4f, 0.4f, 0.3f));
+				if (ImGui::ImageButton(("##DeleteObject" + CurrentObject->GetID()).c_str(), TrashBinIcon->GetTextureID(), ImVec2(IconSize, IconSize)))
+				{
+					ANALYSIS_OBJECT_MANAGER.DeleteAnalysisObject(CurrentObject->GetID());
+
+					ImGui::PopStyleColor(3);
+					if (ImGui::GetIO().Fonts->Fonts.Size > 0)
+						ImGui::PopFont();
+
+					ImGui::EndListBox();
+
+					ImGui::End();
+					ImGui::PopStyleVar(2);
+
+					return;
+				}
 
 				ImGui::PopStyleColor(3);
+
 				if (ImGui::GetIO().Fonts->Fonts.Size > 0)
 					ImGui::PopFont();
-
-				ImGui::EndListBox();
-
-				ImGui::End();
-				ImGui::PopStyleVar(2);
-
-				return;
 			}
-			
-			ImGui::PopStyleColor(3);
 
-			if (ImGui::GetIO().Fonts->Fonts.Size > 0)
-				ImGui::PopFont();
+			ImGui::EndListBox();
 		}
-
-		ImGui::EndListBox();
 	}
 
 	ImGui::End();

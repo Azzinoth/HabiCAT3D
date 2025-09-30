@@ -468,6 +468,8 @@ void UIManager::Render(bool bScreenshotMode)
 
 	NEW_LAYER_WINDOW.Render();
 
+	RenderLayerDebugInfo(DebugGrid);
+
 	if (UI.bShouldOpenProgressPopup)
 	{
 		UI.bShouldOpenProgressPopup = false;
@@ -1764,6 +1766,7 @@ void UIManager::InitDebugGrid(size_t JitterIndex)
 
 	delete DebugGrid;
 	DebugGrid = new MeasurementGrid();
+	DebugGrid->AddOnSelectedCellChangedCallback(OnDebugGridSelectedCellChanged);
 
 	GridInitData_Jitter* CurrentSettings = &UsedSettings[JitterIndex];
 	FEAABB FinalAABB = JITTER_MANAGER.GetAABBForJitteredGrid(CurrentSettings, CurrentLayerResolutionInM);
@@ -2069,13 +2072,14 @@ void UIManager::RenderGeneralSettingsTab()
 
 			ImGui::Text("Visualization of Grid:");
 
-			if (ImGui::RadioButton("Do not draw", &DebugGrid->RenderingMode, 0))
+			int TempRenderingMode = DebugGrid->RenderingMode;
+			if (ImGui::RadioButton("Do not draw", &TempRenderingMode, 0))
 			{
 				UpdateRenderingMode(DebugGrid, 0);
 			}
 
 			std::string CurrentGeometryType = ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? "triangles" : "points";
-			if (ImGui::RadioButton(("Show cells with " + CurrentGeometryType).c_str(), &DebugGrid->RenderingMode, 1))
+			if (ImGui::RadioButton(("Show cells with " + CurrentGeometryType).c_str(), &TempRenderingMode, 1))
 			{
 #ifdef NEW_LINES
 				InitDebugGrid(CurrentJitterStepIndexVisualize);
@@ -2083,7 +2087,7 @@ void UIManager::RenderGeneralSettingsTab()
 				UpdateRenderingMode(DebugGrid, 1);
 			}
 
-			if (ImGui::RadioButton("Show all cells", &DebugGrid->RenderingMode, 2))
+			if (ImGui::RadioButton("Show all cells", &TempRenderingMode, 2))
 			{
 				UpdateRenderingMode(DebugGrid, 2);
 			}
@@ -2549,13 +2553,25 @@ MeasurementGrid* UIManager::GetDebugGrid()
 
 void UIManager::UpdateRenderingMode(MeasurementGrid* Grid, int NewRenderingMode)
 {
+	if (Grid == nullptr)
+		return;
+
 	if (NewRenderingMode < 0)
 		return;
 
+	if (Grid->RenderingMode != NewRenderingMode)
+		Grid->ClearSelection();
+
 	Grid->RenderingMode = NewRenderingMode;
 	Grid->UpdateLineRepresentation();
+}
 
-	if (NewRenderingMode == 0)
+void UIManager::RenderLayerDebugInfo(MeasurementGrid* Grid)
+{
+	if (Grid == nullptr)
+		return;
+
+	if (Grid->RenderingMode == 0)
 		return;
 
 	DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
@@ -2578,7 +2594,7 @@ void UIManager::UpdateRenderingMode(MeasurementGrid* Grid, int NewRenderingMode)
 			VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
 			break;
 		}
-		
+
 		case LAYER_TYPE::FRACTAL_DIMENSION:
 		{
 			FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
@@ -2588,6 +2604,12 @@ void UIManager::UpdateRenderingMode(MeasurementGrid* Grid, int NewRenderingMode)
 		case LAYER_TYPE::POINT_DENSITY:
 		{
 			POINT_DENSITY_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
+			break;
+		}
+
+		case LAYER_TYPE::STRUCTURAL_ROUGHNESS:
+		{
+			STRUCTURAL_ROUGHNESS_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
 			break;
 		}
 
@@ -2712,4 +2734,17 @@ void UIManager::UpdateMeshSelectedTrianglesRendering()
 void UIManager::CleanUpSelectionLinesComponent()
 {
 	MAIN_SCENE_MANAGER.ClearLinesFromEntity(SelectionLinesEntity);
+}
+
+void UIManager::AddOnDebugGridSelectedCellChangedCallback(std::function<void(glm::vec3 SelectedCellIndex)> Callback)
+{
+	ClientOnDebugGridSelectedCellChangedCallbacks.push_back(Callback);
+}
+
+void UIManager::OnDebugGridSelectedCellChanged(glm::vec3 NewSelectedCell)
+{
+	for (const auto& Callback : UI.ClientOnDebugGridSelectedCellChangedCallbacks)
+	{
+		Callback(NewSelectedCell);
+	}
 }

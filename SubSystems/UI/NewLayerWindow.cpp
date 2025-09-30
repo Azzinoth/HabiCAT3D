@@ -18,6 +18,9 @@ NewLayerWindow::NewLayerWindow()
 	LayerTypeToName[LAYER_TYPE::COMPARE] = "Compare layers";
 
 	LayerTypeToName[LAYER_TYPE::POINT_DENSITY] = "Point density";
+	LayerTypeToName[LAYER_TYPE::STRUCTURAL_ROUGHNESS] = "Structural roughness";
+
+	ANALYSIS_OBJECT_MANAGER.AddOnActiveObjectChangeCallback(&NewLayerWindow::OnActiveObjectChange);
 };
 
 NewLayerWindow::~NewLayerWindow() {};
@@ -37,11 +40,18 @@ void NewLayerWindow::Close()
 
 void NewLayerWindow::Render()
 {
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+	{
+		InternalClose();
+		return;
+	}
+
 	CheckAvailableDataSources();
 
 	if (SelectedLayerType != LAYER_TYPE::UNKNOWN)
 	{
-		const DATA_SOURCE_TYPE RequiredDataSource = DataLayer::GetDataSourceTypeForLayerType(SelectedLayerType);
+		const std::vector<DATA_SOURCE_TYPE> RequiredDataSource = DataLayer::GetDataSourceTypeForLayerType(SelectedLayerType);
 
 		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 		if (CurrentObject == nullptr)
@@ -51,10 +61,18 @@ void NewLayerWindow::Render()
 		}
 		else
 		{
-			if (CurrentObject->GetType() != CurrentDataSource || RequiredDataSource != CurrentDataSource)
+			// If the current object type is not compatible with the selected layer type, reset the selection.
+			// Or if the required data source is not compatible with the current data source, reset the selection.
+			for (size_t i = 0; i < RequiredDataSource.size(); i++)
 			{
-				SelectedLayerType = LAYER_TYPE::UNKNOWN;
-				CurrentDataSource = DATA_SOURCE_TYPE::UNKNOWN;
+				if (RequiredDataSource[i] == CurrentObject->GetType())
+					break;
+
+				if (i == RequiredDataSource.size() - 1)
+				{
+					SelectedLayerType = LAYER_TYPE::UNKNOWN;
+					CurrentDataSource = DATA_SOURCE_TYPE::UNKNOWN;
+				}
 			}
 		}
 	}
@@ -86,7 +104,7 @@ void NewLayerWindow::Render()
 				{
 					LAYER_TYPE OldLayerType = SelectedLayerType;
 					SelectedLayerType = AvailableLayerTypes[i];
-					CurrentDataSource = DataLayer::GetDataSourceTypeForLayerType(SelectedLayerType);
+					CurrentDataSource = ActiveObject->GetType();
 					OnLayerTypeChanged(OldLayerType);
 				}
 
@@ -246,22 +264,23 @@ void NewLayerWindow::AddLayer()
 		}
 		case LAYER_TYPE::FRACTAL_DIMENSION:
 		{
-			if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
-			{
-				InternalClose();
-				return;
-			}
-
-			MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 			if (bRunOnWholeModel)
 			{
-				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel();
-				CurrentMeshAnalysisData->SetHeatMapType(-1);
+				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnEntireObject();
+				if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
+				{
+					MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+					CurrentMeshAnalysisData->SetHeatMapType(-1);
+				}
 			}
 			else
 			{
 				FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-				CurrentMeshAnalysisData->SetHeatMapType(5);
+				if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
+				{
+					MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+					CurrentMeshAnalysisData->SetHeatMapType(5);
+				}
 			}
 
 			InternalClose();
@@ -301,6 +320,20 @@ void NewLayerWindow::AddLayer()
 		{
 			POINT_DENSITY_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
 			
+			InternalClose();
+			break;
+		}
+		case LAYER_TYPE::STRUCTURAL_ROUGHNESS:
+		{
+			if (bRunOnWholeModel)
+			{
+				STRUCTURAL_ROUGHNESS_LAYER_PRODUCER.CalculateOnEntireObject();
+			}
+			else
+			{
+				STRUCTURAL_ROUGHNESS_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
+			}
+
 			InternalClose();
 			break;
 		}
@@ -488,9 +521,17 @@ void NewLayerWindow::RenderVectorDispersionSettings()
 
 void NewLayerWindow::RenderFractalDimentionSettings()
 {
-	bool TempBool = FRACTAL_DIMENSION_LAYER_PRODUCER.GetShouldFilterFractalDimensionValues();
-	ImGui::Checkbox("Filter FD outliers", &TempBool);
-	FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldFilterFractalDimensionValues(TempBool);
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
+
+	bool TempBool = false;
+	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
+	{
+		TempBool = FRACTAL_DIMENSION_LAYER_PRODUCER.GetShouldFilterFractalDimensionValues();
+		ImGui::Checkbox("Filter FD outliers", &TempBool);
+		FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldFilterFractalDimensionValues(TempBool);
+	}
 
 	TempBool = FRACTAL_DIMENSION_LAYER_PRODUCER.GetShouldCalculateStandardDeviation();
 	ImGui::Checkbox("Add standard deviation layer.", &TempBool);
@@ -625,6 +666,11 @@ void NewLayerWindow::RenderSettings()
 			RenderPointDensitySettings();
 			break;
 		}
+		case LAYER_TYPE::STRUCTURAL_ROUGHNESS:
+		{
+			RenderCellSizeSettings();
+			break;
+		}
 	}
 }
 
@@ -662,6 +708,10 @@ void NewLayerWindow::OnLayerTypeChanged(LAYER_TYPE OldLayerType)
 			double StartingResolution = JITTER_MANAGER.GetLowestPossibleResolution() + (JITTER_MANAGER.GetHighestPossibleResolution() - JITTER_MANAGER.GetLowestPossibleResolution()) / 2.0f;
 			JITTER_MANAGER.SetResolutionInM(static_cast<float>(StartingResolution));
 
+			AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+			if (ActiveObject != nullptr)
+				FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldFilterFractalDimensionValues(ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? true : false);
+			
 			break;
 		}
 		case LAYER_TYPE::COMPARE:
@@ -697,5 +747,13 @@ void NewLayerWindow::CheckAvailableDataSources()
 	{
 		AvailableDataSources.push_back(DATA_SOURCE_TYPE::POINT_CLOUD);
 		AvailableLayerTypes.push_back(LAYER_TYPE::POINT_DENSITY);
+		AvailableLayerTypes.push_back(LAYER_TYPE::FRACTAL_DIMENSION);
+		AvailableLayerTypes.push_back(LAYER_TYPE::STRUCTURAL_ROUGHNESS);
 	}
+}
+
+void NewLayerWindow::OnActiveObjectChange(AnalysisObject* NewObject)
+{
+	NEW_LAYER_WINDOW.SelectedLayerType = LAYER_TYPE::UNKNOWN;
+	NEW_LAYER_WINDOW.CurrentDataSource = DATA_SOURCE_TYPE::UNKNOWN;
 }

@@ -52,7 +52,8 @@ enum class LAYER_TYPE
 	TRIANGLE_DENSITY = 9,
 
 	// Point cloud specific types
-	POINT_DENSITY = 10
+	POINT_DENSITY = 10,
+	STRUCTURAL_ROUGHNESS = 11
 };
 
 class DataLayer
@@ -84,7 +85,7 @@ public:
 	DataLayer(std::vector<std::string> ParentIDs, std::vector<float> ElementsToData);
 	~DataLayer();
 
-	static DATA_SOURCE_TYPE GetDataSourceTypeForLayerType(LAYER_TYPE Type);
+	static std::vector<DATA_SOURCE_TYPE> GetDataSourceTypeForLayerType(LAYER_TYPE Type);
 
 	void FillRawData();
 

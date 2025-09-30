@@ -425,7 +425,7 @@ public:
 	static void OnAnalysisObjectDeleted(AnalysisObject* DeletedObject);
 
 	void CalculateWithGridJitterAsync(std::function<void(GridNode* CurrentNode)> Func, bool bSmootherResult = false);
-	void CalculateOnWholeModel(std::function<void(GridNode* CurrentNode)> Func);
+	void CalculateOnEntireObject(std::function<void(GridNode* CurrentNode)> Func);
 	void SetOnCalculationsStartCallback(std::function<void()> Func);
 	void SetOnCalculationsEndCallback(std::function<void(DataLayer*)> Func);
 
@@ -522,7 +522,7 @@ private:
 	static void RunCalculationOnGridAsync(void* InputDataf, void* OutputData);
 	static void AfterCalculationFinishGridCallback(void* OutputData);
 	void MoveResultDataFromGrid(MeasurementGrid* Grid);
-	void RunCalculationOnWholeModel(MeasurementGrid* ResultGrid);
+	void RunCalculationOnEntireObject(MeasurementGrid* ResultGrid);
 
 	static void OnCalculationsStart();
 	static void OnCalculationsEnd();

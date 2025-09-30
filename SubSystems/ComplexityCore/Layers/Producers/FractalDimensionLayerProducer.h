@@ -10,7 +10,7 @@ public:
 	SINGLETON_PUBLIC_PART(FractalDimensionLayerProducer)
 
 	void CalculateWithJitterAsync(bool bSmootherResult);
-	void CalculateOnWholeModel();
+	void CalculateOnEntireObject();
 	void RenderDebugInfoForSelectedNode(MeasurementGrid* Grid);
 	void RenderDebugInfoWindow(MeasurementGrid* Grid);
 
@@ -42,7 +42,9 @@ private:
 	static void(*OnCalculationsEndCallbackImpl)(DataLayer*);
 
 	// Used to not repeat same code for main calculations and for debug info rendering
-	double RunOnAllInternalNodesWithTriangles(GridNode* OuterNode, std::function<void(int BoxSizeIndex, FEAABB BoxAABB)> FunctionWithAdditionalCode = nullptr);
+	double RunOnAllInternalNodesWithData(GridNode* OuterNode, std::function<void(int BoxSizeIndex, FEAABB BoxAABB)> FunctionWithAdditionalCode = nullptr);
+	void UpdateDebugBoxes(glm::vec3 SelectedCell);
+	static void OnDebugGridSelectedCellChanged(glm::vec3 NewSelectedCell);
 };
 
 #define FRACTAL_DIMENSION_LAYER_PRODUCER FractalDimensionLayerProducer::GetInstance()

@@ -441,7 +441,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 
 		if (Settings.IsRunOnWholeModel())
 		{
-			FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnWholeModel();
+			FRACTAL_DIMENSION_LAYER_PRODUCER.CalculateOnEntireObject();
 		}
 		else
 		{

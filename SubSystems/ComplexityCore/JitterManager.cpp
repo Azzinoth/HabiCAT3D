@@ -584,7 +584,7 @@ void JitterManager::SetFallbackValue(float NewValue)
 	FallbackValue = NewValue;
 }
 
-void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* CurrentNode)> Func)
+void JitterManager::CalculateOnEntireObject(std::function<void(GridNode* CurrentNode)> Func)
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
@@ -622,31 +622,33 @@ void JitterManager::CalculateOnWholeModel(std::function<void(GridNode* CurrentNo
 	MeasurementGrid* OutputData = new MeasurementGrid();
 	LastUsedGrid = OutputData;
 
-	RunCalculationOnWholeModel(OutputData);
+	RunCalculationOnEntireObject(OutputData);
 	AfterCalculationFinishGridCallback(OutputData);
 
 	JITTER_MANAGER.SetResolutionInM(JITTER_MANAGER.GetLowestPossibleResolution());
 }
 
-void JitterManager::RunCalculationOnWholeModel(MeasurementGrid* ResultGrid)
+void JitterManager::RunCalculationOnEntireObject(MeasurementGrid* ResultGrid)
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
+	ResourceAnalysisData* AnalysisData = ActiveObject->GetAnalysisData();
+	if (AnalysisData == nullptr)
 		return;
 
-	FEAABB MeshAABB = CurrentMeshAnalysisData->GetAABB();
+	glm::mat4 TransformMatrix = glm::identity<glm::mat4>();
+	TransformMatrix = glm::scale(TransformMatrix, glm::vec3(DEFAULT_GRID_SIZE + GRID_VARIANCE / 100.0f));
+	FEAABB AABBToUse = AnalysisData->GetAABB();
 
-	const glm::vec3 Center = MeshAABB.GetCenter() ;
-	const FEAABB GridAABB = FEAABB(Center - glm::vec3(MeshAABB.GetLongestAxisLength() / 2.0f), Center + glm::vec3(MeshAABB.GetLongestAxisLength() / 2.0f));
-	MeshAABB = GridAABB;
+	const glm::vec3 Center = AABBToUse.GetCenter();
+	const FEAABB GridAABB = FEAABB(Center - glm::vec3(AABBToUse.GetLongestAxisLength() / 2.0f), Center + glm::vec3(AABBToUse.GetLongestAxisLength() / 2.0f));
+	AABBToUse = GridAABB;
 
-	ResultGrid->Init(MeshAABB, -1);
+	ResultGrid->Init(AABBToUse, -1);
 
-	ResultGrid->FillCellsWithTriangleInfo();
+	ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? ResultGrid->FillCellsWithTriangleInfo() : ResultGrid->FillCellsWithPointInfo();
 	TIME.BeginTimeStamp("Calculate CurrentFunc");
 	ResultGrid->RunOnAllNodes(JITTER_MANAGER.CurrentFunc);
 	ResultGrid->TimeTakenToCalculate = static_cast<float>(TIME.EndTimeStamp("Calculate CurrentFunc"));

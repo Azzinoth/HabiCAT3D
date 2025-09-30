@@ -1,11 +1,14 @@
 #include "FractalDimensionLayerProducer.h"
 using namespace FocalEngine;
+#include "../../../UI/UIManager.h"
 
 void(*FractalDimensionLayerProducer::OnCalculationsEndCallbackImpl)(DataLayer*) = nullptr;
 
 FractalDimensionLayerProducer::FractalDimensionLayerProducer()
 {
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
+	if (!APPLICATION.HasConsoleWindow())
+		UI.AddOnDebugGridSelectedCellChangedCallback(OnDebugGridSelectedCellChanged);
 }
 
 FractalDimensionLayerProducer::~FractalDimensionLayerProducer() {}
@@ -40,7 +43,7 @@ std::vector<double> GenerateBoxSizes(double MinSize, double MaxSize, double Fact
 
 void FractalDimensionLayerProducer::WorkOnNode(GridNode* CurrentNode)
 {
-	double FractalDimension = FRACTAL_DIMENSION_LAYER_PRODUCER.RunOnAllInternalNodesWithTriangles(CurrentNode);
+	double FractalDimension = FRACTAL_DIMENSION_LAYER_PRODUCER.RunOnAllInternalNodesWithData(CurrentNode);
 
 	if (isnan(FractalDimension))
 		FractalDimension = 0;
@@ -75,7 +78,7 @@ void FractalDimensionLayerProducer::CalculateWithJitterAsync(bool bSmootherResul
 		});
 	}
 		
-	JITTER_MANAGER.SetFallbackValue(2.0f);
+	JITTER_MANAGER.SetFallbackValue(ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? 2.0f : 0.0f);
 	JITTER_MANAGER.CalculateWithGridJitterAsync(WorkOnNode, bSmootherResult);
 }
 
@@ -123,52 +126,10 @@ void FractalDimensionLayerProducer::OnJitterCalculationsEnd(DataLayer* NewLayer)
 
 void FractalDimensionLayerProducer::RenderDebugInfoForSelectedNode(MeasurementGrid* Grid)
 {
-	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (ActiveObject == nullptr)
-		return;
-
-	FEEntity* ActiveEntity = ActiveObject->GetEntity();
-	if (ActiveEntity == nullptr)
-		return;
-
-	// FIX ME: Should also work for point clouds.
-	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
-		return;
-
 	if (Grid == nullptr || Grid->SelectedCell == glm::vec3(-1.0))
 		return;
 
-	Grid->UpdateLineRepresentation();
-
-	GridNode* CurrentNode = &Grid->Data[int(Grid->SelectedCell.x)][int(Grid->SelectedCell.y)][int(Grid->SelectedCell.z)];
-
-	std::vector<FELine> LinesToRender;
-	double FractalDimension = RunOnAllInternalNodesWithTriangles(CurrentNode, [&](int BoxSizeIndex, FEAABB BoxAABB) {
-		if (BoxSizeIndex == DebugBoxSizeIndex)
-		{
-			std::vector<FELine> AABBLines = GEOMETRY.GetAABBEdges(BoxAABB);
-			for (size_t i = 0; i < AABBLines.size(); i++)
-			{
-				AABBLines[i].Color = glm::vec3(1.0, 0.0, 0.0);
-				AABBLines[i].Width = 0.2f;
-				LinesToRender.push_back(AABBLines[i]);
-			}
-			DebugBoxCount++;
-		}
-	});
-
-	MAIN_SCENE_MANAGER.AddLinesToEntity(&DebugLinesEntity, LinesToRender);
-	if (DebugLinesEntity != nullptr && DebugLinesEntity->GetParentEntity() != ActiveEntity)
-		ActiveEntity->AttachChild(DebugLinesEntity, false);
-
-	if (isnan(FractalDimension))
-		FractalDimension = 0;
-
-	DebugFractalDimension = FractalDimension;
-	/*DebugLogInverseSizes = LogInverseSizes;
-	DebugLogCounts = LogCounts;
-	DebugCounts = Counts;*/
+	RenderDebugInfoWindow(Grid);
 }
 
 void FractalDimensionLayerProducer::RenderDebugInfoWindow(MeasurementGrid* Grid)
@@ -181,17 +142,16 @@ void FractalDimensionLayerProducer::RenderDebugInfoWindow(MeasurementGrid* Grid)
 
 			if (ImGui::BeginCombo("Box sizes depth", BoxSizeStrings[DebugBoxSizeIndex].c_str()))
 			{
-				for (int n = 0; n < 4; n++)
+				for (int BoxSizeIndex = 0; BoxSizeIndex < 4; BoxSizeIndex++)
 				{
-					bool isSelected = (DebugBoxSizeIndex == n);
-
-					if (ImGui::Selectable(BoxSizeStrings[n].c_str(), isSelected))
+					bool bIsSelected = (DebugBoxSizeIndex == BoxSizeIndex);
+					if (ImGui::Selectable(BoxSizeStrings[BoxSizeIndex].c_str(), bIsSelected))
 					{
-						DebugBoxSizeIndex = n;
-						FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
+						DebugBoxSizeIndex = BoxSizeIndex;
+						FRACTAL_DIMENSION_LAYER_PRODUCER.UpdateDebugBoxes(Grid->SelectedCell);
 					}
 
-					if (isSelected)
+					if (bIsSelected)
 						ImGui::SetItemDefaultFocus();
 				}
 				ImGui::EndCombo();
@@ -224,7 +184,7 @@ void FractalDimensionLayerProducer::RenderDebugInfoWindow(MeasurementGrid* Grid)
 	}
 }
 
-void FractalDimensionLayerProducer::CalculateOnWholeModel()
+void FractalDimensionLayerProducer::CalculateOnEntireObject()
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
@@ -234,12 +194,21 @@ void FractalDimensionLayerProducer::CalculateOnWholeModel()
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	// Before each run, we set the IgnoreValueFunction relevant to the fractal dimension calculation.
-	JITTER_MANAGER.SetIgnoreValueFunction([](float Value) -> bool {
-		return Value < 2.0f;
-	});
+	if (bFilterFractalDimensionValues)
+	{
+		JITTER_MANAGER.SetIgnoreValueFunction([](float Value) -> bool {
+			return Value < 2.0f;
+		});
+	}
+	else
+	{
+		JITTER_MANAGER.SetIgnoreValueFunction([](float Value) -> bool {
+			return false;
+		});
+	}
 
-	JITTER_MANAGER.SetFallbackValue(2.0f);
-	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
+	JITTER_MANAGER.SetFallbackValue(ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? 2.0f : 0.0f);
+	JITTER_MANAGER.CalculateOnEntireObject(WorkOnNode);
 }
 
 void FractalDimensionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(DataLayer*))
@@ -267,18 +236,27 @@ void FractalDimensionLayerProducer::SetShouldCalculateStandardDeviation(bool New
 	bCalculateStandardDeviation = NewValue;
 }
 
-double FractalDimensionLayerProducer::RunOnAllInternalNodesWithTriangles(GridNode* OuterNode, std::function<void(int BoxSizeIndex, FEAABB BoxAABB)> FunctionWithAdditionalCode)
+double FractalDimensionLayerProducer::RunOnAllInternalNodesWithData(GridNode* OuterNode, std::function<void(int BoxSizeIndex, FEAABB BoxAABB)> FunctionWithAdditionalCode)
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
 		return 0.0;
 
-	// FIX ME: Should also work for point clouds.
-	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
+	DATA_SOURCE_TYPE CurrentType = ActiveObject->GetType();
+
+	ResourceAnalysisData* CurrentAnalysisData = ActiveObject->GetAnalysisData();
+	if (CurrentAnalysisData == nullptr)
 		return 0.0;
 
-	if (OuterNode->TrianglesInCell.empty())
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+	if (CurrentType == DATA_SOURCE_TYPE::MESH && CurrentMeshAnalysisData == nullptr)
+		return 0.0;
+	PointCloudAnalysisData* CurrentPointCloudAnalysisData = ActiveObject->GetPointCloudAnalysisData();
+	if (CurrentType == DATA_SOURCE_TYPE::POINT_CLOUD && CurrentPointCloudAnalysisData == nullptr)
+		return 0.0;
+
+	if (CurrentType == DATA_SOURCE_TYPE::MESH && OuterNode->TrianglesInCell.empty() ||
+		CurrentType == DATA_SOURCE_TYPE::POINT_CLOUD && OuterNode->PointsInCell.empty())
 		return 0.0;
 
 	// Generate a sequence of box sizes
@@ -305,37 +283,60 @@ double FractalDimensionLayerProducer::RunOnAllInternalNodesWithTriangles(GridNod
 		int Count = 0;
 		std::vector<std::vector<std::vector<bool>>> Grid(GridX, std::vector<std::vector<bool>>(GridY, std::vector<bool>(GridZ, false)));
 
-		// Iterate through all the triangles
-		for (size_t j = 0; j < OuterNode->TrianglesInCell.size(); j++)
+		size_t ElementCount = CurrentType == DATA_SOURCE_TYPE::MESH ? OuterNode->TrianglesInCell.size() : OuterNode->PointsInCell.size();
+		// Iterate through all geometry elements (triangles or points).
+		for (size_t j = 0; j < ElementCount; j++)
 		{
-			std::vector<glm::dvec3> CurrentTriangle = CurrentMeshAnalysisData->Triangles[OuterNode->TrianglesInCell[j]];
-
-			// Calculate the grid cells that the triangle intersects or is contained in
-			FEAABB TriangleBBox = FEAABB(CurrentTriangle);
-			int MinGridX = static_cast<int>((TriangleBBox.GetMin()[0] - OuterNode->AABB.GetMin()[0]) / BoxSize);
-			int MinGridY = static_cast<int>((TriangleBBox.GetMin()[1] - OuterNode->AABB.GetMin()[1]) / BoxSize);
-			int MinGridZ = static_cast<int>((TriangleBBox.GetMin()[2] - OuterNode->AABB.GetMin()[2]) / BoxSize);
-			int MaxGridX = static_cast<int>((TriangleBBox.GetMax()[0] - OuterNode->AABB.GetMin()[0]) / BoxSize);
-			int MaxGridY = static_cast<int>((TriangleBBox.GetMax()[1] - OuterNode->AABB.GetMin()[1]) / BoxSize);
-			int MaxGridZ = static_cast<int>((TriangleBBox.GetMax()[2] - OuterNode->AABB.GetMin()[2]) / BoxSize);
-
-			for (int x = MinGridX; x <= MaxGridX; ++x)
+			int MinGridX = 0, MinGridY = 0, MinGridZ = 0, MaxGridX = 0, MaxGridY = 0, MaxGridZ = 0;
+			std::vector<glm::dvec3> CurrentTriangle;
+			glm::dvec3 CurrentPoint;
+			if (CurrentType == DATA_SOURCE_TYPE::MESH)
 			{
-				for (int y = MinGridY; y <= MaxGridY; ++y)
+				CurrentTriangle = CurrentMeshAnalysisData->Triangles[OuterNode->TrianglesInCell[j]];
+
+				FEAABB TriangleBBox = FEAABB(CurrentTriangle);
+				MinGridX = static_cast<int>((TriangleBBox.GetMin()[0] - OuterNode->AABB.GetMin()[0]) / BoxSize);
+				MinGridY = static_cast<int>((TriangleBBox.GetMin()[1] - OuterNode->AABB.GetMin()[1]) / BoxSize);
+				MinGridZ = static_cast<int>((TriangleBBox.GetMin()[2] - OuterNode->AABB.GetMin()[2]) / BoxSize);
+				MaxGridX = static_cast<int>((TriangleBBox.GetMax()[0] - OuterNode->AABB.GetMin()[0]) / BoxSize);
+				MaxGridY = static_cast<int>((TriangleBBox.GetMax()[1] - OuterNode->AABB.GetMin()[1]) / BoxSize);
+				MaxGridZ = static_cast<int>((TriangleBBox.GetMax()[2] - OuterNode->AABB.GetMin()[2]) / BoxSize);
+			}
+			else if (CurrentType == DATA_SOURCE_TYPE::POINT_CLOUD)
+			{
+				CurrentPoint = glm::dvec3(CurrentPointCloudAnalysisData->RawPointCloudData[OuterNode->PointsInCell[j]].X,
+										  CurrentPointCloudAnalysisData->RawPointCloudData[OuterNode->PointsInCell[j]].Y,
+										  CurrentPointCloudAnalysisData->RawPointCloudData[OuterNode->PointsInCell[j]].Z);
+
+				// FIX ME: Ensure that magic numbers are not needed here.
+				// They are the same as in grid filling.
+				MinGridX = static_cast<int>((CurrentPoint[0] - OuterNode->AABB.GetMin()[0]) / BoxSize) - 2;
+				MinGridY = static_cast<int>((CurrentPoint[1] - OuterNode->AABB.GetMin()[1]) / BoxSize) - 2;
+				MinGridZ = static_cast<int>((CurrentPoint[2] - OuterNode->AABB.GetMin()[2]) / BoxSize) - 2;
+				MaxGridX = MinGridX + 3;
+				MaxGridY = MinGridY + 3;
+				MaxGridZ = MinGridZ + 3;
+			}
+
+			for (int X = MinGridX; X <= MaxGridX; ++X)
+			{
+				for (int Y = MinGridY; Y <= MaxGridY; ++Y)
 				{
-					for (int z = MinGridZ; z <= MaxGridZ; ++z)
+					for (int Z = MinGridZ; Z <= MaxGridZ; ++Z)
 					{
-						if (x >= 0 && x < GridX && y >= 0 && y < GridY && z >= 0 && z < GridZ)
+						if (X >= 0 && X < GridX && Y >= 0 && Y < GridY && Z >= 0 && Z < GridZ)
 						{
-							if (!Grid[x][y][z])
+							if (!Grid[X][Y][Z])
 							{
-								glm::vec3 BoxMin(x * BoxSize + OuterNode->AABB.GetMin()[0], y * BoxSize + OuterNode->AABB.GetMin()[1], z * BoxSize + OuterNode->AABB.GetMin()[2]);
-								glm::vec3 BoxMax((x + 1) * BoxSize + OuterNode->AABB.GetMin()[0], (y + 1) * BoxSize + OuterNode->AABB.GetMin()[1], (z + 1) * BoxSize + OuterNode->AABB.GetMin()[2]);
+								glm::vec3 BoxMin(X * BoxSize + OuterNode->AABB.GetMin()[0], Y * BoxSize + OuterNode->AABB.GetMin()[1], Z * BoxSize + OuterNode->AABB.GetMin()[2]);
+								glm::vec3 BoxMax((X + 1) * BoxSize + OuterNode->AABB.GetMin()[0], (Y + 1) * BoxSize + OuterNode->AABB.GetMin()[1], (Z + 1) * BoxSize + OuterNode->AABB.GetMin()[2]);
 								FEAABB Box(BoxMin, BoxMax);
 
-								if (GEOMETRY.IsAABBIntersectTriangle(Box, CurrentTriangle))
+								bool bIntersects = false;
+								bIntersects = CurrentType == DATA_SOURCE_TYPE::MESH ? GEOMETRY.IsAABBIntersectTriangle(Box, CurrentTriangle) : Box.ContainsPoint(CurrentPoint);
+								if (bIntersects)
 								{
-									Grid[x][y][z] = true;
+									Grid[X][Y][Z] = true;
 									Count++;
 
 									if (FunctionWithAdditionalCode != nullptr)
@@ -352,15 +353,83 @@ double FractalDimensionLayerProducer::RunOnAllInternalNodesWithTriangles(GridNod
 			}
 		}
 
-		// Store the logarithm values for linear regression
+		// Store the logarithm values for linear regression.
 		LogInverseSizes.push_back(std::log10(1.0 / BoxSize));
 		Counts.push_back(Count);
 		LogCounts.push_back(std::log10(static_cast<double>(Count)));
 	}
 
-	// Perform linear regression to estimate the fractal dimension
+	// Perform linear regression to estimate the fractal dimension.
 	std::pair<double, double> Coefficients = LinearRegression(LogInverseSizes, LogCounts);
 	double FractalDimension = Coefficients.first;
 
 	return FractalDimension;
+}
+
+void FractalDimensionLayerProducer::UpdateDebugBoxes(glm::vec3 SelectedCell)
+{
+	MeasurementGrid* DebugGrid = UI.GetDebugGrid();
+	if (DebugGrid == nullptr)
+	{
+		MAIN_SCENE_MANAGER.ClearLinesFromEntity(FRACTAL_DIMENSION_LAYER_PRODUCER.DebugLinesEntity);
+		return;
+	}
+
+	if (SelectedCell == glm::vec3(-1.0))
+	{
+		MAIN_SCENE_MANAGER.ClearLinesFromEntity(FRACTAL_DIMENSION_LAYER_PRODUCER.DebugLinesEntity);
+		return;
+	}
+
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+	{
+		MAIN_SCENE_MANAGER.ClearLinesFromEntity(FRACTAL_DIMENSION_LAYER_PRODUCER.DebugLinesEntity);
+		return;
+	}
+
+	FEEntity* ActiveEntity = ActiveObject->GetEntity();
+	if (ActiveEntity == nullptr)
+	{
+		MAIN_SCENE_MANAGER.ClearLinesFromEntity(FRACTAL_DIMENSION_LAYER_PRODUCER.DebugLinesEntity);
+		return;
+	}
+
+	DataLayer* ActiveLayer = ActiveObject->GetActiveLayer();
+	if (ActiveLayer == nullptr || ActiveLayer->GetType() != LAYER_TYPE::FRACTAL_DIMENSION)
+	{
+		MAIN_SCENE_MANAGER.ClearLinesFromEntity(FRACTAL_DIMENSION_LAYER_PRODUCER.DebugLinesEntity);
+		return;
+	}
+
+	GridNode* CurrentNode = &DebugGrid->Data[int(DebugGrid->SelectedCell.x)][int(DebugGrid->SelectedCell.y)][int(DebugGrid->SelectedCell.z)];
+
+	std::vector<FELine> LinesToRender;
+	double FractalDimension = FRACTAL_DIMENSION_LAYER_PRODUCER.RunOnAllInternalNodesWithData(CurrentNode, [&](int BoxSizeIndex, FEAABB BoxAABB) {
+		if (BoxSizeIndex == FRACTAL_DIMENSION_LAYER_PRODUCER.DebugBoxSizeIndex)
+		{
+			std::vector<FELine> AABBLines = GEOMETRY.GetAABBEdges(BoxAABB);
+			for (size_t i = 0; i < AABBLines.size(); i++)
+			{
+				AABBLines[i].Color = glm::vec3(1.0, 0.0, 0.0);
+				AABBLines[i].Width = 0.2f;
+				LinesToRender.push_back(AABBLines[i]);
+			}
+			FRACTAL_DIMENSION_LAYER_PRODUCER.DebugBoxCount++;
+		}
+	});
+
+	MAIN_SCENE_MANAGER.AddLinesToEntity(&FRACTAL_DIMENSION_LAYER_PRODUCER.DebugLinesEntity, LinesToRender);
+	if (FRACTAL_DIMENSION_LAYER_PRODUCER.DebugLinesEntity != nullptr && FRACTAL_DIMENSION_LAYER_PRODUCER.DebugLinesEntity->GetParentEntity() != ActiveEntity)
+		ActiveEntity->AttachChild(FRACTAL_DIMENSION_LAYER_PRODUCER.DebugLinesEntity, false);
+
+	if (isnan(FractalDimension))
+		FractalDimension = 0;
+
+	FRACTAL_DIMENSION_LAYER_PRODUCER.DebugFractalDimension = FractalDimension;
+}
+
+void FractalDimensionLayerProducer::OnDebugGridSelectedCellChanged(glm::vec3 NewSelectedCell)
+{
+	FRACTAL_DIMENSION_LAYER_PRODUCER.UpdateDebugBoxes(NewSelectedCell);
 }

@@ -77,6 +77,8 @@ file(GLOB SubSystems_Layers_Producers_SRC
 	"SubSystems/ComplexityCore/Layers/Producers/TriangleCountLayerProducer.h"
 	"SubSystems/ComplexityCore/Layers/Producers/PointDensityLayerProducer.cpp"
 	"SubSystems/ComplexityCore/Layers/Producers/PointDensityLayerProducer.h"
+	"SubSystems/ComplexityCore/Layers/Producers/StructuralRoughnessLayerProducer.cpp"
+	"SubSystems/ComplexityCore/Layers/Producers/StructuralRoughnessLayerProducer.h"
 )
 
 file(GLOB SubSystems_Layers_SRC

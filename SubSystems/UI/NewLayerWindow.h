@@ -9,6 +9,7 @@
 #include "../ComplexityCore/Layers/Producers/TriangleCountLayerProducer.h"
 
 #include "../ComplexityCore/Layers/Producers/PointDensityLayerProducer.h"
+#include "../ComplexityCore/Layers/Producers/StructuralRoughnessLayerProducer.h"
 
 class NewLayerWindow
 {
@@ -52,6 +53,8 @@ class NewLayerWindow
 
 	void RenderSettings();
 	void OnLayerTypeChanged(LAYER_TYPE OldLayerType);
+
+	static void OnActiveObjectChange(AnalysisObject* NewObject);
 public:
 	SINGLETON_PUBLIC_PART(NewLayerWindow)
 

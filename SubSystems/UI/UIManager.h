@@ -68,6 +68,8 @@ public:
 	bool ExportOBJ(std::string FilePath, int LayerIndex);
 
 	void UpdateMeshSelectedTrianglesRendering();
+
+	void AddOnDebugGridSelectedCellChangedCallback(std::function<void(glm::vec3 SelectedCellIndex)> Callback);
 private:
 	SINGLETON_PRIVATE_PART(UIManager)
 
@@ -153,6 +155,10 @@ private:
 	void AdjustCameraNearFarPlanes();
 	void ModelCameraAdjustment(AnalysisObject* Object = nullptr);
 	void FreeCameraAdjustment(AnalysisObject* Object = nullptr);
+
+	void RenderLayerDebugInfo(MeasurementGrid* Grid);
+	static void OnDebugGridSelectedCellChanged(glm::vec3 NewSelectedCell);
+	std::vector<std::function<void(glm::vec3 SelectedCellIndex)>> ClientOnDebugGridSelectedCellChangedCallbacks;
 };
 
 #define UI UIManager::GetInstance()

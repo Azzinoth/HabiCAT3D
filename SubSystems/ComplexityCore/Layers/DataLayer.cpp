@@ -70,7 +70,7 @@ DataLayer::DataLayer(std::vector<std::string> ParentIDs, const std::vector<float
 
 DataLayer::~DataLayer() {};
 
-DATA_SOURCE_TYPE DataLayer::GetDataSourceTypeForLayerType(LAYER_TYPE Type)
+std::vector<DATA_SOURCE_TYPE> DataLayer::GetDataSourceTypeForLayerType(LAYER_TYPE Type)
 {
 	switch (Type)
 	{
@@ -81,13 +81,15 @@ DATA_SOURCE_TYPE DataLayer::GetDataSourceTypeForLayerType(LAYER_TYPE Type)
 		case LAYER_TYPE::STANDARD_DEVIATION:
 		case LAYER_TYPE::RUGOSITY:
 		case LAYER_TYPE::VECTOR_DISPERSION:
-		case LAYER_TYPE::FRACTAL_DIMENSION:
 		case LAYER_TYPE::TRIANGLE_DENSITY:
-			return DATA_SOURCE_TYPE::MESH;
+			return { DATA_SOURCE_TYPE::MESH };
 		case LAYER_TYPE::POINT_DENSITY:
-			return DATA_SOURCE_TYPE::POINT_CLOUD;
+		case LAYER_TYPE::STRUCTURAL_ROUGHNESS:
+			return { DATA_SOURCE_TYPE::POINT_CLOUD };
+		case LAYER_TYPE::FRACTAL_DIMENSION:
+			return { DATA_SOURCE_TYPE::MESH, DATA_SOURCE_TYPE::POINT_CLOUD };
 		default:
-			return DATA_SOURCE_TYPE::UNKNOWN;
+			return { DATA_SOURCE_TYPE::UNKNOWN };
 	}
 }
 
@@ -124,6 +126,9 @@ void DataLayer::ComputeStatistics()
 
 	AnalysisObject* CurrentObject = GetMainParentObject();
 	if (CurrentObject == nullptr)
+		return;
+
+	if (ElementsToData.empty())
 		return;
 
 	double TotalSum = 0.0;

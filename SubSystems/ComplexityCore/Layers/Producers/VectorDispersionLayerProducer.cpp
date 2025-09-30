@@ -149,7 +149,7 @@ void VectorDispersionLayerProducer::CalculateOnWholeModel()
 	bWaitForJitterResult = true;
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
-	JITTER_MANAGER.CalculateOnWholeModel(WorkOnNode);
+	JITTER_MANAGER.CalculateOnEntireObject(WorkOnNode);
 }
 
 void VectorDispersionLayerProducer::SetOnCalculationsEndCallback(void(*Func)(DataLayer*))

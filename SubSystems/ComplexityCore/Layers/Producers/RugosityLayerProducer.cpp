@@ -499,7 +499,7 @@ void RugosityLayerProducer::CalculateOnWholeModel()
 	uint64_t StartTime = TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS);
 
 	RUGOSITY_LAYER_PRODUCER.bWaitForJitterResult = true;
-	JITTER_MANAGER.CalculateOnWholeModel(CalculateOneNodeRugosity);
+	JITTER_MANAGER.CalculateOnEntireObject(CalculateOneNodeRugosity);
 }
 
 std::vector<std::string> RugosityLayerProducer::GetRugosityAlgorithmList()
