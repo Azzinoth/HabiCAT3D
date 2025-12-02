@@ -570,13 +570,13 @@ void NewLayerWindow::RenderCompareLayerSettings()
 	{
 		for (size_t i = 0; i < ActiveObject->GetLayerCount(); i++)
 		{
-			bool is_selected = (i == FirstChoosenLayerIndex);
-			if (ImGui::Selectable(ActiveObject->Layers[i]->GetCaption().c_str(), is_selected))
+			bool bIsSelected = (i == FirstChoosenLayerIndex);
+			if (ImGui::Selectable(ActiveObject->Layers[i]->GetCaption().c_str(), bIsSelected))
 			{
 				FirstChoosenLayerIndex = static_cast<int>(i);
 			}
 
-			if (is_selected)
+			if (bIsSelected)
 				ImGui::SetItemDefaultFocus();
 		}
 		ImGui::EndCombo();
@@ -595,13 +595,13 @@ void NewLayerWindow::RenderCompareLayerSettings()
 	{
 		for (size_t i = 0; i < ActiveObject->Layers.size(); i++)
 		{
-			bool is_selected = (i == SecondChoosenLayerIndex);
-			if (ImGui::Selectable(ActiveObject->Layers[i]->GetCaption().c_str(), is_selected))
+			bool bIsSelected = (i == SecondChoosenLayerIndex);
+			if (ImGui::Selectable(ActiveObject->Layers[i]->GetCaption().c_str(), bIsSelected))
 			{
 				SecondChoosenLayerIndex = static_cast<int>(i);
 			}
 
-			if (is_selected)
+			if (bIsSelected)
 				ImGui::SetItemDefaultFocus();
 		}
 		ImGui::EndCombo();

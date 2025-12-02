@@ -70,6 +70,8 @@ public:
 	void UpdateMeshSelectedTrianglesRendering();
 
 	void AddOnDebugGridSelectedCellChangedCallback(std::function<void(glm::vec3 SelectedCellIndex)> Callback);
+
+	FEWeightedHistogram* GetHistogramPointer();
 private:
 	SINGLETON_PRIVATE_PART(UIManager)
 
@@ -107,6 +109,7 @@ private:
 	bool bHistogramSelectRegionMode = false;
 	bool bHistogramPixelBins = false;
 	void UpdateHistogramData(DataLayer* FromLayer, int NewBinCount);
+	void UpdateHistogramData(DataLayer* FirstLayer, DataLayer* SecondLayer, int NewBinCount);
 	void RenderHistogramWindow();
 
 	bool bJitterCalculationsInProgress = false;

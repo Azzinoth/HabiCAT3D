@@ -1216,6 +1216,29 @@ void UIManager::UpdateHistogramData(DataLayer* FromLayer, int NewBinCount)
 	Histogram.FillDataBins(Values, Weights, NewBinCount);
 }
 
+void UIManager::UpdateHistogramData(DataLayer* FirstLayer, DataLayer* SecondLayer, int NewBinCount)
+{
+	std::vector<double> Values;
+	std::vector<double> Weights;
+
+	if (FirstLayer->ValueWeightAndIndex.empty() || SecondLayer->ValueWeightAndIndex.empty())
+		return;
+
+	for (const auto& Tuple : FirstLayer->ValueWeightAndIndex)
+	{
+		Values.push_back(std::get<0>(Tuple));
+		Weights.push_back(std::get<1>(Tuple));
+	}
+
+	for (const auto& Tuple : SecondLayer->ValueWeightAndIndex)
+	{
+		Values.push_back(std::get<0>(Tuple));
+		Weights.push_back(std::get<1>(Tuple));
+	}
+
+	Histogram.FillDataBins(Values, Weights, NewBinCount);
+}
+
 void UIManager::RenderHistogramWindow()
 {
 	bool bLayerWithOneValue = false;
@@ -1253,7 +1276,7 @@ void UIManager::RenderHistogramWindow()
 				bHistogramPixelBins &&
 				LAYER_MANAGER.GetActiveLayerIndex() != -1)
 			{
-				UpdateHistogramData(LAYER_MANAGER.GetActiveLayer(), Histogram.GetCurrentBinCount());
+				UpdateHistogramData(LAYER_MANAGER.GetActiveLayer(), Histogram.GetBinCount());
 			}
 
 			LastWindowW = HistogramWindow->SizeFull.x;
@@ -1403,12 +1426,8 @@ void UIManager::RenderHistogramWindow()
 			}
 		}
 
-		bool bInterpolate = Histogram.IsUsingInterpolation();
 		if (HistogramWindow != nullptr)
 			ImGui::SetCursorPos(ImVec2(10.0f, Histogram.GetPosition().y + Histogram.GetSize().y + 20.0f));
-
-		if (ImGui::Checkbox("Interpolate", &bInterpolate))
-			Histogram.SetIsUsingInterpolation(bInterpolate);
 		
 		if (HistogramWindow != nullptr)
 			ImGui::SetCursorPos(ImVec2(130.0f, Histogram.GetPosition().y + Histogram.GetSize().y + 20.0f));
@@ -1441,7 +1460,7 @@ void UIManager::RenderHistogramWindow()
 						TempInt = static_cast<int>(HistogramWindow->SizeFull.x - 20);
 				}
 
-				if (Histogram.GetCurrentBinCount() != TempInt)
+				if (Histogram.GetBinCount() < TempInt)
 				{
 					if (ActiveMesh != nullptr && LAYER_MANAGER.GetActiveLayerIndex() != -1)
 						UpdateHistogramData(LAYER_MANAGER.GetActiveLayer(), TempInt);
@@ -1635,7 +1654,7 @@ void UIManager::OnLayerChange()
 	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (ActiveLayer->GetMin() != ActiveLayer->GetMax())
 	{
-		UI.UpdateHistogramData(ActiveLayer, UI.Histogram.GetCurrentBinCount());
+		UI.UpdateHistogramData(ActiveLayer, UI.Histogram.GetBinCount());
 
 		if (CurrentMeshAnalysisData != nullptr)
 			CurrentMeshAnalysisData->SetHeatMapType(5);
@@ -1653,17 +1672,6 @@ void UIManager::OnLayerChange()
 
 			UI.HeatMapColorRange.bRenderSlider = false;
 			UI.HeatMapColorRange.SetSliderValue(1.0f);
-		}
-
-		float NormalizedPosition = 0.0f;
-		const int CaptionsCount = 8;
-		const float PositionStep = 1.0f / CaptionsCount;
-		for (size_t i = 0; i <= CaptionsCount; i++)
-		{
-			UI.Histogram.SetLegendCaption(i == 0 ? NormalizedPosition + 0.0075f : NormalizedPosition,
-				TruncateAfterDot(std::to_string(ActiveLayer->GetMin() + (ActiveLayer->GetMax() - ActiveLayer->GetMin()) * NormalizedPosition)));
-
-			NormalizedPosition += PositionStep;
 		}
 	}
 	else
@@ -2000,6 +2008,32 @@ void UIManager::RenderGeneralSettingsTab()
 	}
 
 	ShowCameraTransform();
+
+	// Get active object
+	//AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject != nullptr)
+	{
+		FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+		if (ActiveEntity != nullptr)
+		{
+			glm::vec3 Position = ActiveEntity->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE);
+
+			ImGui::Text("Position : ");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##X pos", &Position[0], 0.01f);
+
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##Y pos", &Position[1], 0.01f);
+
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(70);
+			ImGui::DragFloat("##Z pos", &Position[2], 0.01f);
+
+			ActiveEntity->GetComponent<FETransformComponent>().SetPosition(Position, FE_WORLD_SPACE);
+		}
+	}
 
 	ImGui::Separator();
 	TempBool = IsInDeveloperMode();
@@ -2747,4 +2781,9 @@ void UIManager::OnDebugGridSelectedCellChanged(glm::vec3 NewSelectedCell)
 	{
 		Callback(NewSelectedCell);
 	}
+}
+
+FEWeightedHistogram* UIManager::GetHistogramPointer()
+{
+	return &Histogram;
 }

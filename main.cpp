@@ -250,6 +250,233 @@ void MainWindowRender()
 		return;
 	}
 
+	bool bGraphDebugWindow = true;
+	if (bGraphDebugWindow)
+	{
+		static float XValue = 0.0f;
+		ImGui::InputFloat("x value of data point", &XValue, 0.1f, 1.0f, "%.3f");
+
+		static float YValue = 0.0f;
+		ImGui::InputFloat("y value of data point", &YValue, 0.1f, 1.0f, "%.3f");
+
+		static int StackID = 0;
+		ImGui::InputInt("stack ID of data point", &StackID);
+
+		if (ImGui::Button("Add data point to a graph"))
+		{
+			FEGraphDataPoint NewDataPoint;
+			NewDataPoint.XValue = XValue;
+			NewDataPoint.YValue = YValue;
+			NewDataPoint.StackID = StackID;
+			UI.GetHistogramPointer()->GetGraphPointer()->AddDataPoints({ NewDataPoint });
+		}
+
+		ImGui::Separator();
+
+		static std::string FirstChoosenActiveObjectID;
+		static int FirstChoosenLayerIndex = -1;
+		static std::string SecondChoosenActiveObjectID;
+		static int SecondChoosenLayerIndex = -1;
+
+		bool bHaveAnyObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount() > 0;
+		if (bHaveAnyObject)
+		{
+			AnalysisObject* FirstObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(FirstChoosenActiveObjectID);
+			std::string FirstActiveObjectString = "Choose active object";
+			if (!FirstChoosenActiveObjectID.empty() && FirstObject != nullptr)
+				FirstActiveObjectString = FirstObject->GetName();
+
+			// First layer object combo box
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+			ImGui::Text("First active object: ");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(190);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+			if (ImGui::BeginCombo("##ChooseFirstActiveObject", FirstActiveObjectString.c_str(), ImGuiWindowFlags_None))
+			{
+				std::vector<std::string> AllObjectIDs = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectsIDList();
+				for (size_t i = 0; i < AllObjectIDs.size(); i++)
+				{
+					AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(AllObjectIDs[i]);
+					if (CurrentObject == nullptr)
+						continue;
+
+					bool bIsSelected = (AllObjectIDs[i] == FirstChoosenActiveObjectID);
+					if (ImGui::Selectable(CurrentObject->GetName().c_str(), bIsSelected))
+					{
+						FirstChoosenActiveObjectID = AllObjectIDs[i];
+						FirstChoosenLayerIndex = -1;
+					}
+					if (bIsSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+
+				ImGui::EndCombo();
+			}
+
+			std::string FirstLayerString = "Choose layer";
+			if (FirstChoosenLayerIndex != -1 && FirstObject != nullptr)
+				FirstLayerString = FirstObject->Layers[FirstChoosenLayerIndex]->GetCaption();
+
+			// First layer combo box
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+			ImGui::Text("First layer: ");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(190);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+			if (FirstObject != nullptr)
+			{
+				if (ImGui::BeginCombo("##ChooseFirstLayer", FirstLayerString.c_str(), ImGuiWindowFlags_None))
+				{
+					for (size_t i = 0; i < FirstObject->GetLayerCount(); i++)
+					{
+						bool bIsSelected = (i == FirstChoosenLayerIndex);
+						if (ImGui::Selectable(FirstObject->Layers[i]->GetCaption().c_str(), bIsSelected))
+						{
+							FirstChoosenLayerIndex = static_cast<int>(i);
+						}
+
+						if (bIsSelected)
+							ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+			}
+
+			AnalysisObject* SecondObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(SecondChoosenActiveObjectID);
+			std::string SecondActiveObjectString = "Choose active object";
+			if (!SecondActiveObjectString.empty() && SecondObject != nullptr)
+				SecondActiveObjectString = SecondObject->GetName();
+
+			// Second layer object combo box
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+			ImGui::Text("Second active object: ");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(190);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+			if (ImGui::BeginCombo("##ChooseSecondActiveObject", SecondActiveObjectString.c_str(), ImGuiWindowFlags_None))
+			{
+				std::vector<std::string> AllObjectIDs = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectsIDList();
+				for (size_t i = 0; i < AllObjectIDs.size(); i++)
+				{
+					AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(AllObjectIDs[i]);
+					if (CurrentObject == nullptr)
+						continue;
+					bool bIsSelected = (AllObjectIDs[i] == SecondChoosenActiveObjectID);
+					if (ImGui::Selectable(CurrentObject->GetName().c_str(), bIsSelected))
+					{
+						SecondChoosenActiveObjectID = AllObjectIDs[i];
+						SecondChoosenLayerIndex = -1;
+					}
+					if (bIsSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+
+			std::string SecondString = "Choose layer";
+			if (SecondChoosenLayerIndex != -1 && SecondObject != nullptr)
+				SecondString = SecondObject->Layers[SecondChoosenLayerIndex]->GetCaption();
+
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+			ImGui::Text("Second layer: ");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(190);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+			if (SecondObject != nullptr)
+			{
+				if (ImGui::BeginCombo("##ChooseSecondLayer", SecondString.c_str(), ImGuiWindowFlags_None))
+				{
+					for (size_t i = 0; i < SecondObject->Layers.size(); i++)
+					{
+						bool bIsSelected = (i == SecondChoosenLayerIndex);
+						if (ImGui::Selectable(SecondObject->Layers[i]->GetCaption().c_str(), bIsSelected))
+						{
+							SecondChoosenLayerIndex = static_cast<int>(i);
+						}
+
+						if (bIsSelected)
+							ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+			}
+
+			if (ImGui::Button("Update histogram data"))
+			{
+				if (FirstChoosenLayerIndex != -1 && SecondChoosenLayerIndex != -1 &&
+					FirstObject != nullptr && SecondObject != nullptr)
+				{
+					UI.GetHistogramPointer()->Clear();
+
+					DataLayer* FirstLayer = FirstObject->Layers[FirstChoosenLayerIndex];
+					DataLayer* SecondLayer = SecondObject->Layers[SecondChoosenLayerIndex];
+
+					if (FirstLayer->ValueWeightAndIndex.empty() || SecondLayer->ValueWeightAndIndex.empty())
+						return;
+
+					std::vector<double> Values;
+					std::vector<double> Weights;
+					int BinsCount = 128;
+
+					for (const auto& Tuple : FirstLayer->ValueWeightAndIndex)
+					{
+						Values.push_back(std::get<0>(Tuple));
+						Weights.push_back(std::get<1>(Tuple));
+					}
+
+					std::vector<FEGraphDataPoint> FirstGraphDataPoints = UI.GetHistogramPointer()->ConvertToDataPoints(Values, Weights, BinsCount);
+					Values.clear();
+					Weights.clear();
+
+					for (const auto& Tuple : SecondLayer->ValueWeightAndIndex)
+					{
+						Values.push_back(std::get<0>(Tuple));
+						Weights.push_back(std::get<1>(Tuple));
+					}
+
+					std::vector<FEGraphDataPoint> SecondGraphDataPoints = UI.GetHistogramPointer()->ConvertToDataPoints(Values, Weights, BinsCount);
+					for (size_t i = 0; i < SecondGraphDataPoints.size(); i++)
+					{
+						SecondGraphDataPoints[i].StackID = 1;
+					}
+
+					UI.GetHistogramPointer()->GetGraphPointer()->AddDataPoints(FirstGraphDataPoints);
+					UI.GetHistogramPointer()->GetGraphPointer()->AddDataPoints(SecondGraphDataPoints);
+				}
+			}
+
+			// Here I should have input for reordering stacks
+			// It should accept string like "2,0,1" where each number is stack index
+			static char OrderInputBuffer[1024] = "";
+			ImGui::InputText("Stack Indices (e.g. 2,0,1)", OrderInputBuffer, sizeof(OrderInputBuffer));
+
+			if (ImGui::Button("Reorder Stacks"))
+			{
+				std::vector<int> NewOrder;
+
+				std::string StringRepresentation(OrderInputBuffer);
+				std::stringstream StringStream(StringRepresentation);
+				std::string Token;
+
+				while (std::getline(StringStream, Token, ','))
+				{
+					try {
+						// std::stoi converts string to int and handles whitespace automatically
+						NewOrder.push_back(std::stoi(Token));
+					}
+					catch (...) {
+						// Catch invalid inputs (like letters or empty strings) so the app doesn't crash
+					}
+				}
+
+				UI.GetHistogramPointer()->GetGraphPointer()->ChangeStackOrder(NewOrder);
+			}
+		}
+
+		ImGui::Separator();
+	}
+
 	bool bVRMode = ENGINE.IsVREnabled();
 	if (ImGui::Checkbox("Enter VR mode", &bVRMode))
 	{

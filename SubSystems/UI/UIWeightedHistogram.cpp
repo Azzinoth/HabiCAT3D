@@ -45,17 +45,7 @@ void FEWeightedHistogram::Clear()
 
 void FEWeightedHistogram::SetLegendCaption(float NormalizedPosition, std::string Text)
 {
-	Graph.Legend.SetCaption(NormalizedPosition, Text);
-}
-
-std::vector<float> FEWeightedHistogram::GetDataPoints() const
-{
-	return Graph.GetDataPoints();
-}
-
-void FEWeightedHistogram::SetDataPoints(std::vector<float> NewValue)
-{
-	Graph.SetDataPoints(NewValue);
+	Graph.XLegend.SetCaption(NormalizedPosition, Text);
 }
 
 float FEWeightedHistogram::GetCeiling()
@@ -68,8 +58,11 @@ void FEWeightedHistogram::SetCeiling(float NewValue)
 	Graph.SetCeiling(NewValue);
 }
 
-void FEWeightedHistogram::FillDataBins(const std::vector<double>& Values, const std::vector<double>& Weights, size_t BinsCount)
+std::vector<FEGraphDataPoint> FEWeightedHistogram::ConvertToDataPoints(const std::vector<double>& Values, const std::vector<double>& Weights, size_t BinsCount)
 {
+	std::vector<FEGraphDataPoint> Result;
+	Result.resize(BinsCount);
+
 	std::vector<float> DataPoints;
 	std::vector<float> BinLowerBounds;
 	BinLowerBounds.resize(BinsCount);
@@ -86,46 +79,54 @@ void FEWeightedHistogram::FillDataBins(const std::vector<double>& Values, const 
 
 		BinLowerBounds[i] = static_cast<float>(MinValue + (MaxValue - MinValue) * NormalizedPixelPosition);
 		BinUpperBounds[i] = static_cast<float>(MinValue + (MaxValue - MinValue) * NextNormalizedPixelPosition);
+
+		Result[i].XValue = BinLowerBounds[i];
 	}
 
 	for (size_t i = 0; i < BinsCount; i++)
 	{
-		double CurrentArea = 0.0;
+		double CurrentBinWeight = 0.0;
 		for (int j = 0; j < Values.size(); j++)
 		{
 			const double CurrentValue = Values[j];
 			if (CurrentValue >= BinLowerBounds[i] && (i == BinsCount - 1 ? CurrentValue <= BinUpperBounds[i] : CurrentValue < BinUpperBounds[i]))
 			{
-				CurrentArea += Weights[j];
+				CurrentBinWeight += Weights[j];
 			}
 		}
 
-		DataPoints.push_back(static_cast<float>(CurrentArea));
+		DataPoints.push_back(static_cast<float>(CurrentBinWeight));
+
+		Result[i].YValue = CurrentBinWeight;
+		Result[i].StackID = 0;
 	}
+
+	return Result;
+}
+
+void FEWeightedHistogram::FillDataBins(const std::vector<double>& Values, const std::vector<double>& Weights, size_t BinsCount)
+{
+	std::vector<FEGraphDataPoint> GraphDataPoints = ConvertToDataPoints(Values, Weights, BinsCount);
 
 	double TotalWeight = 0.0;
 	float MaxValue = -FLT_MAX;
-	for (size_t i = 0; i < BinsCount; i++)
+	for (size_t i = 0; i < GraphDataPoints.size(); i++)
 	{
-		TotalWeight += DataPoints[i];
-		MaxValue = std::max(DataPoints[i], MaxValue);
+		TotalWeight += GraphDataPoints[i].YValue;
+		MaxValue = std::max(float(GraphDataPoints[i].YValue), MaxValue);
 	}
 
-	SetDataPoints(DataPoints);
+	Graph.AddDataPoints(GraphDataPoints);
+
 	SetCeiling(MaxValue * 1.2f);
 }
 
-bool FEWeightedHistogram::IsUsingInterpolation()
+int FEWeightedHistogram::GetBinCount() const
 {
-	return Graph.IsUsingInterpolation();
+	return CurrentBinCount;
 }
 
-void FEWeightedHistogram::SetIsUsingInterpolation(bool NewValue)
-{
-	Graph.SetIsUsingInterpolation(NewValue);
-}
-
-int FEWeightedHistogram::GetCurrentBinCount() const
-{
-	return static_cast<int>(Graph.GetDataPoints().size());
+FEGraphRender* FEWeightedHistogram::GetGraphPointer()
+{ 
+	return &Graph;
 }

@@ -23,7 +23,7 @@ public:
 	ImVec2 GetSize() const;
 	void SetSize(ImVec2 NewValue);
 
-	int GetCurrentBinCount() const;
+	int GetBinCount() const;
 
 	void Clear();
 
@@ -32,11 +32,8 @@ public:
 	float GetCeiling();
 	void SetCeiling(float NewValue);
 
-	bool IsUsingInterpolation();
-	void SetIsUsingInterpolation(bool NewValue);
-
-	std::vector<float> GetDataPoints() const;
-	void SetDataPoints(std::vector<float> NewValue);
-
 	void FillDataBins(const std::vector<double>& Values, const std::vector<double>& Weights, size_t BinsCount);
+	std::vector<FEGraphDataPoint> ConvertToDataPoints(const std::vector<double>& Values, const std::vector<double>& Weights, size_t BinsCount);
+
+	FEGraphRender* GetGraphPointer();
 };

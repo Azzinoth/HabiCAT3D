@@ -61,22 +61,23 @@ public:
 	void Clear();
 };
 
+struct LegendItem
+{
+	float NormalizedPosition = 0.0f;
+	std::string Text;
+};
+
 struct Legend
 {
 private:
 	ImVec2 Position;
 	ImVec2 Size;
 
-	std::unordered_map<float, std::string> Captions;
+	std::vector<LegendItem> Captions;
 	std::function<ImVec2(ImVec2, ImVec2, float, std::string)> NormalizedPositionToVec2Impl;
 
 	ImVec2 NormalizedPositionToVec2(float NormalizedPosition, std::string Text);
 public:
-	struct LegendItem
-	{
-		float NormalizedPosition;
-		std::string Text;
-	};
 
 	ImVec2 GetPosition();
 	void SetPosition(ImVec2 NewValue);
@@ -124,44 +125,109 @@ public:
 	void Clear();
 };
 
+struct FEGraphDataPoint
+{
+	double XValue = 0.0;
+	double YValue = 0.0;
+	int StackID = 0;
+};
+
+struct FEGraphStackInfo
+{
+	int ID = 0;
+	ImColor StartGradientColor = ImColor(11.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f);
+	ImColor EndGradientColor = ImColor(35.0f / 255.0f, 94.0f / 255.0f, 133.0f / 255.0f);
+	ImColor OutlineColor = ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f);
+	std::string Name = "Stack";
+
+	glm::dvec2 XNormalizedPositionBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
+	glm::dvec2 YNormalizedPositionBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
+
+	glm::dvec2 XValueBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
+	glm::dvec2 YValueBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
+};
+
+struct GraphQueryResult
+{
+	int ControlPointIndex0 = -1;
+	int ControlPointIndex1 = -1;
+	int ControlPointIndex2 = -1;
+	int ControlPointIndex3 = -1;
+
+	float InterpolationFactor = 0.0f;
+	float GraphYNormalized = 0.0f;
+	float DistanceFromGraph = 0.0f;
+};
+
+struct FEStackBounds
+{
+	int StackID = -1;
+	float Bottom = 0.0f;
+	float Top = 0.0f;
+};
+
 class FEGraphRender
 {
+	std::unordered_map<int, std::vector<FEGraphDataPoint>> StackIDToDataPointsMap;
+
+	glm::dvec2 GlobalXValueBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
+	glm::dvec2 GlobalYValueBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
+
+	std::vector<FEStackBounds> GetStackBoundsAtX(float NormalizedX);
+	FEStackBounds GetStackBoundAtX(int StackID, float NormalizedX);
+
+	int GetStackID(glm::vec2 NormizedPosition);
+
+	std::vector<FEGraphStackInfo> StacksInfo;
+
+	double GetGraphYValue(glm::vec2 NormizedPosition);
+	double GetNormalizedYValue(double GraphYValue);
+
 	ImVec2 Position = ImVec2(10, 10);
 	ImVec2 Size = ImVec2(100, 100);
-
-	std::vector<float> DataPonts;
-	std::vector<double> NormalizedDataPonts;
 
 	int ColumnWidth = 3;
 	float Ceiling = 1.0f;
 
-	std::vector<double> NormalizeArray(std::vector<float> Array);
+	void UpdateAfterDataPointsChange();
 
-	float GetValueAtPosition(float NormalizedPosition);
+	float GetNormalizedTotalHeightAtX(float NormalizedXPosition);
 
 	ImVec2 GraphCanvasPosition = ImVec2(0, 0);
 	ImVec2 GraphCanvasSize = ImVec2(50, 50);
 
-	bool bInterpolation = true;
+	bool bCacheIsDirty = true;
+	std::vector<std::vector<ImColor>> CacheGraph;
+	bool bIsMouseHovering = false;
 
-	ImColor StartGradientColor = ImColor(11.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f);
-	ImColor EndGradientColor = ImColor(35.0f / 255.0f, 94.0f / 255.0f, 133.0f / 255.0f);
-	ImColor OutlineColor = ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f);
+	int OutlineThickness = 3;
 
-	float GraphHeightAtPixel(int PixelX);
-	void RenderOneColumn(int XPosition, ImVec2 WindowPosition);
-	int OutlineThickness = 2;
-	bool ShouldOutline(int XPosition, int YPosition);
+	bool bRenderOnlyDataPoints = false;
+	bool bUseGradientColors = true;
+	bool bFillGraph = true;
+	
+	bool bOutlineGraph = false;
 
-	void RenderBottomLegend();
+	ImColor DefaultStartGradientColor = ImColor(11.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f);
+	ImColor DefaultEndGradientColor = ImColor(35.0f / 255.0f, 94.0f / 255.0f, 133.0f / 255.0f);
+	ImColor DefaultOutlineColor = ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f);
+
+	void RenderXLegend();
 
 	void InputUpdate();
 	std::vector<std::function<void(float)>> MouseClickCallbacks;
 
-	std::vector<std::vector<ImColor>> CacheGraph;
-	bool bCacheIsDirty = true;
+	FEGraphStackInfo GenerateStackInfo(int ID);
+	void UpdateStackInfo(std::vector<FEGraphDataPoint> NewDataPoints);
+
+	int DebugClosestDataPointIndex = -1;
+	GraphQueryResult QueryGraph(float XNormalized, float YNormalized = -1.0f, int StackID = 0, float Tolerance = 0.01f);
+
+	int CalculatePrecisionForValues(const std::vector<float>& Values);
+	std::string FormatFloatWithPrecision(float Value, int Precision);
 public:
-	Legend Legend;
+	Legend XLegend;
+	void UpdateXLegend();
 
 	ImVec2 GetPosition() const;
 	void SetPosition(ImVec2 NewValue);
@@ -173,14 +239,15 @@ public:
 	void SetCeiling(float NewValue);
 
 	int GetDataPointsCount();
-	std::vector<float> GetDataPoints() const;
-	void SetDataPoints(std::vector<float> NewValue);
-
-	bool IsUsingInterpolation();
-	void SetIsUsingInterpolation(bool NewValue);
+	void AddDataPoints(std::vector<FEGraphDataPoint> NewDataPoints);
 
 	void Render();
 	void Clear();
+	void InvalidateCache();
 
 	void AddMouseClickCallback(std::function<void(float)> Func);
+
+	std::vector<FEGraphStackInfo> GetStackInfoList();
+	FEGraphStackInfo* GetStackInfoByID(int ID);
+	bool ChangeStackOrder(std::vector<int> NewOrder);
 };
