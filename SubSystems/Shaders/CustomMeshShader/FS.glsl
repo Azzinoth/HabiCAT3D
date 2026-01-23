@@ -14,6 +14,8 @@ in VS_OUT
 
 	float FirstLayer;
 	float AdditionalLayer;
+
+	vec4 BulkLayers[6];
 } FS_IN;
 
 @ViewMatrix@
@@ -26,6 +28,15 @@ uniform vec3 lightDirection;
 
 uniform float LayerMin;
 uniform float LayerMax;
+
+uniform int InterpolationActive;
+uniform int InterpolationLayerCount;
+uniform int InterpolateMinMaxValues;
+uniform float InterpolationLayersMin[24];
+uniform float InterpolationLayersMax[24];
+uniform float InterpolationGlobalMin;
+uniform float InterpolationGlobalMax;
+uniform float InterpolationFactor;
 
 uniform vec3 MeasuredRugosityAreaCenter;
 uniform float MeasuredRugosityAreaRadius;
@@ -57,7 +68,8 @@ vec3 getTurboColormapValue(float factor)
 
 	return vec3(turbo_srgb_floats[index][0], turbo_srgb_floats[index][1], turbo_srgb_floats[index][2]);
 }
-
+)"
+R"(
 vec3 getCompareColormapValue(float factor)
 {
     // Define the colors
@@ -186,6 +198,14 @@ vec3 getScaledColor(float factor)
 	return result;
 }
 
+// Access specific layer (0-23):
+float GetLayerValue(int LayerIndex)
+{
+    int VectorIndex = LayerIndex / 4;
+    int ElementIndex = LayerIndex % 4;
+    return FS_IN.BulkLayers[VectorIndex][ElementIndex];
+}
+
 vec3 getCorrectColor()
 {
 	vec3 result = vec3(0.0, 0.5, 1.0);
@@ -193,10 +213,56 @@ vec3 getCorrectColor()
 	if (HaveColor == 1)
 		result = FS_IN.color;
 
-	if (LayerIndex == -1)
+	if (LayerIndex == -1 && InterpolationActive == 0)
 		return result;
 
-	float NormalizedValue = (FS_IN.FirstLayer - LayerMin) / (LayerMax - LayerMin);
+	float NormalizedValue = 0.0;
+	float NonNormalizedValue = 0.0;
+	float CurrentMin = 0.0;
+	float CurrentMax = 0.0;
+
+	if (InterpolationActive == 1)
+	{
+		float ScaledIndex = InterpolationFactor * float(InterpolationLayerCount - 1);
+
+		int FirstLayerIndex = int(floor(ScaledIndex));
+		FirstLayerIndex = clamp(FirstLayerIndex, 0, InterpolationLayerCount - 1);
+		int SecondLayerIndex = int(ceil(ScaledIndex));
+		SecondLayerIndex = clamp(SecondLayerIndex, 0, InterpolationLayerCount - 1);
+
+		float FirstLayerMin = InterpolationLayersMin[FirstLayerIndex];
+		float FirstLayerMax = InterpolationLayersMax[FirstLayerIndex];
+		float SecondLayerMin = InterpolationLayersMin[SecondLayerIndex];
+		float SecondLayerMax = InterpolationLayersMax[SecondLayerIndex];
+		CurrentMin = min(FirstLayerMin, SecondLayerMin);
+		CurrentMax = max(FirstLayerMax, SecondLayerMax);
+
+		float LocalFactor = ScaledIndex - float(FirstLayerIndex);
+
+		if (InterpolateMinMaxValues == 1)
+		{
+			CurrentMin = mix(FirstLayerMin, SecondLayerMin, LocalFactor);
+			CurrentMax = mix(FirstLayerMax, SecondLayerMax, LocalFactor);
+		}
+		else
+		{
+			CurrentMin = LayerMin;
+			CurrentMax = LayerMax;
+		}
+
+		float FirstLayerValue = GetLayerValue(FirstLayerIndex);
+		float SecondLayerValue = GetLayerValue(SecondLayerIndex);
+
+		NonNormalizedValue = mix(FirstLayerValue, SecondLayerValue, LocalFactor);
+	}
+	else
+	{
+		NonNormalizedValue = FS_IN.FirstLayer;
+		CurrentMin = LayerMin;
+		CurrentMax = LayerMax;
+	}
+
+	NormalizedValue = (NonNormalizedValue - CurrentMin) / (CurrentMax - CurrentMin);
 	NormalizedValue = clamp(NormalizedValue, 0, 1);
 
 	switch (HeatMapType)
@@ -213,7 +279,6 @@ vec3 getCorrectColor()
 		case 6:
 				float CompareMapFactor = 0.0;
 
-				// Mapping
 				if (FS_IN.FirstLayer == 0)
 				{
 					CompareMapFactor = 0.0;
@@ -283,9 +348,7 @@ void main(void)
 	{
 		if (NormalizedAbsoluteValue >= SelectedRangeMin &&
 			NormalizedAbsoluteValue <= SelectedRangeMax)
-		{
-
-		}
+		{}
 		else
 		{
 			// Convert RGB to HSV

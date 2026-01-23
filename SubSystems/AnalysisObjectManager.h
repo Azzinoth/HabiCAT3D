@@ -78,6 +78,8 @@ private:
 
 	void UpdateMeshUniforms(AnalysisObject* Object);
 	static void BeforeRender(FEEntity* CurrentEntity);
+
+	static std::vector<int> GetVertexAttributeIndexes(int InterpolationLayerCount);
 };
 
 #define ANALYSIS_OBJECT_MANAGER AnalysisObjectManager::GetInstance()

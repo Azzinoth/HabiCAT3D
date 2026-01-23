@@ -28,15 +28,21 @@ int ScreenshotManager::FindHighestIntPostfix(std::string Prefix, std::string Del
 
 	for (size_t i = 0; i < List.size(); i++)
 	{
-		std::transform(List[i].begin(), List[i].end(), List[i].begin(), [](const unsigned char C) { return std::tolower(C); });
+		std::string LowerItem = List[i];
+		std::transform(LowerItem.begin(), LowerItem.end(), LowerItem.begin(), [](const unsigned char C) { return std::tolower(C); });
 
-		int PrefixPos = static_cast<int>(List[i].find(Prefix));
+		int PrefixPos = static_cast<int>(LowerItem.find(Prefix));
 		if (PrefixPos != std::string::npos)
 		{
-			int DelimiterPos = static_cast<int>(List[i].find(Delimiter));
-			if (DelimiterPos != std::string::npos && List[i].size() > Prefix.size() + Delimiter.size())
+			// Remove extension first
+			size_t ExtPos = LowerItem.find_last_of('.');
+			std::string WithoutExt = (ExtPos != std::string::npos) ? LowerItem.substr(0, ExtPos) : LowerItem;
+
+			// Find LAST delimiter
+			size_t DelimiterPos = WithoutExt.find_last_of(Delimiter);
+			if (DelimiterPos != std::string::npos && DelimiterPos + 1 < WithoutExt.size())
 			{
-				std::string PostfixPart = List[i].substr(DelimiterPos + 1, List[i].size() - (DelimiterPos + 1));
+				std::string PostfixPart = WithoutExt.substr(DelimiterPos + 1);
 				Result = std::max(Result, atoi(PostfixPart.c_str()));
 			}
 		}
@@ -147,6 +153,7 @@ void ScreenshotManager::TakeScreenshot()
 	}
 
 	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+	if (ActiveEntity == nullptr)
 	{
 		APPLICATION.EndFrame();
 		return;

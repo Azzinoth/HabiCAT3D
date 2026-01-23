@@ -54,6 +54,8 @@ class MeshAnalysisData : public ResourceAnalysisData
 
 	float UnselectedAreaSaturationFactor = 0.3f;
 	float UnselectedAreaBrightnessFactor = 0.2f;
+
+	std::vector<GLuint> InterpolationLayerBufferIDs;
 public:
 	double GetTotalArea();
 

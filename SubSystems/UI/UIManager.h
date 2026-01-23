@@ -47,6 +47,8 @@ public:
 	bool GetOutputSelectionToFile();
 	void SetOutputSelectionToFile(bool NewValue);
 
+	bool IsApplyStandardLayoutOnResize() const;
+	void SetApplyStandardLayoutOnResize(bool NewValue);
 	void ApplyStandardWindowsSizeAndPosition();
 
 	glm::dvec2 CalculateWeightDistributionAtValue(DataLayer* Layer, float Value);
@@ -86,6 +88,8 @@ private:
 	bool bChooseCameraFocusPointMode = false;
 	FEEntity* SelectionLinesEntity = nullptr;
 	void CleanUpSelectionLinesComponent();
+
+	bool bApplyStandardLayoutOnResize = true;
 
 	std::string NoDataText = "No Data.(Drag & Drop model or point cloud)";
 
@@ -162,6 +166,8 @@ private:
 	void RenderLayerDebugInfo(MeasurementGrid* Grid);
 	static void OnDebugGridSelectedCellChanged(glm::vec3 NewSelectedCell);
 	std::vector<std::function<void(glm::vec3 SelectedCellIndex)>> ClientOnDebugGridSelectedCellChangedCallbacks;
+
+	static void WindowResizeCallback(int Width, int Height);
 };
 
 #define UI UIManager::GetInstance()

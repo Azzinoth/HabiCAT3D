@@ -7,6 +7,13 @@ static const char* const CustomMesh_VS = R"(
 layout (location = 7) in float FirstLayerData;
 layout (location = 8) in float AdditionalLayerData;
 
+layout (location = 9) in vec4 BulkLayerData_0;
+layout (location = 10) in vec4 BulkLayerData_1;
+layout (location = 11) in vec4 BulkLayerData_2;
+layout (location = 12) in vec4 BulkLayerData_3;
+layout (location = 13) in vec4 BulkLayerData_4;
+layout (location = 14) in vec4 BulkLayerData_5;
+
 @In_Color@
 
 @WorldMatrix@
@@ -15,6 +22,8 @@ layout (location = 8) in float AdditionalLayerData;
 
 uniform int HeatMapType;
 uniform int HaveColor;
+
+uniform int InterpolationActive;
 
 out VS_OUT
 {
@@ -29,6 +38,8 @@ out VS_OUT
 
 	float FirstLayer;
 	float AdditionalLayer;
+
+	vec4 BulkLayers[6];
 } vs_out;
 
 void main(void)
@@ -47,5 +58,15 @@ void main(void)
 
 	vs_out.FirstLayer = FirstLayerData;
 	vs_out.AdditionalLayer = AdditionalLayerData;
+
+    if (InterpolationActive == 1)
+    {
+        vs_out.BulkLayers[0] = BulkLayerData_0;
+        vs_out.BulkLayers[1] = BulkLayerData_1;
+        vs_out.BulkLayers[2] = BulkLayerData_2;
+        vs_out.BulkLayers[3] = BulkLayerData_3;
+        vs_out.BulkLayers[4] = BulkLayerData_4;
+        vs_out.BulkLayers[5] = BulkLayerData_5;
+    }
 }
 )";

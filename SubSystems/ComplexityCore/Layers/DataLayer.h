@@ -53,7 +53,38 @@ enum class LAYER_TYPE
 
 	// Point cloud specific types
 	POINT_DENSITY = 10,
-	STRUCTURAL_ROUGHNESS = 11
+	STRUCTURAL_ROUGHNESS = 11,
+
+	INTERPOLATION = 12
+};
+
+#define MAX_INTERPOLATION_LAYERS 24
+struct LayerInterpolationData
+{
+	friend class DataLayer;
+	friend class AnalysisObjectManager;
+	friend class InterpolationLayerProducer;
+private:
+	std::vector<std::string> UsedLayerIDs;
+	float InterpolationFactor = 0.0f;
+	std::vector<std::vector<float>> RawData;
+	std::vector<float> LayerMinValues;
+	std::vector<float> LayerMaxValues;
+
+	bool bInterpolateMinMaxValues = true;
+public:
+	int GetLayerCount();
+
+	std::vector<std::string> GetUsedLayerIDs();
+
+	float GetInterpolationFactor();
+	void SetInterpolationFactor(float NewValue);
+
+	std::vector<float> GetLayersMinValues();
+	std::vector<float> GetLayersMaxValues();
+
+	bool IsMinMaxInterpolationEnabled();
+	void SetMinMaxInterpolationEnabled(bool NewValue);
 };
 
 class DataLayer
@@ -61,6 +92,7 @@ class DataLayer
 	friend class AnalysisObject;
 	friend class AnalysisObjectManager;
 	friend class LayerManager;
+	friend class InterpolationLayerProducer;
 
 	std::string ID;
 	std::string Caption = "Layer caption";
@@ -79,6 +111,8 @@ class DataLayer
 	float SelectedRangeMax = 0.0f;
 
 	std::vector<GLuint> ValuesComputeShaderBuffers;
+
+	LayerInterpolationData* InterpolationData = nullptr;
 public:
 	DataLayer();
 	DataLayer(std::vector<std::string> ParentIDs);
@@ -124,4 +158,6 @@ public:
 
 	float GetSelectedRangeMax();
 	void SetSelectedRangeMax(float NewValue);
+
+	LayerInterpolationData* GetInterpolationData();
 };

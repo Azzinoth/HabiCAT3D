@@ -11,6 +11,8 @@
 #include "../ComplexityCore/Layers/Producers/PointDensityLayerProducer.h"
 #include "../ComplexityCore/Layers/Producers/StructuralRoughnessLayerProducer.h"
 
+#include "../ComplexityCore/Layers/Producers/InterpolationLayerProducer.h"
+
 class NewLayerWindow
 {
 	SINGLETON_PRIVATE_PART(NewLayerWindow)
@@ -50,6 +52,12 @@ class NewLayerWindow
 	void RenderCompareLayerSettings();
 
 	void RenderPointDensitySettings();
+
+	void ShowLayerListBox(std::string ListBoxLabel, std::vector<DataLayer*> Layers, int& SelectedIndex);
+	int AllLayersListBoxSelectedIndex = 0;
+	int LayersToInterpolateListBoxSelectedIndex = 0;
+	std::vector<DataLayer*> LayersToInterpolate;
+	void RenderInterpolationLayerSettings();
 
 	void RenderSettings();
 	void OnLayerTypeChanged(LAYER_TYPE OldLayerType);

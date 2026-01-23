@@ -20,6 +20,8 @@ NewLayerWindow::NewLayerWindow()
 	LayerTypeToName[LAYER_TYPE::POINT_DENSITY] = "Point density";
 	LayerTypeToName[LAYER_TYPE::STRUCTURAL_ROUGHNESS] = "Structural roughness";
 
+	LayerTypeToName[LAYER_TYPE::INTERPOLATION] = "Interpolate layers(Experimental)";
+
 	ANALYSIS_OBJECT_MANAGER.AddOnActiveObjectChangeCallback(&NewLayerWindow::OnActiveObjectChange);
 };
 
@@ -29,6 +31,10 @@ void NewLayerWindow::Show()
 {
 	FirstChoosenLayerIndex = -1;
 	SecondChoosenLayerIndex = -1;
+
+	AllLayersListBoxSelectedIndex = 0;
+	LayersToInterpolateListBoxSelectedIndex = 0;
+	LayersToInterpolate.clear();
 
 	bShouldOpen = true;
 }
@@ -337,7 +343,19 @@ void NewLayerWindow::AddLayer()
 			InternalClose();
 			break;
 		}
+		case LAYER_TYPE::INTERPOLATION:
+		{
+			DataLayer* NewLayer = INTERPOLATION_LAYER_PRODUCER.Calculate(LayersToInterpolate);
+			LayersToInterpolate.clear();
+			if (NewLayer != nullptr)
+			{
+				ActiveObject->AddLayer(NewLayer);
+				ActiveObject->SetActiveLayer(NewLayer->GetID());
+			}
 
+			InternalClose();
+			break;
+		}
 	}
 }
 
@@ -617,6 +635,95 @@ void NewLayerWindow::RenderPointDensitySettings()
 	RenderCellSizeSettings();
 }
 
+void NewLayerWindow::ShowLayerListBox(std::string ListBoxLabel, std::vector<DataLayer*> Layers, int& SelectedIndex)
+{
+	// Allocation each frame is not ideal, but acceptable for this debug UI.
+	std::vector<std::string> ListBoxItemsString;
+	std::vector<const char*> ListBoxItems;
+
+	// Next two for loops should be separated to avoid issues with pointers invalidation.
+	for (size_t i = 0; i < Layers.size(); i++)
+		ListBoxItemsString.push_back(Layers[i]->GetCaption());
+
+	for (size_t i = 0; i < Layers.size(); i++)
+		ListBoxItems.push_back(ListBoxItemsString[i].c_str());
+
+	ImGui::ListBox(ListBoxLabel.c_str(), &SelectedIndex, ListBoxItems.data(), ListBoxItems.size(), 15);
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Double click to add/remove layer");
+}
+
+void NewLayerWindow::RenderInterpolationLayerSettings()
+{
+	ImVec2 ContentAreaMin = ImGui::GetWindowContentRegionMin();
+	ImVec2 ContentAreaMax = ImGui::GetWindowContentRegionMax();
+
+	float ContentAreaWidth = ContentAreaMax.x - ContentAreaMin.x;
+	float ListWidth = 200.0f;
+
+	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f);
+	float TextWidth = ImGui::CalcTextSize("Available layers: ").x;
+	float XPosition = ContentAreaMin.x + ContentAreaWidth * 0.25f - TextWidth * 0.5f;
+	XPosition = ImMax(XPosition, ContentAreaMin.x);
+
+	float CurrentYPosition = ImGui::GetCursorPosY();
+	ImGui::SetCursorPosX(XPosition);
+	ImGui::Text("Available layers: ");
+
+	TextWidth = ImGui::CalcTextSize("Available layers: ").x;
+	XPosition = ContentAreaMin.x + ContentAreaWidth * 0.75f - TextWidth * 0.5f;
+	XPosition = ImMax(XPosition, ContentAreaMin.x);
+
+	ImGui::SetCursorPosY(CurrentYPosition);
+	ImGui::SetCursorPosX(XPosition - 4.0f);
+	ImGui::Text("Layers to interpolate: ");
+
+	std::vector<DataLayer*> AllUsableLayers = LAYER_MANAGER.GetAllLayersOfActiveObject();
+	// Remove layers that are already selected for interpolation.
+	for (size_t i = 0; i < LayersToInterpolate.size(); i++)
+	{
+		auto FoundIterator = std::find(AllUsableLayers.begin(), AllUsableLayers.end(), LayersToInterpolate[i]);
+		if (FoundIterator != AllUsableLayers.end())
+			AllUsableLayers.erase(FoundIterator);
+	}
+	// Also remove other interpolation layers to avoid nesting.
+	for (size_t i = 0; i < AllUsableLayers.size(); i++)
+	{
+		if (AllUsableLayers[i]->GetType() == LAYER_TYPE::INTERPOLATION)
+		{
+			AllUsableLayers.erase(AllUsableLayers.begin() + i);
+			i--;
+		}
+	}
+
+	XPosition = ContentAreaMin.x + ContentAreaWidth * 0.25f - ListWidth * 0.5f;
+	XPosition = ImMax(XPosition, ContentAreaMin.x);
+
+	CurrentYPosition = ImGui::GetCursorPosY();
+	ImGui::SetCursorPosX(XPosition);
+	ImGui::SetNextItemWidth(ListWidth);
+
+	ShowLayerListBox("##AllLayersListBox", AllUsableLayers, AllLayersListBoxSelectedIndex);
+	if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+	{
+		LayersToInterpolate.push_back(AllUsableLayers[AllLayersListBoxSelectedIndex]);
+	}
+
+	XPosition = ContentAreaMin.x + ContentAreaWidth * 0.75f - ListWidth * 0.5f;
+	XPosition = ImMax(XPosition, ContentAreaMin.x);
+
+	ImGui::SetCursorPosX(XPosition);
+	ImGui::SetCursorPosY(CurrentYPosition);
+	ImGui::SetNextItemWidth(ListWidth);
+
+	ShowLayerListBox("##LayersToInterpolateListBox", LayersToInterpolate, LayersToInterpolateListBoxSelectedIndex);
+	if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+	{
+		DataLayer* ClickedLayer = LayersToInterpolate[LayersToInterpolateListBoxSelectedIndex];
+		LayersToInterpolate.erase(LayersToInterpolate.begin() + LayersToInterpolateListBoxSelectedIndex);
+	}
+}
+
 void NewLayerWindow::RenderSettings()
 {
 	switch (SelectedLayerType)
@@ -671,11 +778,18 @@ void NewLayerWindow::RenderSettings()
 			RenderCellSizeSettings();
 			break;
 		}
+		case LAYER_TYPE::INTERPOLATION:
+		{
+			RenderInterpolationLayerSettings();
+			break;
+		}
 	}
 }
 
 void NewLayerWindow::OnLayerTypeChanged(LAYER_TYPE OldLayerType)
 {
+	LayersToInterpolate.clear();
+
 	switch (SelectedLayerType)
 	{
 		case LAYER_TYPE::HEIGHT:
@@ -741,6 +855,7 @@ void NewLayerWindow::CheckAvailableDataSources()
 		AvailableLayerTypes.push_back(LAYER_TYPE::VECTOR_DISPERSION);
 		AvailableLayerTypes.push_back(LAYER_TYPE::FRACTAL_DIMENSION);
 		AvailableLayerTypes.push_back(LAYER_TYPE::COMPARE);
+		AvailableLayerTypes.push_back(LAYER_TYPE::INTERPOLATION);
 	}
 		
 	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)

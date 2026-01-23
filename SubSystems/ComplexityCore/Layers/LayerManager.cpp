@@ -86,6 +86,17 @@ void LayerManager::AddActiveLayerChangedCallback(std::function<void()> Func)
 	ClientAfterActiveLayerChangedCallbacks.push_back(Func);
 }
 
+std::vector<DataLayer*> LayerManager::GetAllLayersOfActiveObject()
+{
+	std::vector<DataLayer*> Result;
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return Result;
+
+	Result = ActiveObject->Layers;
+	return Result;
+}
+
 int LayerManager::GetActiveLayerIndex()
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();

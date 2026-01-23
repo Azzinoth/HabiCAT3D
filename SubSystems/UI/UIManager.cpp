@@ -14,6 +14,8 @@ UIManager::UIManager()
 	HistogramSelectRegionMax.SetColor(ImVec4(0.8f, 0.0f, 0.0f, 1.0f));
 	HistogramSelectRegionMax.SetOrientation(true);
 
+	APPLICATION.GetMainWindow()->AddOnResizeCallback(UIManager::WindowResizeCallback);
+
 	JITTER_MANAGER.SetOnCalculationsStartCallback(OnJitterCalculationsStart);
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
 
@@ -356,7 +358,7 @@ void UIManager::ShowCameraTransform()
 		ImGui::DragFloat("##Camera_speed", &CameraSpeed, 0.01f, 0.01f, 100.0f);
 		NativeScriptComponent.SetVariableValue("MovementSpeed", CameraSpeed);
 
-		if (bDeveloperMode)
+		if (IsInDeveloperMode())
 		{
 			ImGui::SameLine();
 			ImGui::Text(("Thread count: " + std::to_string(THREAD_POOL.GetThreadCount())).c_str());
@@ -364,7 +366,7 @@ void UIManager::ShowCameraTransform()
 	}
 	else
 	{
-		if (bDeveloperMode)
+		if (IsInDeveloperMode())
 		{
 			ImGui::Text(("Thread count: " + std::to_string(THREAD_POOL.GetThreadCount())).c_str());
 		}
@@ -448,6 +450,15 @@ void UIManager::Render(bool bScreenshotMode)
 			ImGui::EndMenu();
 		}
 
+		if (ImGui::BeginMenu("Settings"))
+		{
+			bool bTemporary = IsApplyStandardLayoutOnResize();
+			if (ImGui::MenuItem("Reset Window Layout on Resize", nullptr, bTemporary))
+				SetApplyStandardLayoutOnResize(!IsApplyStandardLayoutOnResize());
+			
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::BeginMenu("Info"))
 		{
 			if (ImGui::MenuItem("About..."))
@@ -460,6 +471,36 @@ void UIManager::Render(bool bScreenshotMode)
 	}
 
 	OBJECT_VIEWER_WINDOW.Render();
+
+	if (LAYER_MANAGER.GetActiveLayer() != nullptr)
+	{
+		DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
+		LayerInterpolationData* InterpolationData = ActiveLayer->GetInterpolationData();
+		if (ActiveLayer->GetType() == LAYER_TYPE::INTERPOLATION && InterpolationData != nullptr)
+		{
+			if (ImGui::Begin("Interpolation Settings"))
+			{
+				ImGui::Text("Layers blend factor:");
+				float GlobalFactor = InterpolationData->GetInterpolationFactor();
+				ImGui::DragFloat("##InterpolationFactor", &GlobalFactor, 0.001f, 0.0f, 1.0f, "%.3f");
+				InterpolationData->SetInterpolationFactor(GlobalFactor);
+
+				bool bUseMinMaxInterpolation = InterpolationData->IsMinMaxInterpolationEnabled();
+				ImGui::Checkbox("Use Min/Max interpolation", &bUseMinMaxInterpolation);
+				InterpolationData->SetMinMaxInterpolationEnabled(bUseMinMaxInterpolation);
+
+				ImGui::End();
+			}
+		}
+	}
+
+	DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
+	if (ActiveLayer != nullptr)
+	{
+		if (ActiveLayer->GetType() == LAYER_TYPE::INTERPOLATION)
+			UI.HeatMapColorRange.bRenderSlider = !ActiveLayer->GetInterpolationData()->IsMinMaxInterpolationEnabled();
+	}
+
 	RenderSettingsWindow();
 	RenderLegend();
 	RenderLayerTabs();
@@ -843,7 +884,19 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 		}
 	}
 
-	if (!IsActiveObjectAndLayerValid())
+	bool bShouldDisable = false;
+	if (IsActiveObjectAndLayerValid())
+	{
+		DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
+		if (CurrentLayer->GetType() == LAYER_TYPE::INTERPOLATION)
+		{
+			LayerInterpolationData* InterpolationData = CurrentLayer->GetInterpolationData();
+			if (InterpolationData != nullptr)
+				bShouldDisable = InterpolationData->IsMinMaxInterpolationEnabled();
+		}
+	}
+
+	if (!IsActiveObjectAndLayerValid() || bShouldDisable)
 		ImGui::BeginDisabled();
 
 	ImGui::SetCursorPosX(10);
@@ -867,7 +920,7 @@ void UIManager::RenderLegend(bool bScreenshotMode)
 		HeatMapColorRange.SetSliderValue((NewValue - ActiveLayer->GetMin()) / float(ActiveLayer->GetMax() - ActiveLayer->GetMin()));
 	}
 
-	if (!IsActiveObjectAndLayerValid())
+	if (!IsActiveObjectAndLayerValid() || bShouldDisable)
 		ImGui::EndDisabled();
 
 	ImGui::PopStyleVar();
@@ -1252,7 +1305,10 @@ void UIManager::RenderHistogramWindow()
 	if (ActiveObject == nullptr)
 		return;
 
-	// FIX ME: Should it work only with meshes?
+	DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
+	if (ActiveLayer == nullptr || ActiveLayer->GetType() == LAYER_TYPE::INTERPOLATION)
+		return;
+
 	FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
 
 	static float LastWindowW = 0.0f;
@@ -1487,6 +1543,22 @@ void UIManager::SetOutputSelectionToFile(const bool NewValue)
 	bOutputSelectionToFile = NewValue;
 }
 
+void UIManager::WindowResizeCallback(int Width, int Height)
+{
+	if (UI.IsApplyStandardLayoutOnResize())
+		UI.ApplyStandardWindowsSizeAndPosition();
+}
+
+bool UIManager::IsApplyStandardLayoutOnResize() const
+{
+	return bApplyStandardLayoutOnResize;
+}
+
+void UIManager::SetApplyStandardLayoutOnResize(bool NewValue)
+{
+	bApplyStandardLayoutOnResize = NewValue;
+}
+
 void UIManager::ApplyStandardWindowsSizeAndPosition()
 {
 	ImGuiWindow* Window = ImGui::FindWindowByName("Histogram");
@@ -1684,7 +1756,7 @@ void UIManager::OnLayerChange()
 	{
 		UI.InitDebugGrid(UI.CurrentJitterStepIndexVisualize);
 		UI.UpdateRenderingMode(UI.GetDebugGrid(), UI.GetDebugGrid()->RenderingMode);
-	}	
+	}
 }
 
 std::vector<GridInitData_Jitter> ReadJitterSettingsFromDebugInfo(DataLayerDebugInfo* DebugInfo)
@@ -1978,10 +2050,10 @@ void UIManager::RenderGeneralSettingsTab()
 		}
 	}
 
-	bool TempBool = bModelCamera;
-	if (ImGui::Checkbox("Model camera", &TempBool))
+	bool bModelCameraMode = bModelCamera;
+	if (ImGui::Checkbox("Model camera", &bModelCameraMode))
 	{
-		SetIsModelCamera(TempBool);
+		SetIsModelCamera(bModelCameraMode);
 	}
 
 	if (bModelCamera && bChooseCameraFocusPointMode && ImGui::IsMouseReleased(0) && ActiveEntity != nullptr)
@@ -2036,9 +2108,9 @@ void UIManager::RenderGeneralSettingsTab()
 	}
 
 	ImGui::Separator();
-	TempBool = IsInDeveloperMode();
-	if (ImGui::Checkbox("Developer mode", &TempBool))
-		SetDeveloperMode(TempBool);
+	bool bDeveloperModeOn = IsInDeveloperMode();
+	if (ImGui::Checkbox("Developer mode", &bDeveloperModeOn))
+		SetDeveloperMode(bDeveloperModeOn);
 
 	if (!IsInDeveloperMode())
 	{
@@ -2342,66 +2414,55 @@ void UIManager::RenderExportTab()
 			ImGui::Separator();
 			ImGui::Text("Selected triangle information :");
 
-			std::string Text = "Triangle value : ";
-			Text += std::to_string(ActiveLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[0]]);
-			ImGui::Text(Text.c_str());
-
-			int HeightLayerIndex = -1;
-			for (size_t i = 0; i < ActiveObject->Layers.size(); i++)
+			std::vector<DataLayer*> Layers = LAYER_MANAGER.GetAllLayersOfActiveObject();
+			std::string Text = "Value per layer:\n";
+			for (size_t i = 0; i < Layers.size(); i++)
 			{
-				if (ActiveObject->Layers[i]->GetCaption() == "Height")
-					HeightLayerIndex = static_cast<int>(i);
+				std::string CurrentCaption = Layers[i]->GetCaption();
+				float CurrentValue = 0.0f;
+				if (Layers[i]->GetType() == LAYER_TYPE::INTERPOLATION)
+				{
+					CurrentValue = std::numeric_limits<float>::quiet_NaN();
+				}
+				else
+				{
+					CurrentValue = Layers[i]->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[0]];
+				}
+				
+				Text += CurrentCaption + " : " + std::to_string(CurrentValue) + "\n";
 			}
 
-			Text = "Triangle height : ";
-			double AverageHeight = 0.0;
-			if (HeightLayerIndex != -1)
-			{
-				AverageHeight = ActiveObject->Layers[HeightLayerIndex]->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[0]];
-				AverageHeight -= ActiveObject->Layers[HeightLayerIndex]->GetMin();
-			}
-
-			Text += std::to_string(AverageHeight);
 			ImGui::Text(Text.c_str());
+			ImGui::End();
 		}
 		else if (CurrentMeshAnalysisData->TriangleSelected.size() > 1 && ActiveLayer != nullptr)
 		{
-			std::string Text = "Area average value : ";
-			float TotalRugosity = 0.0f;
-			for (size_t i = 0; i < CurrentMeshAnalysisData->TriangleSelected.size(); i++)
+			ImGui::Text("Selected area information : ");
+			std::string Text = "Average values per layer:\n";
+
+			std::vector<DataLayer*> Layers = LAYER_MANAGER.GetAllLayersOfActiveObject();
+			for (size_t i = 0; i < Layers.size(); i++)
 			{
-				TotalRugosity += ActiveLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[i]];
-			}
-
-			TotalRugosity /= CurrentMeshAnalysisData->TriangleSelected.size();
-			Text += std::to_string(TotalRugosity);
-
-			ImGui::Text(Text.c_str());
-
-			Text = "Area average height : ";
-			double AverageHeight = 0.0;
-
-			int HeightLayerIndex = -1;
-			for (size_t i = 0; i < ActiveObject->Layers.size(); i++)
-			{
-				if (ActiveObject->Layers[i]->GetCaption() == "Height")
-					HeightLayerIndex = static_cast<int>(i);
-			}
-
-			if (HeightLayerIndex != -1)
-			{
-				DataLayer* HeightLayer = ActiveObject->Layers[HeightLayerIndex];
-				for (size_t i = 0; i < CurrentMeshAnalysisData->TriangleSelected.size(); i++)
+				std::string CurrentCaption = Layers[i]->GetCaption();
+				float TotalValue = 0.0f;
+				if (Layers[i]->GetType() == LAYER_TYPE::INTERPOLATION)
 				{
-					double CurrentHeight = HeightLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[i]];
-					AverageHeight += CurrentHeight;
+					TotalValue = std::numeric_limits<float>::quiet_NaN();
+				}
+				else
+				{
+					for (size_t j = 0; j < CurrentMeshAnalysisData->TriangleSelected.size(); j++)
+					{
+						TotalValue += Layers[i]->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[j]];
+					}
 				}
 
-				AverageHeight /= CurrentMeshAnalysisData->TriangleSelected.size();
-				AverageHeight -= HeightLayer->GetMin();
-			}
+				float AverageValue = std::numeric_limits<float>::quiet_NaN();
+				if (!isnan(TotalValue))
+					AverageValue = TotalValue / CurrentMeshAnalysisData->TriangleSelected.size();
 
-			Text += std::to_string(AverageHeight);
+				Text += CurrentCaption + " : " + std::to_string(AverageValue) + "\n";
+			}
 
 			ImGui::Text(Text.c_str());
 		}

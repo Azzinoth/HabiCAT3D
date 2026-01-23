@@ -479,6 +479,19 @@ void AnalysisObjectManager::AddOnLoadCallback(std::function<void(AnalysisObject*
 	ClientOnLoadCallbacks.push_back(Callback);
 }
 
+std::vector<int> AnalysisObjectManager::GetVertexAttributeIndexes(int InterpolationLayerCount)
+{
+	const int LayerDataPerAttribute = 4;
+	const int StartingAttributeIndex = 9;
+	int AttributeCount = (InterpolationLayerCount + 3) / LayerDataPerAttribute;
+
+	std::vector<int> Result;
+	for (int i = 0; i < AttributeCount; i++)
+		Result.push_back(StartingAttributeIndex + i);
+
+	return Result;
+};
+
 void AnalysisObjectManager::ComplexityMetricDataToGPU(std::string LayerID, int GPULayerIndex)
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
@@ -499,17 +512,65 @@ void AnalysisObjectManager::ComplexityMetricDataToGPU(std::string LayerID, int G
 		if (ActiveMesh == nullptr)
 			return;
 
+		LayerInterpolationData* CurrentInterpolationData = CurrentLayer->GetInterpolationData();
+		if (CurrentLayer->GetType() == LAYER_TYPE::INTERPOLATION && CurrentInterpolationData == nullptr)
+			return;
+
 		CurrentLayer->FillRawData();
 
 		FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
 
 		if (GPULayerIndex == 0)
 		{
-			CurrentMeshAnalysisData->FirstLayerBufferID = 0;
-			FE_GL_ERROR(glGenBuffers(1, &CurrentMeshAnalysisData->FirstLayerBufferID));
-			FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, CurrentMeshAnalysisData->FirstLayerBufferID));
-			FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * CurrentLayer->RawData.size(), CurrentLayer->RawData.data(), GL_STATIC_DRAW));
-			FE_GL_ERROR(glVertexAttribPointer(7, 3, GL_FLOAT, false, 0, nullptr));
+			if (CurrentLayer->GetType() == LAYER_TYPE::INTERPOLATION)
+			{
+				for (size_t i = 0; i < CurrentMeshAnalysisData->InterpolationLayerBufferIDs.size(); i++)
+				{
+					if (CurrentMeshAnalysisData->InterpolationLayerBufferIDs[i] != GLuint(-1))
+						FE_GL_ERROR(glDeleteBuffers(1, &CurrentMeshAnalysisData->InterpolationLayerBufferIDs[i]));
+				}
+				CurrentMeshAnalysisData->InterpolationLayerBufferIDs.clear();
+
+				if (CurrentInterpolationData->RawData.size() == CurrentInterpolationData->GetLayerCount() && CurrentInterpolationData->GetLayerCount() > 0)
+				{
+					int PerLayerDataCount = CurrentInterpolationData->RawData[0].size();
+					int InterpolationLayerCount = CurrentInterpolationData->GetLayerCount();
+					std::vector<int> AttributeIndexes = GetVertexAttributeIndexes(InterpolationLayerCount);
+					int BufferCount = AttributeIndexes.size();
+					for (size_t i = 0; i < BufferCount; i++)
+					{
+						CurrentMeshAnalysisData->InterpolationLayerBufferIDs.push_back(GLuint(-1));
+						FE_GL_ERROR(glGenBuffers(1, &CurrentMeshAnalysisData->InterpolationLayerBufferIDs.back()));
+						FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, CurrentMeshAnalysisData->InterpolationLayerBufferIDs.back()));
+
+						std::vector<glm::vec4> PackedData;
+						for (size_t j = 0; j < PerLayerDataCount; j++)
+						{
+							glm::vec4 CurrentValue;
+							CurrentValue.x = (i * 4 + 0) < InterpolationLayerCount ? CurrentInterpolationData->RawData[i * 4 + 0][j] : 0.0f;
+							CurrentValue.y = (i * 4 + 1) < InterpolationLayerCount ? CurrentInterpolationData->RawData[i * 4 + 1][j] : 0.0f;
+							CurrentValue.z = (i * 4 + 2) < InterpolationLayerCount ? CurrentInterpolationData->RawData[i * 4 + 2][j] : 0.0f;
+							CurrentValue.w = (i * 4 + 3) < InterpolationLayerCount ? CurrentInterpolationData->RawData[i * 4 + 3][j] : 0.0f;
+
+							PackedData.push_back(CurrentValue);
+						}
+
+						FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * PackedData.size() * 4, PackedData.data(), GL_STATIC_DRAW));
+						FE_GL_ERROR(glVertexAttribPointer(AttributeIndexes[i], 4, GL_FLOAT, false, 0, nullptr));
+					}
+				}
+			}
+			else
+			{
+				if (CurrentMeshAnalysisData->FirstLayerBufferID != GLuint(-1))
+					FE_GL_ERROR(glDeleteBuffers(1, &CurrentMeshAnalysisData->FirstLayerBufferID));
+
+				CurrentMeshAnalysisData->FirstLayerBufferID = 0;
+				FE_GL_ERROR(glGenBuffers(1, &CurrentMeshAnalysisData->FirstLayerBufferID));
+				FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, CurrentMeshAnalysisData->FirstLayerBufferID));
+				FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * CurrentLayer->RawData.size(), CurrentLayer->RawData.data(), GL_STATIC_DRAW));
+				FE_GL_ERROR(glVertexAttribPointer(7, 1, GL_FLOAT, false, 0, nullptr));
+			}
 		}
 		else
 		{
@@ -713,6 +774,26 @@ void AnalysisObjectManager::UpdateMeshUniforms(AnalysisObject* Object)
 		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("HeatMapType", CurrentMeshAnalysisData->GetHeatMapType());
 		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("LayerIndex", Object->GetActiveLayerIndex());
 
+		if (ActiveLayer != nullptr)
+		{
+			LayerInterpolationData* CurrentInterpolationData = ActiveLayer->GetInterpolationData();
+			ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolationActive", CurrentInterpolationData == nullptr ? 0 : 1);
+			if (CurrentInterpolationData != nullptr)
+			{
+				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolationLayerCount", CurrentInterpolationData->GetLayerCount());
+				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolationLayersMin", CurrentInterpolationData->GetLayersMinValues());
+				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolationLayersMax", CurrentInterpolationData->GetLayersMaxValues());
+
+				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolationFactor", CurrentInterpolationData->GetInterpolationFactor());
+
+				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolateMinMaxValues", CurrentInterpolationData->IsMinMaxInterpolationEnabled() ? 1 : 0);
+			}
+		}
+		else
+		{
+			ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolationActive", 0);
+		}
+		
 		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("UnselectedAreaSaturationFactor", CurrentMeshAnalysisData->GetUnselectedAreaSaturationFactor());
 		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("UnselectedAreaBrightnessFactor", CurrentMeshAnalysisData->GetUnselectedAreaBrightnessFactor());
 
@@ -1080,9 +1161,38 @@ void AnalysisObjectManager::SaveLayersDataToRUGFile(std::fstream& File, Analysis
 		File.write((char*)&Count, sizeof(int));
 		File.write((char*)CurrentLayer->GetNote().c_str(), sizeof(char) * Count);
 
-		Count = static_cast<int>(CurrentLayer->ElementsToData.size());
-		File.write((char*)&Count, sizeof(int));
-		File.write((char*)CurrentLayer->ElementsToData.data(), sizeof(float) * Count);
+		LayerInterpolationData* InterpolationData = CurrentLayer->GetInterpolationData();
+		if (InterpolationData != nullptr)
+		{
+			std::vector<std::string> UsedLayerIDs = InterpolationData->GetUsedLayerIDs();
+			int UsedLayerIDSize = (int)UsedLayerIDs.size();
+			File.write((char*)&UsedLayerIDSize, sizeof(int));
+			for (size_t j = 0; j < UsedLayerIDs.size(); j++)
+			{
+				int SingleUsedLayerIDSize = static_cast<int>(UsedLayerIDs[j].size() + 1);
+				File.write((char*)&SingleUsedLayerIDSize, sizeof(int));
+				File.write((char*)UsedLayerIDs[j].c_str(), sizeof(char) * SingleUsedLayerIDSize);
+			}
+
+			float InterpolationFactor = InterpolationData->GetInterpolationFactor();
+			File.write((char*)&InterpolationFactor, sizeof(float));
+
+			int MinMaxInterpolationEnabled = InterpolationData->IsMinMaxInterpolationEnabled();
+			File.write((char*)&MinMaxInterpolationEnabled, sizeof(int));
+
+			int ElementPerLayerCount = InterpolationData->RawData[0].size();
+			File.write((char*)&ElementPerLayerCount, sizeof(int));
+			for (size_t j = 0; j < InterpolationData->RawData.size(); j++)
+			{
+				File.write((char*)InterpolationData->RawData[j].data(), sizeof(float) * ElementPerLayerCount);
+			}
+		}
+		else
+		{
+			Count = static_cast<int>(CurrentLayer->ElementsToData.size());
+			File.write((char*)&Count, sizeof(int));
+			File.write((char*)CurrentLayer->ElementsToData.data(), sizeof(float) * Count);
+		}
 
 		Count = CurrentLayer->DebugInfo != nullptr;
 		File.write((char*)&Count, sizeof(int));
@@ -1331,12 +1441,42 @@ void AnalysisObjectManager::LoadLayersDataFromRUGFile(std::fstream& File, Analys
 		Object->Layers[i]->SetCaption(FILE_SYSTEM.ReadFEString(File));
 		Object->Layers[i]->SetNote(FILE_SYSTEM.ReadFEString(File));
 
-		// ElementsToData
-		File.read(Buffer, 4);
-		const int ElementsToDataCout = *(int*)Buffer;
-		std::vector<float> TrianglesData;
-		Object->Layers[i]->ElementsToData.resize(ElementsToDataCout);
-		File.read((char*)Object->Layers[i]->ElementsToData.data(), ElementsToDataCout * 4);
+		if (Object->Layers[i]->GetType() == LAYER_TYPE::INTERPOLATION)
+		{
+			Object->Layers[i]->InterpolationData = new LayerInterpolationData();
+
+			File.read(Buffer, 4);
+			const int UsedLayersCount = *(int*)Buffer;
+			Object->Layers[i]->InterpolationData->UsedLayerIDs.resize(UsedLayersCount);
+			for (size_t j = 0; j < UsedLayersCount; j++)
+				Object->Layers[i]->InterpolationData->UsedLayerIDs[j] = FILE_SYSTEM.ReadFEString(File);
+
+			File.read(Buffer, 4);
+			const float InterpolationFactor = *(float*)Buffer;
+			Object->Layers[i]->InterpolationData->SetInterpolationFactor(InterpolationFactor);
+
+			File.read(Buffer, 4);
+			const int MinMaxInterpolationEnabled = *(int*)Buffer;
+			Object->Layers[i]->InterpolationData->SetMinMaxInterpolationEnabled(MinMaxInterpolationEnabled != 0);
+
+			File.read(Buffer, 4);
+			const int ElementPerLayerCount = *(int*)Buffer;
+			Object->Layers[i]->InterpolationData->RawData.resize(Object->Layers[i]->InterpolationData->UsedLayerIDs.size());
+			for (size_t j = 0; j < Object->Layers[i]->InterpolationData->UsedLayerIDs.size(); j++)
+			{
+				Object->Layers[i]->InterpolationData->RawData[j].resize(ElementPerLayerCount);
+				File.read((char*)Object->Layers[i]->InterpolationData->RawData[j].data(), ElementPerLayerCount * 4);
+			}
+		}
+		else
+		{
+			// ElementsToData
+			File.read(Buffer, 4);
+			const int ElementsToDataCout = *(int*)Buffer;
+			std::vector<float> TrianglesData;
+			Object->Layers[i]->ElementsToData.resize(ElementsToDataCout);
+			File.read((char*)Object->Layers[i]->ElementsToData.data(), ElementsToDataCout * 4);
+		}
 
 		// Debug info.
 		File.read(Buffer, 4);
@@ -1510,6 +1650,18 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 				MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
 				if (CurrentMeshAnalysisData->GetFirstLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(7));
 				if (CurrentMeshAnalysisData->GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
+
+				DataLayer* ActiveLayer = CurrentObject->GetActiveLayer();
+				if (ActiveLayer != nullptr)
+				{
+					LayerInterpolationData* CurrentInterpolationData = ActiveLayer->GetInterpolationData();
+					if (CurrentInterpolationData != nullptr)
+					{
+						std::vector<int> AttribArrayToEnable = GetVertexAttributeIndexes(CurrentInterpolationData->GetLayerCount());
+						for (size_t i = 0; i < AttribArrayToEnable.size(); i++)
+							FE_GL_ERROR(glEnableVertexAttribArray(AttribArrayToEnable[i]));
+					}
+				}
 			}
 		}
 		else if (CurrentObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)

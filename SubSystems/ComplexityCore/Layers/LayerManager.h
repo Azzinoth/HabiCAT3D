@@ -30,6 +30,8 @@ public:
 
 	std::string SuitableNewLayerCaption(std::string Base);
 
+	std::vector<DataLayer*> GetAllLayersOfActiveObject();
+
 	int LayerManager::GetActiveLayerIndex();
 	DataLayer* GetActiveLayer();
 	size_t GetLayerCount();

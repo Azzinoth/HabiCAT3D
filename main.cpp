@@ -104,14 +104,25 @@ void OutputSelectedAreaInfoToFile()
 
 		Text = "Layer \"" + CurrentLayer->GetCaption() + "\" : \n";
 		Text += "Area average value : ";
-		float Total = 0.0f;
-		for (size_t j = 0; j < CurrentMeshAnalysisData->TriangleSelected.size(); j++)
+
+		float TotalValue = 0.0f;
+		if (CurrentLayer->GetType() == LAYER_TYPE::INTERPOLATION)
 		{
-			Total += CurrentLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[i]];
+			TotalValue = std::numeric_limits<float>::quiet_NaN();
+		}
+		else
+		{
+			for (size_t j = 0; j < CurrentMeshAnalysisData->TriangleSelected.size(); j++)
+			{
+				TotalValue += CurrentLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[j]];
+			}
 		}
 
-		Total /= CurrentMeshAnalysisData->TriangleSelected.size();
-		Text += std::to_string(Total);
+		float AverageValue = std::numeric_limits<float>::quiet_NaN();
+		if (!isnan(TotalValue))
+			AverageValue = TotalValue / CurrentMeshAnalysisData->TriangleSelected.size();
+
+		Text += std::to_string(AverageValue);
 		LOG.Add(Text, FILE_SYSTEM.GetFileName(ActiveObject->GetFilePath()));
 	}
 
@@ -175,10 +186,6 @@ void MouseButtonCallback(int button, int action, int mods)
 
 void WindowResizeCallback(int Width, int Height)
 {
-	int W, H;
-	APPLICATION.GetMainWindow()->GetSize(&W, &H);
-
-	UI.ApplyStandardWindowsSizeAndPosition();
 	SCREENSHOT_MANAGER.RenderTargetWasResized();
 }
 
@@ -560,21 +567,6 @@ GLFWimage ConvertIconToGLFWImage(HICON Icon)
 	return Result;
 }
 
-FEEntity* TestEntity = nullptr;
-void CreateTestEntity()
-{
-	FEMesh* SphereMesh = RESOURCE_MANAGER.GetMesh("7F251E3E0D08013E3579315F");
-
-	FEMaterial* GreenMaterial = RESOURCE_MANAGER.CreateMaterial();
-	GreenMaterial->Shader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
-	GreenMaterial->SetBaseColor(glm::vec3(0.0f, 1.0f, 0.0f));
-	FEGameModel* GreenSphereGameModel = RESOURCE_MANAGER.CreateGameModel(SphereMesh, GreenMaterial);
-
-	TestEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Test entity");
-	TestEntity->AddComponent<FEGameModelComponent>(GreenSphereGameModel);
-	TestEntity->GetComponent<FETransformComponent>().SetPosition(glm::vec3(0.0f, 5.0f, 0.0f));
-}
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	//LOG.SetFileOutput(true);
@@ -645,8 +637,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(AfterNewResourceLoads);
 
 		SCREENSHOT_MANAGER.Init();
-
-		//CreateTestEntity();
 
 		while (ENGINE.IsNotTerminated())
 		{

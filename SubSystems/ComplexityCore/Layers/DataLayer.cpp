@@ -82,6 +82,7 @@ std::vector<DATA_SOURCE_TYPE> DataLayer::GetDataSourceTypeForLayerType(LAYER_TYP
 		case LAYER_TYPE::RUGOSITY:
 		case LAYER_TYPE::VECTOR_DISPERSION:
 		case LAYER_TYPE::TRIANGLE_DENSITY:
+		case LAYER_TYPE::INTERPOLATION:
 			return { DATA_SOURCE_TYPE::MESH };
 		case LAYER_TYPE::POINT_DENSITY:
 		case LAYER_TYPE::STRUCTURAL_ROUGHNESS:
@@ -128,29 +129,73 @@ void DataLayer::ComputeStatistics()
 	if (CurrentObject == nullptr)
 		return;
 
-	if (ElementsToData.empty())
+	if (InterpolationData == nullptr && ElementsToData.empty())
 		return;
 
 	double TotalSum = 0.0;
-	for (size_t i = 0; i < ElementsToData.size(); i++)
+	if (InterpolationData == nullptr)
 	{
-		Min = std::min(Min, ElementsToData[i]);
-		Max = std::max(Max, ElementsToData[i]);
+		for (size_t i = 0; i < ElementsToData.size(); i++)
+		{
+			Min = std::min(Min, ElementsToData[i]);
+			Max = std::max(Max, ElementsToData[i]);
 
-		TotalSum += ElementsToData[i];
+			TotalSum += ElementsToData[i];
+		}
+
+
+	}
+	else
+	{
+		for (size_t i = 0; i < InterpolationData->RawData.size(); i++)
+		{
+			for (size_t j = 0; j < InterpolationData->RawData[i].size(); j++)
+			{
+				Min = std::min(Min, InterpolationData->RawData[i][j]);
+				Max = std::max(Max, InterpolationData->RawData[i][j]);
+				TotalSum += InterpolationData->RawData[i][j];
+			}
+		}
 	}
 
 	std::vector<float> SortedData = ElementsToData;
+	if (InterpolationData != nullptr)
+	{
+		for (size_t i = 0; i < InterpolationData->RawData.size(); i++)
+			SortedData.insert(SortedData.end(), InterpolationData->RawData[i].begin(), InterpolationData->RawData[i].end());
+	}
+	
 	std::sort(SortedData.begin(), SortedData.end());
 	int MaxVisibleIndex = static_cast<int>(SortedData.size() * 0.85);
 
 	MinVisible = Min;
 	MaxVisible = SortedData[MaxVisibleIndex];
 
-	if (!ElementsToData.empty())
+	size_t TotalElements = SortedData.size();
+	Mean = static_cast<float>(TotalSum / TotalElements);
+	Median = SortedData[SortedData.size() / 2];
+
+	if (InterpolationData != nullptr)
 	{
-		Mean = static_cast<float>(TotalSum / ElementsToData.size());
-		Median = SortedData[SortedData.size() / 2];
+		InterpolationData->LayerMinValues.clear();
+		InterpolationData->LayerMaxValues.clear();
+
+		for (size_t i = 0; i < InterpolationData->RawData.size(); i++)
+		{
+			float MinValue = FLT_MAX;
+			float MaxValue = -FLT_MAX;
+			for (size_t j = 0; j < InterpolationData->RawData[i].size(); j++)
+			{
+				if (InterpolationData->RawData[i][j] < MinValue)
+					MinValue = InterpolationData->RawData[i][j];
+
+				if (InterpolationData->RawData[i][j] > MaxValue)
+					MaxValue = InterpolationData->RawData[i][j];
+			}
+
+			InterpolationData->LayerMinValues.push_back(MinValue);
+			InterpolationData->LayerMaxValues.push_back(MaxValue);
+		}
 	}
 
 	ValueWeightAndIndex.clear();
@@ -161,6 +206,9 @@ void DataLayer::ComputeStatistics()
 		{
 			MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
 			if (CurrentMeshAnalysisData == nullptr)
+				return;
+
+			if (InterpolationData != nullptr)
 				return;
 
 			for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
@@ -198,6 +246,9 @@ void DataLayer::FillRawData()
 	if (ElementsToData.empty())
 		return;
 
+	if (Type == LAYER_TYPE::INTERPOLATION)
+		return;
+
 	switch (CurrentObject->GetType())
 	{
 		case DATA_SOURCE_TYPE::MESH:
@@ -214,12 +265,12 @@ void DataLayer::FillRawData()
 
 			RawData.resize(CurrentMeshAnalysisData->Vertices.size());
 			auto GetVertexOfFace = [&](const int FaceIndex) {
-				std::vector<int> result;
-				result.push_back(IndexVector[FaceIndex * 3]);
-				result.push_back(IndexVector[FaceIndex * 3 + 1]);
-				result.push_back(IndexVector[FaceIndex * 3 + 2]);
+				std::vector<int> Result;
+				Result.push_back(IndexVector[FaceIndex * 3]);
+				Result.push_back(IndexVector[FaceIndex * 3 + 1]);
+				Result.push_back(IndexVector[FaceIndex * 3 + 2]);
 
-				return result;
+				return Result;
 			};
 
 			auto SetRugosityOfVertex = [&](const int Index, const float Value) {
@@ -240,6 +291,13 @@ void DataLayer::FillRawData()
 			for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
 				SetRugosityOfFace(static_cast<int>(i), ElementsToData[i]);
 
+			// After all steps compact the RawData to have one value per vertex.
+			std::vector<float> CompactedRawData;
+			CompactedRawData.resize(CurrentMeshAnalysisData->Vertices.size() / 3);
+			for (size_t i = 0; i < CurrentMeshAnalysisData->Vertices.size() / 3; i++)
+				CompactedRawData[i] = RawData[i * 3];
+			
+			RawData = CompactedRawData;
 			break;
 		}
 		case DATA_SOURCE_TYPE::POINT_CLOUD:
@@ -343,6 +401,51 @@ std::string DataLayer::GetID()
 void DataLayer::ForceID(std::string ID)
 {
 	this->ID = ID;
+}
+
+LayerInterpolationData* DataLayer::GetInterpolationData()
+{
+	return InterpolationData;
+}
+
+std::vector<float> LayerInterpolationData::GetLayersMinValues()
+{
+	return LayerMinValues;
+}
+
+std::vector<float> LayerInterpolationData::GetLayersMaxValues()
+{
+	return LayerMaxValues;
+}
+
+float LayerInterpolationData::GetInterpolationFactor()
+{
+	return InterpolationFactor;
+}
+
+void LayerInterpolationData::SetInterpolationFactor(float NewValue)
+{
+	InterpolationFactor = NewValue;
+}
+
+int LayerInterpolationData::GetLayerCount()
+{
+	return UsedLayerIDs.size();
+}
+
+bool LayerInterpolationData::IsMinMaxInterpolationEnabled()
+{
+	return bInterpolateMinMaxValues;
+}
+
+void LayerInterpolationData::SetMinMaxInterpolationEnabled(bool NewValue)
+{
+	bInterpolateMinMaxValues = NewValue;
+}
+
+std::vector<std::string> LayerInterpolationData::GetUsedLayerIDs()
+{
+	return UsedLayerIDs;
 }
 
 std::string DebugEntry::ToString()
