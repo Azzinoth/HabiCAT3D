@@ -19,6 +19,7 @@ public:
 
 	AnalysisObject* ImportOBJ(const char* FilePath, bool bForceOneMesh);
 	void LoadResource(std::string FilePath);
+	AnalysisObject* CreateAnalysisObject(std::vector<FEPointCloudVertex>& RawPointCloudData, std::string ObjectName = "Unnamed Point Cloud");
 
 	void SaveToRUGFile(std::string FilePath);
 	void SaveToRUGFileAskForFilePath();

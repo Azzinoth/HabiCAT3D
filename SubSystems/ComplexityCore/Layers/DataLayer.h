@@ -73,7 +73,7 @@ private:
 
 	bool bInterpolateMinMaxValues = true;
 public:
-	int GetLayerCount();
+	size_t GetLayerCount();
 
 	std::vector<std::string> GetUsedLayerIDs();
 

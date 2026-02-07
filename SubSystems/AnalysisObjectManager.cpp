@@ -148,6 +148,8 @@ AnalysisObject* AnalysisObjectManager::ImportOBJ(const char* FilePath, bool bFor
 		Result->FilePath = FilePath;
 		Result->Name = FILE_SYSTEM.GetFileName(FilePath, false);
 		Result->AnalysisData = ExtractAdditionalGeometryData(FirstObject->DVerC, FirstObject->FColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
+		
+		Result->AppliedShift = RESOURCE_MANAGER.GetLastLoadedMeshAppliedShift();
 	}
 	
 	return Result;
@@ -409,6 +411,27 @@ void AnalysisObjectManager::OnAnalysisObjectLoad(AnalysisObject* NewObject)
 	}
 }
 
+AnalysisObject* AnalysisObjectManager::CreateAnalysisObject(std::vector<FEPointCloudVertex>& RawPointCloudData, std::string ObjectName)
+{
+	AnalysisObject* Result = nullptr;
+	if (RawPointCloudData.empty())
+		return Result;
+
+	FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(RawPointCloudData, "", "", false);
+	NewPointCloud->SetAdvancedRenderingEnabled(true);
+
+	Result = new AnalysisObject();
+	Result->Type = DATA_SOURCE_TYPE::POINT_CLOUD;
+	Result->EngineResource = NewPointCloud;
+	Result->Name = ObjectName;
+	Result->AnalysisData = ExtractAdditionalGeometryData(NewPointCloud);
+	Result->AppliedShift = RESOURCE_MANAGER.GetLastLoadedPointCloudAppliedShift();
+
+	OnAnalysisObjectLoad(Result);
+
+	return Result;
+}
+
 void AnalysisObjectManager::LoadResource(std::string FilePath)
 {
 	AnalysisObject* LoadedResource = nullptr;
@@ -424,6 +447,7 @@ void AnalysisObjectManager::LoadResource(std::string FilePath)
 	if (FileExtension == ".obj")
 	{
 		LoadedResource = ImportOBJ(FilePath.c_str(), true);
+		LoadedResource->AppliedShift = RESOURCE_MANAGER.GetLastLoadedMeshAppliedShift();
 	}
 	else if (FileExtension == ".rug")
 	{
@@ -455,6 +479,7 @@ void AnalysisObjectManager::LoadResource(std::string FilePath)
 			LoadedResource->Name = FILE_SYSTEM.GetFileName(FilePath, false);
 			LoadedResource->EngineResource = LoadedObject;
 			LoadedResource->AnalysisData = ExtractAdditionalGeometryData(static_cast<FEPointCloud*>(LoadedObject));
+			LoadedResource->AppliedShift = RESOURCE_MANAGER.GetLastLoadedPointCloudAppliedShift();
 		}
 	}
 	else if (FileExtension == ".las" || FileExtension == ".laz")
@@ -469,6 +494,7 @@ void AnalysisObjectManager::LoadResource(std::string FilePath)
 		LoadedResource->Name = FILE_SYSTEM.GetFileName(FilePath, false);
 		LoadedResource->EngineResource = PointCloud;
 		LoadedResource->AnalysisData = ExtractAdditionalGeometryData(PointCloud);
+		LoadedResource->AppliedShift = RESOURCE_MANAGER.GetLastLoadedPointCloudAppliedShift();
 	}
 
 	OnAnalysisObjectLoad(LoadedResource);
@@ -533,10 +559,10 @@ void AnalysisObjectManager::ComplexityMetricDataToGPU(std::string LayerID, int G
 
 				if (CurrentInterpolationData->RawData.size() == CurrentInterpolationData->GetLayerCount() && CurrentInterpolationData->GetLayerCount() > 0)
 				{
-					int PerLayerDataCount = CurrentInterpolationData->RawData[0].size();
-					int InterpolationLayerCount = CurrentInterpolationData->GetLayerCount();
+					int PerLayerDataCount = static_cast<int>(CurrentInterpolationData->RawData[0].size());
+					int InterpolationLayerCount = static_cast<int>(CurrentInterpolationData->GetLayerCount());
 					std::vector<int> AttributeIndexes = GetVertexAttributeIndexes(InterpolationLayerCount);
-					int BufferCount = AttributeIndexes.size();
+					int BufferCount = static_cast<int>(AttributeIndexes.size());
 					for (size_t i = 0; i < BufferCount; i++)
 					{
 						CurrentMeshAnalysisData->InterpolationLayerBufferIDs.push_back(GLuint(-1));
@@ -1180,7 +1206,7 @@ void AnalysisObjectManager::SaveLayersDataToRUGFile(std::fstream& File, Analysis
 			int MinMaxInterpolationEnabled = InterpolationData->IsMinMaxInterpolationEnabled();
 			File.write((char*)&MinMaxInterpolationEnabled, sizeof(int));
 
-			int ElementPerLayerCount = InterpolationData->RawData[0].size();
+			int ElementPerLayerCount = static_cast<int>(InterpolationData->RawData[0].size());
 			File.write((char*)&ElementPerLayerCount, sizeof(int));
 			for (size_t j = 0; j < InterpolationData->RawData.size(); j++)
 			{
@@ -1657,7 +1683,7 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 					LayerInterpolationData* CurrentInterpolationData = ActiveLayer->GetInterpolationData();
 					if (CurrentInterpolationData != nullptr)
 					{
-						std::vector<int> AttribArrayToEnable = GetVertexAttributeIndexes(CurrentInterpolationData->GetLayerCount());
+						std::vector<int> AttribArrayToEnable = GetVertexAttributeIndexes(static_cast<int>(CurrentInterpolationData->GetLayerCount()));
 						for (size_t i = 0; i < AttribArrayToEnable.size(); i++)
 							FE_GL_ERROR(glEnableVertexAttribArray(AttribArrayToEnable[i]));
 					}

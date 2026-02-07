@@ -1,6 +1,10 @@
 #include "SubSystems/ConsoleJobs/ConsoleJobManager.h"
 #include "SubSystems/VRManager/VRManager.h"
+#include "SubSystems/COLMAPDataManager.h"
 using namespace FocalEngine;
+
+COLMAPProject* CurrentCOLMAPProject;
+std::string PhotogrammetryFolder;
 
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
 
@@ -241,6 +245,33 @@ void ConsoleThreadCode(void* InputData)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
+}
+
+static std::vector<int> ImagesThatWasAltered;
+void ChangeImageLineColor(COLMAPImage* ImageToModify, glm::vec3 NewColor)
+{
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+	if (CurrentMeshAnalysisData == nullptr)
+		return;
+
+	FEEntity* ImageEntity = ImageToModify->GetSceneEntity();
+	if (ImageEntity == nullptr)
+		return;
+
+	FELineComponent& LineComponent = ImageEntity->GetComponent<FELineComponent>();
+	std::vector<FELine> Lines = LineComponent.GetLineCollection()->GetRawData();
+	for (auto& CurrentLine : Lines)
+		CurrentLine.Color = NewColor;
+
+	FELineCollection* NewLineCollection = RESOURCE_MANAGER.RawDataToFELineCollection(Lines);
+
+	FELineCollection* OldLineCollection = LineComponent.GetLineCollection();
+	LineComponent.SetLineCollection(NewLineCollection);
+	RESOURCE_MANAGER.DeleteFELineCollection(OldLineCollection);
 }
 
 void MainWindowRender()
@@ -484,6 +515,270 @@ void MainWindowRender()
 		ImGui::Separator();
 	}
 
+	if (ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject() != nullptr)
+	{
+		AnalysisObject* CurrentActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		if (ImGui::Button("Load Photogrammetry for"))
+		{
+			CurrentCOLMAPProject = COLMAP_DATA_MANAGER.CreateNewProject(CurrentActiveObject->GetID(), PhotogrammetryFolder);
+		}
+	}
+
+	if (ANALYSIS_OBJECT_MANAGER.GetActiveEntity() != nullptr)
+	{
+		FEEntity* CurrentEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+		glm::vec3 Position = CurrentEntity->GetComponent<FETransformComponent>().GetPosition();
+		ImGui::DragFloat3("Active Entity position", &Position[0], 0.1f);
+	}
+
+	if (CurrentCOLMAPProject != nullptr && CurrentCOLMAPProject->GetImageCount() > 0)
+	{
+		if (ImGui::Begin("Images info"))
+		{
+			static int ImageIDToShow = 0;
+
+			AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+			if (ActiveObject != nullptr)
+			{
+				MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+				if (CurrentMeshAnalysisData != nullptr)
+				{
+					FEEntity* AnchorEntity = CurrentCOLMAPProject->GetPhotogrammetryAnchorEntity();
+					glm::vec3 AnchorPosition = AnchorEntity->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE);
+					ImGui::DragFloat3("Photogrammetry anchor position", &AnchorPosition[0], 0.1f);
+					AnchorEntity->GetComponent<FETransformComponent>().SetPosition(AnchorPosition, FE_WORLD_SPACE);
+
+
+					ImGui::Separator();
+					if (ImGui::Button("Select image that should contain the selected triangle(s)"))
+					{
+						DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
+						if (CurrentMeshAnalysisData->TriangleSelected.size() == 1)
+						{
+							FEAABB TriangleAABB = FEAABB(CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[0]]);
+							// AABB is in model space, so we need to transform it to world space
+							TriangleAABB = TriangleAABB.Transform(ActiveObject->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix());
+
+							// Reset colors of previously altered images
+							for (auto& ImageID : ImagesThatWasAltered)
+							{
+								COLMAPImage* ImageToReset = CurrentCOLMAPProject->GetImage(ImageID);
+								if (ImageToReset != nullptr)
+									ChangeImageLineColor(ImageToReset, glm::vec3(1.0f, 0.0f, 0.0f));
+							}
+							ImagesThatWasAltered.clear();
+
+							std::vector<COLMAPImage*> ImagesContainingTriangle = CurrentCOLMAPProject->GetImagesContainingAABB(TriangleAABB);
+							float MinDistance = std::numeric_limits<float>::max();
+							COLMAPImage* ClosestImage = nullptr;
+							for (auto& CurrentImage : ImagesContainingTriangle)
+							{
+								FEEntity* ImageEntity = CurrentImage->GetSceneEntity();
+								if (ImageEntity == nullptr)
+									continue;
+
+								glm::vec3 TriangleAABBCenter = TriangleAABB.GetCenter();
+								glm::vec3 ImagePosition = ImageEntity->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE);
+
+								float Distance = glm::length(TriangleAABBCenter - ImagePosition);
+								if (MinDistance > Distance)
+								{
+									MinDistance = Distance;
+									ClosestImage = CurrentImage;
+								}
+
+								ChangeImageLineColor(CurrentImage, glm::vec3(0.0f, 0.0f, 1.0f));
+								ImagesThatWasAltered.push_back(CurrentImage->GetID());
+							}
+
+							if (!ImagesContainingTriangle.empty())
+							{
+								ChangeImageLineColor(ClosestImage, glm::vec3(0.0f, 1.0f, 0.0f));
+								//COLMAPImage* FirstImage = ImagesContainingTriangle[0];
+								//ImageIDToShow = FirstImage->GetID();
+								ImageIDToShow = ClosestImage->GetID();
+							}
+
+
+							//Layers[i]->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[0]];
+
+							/*ImGui::Separator();
+							ImGui::Text("Selected triangle information :");
+
+							std::vector<DataLayer*> Layers = LAYER_MANAGER.GetAllLayersOfActiveObject();
+							std::string Text = "Value per layer:\n";
+							for (size_t i = 0; i < Layers.size(); i++)
+							{
+								std::string CurrentCaption = Layers[i]->GetCaption();
+								float CurrentValue = 0.0f;
+								if (Layers[i]->GetType() == LAYER_TYPE::INTERPOLATION)
+								{
+									CurrentValue = std::numeric_limits<float>::quiet_NaN();
+								}
+								else
+								{
+									CurrentValue = Layers[i]->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[0]];
+								}
+
+								Text += CurrentCaption + " : " + std::to_string(CurrentValue) + "\n";
+							}
+
+							ImGui::Text(Text.c_str());
+							ImGui::End();*/
+						}
+						else if (CurrentMeshAnalysisData->TriangleSelected.size() > 1)
+						{
+							/*ImGui::Text("Selected area information : ");
+							std::string Text = "Average values per layer:\n";
+
+							std::vector<DataLayer*> Layers = LAYER_MANAGER.GetAllLayersOfActiveObject();
+							for (size_t i = 0; i < Layers.size(); i++)
+							{
+								std::string CurrentCaption = Layers[i]->GetCaption();
+								float TotalValue = 0.0f;
+								if (Layers[i]->GetType() == LAYER_TYPE::INTERPOLATION)
+								{
+									TotalValue = std::numeric_limits<float>::quiet_NaN();
+								}
+								else
+								{
+									for (size_t j = 0; j < CurrentMeshAnalysisData->TriangleSelected.size(); j++)
+									{
+										TotalValue += Layers[i]->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[j]];
+									}
+								}
+
+								float AverageValue = std::numeric_limits<float>::quiet_NaN();
+								if (!isnan(TotalValue))
+									AverageValue = TotalValue / CurrentMeshAnalysisData->TriangleSelected.size();
+
+								Text += CurrentCaption + " : " + std::to_string(AverageValue) + "\n";
+							}
+
+							ImGui::Text(Text.c_str());*/
+						}
+					}
+
+
+					if (!ImagesThatWasAltered.empty())
+					{
+						ImGui::Text("Image IDs that can see the selected triangle(s):");
+						for (auto& ImageID : ImagesThatWasAltered)
+						{
+							ImGui::Text(("ImageID: " + std::to_string(ImageID)).c_str());
+						}
+					}
+
+
+					ImGui::Separator();
+					
+				}
+			}
+			
+
+
+
+
+			
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+			FEEntity* ImagesAnchor = CurrentCOLMAPProject->GetPhotogrammetryAnchorEntity();
+			if (ImagesAnchor != nullptr)
+			{
+				glm::vec3 EulerAngles = ImagesAnchor->GetComponent<FETransformComponent>().GetPosition();
+				if (ImGui::DragFloat3("Images Anchor Position", &EulerAngles[0], 0.1f))
+					ImagesAnchor->GetComponent<FETransformComponent>().SetPosition(EulerAngles);
+
+				ImGui::Separator();
+			}
+
+			ImGui::Text("Number of images read: %d", static_cast<int>(CurrentCOLMAPProject->GetImageCount()));
+			ImGui::Text("Choose image to see info:");
+			
+			ImGui::InputInt("Image ID", &ImageIDToShow);
+			COLMAPImage* ImageToShow = CurrentCOLMAPProject->GetImage(ImageIDToShow);
+			if (ImageToShow != nullptr)
+			{
+				ImGui::Text("Image name: %s", ImageToShow->GetName().c_str());
+				ImGui::Text("Camera ID: %d", ImageToShow->GetCameraID());
+				glm::dquat Rotation = ImageToShow->GetOriginalRotation();
+				ImGui::Text("Camera Original Rotation (quat): W: %.6f X: %.6f Y: %.6f Z: %.6f", Rotation.w, Rotation.x, Rotation.y, Rotation.z);
+				glm::dvec3 Translation = ImageToShow->GetOriginalTranslation();
+				ImGui::Text("Camera Original Translation: X: %.3f Y: %.3f Z: %.3f", Translation.x, Translation.y, Translation.z);
+
+				//glm::dvec3 CameraCenter = ImageToShow->getCameraCenter();
+				glm::vec3 ImageCenter = ImageToShow->GetPosition();
+				ImGui::Text("Camera Center: X: %.3f Y: %.3f Z: %.3f", ImageCenter.x, ImageCenter.y, ImageCenter.z);
+
+				//FEEntity* ImageEntity = ImageToShow->GetSceneEntity();
+				//bool bShowInScene = CurrentCOLMAPProject->IsCameraVisualizationAttachedToImage(ImageToShow->GetID());
+				//if (ImGui::Checkbox("Show camera in scene", &bShowInScene))
+				//	bShowInScene ? CurrentCOLMAPProject->AttachCameraVisualizationToImage(ImageToShow->GetID()) : CurrentCOLMAPProject->DetachCameraVisualizationFromImage(ImageToShow->GetID());
+
+				FEEntity* ImageEntity = ImageToShow->GetSceneEntity();
+				if (ImageEntity != nullptr)
+				{
+					glm::vec3 EulerAngles = ImageEntity->GetComponent<FETransformComponent>().GetRotation();
+					if (ImGui::DragFloat3("Camera Rotation (Euler angles)", &EulerAngles[0], 0.1f))
+					{
+						ImageEntity->GetComponent<FETransformComponent>().SetRotation(EulerAngles);
+					}
+
+					COLMAPCamera* ImageCamera = CurrentCOLMAPProject->GetCameraForImage(ImageToShow->GetID());
+					COLMAPPhysicalCamera* PhysicalCamera = ImageCamera->GetPhysicalCamera();
+					FEEntity* CameraEntity = PhysicalCamera->GetSceneEntity();
+					if (ImageCamera != nullptr && CameraEntity != nullptr)
+					{
+						glm::vec3 FinalWorldPosition = ImageEntity->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE);
+						if (ImGui::Button("Render view from a current image camera"))
+						{
+							FEScene* MainScene = MAIN_SCENE_MANAGER.GetMainScene();
+							FEEntity* CurrentMainCamera = CAMERA_SYSTEM.GetMainCamera(MainScene);
+
+							CAMERA_SYSTEM.SetMainCamera(CameraEntity);
+							CAMERA_SYSTEM.IndividualUpdate(CameraEntity, 0.0);
+							RENDERER.Render(MainScene);
+
+							FETexture* CameraResult = RENDERER.GetCameraResult(CameraEntity);
+							RESOURCE_MANAGER.ExportFETextureToPNG(CameraResult, "CameraView.png");
+
+							CAMERA_SYSTEM.SetMainCamera(CurrentMainCamera);
+						}
+					}
+				}
+			}
+			else
+			{
+				ImGui::Text("Image with ID %d not found.", ImageIDToShow);
+			}
+		}
+		ImGui::End();
+	}
+
 	bool bVRMode = ENGINE.IsVREnabled();
 	if (ImGui::Checkbox("Enter VR mode", &bVRMode))
 	{
@@ -571,6 +866,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
 	//LOG.SetFileOutput(true);
 
+	PhotogrammetryFolder = "C:/Users/kberegovyi/Downloads/Cameras_sample_info/";
+	PhotogrammetryFolder = "C:/Users/kberegovyi/Downloads/Cameras_sample_info/Coral/sparse/0/";
+	//PhotogrammetryFolder = "C:/Users/Kindr/Downloads/Coral/sparse/0/";
+	//PhotogrammetryFolder = "Coral/sparse/0/";
+	//PhotogrammetryFolder = "C:/Users/kberegovyi/Downloads/Cameras_sample_info/Before _algae/sparse/0/";
+	
 	const auto ProcessorCount = THREAD_POOL.GetLogicalCoreCount();
 	const unsigned int HowManyToUse = ProcessorCount > 4 ? ProcessorCount - 2 : 1;
 

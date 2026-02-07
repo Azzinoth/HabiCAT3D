@@ -428,7 +428,7 @@ void LayerInterpolationData::SetInterpolationFactor(float NewValue)
 	InterpolationFactor = NewValue;
 }
 
-int LayerInterpolationData::GetLayerCount()
+size_t LayerInterpolationData::GetLayerCount()
 {
 	return UsedLayerIDs.size();
 }

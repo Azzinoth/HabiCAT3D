@@ -648,7 +648,7 @@ void NewLayerWindow::ShowLayerListBox(std::string ListBoxLabel, std::vector<Data
 	for (size_t i = 0; i < Layers.size(); i++)
 		ListBoxItems.push_back(ListBoxItemsString[i].c_str());
 
-	ImGui::ListBox(ListBoxLabel.c_str(), &SelectedIndex, ListBoxItems.data(), ListBoxItems.size(), 15);
+	ImGui::ListBox(ListBoxLabel.c_str(), &SelectedIndex, ListBoxItems.data(), static_cast<int>(ListBoxItems.size()), 15);
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Double click to add/remove layer");
 }

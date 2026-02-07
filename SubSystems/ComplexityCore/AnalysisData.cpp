@@ -298,3 +298,8 @@ bool AnalysisObject::RemoveLayer(std::string LayerID)
 
 	return false;
 }
+
+glm::dvec3 AnalysisObject::GetAppliedShift()
+{
+	return AppliedShift;
+}

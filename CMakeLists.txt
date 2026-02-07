@@ -56,6 +56,8 @@ file(GLOB SubSystems_SRC
 	"SubSystems/LayerRasterizationManager.h"
 	"SubSystems/ScreenshotManager.cpp"
 	"SubSystems/ScreenshotManager.h"
+	"SubSystems/COLMAPDataManager.cpp"
+	"SubSystems/COLMAPDataManager.h"
 )
 
 file(GLOB SubSystems_Layers_Producers_SRC

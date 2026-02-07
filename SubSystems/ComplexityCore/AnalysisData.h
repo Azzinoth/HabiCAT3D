@@ -119,6 +119,8 @@ class AnalysisObject
 
 	FEObject* EngineResource = nullptr;
 	FEEntity* Entity = nullptr;
+	// On load elemets could be shifted to prevent precision issues, this variable is used to store applied shift.
+	glm::dvec3 AppliedShift;
 public:
 	AnalysisObject();
 	~AnalysisObject();
@@ -150,4 +152,6 @@ public:
 
 	bool AddLayer(DataLayer* NewLayer);
 	DataLayer* GetLayer(std::string LayerID);
+
+	glm::dvec3 GetAppliedShift();
 };
