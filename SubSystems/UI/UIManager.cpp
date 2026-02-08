@@ -30,6 +30,44 @@ UIManager::UIManager()
 
 UIManager::~UIManager() {}
 
+std::string UIManager::GetHabiCAT3DVersion()
+{
+	return std::to_string(HabiCAT3D_VERSION_MAJOR) + "."
+		   + std::to_string(HabiCAT3D_VERSION_MINOR) + "."
+		   + std::to_string(HabiCAT3D_VERSION_PATCH);
+}
+
+int UIManager::GetHabiCAT3DBuildNumber()
+{
+	return HabiCAT3D_BUILD_NUMBER;
+}
+
+std::string UIManager::GetHabiCAT3DBuildTimestamp()
+{
+	return HabiCAT3D_BUILD_TIMESTAMP;
+}
+
+std::string UIManager::GetHabiCAT3DBuildInfo()
+{
+	std::string Result = "build " + std::to_string(HabiCAT3D_BUILD_NUMBER);
+	if (HabiCAT3D_BUILD_BRANCH_OFFSET > 0)
+	{
+		Result += "+" + std::to_string(HabiCAT3D_BUILD_BRANCH_OFFSET)
+			+ " (" + std::string(HabiCAT3D_GIT_BRANCH) + ", "
+			+ HabiCAT3D_GIT_HASH + std::string(HabiCAT3D_GIT_DIRTY ? "-dirty" : "") + ")";
+	}
+	else if (HabiCAT3D_GIT_DIRTY)
+	{
+		Result += " (dirty)";
+	}
+	return Result;
+}
+
+std::string UIManager::GetHabiCAT3DFullVersion()
+{
+	return "HabiCAT3D " + GetHabiCAT3DVersion() + " " + GetHabiCAT3DBuildInfo();
+}
+
 std::string TruncateAfterDot(std::string FloatingPointNumber, const int DigitCount = 2)
 {
 	int Count = 0;
@@ -1592,7 +1630,7 @@ void UIManager::RenderAboutWindow()
 		bShouldOpenAboutWindow = false;
 	}
 
-	float PopupW = 400.0f;
+	float PopupW = 450.0f;
 	float PopupH = 135.0f;
 	ImGui::SetNextWindowSize(ImVec2(PopupW, PopupH));
 	if (ImGui::BeginPopupModal("About", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
@@ -1603,7 +1641,7 @@ void UIManager::RenderAboutWindow()
 
 		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
-		std::string Text = "Version: " + std::to_string(APP_VERSION) + "     date: 09\\12\\2025";
+		std::string Text = GetHabiCAT3DFullVersion();
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
 		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());

@@ -19,6 +19,7 @@ imgui.ini
 *.txt
 *.aps
 cmake_install.cmake
+HabiCAT3DVersion.h
 
 # Folders
 Debug/

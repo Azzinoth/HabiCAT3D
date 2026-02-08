@@ -16,6 +16,12 @@ class UIManager
 public:
 	SINGLETON_PUBLIC_PART(UIManager)
 
+	std::string GetHabiCAT3DVersion();        // "1.0.0"
+	std::string GetHabiCAT3DBuildInfo();      // "build 231+52 (dev, ed4c7ce-dirty)"
+	std::string GetHabiCAT3DFullVersion();    // "HabiCAT3D 1.0.0 build 231+52 (dev, ed4c7ce-dirty)"
+	std::string GetHabiCAT3DBuildTimestamp(); // "20260207232613"
+	int GetHabiCAT3DBuildNumber();            // 231
+
 	void ShowTransformConfiguration(std::string Name, FETransformComponent* Transform);
 	void ShowCameraTransform();
 

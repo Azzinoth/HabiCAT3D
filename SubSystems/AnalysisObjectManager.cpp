@@ -180,7 +180,7 @@ AnalysisObject* AnalysisObjectManager::LoadRUGFile(std::string FilePath)
 	// Version of FEMesh file type
 	File.read(Buffer, 4);
 	const float Version = *(float*)Buffer;
-	if (Version > APP_VERSION && abs(Version - APP_VERSION) > 0.0001)
+	if (Version > APPLICATION_VERSION_FLOAT && abs(Version - APPLICATION_VERSION_FLOAT) > 0.0001)
 	{
 		LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadRUGFile. File was created in different Version of application!");
 		return nullptr;
@@ -1238,7 +1238,7 @@ void AnalysisObjectManager::SaveToRUGFile(std::string FilePath)
 	std::fstream File;
 	File.open(FilePath, std::ios::out | std::ios::binary);
 
-	float Version = APP_VERSION;
+	float Version = APPLICATION_VERSION_FLOAT;
 	File.write((char*)&Version, sizeof(float));
 
 	size_t ObjectCount = ANALYSIS_OBJECT_MANAGER.AnalysisObjects.size();
@@ -1542,7 +1542,7 @@ bool AnalysisObjectManager::NewLoadRUGFile(std::string FilePath)
 
 	File.read(Buffer32, 4);
 	const float Version = *(float*)Buffer32;
-	if (Version > APP_VERSION && abs(Version - APP_VERSION) > 0.0001f || APP_VERSION < 0.91f)
+	if (Version > APPLICATION_VERSION_FLOAT && abs(Version - APPLICATION_VERSION_FLOAT) > 0.0001f || APPLICATION_VERSION_FLOAT < 0.91f)
 	{
 		LOG.Add(std::string("Can't load file: ") + FilePath + " in function NewLoadRUGFile. File was created in different Version of application!");
 		return false;

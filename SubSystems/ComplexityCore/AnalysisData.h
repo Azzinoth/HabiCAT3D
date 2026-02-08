@@ -2,7 +2,7 @@
 #include "../../EngineInclude.h"
 using namespace FocalEngine;
 
-#define APP_VERSION 0.91f
+#define APPLICATION_VERSION_FLOAT (HabiCAT3D_VERSION_MAJOR + HabiCAT3D_VERSION_MINOR / 10.0f + HabiCAT3D_VERSION_PATCH / 100.0f)
 
 const COMDLG_FILTERSPEC RUGOSITY_LOAD_FILE_FILTER[] =
 {

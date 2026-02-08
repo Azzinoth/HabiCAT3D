@@ -233,3 +233,8 @@ if(LASZIP_FINAL_DLL)
         "$<TARGET_FILE_DIR:HabiCAT3D>"
 	)
 endif()
+
+add_custom_command(TARGET HabiCAT3D PRE_BUILD
+	COMMAND ${CMAKE_COMMAND}
+		-P ${CMAKE_CURRENT_SOURCE_DIR}/UpdateHabiCAT3DVersion.cmake
+)
