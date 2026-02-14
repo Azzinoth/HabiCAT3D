@@ -148,6 +148,11 @@ file(GLOB PointCloudShaders_SRC
 	"SubSystems/Shaders/PointCloudColorShader/CS.glsl"
 )
 
+file(GLOB COLMAP_Shaders_SRC
+	"SubSystems/Shaders/COLMAPShaders/ImagesInstancedShader_VS.glsl"
+	"SubSystems/Shaders/COLMAPShaders/ImagesInstancedShader_FS.glsl"
+)
+
 file(GLOB SubSystems_VRManager_SRC
 	"SubSystems/VRManager/VRManager.h"
 	"SubSystems/VRManager/VRManager.cpp"
@@ -179,6 +184,7 @@ add_executable(HabiCAT3D WIN32
 						 ${EXTRACTED_NATIVE_SCRIPTS}
 						 ${MeshShaders_SRC}
 						 ${PointCloudShaders_SRC}
+						 ${COLMAP_Shaders_SRC}
 					     # *************** SUB_SYSTEM ***************
 					     ${SubSystems_SRC}
 					     ${SubSystems_Layers_SRC}
@@ -208,6 +214,7 @@ source_group("Source Files/SubSystems/ComplexityCore/Layers/Producers" FILES ${S
 source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
 source_group("Source Files/Shaders/Mesh/" FILES ${MeshShaders_SRC})
 source_group("Source Files/Shaders/PointCloud/" FILES ${PointCloudShaders_SRC})
+source_group("Source Files/Shaders/COLMAPShaders/" FILES ${COLMAP_Shaders_SRC})
 source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJobs_SRC})
 source_group("Source Files/SubSystems/VRManager" FILES ${SubSystems_VRManager_SRC})
 

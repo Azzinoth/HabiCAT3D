@@ -49,17 +49,15 @@ std::string UIManager::GetHabiCAT3DBuildTimestamp()
 
 std::string UIManager::GetHabiCAT3DBuildInfo()
 {
-	std::string Result = "build " + std::to_string(HabiCAT3D_BUILD_NUMBER);
+	std::string Result = "build " + std::to_string(HabiCAT3D_BUILD_NUMBER) + " (" + std::string(HabiCAT3D_GIT_HASH);
+
 	if (HabiCAT3D_BUILD_BRANCH_OFFSET > 0)
-	{
-		Result += "+" + std::to_string(HabiCAT3D_BUILD_BRANCH_OFFSET)
-			+ " (" + std::string(HabiCAT3D_GIT_BRANCH) + ", "
-			+ HabiCAT3D_GIT_HASH + std::string(HabiCAT3D_GIT_DIRTY ? "-dirty" : "") + ")";
-	}
-	else if (HabiCAT3D_GIT_DIRTY)
-	{
-		Result += " (dirty)";
-	}
+		Result += " " + std::string(HabiCAT3D_GIT_BRANCH) + " +" + std::to_string(HabiCAT3D_BUILD_BRANCH_OFFSET) + " from master";
+	
+	if (HabiCAT3D_GIT_DIRTY)
+		Result += ", dirty";
+
+	Result += ")";
 	return Result;
 }
 
@@ -1630,42 +1628,45 @@ void UIManager::RenderAboutWindow()
 		bShouldOpenAboutWindow = false;
 	}
 
-	float PopupW = 450.0f;
-	float PopupH = 135.0f;
-	ImGui::SetNextWindowSize(ImVec2(PopupW, PopupH));
+	std::string VersionText = GetHabiCAT3DFullVersion();
+	float TextWidth = ImGui::CalcTextSize(VersionText.c_str()).x;
+
+	float PopupWidth = std::max(450.0f, TextWidth + 40.0f);
+	float PopupHeight = 135.0f;
+	ImGui::SetNextWindowSize(ImVec2(PopupWidth, PopupHeight));
 	if (ImGui::BeginPopupModal("About", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
 	{
-		int WindowW = 0;
-		int WindowH = 0;
-		APPLICATION.GetMainWindow()->GetSize(&WindowW, &WindowH);
+		int WindowWidth = 0;
+		int WindowHeight = 0;
+		APPLICATION.GetMainWindow()->GetSize(&WindowWidth, &WindowHeight);
 
-		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
+		ImGui::SetWindowPos(ImVec2(WindowWidth / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowHeight / 2.0f - ImGui::GetWindowHeight() / 2.0f));
 		
 		std::string Text = GetHabiCAT3DFullVersion();
 		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
+		ImGui::SetCursorPosX(PopupWidth / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
 
 		ImGui::Separator();
 
 		Text = "To submit a bug report or provide feedback, ";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
+		ImGui::SetCursorPosX(PopupWidth / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
 
 		Text = "please email me at kberegovyi@ccom.unh.edu.";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
+		ImGui::SetCursorPosX(PopupWidth / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
 
 		ImGui::Separator();
 
 		Text = "UNH CCOM";
 		TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
+		ImGui::SetCursorPosX(PopupWidth / 2.0f - TextSize.x / 2.0f);
 		ImGui::Text(Text.c_str());
 
-		ImGui::SetCursorPosX(PopupW / 2.0f - 210.0f / 2.0f);
+		ImGui::SetCursorPosX(PopupWidth / 2.0f - 210.0f / 2.0f);
 		ImGui::SetNextItemWidth(210);
 		if (ImGui::Button("Close", ImVec2(210.0f, 20.0f)))
 			ImGui::CloseCurrentPopup();
