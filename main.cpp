@@ -1,11 +1,9 @@
 #include "SubSystems/ConsoleJobs/ConsoleJobManager.h"
 #include "SubSystems/VRManager/VRManager.h"
-#include "SubSystems/COLMAPDataManager.h"
 using namespace FocalEngine;
 #include <shellapi.h>
 
-COLMAPProject* CurrentCOLMAPProject;
-std::string PhotogrammetryFolder;
+//COLMAPProject* CurrentCOLMAPProject;
 
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
 
@@ -163,19 +161,42 @@ void MouseButtonCallback(int button, int action, int mods)
 
 		if (ActiveMesh != nullptr)
 		{
+			// Check if photogrammetry element should be selected first
+			COLMAPProject* CurrentProject = COLMAP_DATA_MANAGER.GetProjectByAnalysisObjectID(ActiveObject->GetID());
+			float PhotogrammetryHitDistance = std::numeric_limits<float>::max();
+			if (CurrentProject != nullptr)
+				CurrentProject->ImageUnderMouse(&PhotogrammetryHitDistance);
+
+			float MeshHitDistance = std::numeric_limits<float>::max();
+			int TriangleIndexUnderMouse = -1;
+			std::vector<int> TriangleIndexesInRadius;
 			if (UI.GetLayerSelectionMode() == 1)
 			{
-				ANALYSIS_OBJECT_MANAGER.SelectTriangle(MAIN_SCENE_MANAGER.GetMouseRayDirection());
+				TriangleIndexUnderMouse = ANALYSIS_OBJECT_MANAGER.GetTriangleIndexUnderMouse(&MeshHitDistance);
 			}
 			else if (UI.GetLayerSelectionMode() == 2)
 			{
-				if (ANALYSIS_OBJECT_MANAGER.SelectTrianglesInRadius(MAIN_SCENE_MANAGER.GetMouseRayDirection(), UI.GetRadiusOfAreaToMeasure()) && UI.GetOutputSelectionToFile())
-				{
-					OutputSelectedAreaInfoToFile();
-				}
+				TriangleIndexesInRadius = ANALYSIS_OBJECT_MANAGER.GetTriangleIndexesInRadius(UI.GetRadiusOfAreaToMeasure());
 			}
 
-			UI.UpdateMeshSelectedTrianglesRendering();
+			if (MeshHitDistance > PhotogrammetryHitDistance)
+			{
+				
+			}
+			else
+			{
+				if (UI.GetLayerSelectionMode() == 1)
+				{
+					ANALYSIS_OBJECT_MANAGER.SelectTriangleByIndex(TriangleIndexUnderMouse);
+				}
+				else if (UI.GetLayerSelectionMode() == 2)
+				{
+					ANALYSIS_OBJECT_MANAGER.SelectTrianglesByIndexes(TriangleIndexesInRadius);
+					OutputSelectedAreaInfoToFile();
+				}
+
+				UI.UpdateMeshSelectedTrianglesRendering();
+			}
 		}
 
 		if (ActiveObject != nullptr && UI.GetDebugGrid() != nullptr)
@@ -492,9 +513,11 @@ void MainWindowRender()
 	if (ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject() != nullptr)
 	{
 		AnalysisObject* CurrentActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-		if (ImGui::Button("Load Photogrammetry for"))
+		if (ImGui::Button("Load Photogrammetry..."))
 		{
-			CurrentCOLMAPProject = COLMAP_DATA_MANAGER.CreateNewProject(CurrentActiveObject->GetID(), PhotogrammetryFolder);
+			std::string LocalPhotogrammetryFolder;
+			FILE_SYSTEM.ShowFolderOpenDialog(LocalPhotogrammetryFolder);
+			LOAD_PHOTOGRAMMETRY_WINDOW.Show(LocalPhotogrammetryFolder, COLMAP_DATA_MANAGER.FindCOLMAPDataInFolder(LocalPhotogrammetryFolder));
 		}
 	}
 
@@ -505,12 +528,13 @@ void MainWindowRender()
 		ImGui::DragFloat3("Active Entity position", &Position[0], 0.1f);
 	}
 
+	COLMAPProject* CurrentCOLMAPProject = nullptr;
+	if (ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject() != nullptr)
+		CurrentCOLMAPProject = COLMAP_DATA_MANAGER.GetProjectByAnalysisObjectID(ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject()->GetID());
 	if (CurrentCOLMAPProject != nullptr && CurrentCOLMAPProject->GetImageCount() > 0)
 	{
 		if (ImGui::Begin("Images info"))
 		{
-			
-
 			AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 			if (ActiveObject != nullptr)
 			{
@@ -522,86 +546,34 @@ void MainWindowRender()
 					ImGui::DragFloat3("Photogrammetry anchor position", &AnchorPosition[0], 0.1f);
 					AnchorEntity->GetComponent<FETransformComponent>().SetPosition(AnchorPosition, FE_WORLD_SPACE);
 
-
 					ImGui::Separator();
 					if (ImGui::Button("Select image that should contain the selected triangle(s)"))
 					{
-						DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
+						FEAABB AABBToCheck;
 						if (CurrentMeshAnalysisData->TriangleSelected.size() == 1)
 						{
-							FEAABB TriangleAABB = FEAABB(CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[0]]);
-							// AABB is in model space, so we need to transform it to world space
-							TriangleAABB = TriangleAABB.Transform(ActiveObject->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix());
-
-							//std::vector<COLMAPImage*> ImagesContainingTriangle = CurrentCOLMAPProject->GetImagesContainingAABB(TriangleAABB);
-							//float MinDistance = std::numeric_limits<float>::max();
-							//COLMAPImage* ClosestImage = nullptr;
-							//for (auto& CurrentImage : ImagesContainingTriangle)
-							//{
-							//	FEEntity* ImageEntity = CurrentImage->GetSceneEntity();
-							//	if (ImageEntity == nullptr)
-							//		continue;
-
-							//	glm::vec3 TriangleAABBCenter = TriangleAABB.GetCenter();
-							//	glm::vec3 ImagePosition = ImageEntity->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE);
-
-							//	float Distance = glm::length(TriangleAABBCenter - ImagePosition);
-							//	if (MinDistance > Distance)
-							//	{
-							//		MinDistance = Distance;
-							//		ClosestImage = CurrentImage;
-							//	}
-
-							//	ChangeImageLineColor(CurrentImage, glm::vec3(0.0f, 0.0f, 1.0f));
-							//	ImagesThatWasAltered.push_back(CurrentImage->GetID());
-							//}
-
-							//if (!ImagesContainingTriangle.empty())
-							//{
-							//	ChangeImageLineColor(ClosestImage, glm::vec3(0.0f, 1.0f, 0.0f));
-							//}
+							AABBToCheck = FEAABB(CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[0]]);
 						}
 						else if (CurrentMeshAnalysisData->TriangleSelected.size() > 1)
 						{
-							/*ImGui::Text("Selected area information : ");
-							std::string Text = "Average values per layer:\n";
-
-							std::vector<DataLayer*> Layers = LAYER_MANAGER.GetAllLayersOfActiveObject();
-							for (size_t i = 0; i < Layers.size(); i++)
+							std::vector<glm::vec3> PointsToInclude;
+							for (size_t i = 0; i < CurrentMeshAnalysisData->TriangleSelected.size(); i++)
 							{
-								std::string CurrentCaption = Layers[i]->GetCaption();
-								float TotalValue = 0.0f;
-								if (Layers[i]->GetType() == LAYER_TYPE::INTERPOLATION)
-								{
-									TotalValue = std::numeric_limits<float>::quiet_NaN();
-								}
-								else
-								{
-									for (size_t j = 0; j < CurrentMeshAnalysisData->TriangleSelected.size(); j++)
-									{
-										TotalValue += Layers[i]->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[j]];
-									}
-								}
-
-								float AverageValue = std::numeric_limits<float>::quiet_NaN();
-								if (!isnan(TotalValue))
-									AverageValue = TotalValue / CurrentMeshAnalysisData->TriangleSelected.size();
-
-								Text += CurrentCaption + " : " + std::to_string(AverageValue) + "\n";
+								std::vector<glm::dvec3> CurrentTriangle = CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[i]];
+								PointsToInclude.insert(PointsToInclude.end(), CurrentTriangle.begin(), CurrentTriangle.end());
 							}
-
-							ImGui::Text(Text.c_str());*/
+							
+							AABBToCheck = FEAABB(PointsToInclude);
 						}
+
+						// AABB is in model space, so we need to transform it to world space
+						AABBToCheck = AABBToCheck.Transform(ActiveObject->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix());
+						CurrentCOLMAPProject->HighlightImagesThatSeeAABB(AABBToCheck);
 					}
 
 					ImGui::Separator();
-					
 				}
 			}
-
-
-
-
 
 			FEEntity* ImagesAnchor = CurrentCOLMAPProject->GetPhotogrammetryAnchorEntity();
 			if (ImagesAnchor != nullptr)
@@ -754,15 +726,6 @@ GLFWimage ConvertIconToGLFWImage(HICON Icon)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	//LOG.SetFileOutput(true);
-
-	PhotogrammetryFolder = "C:/Users/kberegovyi/Downloads/Cameras_sample_info/Coral/";
-
-	//PhotogrammetryFolder = "C:/Users/kberegovyi/Downloads/Cameras_sample_info/Before _algae/";
-
-	//PhotogrammetryFolder = "C:/Users/Kindr/Downloads/Coral/";
-	//PhotogrammetryFolder = "Coral/";
-	//PhotogrammetryFolder = "Before _algae/";
-	//PhotogrammetryFolder = "C:/Users/kberegovyi/Downloads/Cameras_sample_info/Before _algae/";
 	
 	const auto ProcessorCount = THREAD_POOL.GetLogicalCoreCount();
 	const unsigned int HowManyToUse = ProcessorCount > 4 ? ProcessorCount - 2 : 1;

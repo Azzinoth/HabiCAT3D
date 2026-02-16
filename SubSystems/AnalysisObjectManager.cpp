@@ -452,9 +452,9 @@ void AnalysisObjectManager::LoadResource(std::string FilePath)
 	else if (FileExtension == ".rug")
 	{
 		float Version = CheckRUGFileVersion(FilePath);
-		if (Version >= 0.91f)
+		if (abs(Version - 0.91f) < 0.0001f)
 		{
-			NewLoadRUGFile(FilePath);
+			LoadRUGFile_V0_9_1(FilePath);
 			return;
 		}
 		else
@@ -462,6 +462,7 @@ void AnalysisObjectManager::LoadResource(std::string FilePath)
 			LoadedResource = LoadRUGFile(FilePath);
 			if (LoadedResource == nullptr)
 				return;
+
 			LoadedResource->Name = FILE_SYSTEM.GetFileName(FilePath, false);
 		}
 	}
@@ -638,7 +639,54 @@ void AnalysisObjectManager::ComplexityMetricDataToGPU(std::string LayerID, int G
 	}
 }
 
-bool AnalysisObjectManager::SelectTriangle(glm::dvec3 MouseRay)
+int AnalysisObjectManager::GetTriangleIndexUnderMouse(float* HitDistance)
+{
+	int Result = -1;
+
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return Result;
+
+	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+	if (ActiveEntity == nullptr)
+		return Result;
+
+	FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
+	if (ActiveMesh == nullptr)
+		return Result;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+	if (CurrentMeshAnalysisData == nullptr)
+		return Result;
+
+	glm::dvec3 MouseRay = MAIN_SCENE_MANAGER.GetMouseRayDirection();
+
+	double CurrentDistance = std::numeric_limits<double>::max();
+	double LastDistance = std::numeric_limits<double>::max();
+
+	for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+	{
+		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentMeshAnalysisData->Triangles[i];
+		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
+		{
+			TranformedTrianglePoints[j] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
+		}
+
+		const bool bHit = GEOMETRY.IsRayIntersectingTriangle(MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE), MouseRay, TranformedTrianglePoints, CurrentDistance);
+
+		if (bHit && CurrentDistance < LastDistance)
+		{
+			LastDistance = CurrentDistance;
+			Result = i;
+			if (HitDistance != nullptr)
+				*HitDistance = static_cast<float>(CurrentDistance);
+		}
+	}
+
+	return Result;
+}
+
+bool AnalysisObjectManager::SelectTriangleByIndex(int TriangleIndex)
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
@@ -656,36 +704,12 @@ bool AnalysisObjectManager::SelectTriangle(glm::dvec3 MouseRay)
 	if (CurrentMeshAnalysisData == nullptr)
 		return false;
 
-	double CurrentDistance = 0.0;
-	double LastDistance = 9999.0;
+	if (TriangleIndex < 0 || TriangleIndex >= CurrentMeshAnalysisData->Triangles.size())
+		return false;
 
-	int TriangeIndex = -1;
 	CurrentMeshAnalysisData->TriangleSelected.clear();
-
-	for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
-	{
-		std::vector<glm::dvec3> TranformedTrianglePoints = CurrentMeshAnalysisData->Triangles[i];
-		for (size_t j = 0; j < TranformedTrianglePoints.size(); j++)
-		{
-			TranformedTrianglePoints[j] = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TranformedTrianglePoints[j], 1.0f);
-		}
-
-		const bool bHit = GEOMETRY.IsRayIntersectingTriangle(MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE), MouseRay, TranformedTrianglePoints, CurrentDistance);
-
-		if (bHit && CurrentDistance < LastDistance)
-		{
-			LastDistance = CurrentDistance;
-			TriangeIndex = i;
-		}
-	}
-
-	if (TriangeIndex != -1)
-	{
-		CurrentMeshAnalysisData->TriangleSelected.push_back(TriangeIndex);
-		return true;
-	}
-
-	return false;
+	CurrentMeshAnalysisData->TriangleSelected.push_back(TriangleIndex);
+	return true;
 }
 
 glm::vec3 AnalysisObjectManager::IntersectTriangle(glm::dvec3 MouseRay)
@@ -732,9 +756,9 @@ glm::vec3 AnalysisObjectManager::IntersectTriangle(glm::dvec3 MouseRay)
 	return glm::vec3(0.0f);
 }
 
-bool AnalysisObjectManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius)
+std::vector<int> AnalysisObjectManager::GetTriangleIndexesInRadius(float Radius)
 {
-	bool Result = false;
+	std::vector<int> Result;
 
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
@@ -751,32 +775,60 @@ bool AnalysisObjectManager::SelectTrianglesInRadius(glm::dvec3 MouseRay, float R
 	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
-	
-	SelectTriangle(MouseRay);
 
-	if (CurrentMeshAnalysisData->TriangleSelected.size() == 0)
+	int TriangleIndexUnderMouse = GetTriangleIndexUnderMouse();
+	if (TriangleIndexUnderMouse == -1)
 		return Result;
 
 	CurrentMeshAnalysisData->MeasuredRugosityAreaRadius = Radius;
-	CurrentMeshAnalysisData->MeasuredRugosityAreaCenter = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(CurrentMeshAnalysisData->TrianglesCentroids[CurrentMeshAnalysisData->TriangleSelected[0]], 1.0f);
+	CurrentMeshAnalysisData->MeasuredRugosityAreaCenter = ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(CurrentMeshAnalysisData->TrianglesCentroids[TriangleIndexUnderMouse], 1.0f);
 
-	const glm::dvec3 FirstSelectedTriangleCentroid = CurrentMeshAnalysisData->TrianglesCentroids[CurrentMeshAnalysisData->TriangleSelected[0]];
+	const glm::dvec3 FirstSelectedTriangleCentroid = CurrentMeshAnalysisData->TrianglesCentroids[TriangleIndexUnderMouse];
 
 	for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
 	{
-		if (i == CurrentMeshAnalysisData->TriangleSelected[0])
+		if (i == TriangleIndexUnderMouse)
 			continue;
 
 		if (glm::distance(FirstSelectedTriangleCentroid, CurrentMeshAnalysisData->TrianglesCentroids[i]) <= Radius)
-		{
-			CurrentMeshAnalysisData->TriangleSelected.push_back(static_cast<int>(i));
-			Result = true;
-		}
+			Result.push_back(static_cast<int>(i));
 	}
 
 	return Result;
 }
 
+bool AnalysisObjectManager::SelectTrianglesByIndexes(std::vector<int> TriangleIndexes)
+{
+	bool bResult = false;
+
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return bResult;
+
+	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+	if (ActiveEntity == nullptr)
+		return bResult;
+
+	FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
+	if (ActiveMesh == nullptr)
+		return bResult;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+	if (CurrentMeshAnalysisData == nullptr)
+		return bResult;
+
+	CurrentMeshAnalysisData->TriangleSelected.clear();
+	for (size_t i = 0; i < TriangleIndexes.size(); i++)
+	{
+		if (TriangleIndexes[i] < 0 || TriangleIndexes[i] >= CurrentMeshAnalysisData->Triangles.size())
+			continue;
+
+		CurrentMeshAnalysisData->TriangleSelected.push_back(TriangleIndexes[i]);
+		bResult = true;
+	}
+	
+	return bResult;
+}
 #include "UI/UIManager.h"
 void AnalysisObjectManager::UpdateMeshUniforms(AnalysisObject* Object)
 {
@@ -1062,6 +1114,10 @@ void AnalysisObjectManager::SaveMeshDataToRUGFile(std::fstream& File, AnalysisOb
 
 	int DebugWrittenBytes = 0;
 
+	File.write((char*)&Object->AppliedShift.x, sizeof(double));
+	File.write((char*)&Object->AppliedShift.y, sizeof(double));
+	File.write((char*)&Object->AppliedShift.z, sizeof(double));
+
 	int Count = static_cast<int>(CurrentMeshAnalysisData->Vertices.size());
 	File.write((char*)&Count, sizeof(int));
 	DebugWrittenBytes += sizeof(int);
@@ -1115,6 +1171,10 @@ void AnalysisObjectManager::SavePointCloudToRUGFile(std::fstream& File, Analysis
 	FEPointCloud* PointCloud = static_cast<FEPointCloud*>(Object->GetEngineResource());
 	if (PointCloud == nullptr)
 		return;
+
+	File.write((char*)&Object->AppliedShift.x, sizeof(double));
+	File.write((char*)&Object->AppliedShift.y, sizeof(double));
+	File.write((char*)&Object->AppliedShift.z, sizeof(double));
 
 	std::vector<FEPointCloudVertex> RawData = PointCloud->GetRawData();
 
@@ -1281,7 +1341,15 @@ void AnalysisObjectManager::SaveToRUGFile(std::string FilePath)
 void AnalysisObjectManager::LoadMeshDataFromRUGFile(std::fstream& File, AnalysisObject* Object)
 {
 	char* Buffer = new char[4];
+	char* DoubleBuffer = new char[8];
 	long long ArraySize = 0;
+
+	File.read(DoubleBuffer, 8);
+	Object->AppliedShift.x = *(double*)DoubleBuffer;
+	File.read(DoubleBuffer, 8);
+	Object->AppliedShift.y = *(double*)DoubleBuffer;
+	File.read(DoubleBuffer, 8);
+	Object->AppliedShift.z = *(double*)DoubleBuffer;
 
 	File.read(Buffer, 4);
 	const int VertexCount = *(int*)Buffer;
@@ -1395,6 +1463,7 @@ void AnalysisObjectManager::LoadMeshDataFromRUGFile(std::fstream& File, Analysis
 	Object->AnalysisData = ExtractAdditionalGeometryData(FEVertices, FEColors, FEUVs, FETangents, FEIndices, FENormals);
 
 	delete[] Buffer;
+	delete[] DoubleBuffer;
 	delete[] VertexBuffer;
 	delete[] TexBuffer;
 	delete[] NormBuffer;
@@ -1407,6 +1476,14 @@ void AnalysisObjectManager::LoadMeshDataFromRUGFile(std::fstream& File, Analysis
 void AnalysisObjectManager::LoadPointCloudDataFromRUGFile(std::fstream& File, AnalysisObject* Object)
 {
 	char* Buffer_8Byte = new char[8];
+
+	File.read(Buffer_8Byte, sizeof(double));
+	Object->AppliedShift.x = *(double*)Buffer_8Byte;
+	File.read(Buffer_8Byte, sizeof(double));
+	Object->AppliedShift.y = *(double*)Buffer_8Byte;
+	File.read(Buffer_8Byte, sizeof(double));
+	Object->AppliedShift.z = *(double*)Buffer_8Byte;
+
 	File.read(Buffer_8Byte, sizeof(size_t));
 	const size_t VertexCout = *(size_t*)Buffer_8Byte;
 	char* VertexBuffer = new char[VertexCout * sizeof(float)];
@@ -1517,13 +1594,13 @@ void AnalysisObjectManager::LoadLayersDataFromRUGFile(std::fstream& File, Analys
 	delete[] Buffer;
 }
 
-bool AnalysisObjectManager::NewLoadRUGFile(std::string FilePath)
+bool AnalysisObjectManager::LoadRUGFile_V0_9_1(std::string FilePath)
 {
 	std::fstream File;
 	File.open(FilePath, std::ios::in | std::ios::binary);
 	if (!File.is_open())
 	{
-		LOG.Add(std::string("Can't open file: ") + FilePath + " in function NewLoadRUGFile.");
+		LOG.Add(std::string("Can't open file: ") + FilePath + " in function LoadRUGFile_V0_9_1.");
 		return false;
 	}
 
@@ -1532,7 +1609,7 @@ bool AnalysisObjectManager::NewLoadRUGFile(std::string FilePath)
 	File.seekg(0, std::ios::beg);
 	if (FileSize <= 0)
 	{
-		LOG.Add(std::string("Can't get file size: ") + FilePath + " in function NewLoadRUGFile.");
+		LOG.Add(std::string("Can't get file size: ") + FilePath + " in function LoadRUGFile_V0_9_1.");
 		return false;
 	}
 
@@ -1542,10 +1619,13 @@ bool AnalysisObjectManager::NewLoadRUGFile(std::string FilePath)
 
 	File.read(Buffer32, 4);
 	const float Version = *(float*)Buffer32;
-	if (Version > APPLICATION_VERSION_FLOAT && abs(Version - APPLICATION_VERSION_FLOAT) > 0.0001f || APPLICATION_VERSION_FLOAT < 0.91f)
+	if (glm::epsilonNotEqual(Version, APPLICATION_VERSION_FLOAT, 0.0001f))
 	{
-		LOG.Add(std::string("Can't load file: ") + FilePath + " in function NewLoadRUGFile. File was created in different Version of application!");
-		return false;
+		if (Version - 0.91f > 0.0001f)
+		{
+			LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadRUGFile_V0_9_1. File was created in unsupported version of the application!");
+			return false;
+		}
 	}
 
 	File.read(Buffer64, 8);
@@ -1561,11 +1641,11 @@ bool AnalysisObjectManager::NewLoadRUGFile(std::string FilePath)
 		File.read(ObjectIDBuffer, ObjectIDSize);
 		const std::string ObjectID = std::string(ObjectIDBuffer);
 
-		// FIX ME: It is not good solution, it would not delete all previously loaded objects.
+		// FE_FIX_ME: It is not good solution, it would not delete all previously loaded objects.
 		// Better solution would to have header in the file with all object IDs and check it before loading.
 		if (AnalysisObjects.find(ObjectID) != AnalysisObjects.end())
 		{
-			LOG.Add(std::string("Can't load file: ") + FilePath + " in function NewLoadRUGFile. Object with ID " + ObjectID + " already exists in the scene!");
+			LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadRUGFile_V0_9_1. Object with ID " + ObjectID + " already exists in the scene!");
 			delete NewAnalysisObject;
 			delete[] ObjectIDBuffer;
 			delete[] Buffer32;
@@ -1616,7 +1696,7 @@ bool AnalysisObjectManager::NewLoadRUGFile(std::string FilePath)
 			
 			default:
 			{
-				LOG.Add(std::string("Can't load file: ") + FilePath + " in function NewLoadRUGFile. Unknown data source type!");
+				LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadRUGFile_V0_9_1. Unknown data source type!");
 				delete NewAnalysisObject;
 				continue;
 				break;

@@ -56,8 +56,6 @@ file(GLOB SubSystems_SRC
 	"SubSystems/LayerRasterizationManager.h"
 	"SubSystems/ScreenshotManager.cpp"
 	"SubSystems/ScreenshotManager.h"
-	"SubSystems/COLMAPDataManager.cpp"
-	"SubSystems/COLMAPDataManager.h"
 )
 
 file(GLOB SubSystems_Layers_Producers_SRC
@@ -108,6 +106,8 @@ file(GLOB SubSystems_UI_SRC
 	"SubSystems/UI/UIWeightedHistogram.h"
 	"SubSystems/UI/NewLayerWindow.cpp"
 	"SubSystems/UI/NewLayerWindow.h"
+	"SubSystems/UI/LoadPhotogrammetryWindow.cpp"
+	"SubSystems/UI/LoadPhotogrammetryWindow.h"
 	"SubSystems/UI/ObjectViewerWindow.cpp"
 	"SubSystems/UI/ObjectViewerWindow.h"
 	"SubSystems/UI/UIManager.cpp"
@@ -137,6 +137,18 @@ file(GLOB SubSystems_ConsoleJobs_SRC
 	"SubSystems/ConsoleJobs/QueryJob.cpp"
 	"SubSystems/ConsoleJobs/ConsoleJobManager.h"
 	"SubSystems/ConsoleJobs/ConsoleJobManager.cpp"
+)
+
+file(GLOB SubSystems_COLMAP_SRC
+	"SubSystems/COLMAP/COLMAPCore.h"
+	"SubSystems/COLMAP/COLMAPCameras.cpp"
+	"SubSystems/COLMAP/COLMAPCameras.h"
+	"SubSystems/COLMAP/COLMAPImage.cpp"
+	"SubSystems/COLMAP/COLMAPImage.h"
+	"SubSystems/COLMAP/COLMAPProject.cpp"
+	"SubSystems/COLMAP/COLMAPProject.h"
+	"SubSystems/COLMAP/COLMAPDataManager.cpp"
+	"SubSystems/COLMAP/COLMAPDataManager.h"
 )
 
 file(GLOB MeshShaders_SRC
@@ -193,6 +205,7 @@ add_executable(HabiCAT3D WIN32
 					     ${SubSystems_ConsoleJobs_SRC}
 					     ${SubSystems_ComplexityCore_SRC}
 						 ${SubSystems_VRManager_SRC}
+						 ${SubSystems_COLMAP_SRC}
 )
 
 target_link_libraries(HabiCAT3D
@@ -217,6 +230,7 @@ source_group("Source Files/Shaders/PointCloud/" FILES ${PointCloudShaders_SRC})
 source_group("Source Files/Shaders/COLMAPShaders/" FILES ${COLMAP_Shaders_SRC})
 source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJobs_SRC})
 source_group("Source Files/SubSystems/VRManager" FILES ${SubSystems_VRManager_SRC})
+source_group("Source Files/SubSystems/COLMAP/" FILES ${SubSystems_COLMAP_SRC})
 
 # set as the startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT HabiCAT3D)

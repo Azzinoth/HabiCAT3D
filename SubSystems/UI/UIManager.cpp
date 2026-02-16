@@ -544,6 +544,7 @@ void UIManager::Render(bool bScreenshotMode)
 	RenderAboutWindow();
 
 	NEW_LAYER_WINDOW.Render();
+	LOAD_PHOTOGRAMMETRY_WINDOW.Render();
 
 	RenderLayerDebugInfo(DebugGrid);
 

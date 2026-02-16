@@ -1,53 +1,7 @@
 #pragma once
 
-#include "VRManager/VRManager.h"
+#include "COLMAPImage.h"
 using namespace FocalEngine;
-
-#define COLMAP_SPARSE_MODEL_FOLDER "sparse/0/"
-#define COLMAP_CAMERAS_FILE "cameras.txt"
-#define COLMAP_IMAGES_FILE "images.txt"
-#define COLMAP_TIE_POINTS_FILE "points3D.txt"
-
-struct COLMAPPhysicalCamera
-{
-	friend class COLMAPProject;
-	friend class COLMAPDataManager;
-private:
-	COLMAPPhysicalCamera();
-	~COLMAPPhysicalCamera();
-
-	std::string ID;
-	std::string Model;
-	int Width, Height;
-	std::vector<double> Parameters;
-
-	std::string SceneEntityID = "";
-public:
-	std::string GetID() const;
-	std::string GetModel() const;
-	int GetWidth() const;
-	int GetHeight() const;
-	double GetParameter(int Index) const;
-
-	FEEntity* GetSceneEntity() const;
-	bool EquvialentTo(COLMAPPhysicalCamera* OtherCamera) const;
-};
-
-struct COLMAPCamera
-{
-	friend class COLMAPProject;
-	friend class COLMAPDataManager;
-private:
-	COLMAPCamera();
-	~COLMAPCamera();
-
-	int ID;
-	COLMAPPhysicalCamera* PhysicalCamera;
-public:
-	int GetID() const;
-
-	COLMAPPhysicalCamera* GetPhysicalCamera();
-};
 
 struct COLMAPPoint3D
 {
@@ -58,31 +12,6 @@ struct COLMAPPoint3D
 
 	// (IMAGE_ID, POINT2D_IDX)
 	std::vector<std::pair<int, int>> Track;
-};
-
-struct COLMAPImage
-{
-	friend class COLMAPProject;
-	friend class COLMAPDataManager;
-private:
-	COLMAPImage();
-	~COLMAPImage();
-
-	int ID;
-	glm::dquat OriginalRotation;
-	glm::quat Rotation;
-	glm::dvec3 OriginalTranslation;
-	glm::vec3 Position;
-	int CameraID;
-	std::string Name;
-public:
-	int GetID() const;
-	int GetCameraID() const;
-	std::string GetName() const;
-	glm::dquat GetOriginalRotation() const;
-	glm::quat GetRotation() const;
-	glm::dvec3 GetOriginalTranslation() const;
-	glm::vec3 GetPosition() const;
 };
 
 struct COLMAPViewRenderSettings
@@ -124,9 +53,15 @@ class COLMAPProject
 	std::unordered_map<int, COLMAPCamera*> Cameras;
 	std::unordered_map<int, COLMAPImage*> Images;
 	const glm::vec4 DefaultImageColor = glm::vec4(58.0f / 255.0f, 110.0f / 255.0f, 165.0f / 255.0f, 1.0f);
+	const glm::vec4 HighlightedImageColor = glm::vec4(163.0f / 255.0f, 73.0f / 255.0f, 164.0f / 255.0f, 1.0f);
 	const glm::vec4 SelectedImageColor = glm::vec4(0.1f, 1.0f, 0.1f, 1.0f);
 	int SelectedImageID = -1;
+	void SetColorForImageInternal(int ImageID, glm::vec4 Color);
 	bool SetSelectedImageByIDInternal(int ImageID);
+	std::vector<int> HighlightedImageIDs;
+	bool IsImageHighlighted(int ImageID) const;
+	void ResetHighlightedImagesInternal();
+	void SetHighlightedImagesByIDInternal(std::vector<int> ImageID);
 
 	std::unordered_map<int, COLMAPPoint3D> TiePoints;
 
@@ -143,7 +78,7 @@ class COLMAPProject
 	bool LoadImages(const std::string& FilePath);
 	bool LoadTiePoints(const std::string& FilePath);
 
-	bool LoadFromFolder(const std::string& FolderPath);
+	bool LoadFromFolder(const std::string& FolderPath, bool bLoadTiePoints);
 
 	bool CreateCameraSceneRepresentation(std::string CameraID);
 	bool DeleteCameraSceneRepresentation(std::string CameraID);
@@ -182,41 +117,18 @@ public:
 	COLMAPCamera* GetCameraForImage(int ImageID);
 	std::vector<int> GetImagesIDList() const;
 	std::vector<COLMAPImage*> GetImagesContainingAABB(FEAABB AABBToTest);
-	COLMAPImage* ImageUnderMouse();
+	COLMAPImage* ImageUnderMouse(float* HitDistance = nullptr);
 	bool SelectImageByID(int ImageID);
+	void ResetSelectedImage();
 	COLMAPImage* GetSelectedImage();
 	COLMAPViewRenderSettings* GetCurrentViewRenderSettings();
 	bool RenderViewFromImage(int ImageID);
+	void HighlightImagesThatSeeAABB(FEAABB AABBToTest, bool bSelectClosest = true);
+	bool IsPhotoFolderAvailable() const;
 
+	bool IsTiePointsLoaded() const;
 	COLMAPPoint3D* GetTiePoint(int ID);
 	std::vector<FEPointCloudVertex> GetTiePointsAsFEPoints();
 	std::unordered_map<int, COLMAPPoint3D>* GetTiePointsMap();
 	FEEntity* GetTiePointsEntity();
 };
-
-class COLMAPDataManager
-{
-	friend class COLMAPProject;
-	SINGLETON_PRIVATE_PART(COLMAPDataManager)
-
-	std::unordered_map<std::string, COLMAPProject*> Projects;
-	bool CreateVisualsForNewProject(COLMAPProject* NewProject);
-
-	FEShader* ImagesInstancedShader = nullptr;
-	FEMaterial* ImagesInstancedMaterial = nullptr;
-	FEGameModel* ImagesInstancedGameModel = nullptr;
-
-	COLMAPProject* GetProjectByEntityID(const std::string& EntityID);
-
-	static void MouseButtonCallback(int Button, int Action, int Mods);
-public:
-	SINGLETON_PUBLIC_PART(COLMAPDataManager)
-
-	COLMAPProject* CreateNewProject(std::string& ParentAnalysisObjectID, std::string& FolderPath);
-	COLMAPProject* GetProjectByID(const std::string& ProjectID);
-	COLMAPProject* GetProjectByAnalysisObjectID(const std::string& AnalysisObjectID);
-	bool DeleteProject(const std::string& ProjectID);
-	std::vector<std::string> GetProjectsIDList() const;
-};
-
-#define COLMAP_DATA_MANAGER COLMAPDataManager::GetInstance()

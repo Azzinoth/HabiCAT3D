@@ -4,6 +4,7 @@
 #include "ObjectViewerWindow.h"
 #include "../ComplexityCore/Layers/LayerManager.h"
 #include "../LayerRasterizationManager.h"
+#include "LoadPhotogrammetryWindow.h"
 
 const COMDLG_FILTERSPEC MODEL_EXPORT_FILE_FILTER[] =
 {

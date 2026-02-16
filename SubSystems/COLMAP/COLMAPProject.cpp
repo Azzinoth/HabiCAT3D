@@ -1,119 +1,7 @@
+#include "COLMAPProject.h"
 #include "COLMAPDataManager.h"
 using namespace FocalEngine;
 #include <shellapi.h>
-
-COLMAPPhysicalCamera::COLMAPPhysicalCamera()
-{
-	ID = APPLICATION.GetUniqueHexID();
-	Width = 0;
-	Height = 0;
-}
-
-COLMAPPhysicalCamera::~COLMAPPhysicalCamera() {}
-
-std::string COLMAPPhysicalCamera::GetID() const
-{
-	return ID;
-}
-
-std::string COLMAPPhysicalCamera::GetModel() const
-{
-	return Model;
-}
-
-int COLMAPPhysicalCamera::GetWidth() const
-{
-	return Width;
-}
-
-int COLMAPPhysicalCamera::GetHeight() const
-{
-	return Height;
-}
-
-double COLMAPPhysicalCamera::GetParameter(int Index) const
-{
-	if (Index < 0 || Index >= Parameters.size())
-		return -DBL_MAX;
-
-	return Parameters[Index];
-}
-
-FEEntity* COLMAPPhysicalCamera::GetSceneEntity() const
-{
-	return MAIN_SCENE_MANAGER.GetMainScene()->GetEntity(SceneEntityID);
-}
-
-bool COLMAPPhysicalCamera::EquvialentTo(COLMAPPhysicalCamera* OtherCamera) const
-{
-	if (OtherCamera == nullptr)
-		return false;
-
-	if (Model != OtherCamera->Model ||
-		Width != OtherCamera->Width ||
-		Height != OtherCamera->Height ||
-		Parameters.size() != OtherCamera->Parameters.size())
-		return false;
-
-	for (size_t i = 0; i < Parameters.size(); i++)
-	{
-		if (Parameters[i] != OtherCamera->Parameters[i])
-			return false;
-	}
-
-	return true;
-}
-
-COLMAPCamera::COLMAPCamera() {}
-COLMAPCamera::~COLMAPCamera() {}
-
-int COLMAPCamera::GetID() const
-{
-	return ID;
-}
-
-COLMAPPhysicalCamera* COLMAPCamera::GetPhysicalCamera()
-{
-	return PhysicalCamera;
-}
-
-COLMAPImage::COLMAPImage() {}
-COLMAPImage::~COLMAPImage() {}
-
-int COLMAPImage::GetID() const
-{
-	return ID;
-}
-
-int COLMAPImage::GetCameraID() const
-{
-	return CameraID;
-}
-
-std::string COLMAPImage::GetName() const
-{
-	return Name;
-}
-
-glm::dquat COLMAPImage::GetOriginalRotation() const
-{
-	return OriginalRotation;
-}
-
-glm::dvec3 COLMAPImage::GetOriginalTranslation() const
-{
-	return OriginalTranslation;
-}
-
-glm::quat COLMAPImage::GetRotation() const
-{
-	return Rotation;
-}
-
-glm::vec3 COLMAPImage::GetPosition() const
-{
-	return Position;
-}
 
 bool COLMAPViewRenderSettings::GetRenderOnlyCurrentAnalysisObject() const
 {
@@ -492,7 +380,7 @@ std::string COLMAPProject::GetPathToPhotoByImageID(int ImageID)
 	if (Image == nullptr)
 		return Result;
 
-	Result = FolderPath + "/images/" + Image->Name;
+	Result = FolderPath + COLMAP_PHOTO_FOLDER + Image->Name;
 	if (!FILE_SYSTEM.DoesFileExist(Result))
 		Result = "";
 
@@ -634,6 +522,63 @@ bool COLMAPProject::RenderViewFromImage(int ImageID)
 	return true;
 }
 
+void COLMAPProject::HighlightImagesThatSeeAABB(FEAABB AABBToTest, bool bSelectClosest)
+{
+	std::vector<COLMAPImage*> ImagesContainingTriangle = GetImagesContainingAABB(AABBToTest);
+	std::vector<int> ImagesIDThatCanSeeTriangle;
+	for (auto& CurrentImage : ImagesContainingTriangle)
+		ImagesIDThatCanSeeTriangle.push_back(CurrentImage->GetID());
+	
+	ResetSelectedImage();
+	SetHighlightedImagesByIDInternal(ImagesIDThatCanSeeTriangle);
+
+	if (bSelectClosest)
+	{
+		float MinDistance = std::numeric_limits<float>::max();
+
+		FEScene* MainScene = MAIN_SCENE_MANAGER.GetMainScene();
+		FEEntity* AllImagesInstancedEntity = MainScene->GetEntity(ImagesInstancedEntityID);
+		FEInstancedComponent& ImagesInstancedComponent = AllImagesInstancedEntity->GetComponent<FEInstancedComponent>();
+		COLMAPImage* ClosestImage = nullptr;
+		glm::vec3 AABBCenter = AABBToTest.GetCenter();
+		for (auto& CurrentImage : ImagesContainingTriangle)
+		{
+			int InstanceIndex = -1;
+			for (const auto& CurrentInstance : ImageInstanceIndexToImageID)
+			{
+				if (CurrentInstance.second == CurrentImage->GetID())
+				{
+					InstanceIndex = CurrentInstance.first;
+					break;
+				}
+			}
+
+			if (InstanceIndex == -1)
+				continue;
+
+			glm::mat4 InstanceModelMatrix = ImagesInstancedComponent.GetTransformedInstancedMatrix(InstanceIndex);
+			glm::vec3 ImagePosition = glm::vec3(InstanceModelMatrix[3][0], InstanceModelMatrix[3][1], InstanceModelMatrix[3][2]);
+
+			float Distance = glm::length(AABBCenter - ImagePosition);
+			if (MinDistance > Distance)
+			{
+				MinDistance = Distance;
+				ClosestImage = CurrentImage;
+			}
+			
+		}
+
+		if (ClosestImage != nullptr)
+			SetSelectedImageByIDInternal(ClosestImage->GetID());
+		
+	}
+}
+
+bool COLMAPProject::IsPhotoFolderAvailable() const
+{
+	return COLMAP_DATA_MANAGER.IsPhotoFolderFound(FolderPath);
+}
+
 void COLMAPProject::BeforeRenderCallback(FEEntity* Entity)
 {
 	if (Entity == nullptr || !Entity->HasComponent<FEInstancedComponent>())
@@ -706,7 +651,7 @@ bool COLMAPProject::CreateImagesInstancedSceneRepresentation()
 	return true;
 }
 
-COLMAPImage* COLMAPProject::ImageUnderMouse()
+COLMAPImage* COLMAPProject::ImageUnderMouse(float* HitDistance)
 {
 	COLMAPImage* Result = nullptr;
 
@@ -735,16 +680,19 @@ COLMAPImage* COLMAPProject::ImageUnderMouse()
 	}
 
 	// Find the closest hit.
-	float HitDistance = FLT_MAX;
+	float LocalHitDistance = std::numeric_limits<float>::max();
 	for (const auto& CurrentInstance : InstanceIndexAndHitDistance)
 	{
-		if (CurrentInstance.second < HitDistance)
+		if (CurrentInstance.second < LocalHitDistance)
 		{
-			HitDistance = CurrentInstance.second;
+			LocalHitDistance = CurrentInstance.second;
 			int ImageID = ImageInstanceIndexToImageID[CurrentInstance.first];
 			Result = GetImage(ImageID);
 		}
 	}
+
+	if (HitDistance != nullptr)
+		*HitDistance = LocalHitDistance;
 
 	return Result;
 }
@@ -752,17 +700,78 @@ COLMAPImage* COLMAPProject::ImageUnderMouse()
 void COLMAPProject::MouseButtonCallback(int Button, int Action, int Mods)
 {
 	COLMAPImage* CurrentImageUnderMouse = ImageUnderMouse();
-	if (CurrentImageUnderMouse != nullptr)
-		SetSelectedImageByIDInternal(CurrentImageUnderMouse->GetID());
+	if (CurrentImageUnderMouse == nullptr)
+	{
+		SetSelectedImageByIDInternal(-1);
+		return;
+	}
+
+	SetSelectedImageByIDInternal(CurrentImageUnderMouse->GetID());
+}
+
+void COLMAPProject::SetColorForImageInternal(int ImageID, glm::vec4 Color)
+{
+	int InstanceIndex = -1;
+	for (const auto& CurrentInstance : ImageInstanceIndexToImageID)
+	{
+		if (CurrentInstance.second == ImageID)
+		{
+			InstanceIndex = CurrentInstance.first;
+			break;
+		}
+	}
+
+	if (InstanceIndex == -1)
+		return;
+
+	FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ImagesColorsSSBO));
+	FE_GL_ERROR(glBufferSubData(GL_SHADER_STORAGE_BUFFER, InstanceIndex * sizeof(glm::vec4), sizeof(glm::vec4), &Color));
+	FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0));
+}
+
+void COLMAPProject::ResetHighlightedImagesInternal()
+{
+	for (size_t i = 0; i < HighlightedImageIDs.size(); i++)
+	{
+		SetColorForImageInternal(HighlightedImageIDs[i], DefaultImageColor);
+	}
+
+	HighlightedImageIDs.clear();
+}
+
+bool COLMAPProject::IsImageHighlighted(int ImageID) const
+{
+	for (size_t i = 0; i < HighlightedImageIDs.size(); i++)
+	{
+		if (HighlightedImageIDs[i] == ImageID)
+			return true;
+	}
+
+	return false;
 }
 
 bool COLMAPProject::SetSelectedImageByIDInternal(int ImageID)
 {
+	if (SelectedImageID == ImageID)
+		return true;
+
+	if (!IsImageHighlighted(ImageID))
+		ResetHighlightedImagesInternal();
+
+	int PreviouslySelectedImageID = SelectedImageID;
+	if (ImageID == -1)
+	{
+		DetachCameraVisualizationFromImage(PreviouslySelectedImageID);
+		SelectedImageID = ImageID;
+
+		SetColorForImageInternal(PreviouslySelectedImageID, DefaultImageColor);
+		return true;
+	}
+
 	COLMAPImage* ImageToSelect = GetImage(ImageID);
 	if (ImageToSelect == nullptr)
 		return false;
 
-	int PreviouslySelectedImageID = SelectedImageID;
 	DetachCameraVisualizationFromImage(PreviouslySelectedImageID);
 	SelectedImageID = ImageID;
 	AttachCameraVisualizationToImage(ImageID);
@@ -770,37 +779,24 @@ bool COLMAPProject::SetSelectedImageByIDInternal(int ImageID)
 	FEEntity* ImageEntity = MAIN_SCENE_MANAGER.GetMainScene()->GetEntity(ImagesInstancedEntityID);
 	if (ImageEntity != nullptr)
 	{
-		int NewSelectionInstanceIndex = -1;
-		for (const auto& CurrentInstance : ImageInstanceIndexToImageID)
-		{
-			if (CurrentInstance.second == ImageID)
-			{
-				NewSelectionInstanceIndex = CurrentInstance.first;
-				break;
-			}
-		}
-
-		if (NewSelectionInstanceIndex != -1)
-		{
-			int PreviouslySelectedInstanceIndex = -1;
-			for (const auto& CurrentInstance : ImageInstanceIndexToImageID)
-			{
-				if (CurrentInstance.second == PreviouslySelectedImageID)
-				{
-					PreviouslySelectedInstanceIndex = CurrentInstance.first;
-					break;
-				}
-			}
-			
-			FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ImagesColorsSSBO));
-			if (PreviouslySelectedInstanceIndex != -1)
-				FE_GL_ERROR(glBufferSubData(GL_SHADER_STORAGE_BUFFER, PreviouslySelectedInstanceIndex * sizeof(glm::vec4), sizeof(glm::vec4), &DefaultImageColor));
-			FE_GL_ERROR(glBufferSubData(GL_SHADER_STORAGE_BUFFER, NewSelectionInstanceIndex * sizeof(glm::vec4), sizeof(glm::vec4), &SelectedImageColor));
-			FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0));
-		}
+		SetColorForImageInternal(PreviouslySelectedImageID, IsImageHighlighted(PreviouslySelectedImageID) ? HighlightedImageColor : DefaultImageColor);
+		SetColorForImageInternal(ImageID, SelectedImageColor);
 	}
 	
 	return true;
+}
+
+void COLMAPProject::SetHighlightedImagesByIDInternal(std::vector<int> ImageID)
+{
+	HighlightedImageIDs.clear();
+	for (size_t i = 0; i < ImageID.size(); i++)
+	{
+		if (GetImage(ImageID[i]))
+		{
+			HighlightedImageIDs.push_back(ImageID[i]);
+			SetColorForImageInternal(ImageID[i], HighlightedImageColor);
+		}
+	}
 }
 
 bool COLMAPProject::SelectImageByID(int ImageID)
@@ -811,6 +807,11 @@ bool COLMAPProject::SelectImageByID(int ImageID)
 
 	SetSelectedImageByIDInternal(ImageID);
 	return true;
+}
+
+void COLMAPProject::ResetSelectedImage()
+{
+	SetSelectedImageByIDInternal(-1);
 }
 
 COLMAPImage* COLMAPProject::GetSelectedImage()
@@ -925,14 +926,20 @@ std::vector<COLMAPImage*> COLMAPProject::GetImagesContainingAABB(FEAABB AABBToTe
 		CurrentCameraComponent.UpdateFrustum();
 
 		FEFrustum CameraFrustum = CurrentCameraComponent.GetFrustum();
-
 		if (CameraFrustum.IntersectsAABB(AABBToTest) || CameraFrustum.ContainsAABB(AABBToTest))
 		{
 			Result.push_back(CurrentImage.second);
 		}
+
+		DetachCameraVisualizationFromImage(CurrentImage.second->ID);
 	}
 
 	return Result;
+}
+
+bool COLMAPProject::IsTiePointsLoaded() const
+{
+	return !TiePoints.empty();
 }
 
 COLMAPPoint3D* COLMAPProject::GetTiePoint(int ID)
@@ -1034,189 +1041,40 @@ FEEntity* COLMAPProject::GetTiePointsEntity()
 	return MAIN_SCENE_MANAGER.GetMainScene()->GetEntity(TiePointsEntityID);
 }
 
-bool COLMAPProject::LoadFromFolder(const std::string& FolderPath)
+bool COLMAPProject::LoadFromFolder(const std::string& FolderPath, bool bLoadTiePoints)
 {
 	if (!FILE_SYSTEM.DoesDirectoryExist(FolderPath))
 		return false;
 
-	std::string AbsoluteFolderPath = FILE_SYSTEM.GetAbsolutePath(FolderPath);
+	std::string AbsoluteFolderPath = FILE_SYSTEM.GetAbsolutePath(FolderPath) + "\\";
 	if (!FILE_SYSTEM.DoesDirectoryExist(AbsoluteFolderPath))
 		return false;
 
-	if (!FILE_SYSTEM.DoesFileExist(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_CAMERAS_FILE) ||
-		!FILE_SYSTEM.DoesFileExist(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_IMAGES_FILE) ||
-		!FILE_SYSTEM.DoesFileExist(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_TIE_POINTS_FILE))
-		return false;
-
 	this->FolderPath = AbsoluteFolderPath;
+
+	bool bHaveCameras = FILE_SYSTEM.DoesFileExist(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_CAMERAS_FILE);
+	bool bHaveImages = FILE_SYSTEM.DoesFileExist(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_IMAGES_FILE);
+	bool bHaveTiePoints = FILE_SYSTEM.DoesFileExist(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_TIE_POINTS_FILE);
+	bool bHavePhotoFolder = IsPhotoFolderAvailable();
+
+	if (!bHaveCameras ||
+		!bHaveImages)
+	{
+		this->FolderPath = "";
+		return false;
+	}
 	
 	FEEntity* Anchor = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("PhotogrammetryAnchor_" + this->GetID());
 	PhotogrammetryAnchorID = Anchor->GetObjectID();
 	FEEntity* MainEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
 	Anchor->AttachTo(MainEntity, false);
 
-	LoadCameras(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_CAMERAS_FILE);
-	LoadImages(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_IMAGES_FILE);
-	LoadTiePoints(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_TIE_POINTS_FILE);
+	if (bHaveCameras)
+		LoadCameras(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_CAMERAS_FILE);
+	if (bHaveImages)
+		LoadImages(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_IMAGES_FILE);
+	if (bHaveTiePoints && bLoadTiePoints)
+		LoadTiePoints(AbsoluteFolderPath + COLMAP_SPARSE_MODEL_FOLDER + COLMAP_TIE_POINTS_FILE);
 
 	return true;
-}
-
-COLMAPDataManager::COLMAPDataManager()
-{
-	ImagesInstancedShader = RESOURCE_MANAGER.CreateShader("ImagesInstancedShader", RESOURCE_MANAGER.LoadGLSL("SubSystems/Shaders/COLMAPShaders/ImagesInstancedShader_VS.glsl").c_str(),
-																				   RESOURCE_MANAGER.LoadGLSL("SubSystems/Shaders/COLMAPShaders/ImagesInstancedShader_FS.glsl").c_str());
-
-	ImagesInstancedShader->UpdateUniformData("HighlightedCellIndex", -1);
-	ImagesInstancedShader->UpdateUniformData("SelectedCellIndex", -1);
-
-	ImagesInstancedMaterial = RESOURCE_MANAGER.CreateMaterial("ImagesInstancedMaterial");
-	ImagesInstancedMaterial->Shader = ImagesInstancedShader;
-
-	FEMesh* PlaneMesh = RESOURCE_MANAGER.GetMesh("1Y251E6E6T78013635793156"/*"plane"*/);
-	ImagesInstancedGameModel = RESOURCE_MANAGER.CreateGameModel(PlaneMesh, ImagesInstancedMaterial);
-
-	APPLICATION.GetMainWindow()->AddOnMouseButtonCallback(COLMAPDataManager::MouseButtonCallback);
-}
-
-COLMAPDataManager::~COLMAPDataManager() {}
-
-bool COLMAPDataManager::CreateVisualsForNewProject(COLMAPProject* NewProject)
-{
-	if (NewProject == nullptr)
-		return false;
-
-	if (NewProject->GetPhotogrammetryAnchorEntity() == nullptr)
-	{
-		FEEntity* NewAnchor = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("COLMAPImagesAnchor");
-		NewProject->PhotogrammetryAnchorID = NewAnchor->GetObjectID();
-		FEEntity* MainEntity = MAIN_SCENE_MANAGER.GetMainScene()->GetEntity(NewProject->ParentAnalysisObjectID);
-		NewAnchor->AttachTo(MainEntity, false);
-	}
-
-	for (const auto& CurrentCameraID : NewProject->GetPhysicalCamerasIDList())
-		if (!NewProject->CreateCameraSceneRepresentation(CurrentCameraID))
-			return false;
-	
-	if (!NewProject->CreateImagesInstancedSceneRepresentation())
-		return false;
-
-	/*for (const auto& CurrentImageID : NewProject->GetImagesIDList())
-		if (!NewProject->CreateImageSceneRepresentation(CurrentImageID))
-			return false;*/
-	
-	if (!NewProject->CreateTiePointsSceneRepresentation())
-		return false;
-
-	return true;
-}
-
-COLMAPProject* COLMAPDataManager::CreateNewProject(std::string& ParentAnalysisObjectID, std::string& FolderPath)
-{
-	COLMAPProject* Result = nullptr;
-
-	AnalysisObject* ParentAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentAnalysisObjectID);
-	if (ParentAnalysisObject == nullptr)
-		return Result;
-
-	if (!FILE_SYSTEM.DoesDirectoryExist(FolderPath))
-		return Result;
-
-	Result = new COLMAPProject();
-	Result->ParentAnalysisObjectID = ParentAnalysisObjectID;
-	if (!Result->LoadFromFolder(FolderPath))
-	{
-		delete Result;
-		Result = nullptr;
-		return Result;
-	}
-
-	if (!CreateVisualsForNewProject(Result))
-	{
-		delete Result;
-		Result = nullptr;
-		return Result;
-	}
-
-	FEEntity* Anchor = Result->GetPhotogrammetryAnchorEntity();
-	if (Anchor == nullptr)
-	{
-		delete Result;
-		Result = nullptr;
-		return Result;
-	}
-
-	glm::vec3 ParentShift = ParentAnalysisObject->GetAppliedShift();
-	Anchor->GetComponent<FETransformComponent>().SetPosition(-ParentShift);
-
-	Projects[Result->GetID()] = Result;
-	return Result;
-}
-
-COLMAPProject* COLMAPDataManager::GetProjectByID(const std::string& ProjectID)
-{
-	if (Projects.find(ProjectID) == Projects.end())
-		return nullptr;
-
-	return Projects[ProjectID];
-}
-
-bool COLMAPDataManager::DeleteProject(const std::string& ProjectID)
-{
-	COLMAPProject* ProjectToDelete = GetProjectByID(ProjectID);
-	if (ProjectToDelete == nullptr)
-		return false;
-
-	delete ProjectToDelete;
-	Projects.erase(ProjectID);
-	return true;
-}
-
-std::vector<std::string> COLMAPDataManager::GetProjectsIDList() const
-{
-	std::vector<std::string> Result;
-	for (const auto& CurrentProject : Projects)
-		Result.push_back(CurrentProject.first);
-
-	return Result;
-}
-
-COLMAPProject* COLMAPDataManager::GetProjectByAnalysisObjectID(const std::string& AnalysisObjectID)
-{
-	for (const auto& CurrentProject : Projects)
-	{
-		if (CurrentProject.second->ParentAnalysisObjectID == AnalysisObjectID)
-			return CurrentProject.second;
-	}
-
-	return nullptr;
-}
-
-COLMAPProject* COLMAPDataManager::GetProjectByEntityID(const std::string& EntityID)
-{
-	// FE_TO_DO: Using slow linear search for now, optimize later if needed.
-	for (const auto& CurrentProject : Projects)
-	{
-		if (CurrentProject.second->PhotogrammetryAnchorID == EntityID ||
-			CurrentProject.second->TiePointsEntityID == EntityID ||
-			CurrentProject.second->ImagesInstancedEntityID == EntityID)
-			return CurrentProject.second;
-	}
-
-	return nullptr;
-}
-
-void COLMAPDataManager::MouseButtonCallback(int Button, int Action, int Mods)
-{
-	if (ImGui::GetIO().WantCaptureMouse)
-	{
-		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
-		return;
-	}
-
-	if (Button == GLFW_MOUSE_BUTTON_1 && Action == GLFW_RELEASE)
-	{
-		for (const auto& CurrentProject : COLMAP_DATA_MANAGER.Projects)
-			CurrentProject.second->MouseButtonCallback(Button, Action, Mods);
-	}
 }

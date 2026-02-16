@@ -54,6 +54,7 @@ bool MainSceneManager::AddLinesToEntity(FEEntity** Entity, std::vector<FELine> L
 	else if (*Entity != nullptr && (*Entity)->HasComponent<FELineComponent>())
 	{
 		RESOURCE_MANAGER.DeleteFELineCollection((*Entity)->GetComponent<FELineComponent>().GetLineCollection());
+		(*Entity)->GetComponent<FELineComponent>().SetLineCollection(nullptr);
 	}
 	else if ((*Entity) != nullptr && !(*Entity)->HasComponent<FELineComponent>())
 	{

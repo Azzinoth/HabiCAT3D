@@ -40,8 +40,12 @@ public:
 
 	void ComplexityMetricDataToGPU(std::string LayerID, int GPULayerIndex = 0);
 
-	bool SelectTriangle(glm::dvec3 MouseRay);
-	bool SelectTrianglesInRadius(glm::dvec3 MouseRay, float Radius);
+	int GetTriangleIndexUnderMouse(float* HitDistance = nullptr);
+	bool SelectTriangleByIndex(int TriangleIndex);
+
+	std::vector<int> GetTriangleIndexesInRadius(float Radius);
+	bool SelectTrianglesByIndexes(std::vector<int> TriangleIndexes);
+
 	glm::vec3 IntersectTriangle(glm::dvec3 MouseRay);
 
 	FEAABB GetAllObjectsAABB();
@@ -54,7 +58,7 @@ private:
 
 	void OnAnalysisObjectLoad(AnalysisObject* NewObject);
 	AnalysisObject* LoadRUGFile(std::string FilePath);
-	bool NewLoadRUGFile(std::string FilePath);
+	bool LoadRUGFile_V0_9_1(std::string FilePath);
 	void SaveAnalysisDataToRUGFile(std::fstream& File, AnalysisObject* Object);
 
 	void LoadMeshDataFromRUGFile(std::fstream& File, AnalysisObject* Object);
