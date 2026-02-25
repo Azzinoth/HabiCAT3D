@@ -28,6 +28,10 @@ if(NOT TARGET FocalEngine)
 	add_subdirectory(SubSystems/FocalEngine)
 endif()
 
+if(NOT TARGET FESceneGraphUI)
+    add_subdirectory(SubSystems/FESceneGraphUI)
+endif()
+
 # Extract the relative path of the engine folder
 file(RELATIVE_PATH RELATIVE_PATH_TO_ENGINE_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}" "${ENGINE_FOLDER}")
 # We need to re-configure the Config.h file for the engine
@@ -211,6 +215,7 @@ add_executable(HabiCAT3D WIN32
 target_link_libraries(HabiCAT3D
 	PRIVATE
 		FocalEngine
+		FESceneGraphUI
 	 PUBLIC
 		${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/gdal_i.lib
 )

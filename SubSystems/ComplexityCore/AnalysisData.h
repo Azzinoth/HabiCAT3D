@@ -130,9 +130,6 @@ public:
 	void SetName(std::string NewName);
 	std::string GetFilePath();
 
-	bool IsRenderedInScene();
-	void SetRenderInScene(bool NewValue);
-
 	ResourceAnalysisData* GetAnalysisData();
 	MeshAnalysisData* GetMeshAnalysisData();
 	PointCloudAnalysisData* GetPointCloudAnalysisData();

@@ -916,7 +916,7 @@ size_t AnalysisObjectManager::GetAnalysisObjectCount()
 	return AnalysisObjects.size();
 }
 
-AnalysisObject* AnalysisObjectManager::GetAnalysisObject(std::string ID)
+AnalysisObject* AnalysisObjectManager::GetAnalysisObjectByID(std::string ID)
 {
 	if (AnalysisObjects.find(ID) != AnalysisObjects.end())
 		return AnalysisObjects[ID];
@@ -924,9 +924,20 @@ AnalysisObject* AnalysisObjectManager::GetAnalysisObject(std::string ID)
 	return nullptr;
 }
 
+AnalysisObject* AnalysisObjectManager::GetAnalysisObjectByEntityID(std::string EntityID)
+{
+	for (auto& CurrentPair : AnalysisObjects)
+	{
+		if (CurrentPair.second->Entity != nullptr && CurrentPair.second->Entity->GetObjectID() == EntityID)
+			return CurrentPair.second;
+	}
+
+	return nullptr;
+}
+
 AnalysisObject* AnalysisObjectManager::GetActiveAnalysisObject()
 {
-	return GetAnalysisObject(ActiveAnalysisObjectID);
+	return GetAnalysisObjectByID(ActiveAnalysisObjectID);
 }
 
 bool AnalysisObjectManager::SetActiveAnalysisObject(std::string ID)
@@ -1009,7 +1020,7 @@ FEEntity* AnalysisObjectManager::GetActiveEntity()
 
 bool AnalysisObjectManager::DeleteAnalysisObject(std::string ID)
 {
-	AnalysisObject* ObjectToDelete = GetAnalysisObject(ID);
+	AnalysisObject* ObjectToDelete = GetAnalysisObjectByID(ID);
 	if (ObjectToDelete == nullptr)
 		return false;
 
@@ -1325,8 +1336,12 @@ void AnalysisObjectManager::SaveToRUGFile(std::string FilePath)
 			File.write((char*)&FilePathSize, sizeof(int));
 			File.write((char*)CurrentObject->GetFilePath().c_str(), sizeof(char) * FilePathSize);
 
-			int RenderedInScene = CurrentObject->IsRenderedInScene();
-			File.write((char*)&RenderedInScene, sizeof(int));
+			FEEntity* CurrentEntity = CurrentObject->GetEntity();
+			bool bVisibleInScene = false;
+			if (CurrentEntity != nullptr)
+				bVisibleInScene = CurrentEntity->IsVisible();
+			int VisibleInScene = bVisibleInScene;
+			File.write((char*)&VisibleInScene, sizeof(int));
 
 			SaveAnalysisDataToRUGFile(File, CurrentObject);
 			SaveLayersDataToRUGFile(File, CurrentObject);
@@ -1677,8 +1692,7 @@ bool AnalysisObjectManager::LoadRUGFile_V0_9_1(std::string FilePath)
 		delete[] FilePathBuffer;
 
 		File.read(Buffer32, 4);
-		const int RenderedInScene = *(int*)Buffer32;
-		NewAnalysisObject->SetRenderInScene(RenderedInScene);
+		const int VisibleInScene = *(int*)Buffer32;
 
 		switch (ObjectType)
 		{
@@ -1706,6 +1720,10 @@ bool AnalysisObjectManager::LoadRUGFile_V0_9_1(std::string FilePath)
 		LoadLayersDataFromRUGFile(File, NewAnalysisObject);
 		AnalysisObjects[NewAnalysisObject->GetID()] = NewAnalysisObject;
 		OnAnalysisObjectLoad(NewAnalysisObject);
+
+		FEEntity* CurrentEntity = NewAnalysisObject->GetEntity();
+		if (CurrentEntity != nullptr)
+			CurrentEntity->SetVisible(VisibleInScene);
 	}
 
 	delete[] Buffer32;
@@ -1722,13 +1740,6 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 	{
 		AnalysisObject* CurrentObject = ObjectsMapIterator->second;
 		if (CurrentObject == nullptr || CurrentObject->GetEntity() == nullptr || CurrentObject->GetEntity() != CurrentEntity)
-		{
-			ObjectsMapIterator++;
-			continue;
-		}
-
-		CurrentObject->GetEntity()->SetComponentVisible(ComponentVisibilityType::ALL, CurrentObject->IsRenderedInScene());
-		if (!CurrentObject->IsRenderedInScene())
 		{
 			ObjectsMapIterator++;
 			continue;

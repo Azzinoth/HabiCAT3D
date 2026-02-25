@@ -25,7 +25,8 @@ public:
 	void SaveToRUGFileAskForFilePath();
 
 	size_t GetAnalysisObjectCount();
-	AnalysisObject* GetAnalysisObject(std::string ID);
+	AnalysisObject* GetAnalysisObjectByID(std::string ID);
+	AnalysisObject* GetAnalysisObjectByEntityID(std::string EntityID);
 	std::vector<std::string> AnalysisObjectManager::GetAnalysisObjectsIDList();
 
 	bool SetActiveAnalysisObject(std::string ID);

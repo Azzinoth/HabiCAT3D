@@ -3,8 +3,6 @@
 using namespace FocalEngine;
 #include <shellapi.h>
 
-//COLMAPProject* CurrentCOLMAPProject;
-
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
 
 double MouseX;
@@ -314,7 +312,7 @@ void MainWindowRender()
 		bool bHaveAnyObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount() > 0;
 		if (bHaveAnyObject)
 		{
-			AnalysisObject* FirstObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(FirstChoosenActiveObjectID);
+			AnalysisObject* FirstObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(FirstChoosenActiveObjectID);
 			std::string FirstActiveObjectString = "Choose active object";
 			if (!FirstChoosenActiveObjectID.empty() && FirstObject != nullptr)
 				FirstActiveObjectString = FirstObject->GetName();
@@ -330,7 +328,7 @@ void MainWindowRender()
 				std::vector<std::string> AllObjectIDs = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectsIDList();
 				for (size_t i = 0; i < AllObjectIDs.size(); i++)
 				{
-					AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(AllObjectIDs[i]);
+					AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(AllObjectIDs[i]);
 					if (CurrentObject == nullptr)
 						continue;
 
@@ -376,7 +374,7 @@ void MainWindowRender()
 				}
 			}
 
-			AnalysisObject* SecondObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(SecondChoosenActiveObjectID);
+			AnalysisObject* SecondObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(SecondChoosenActiveObjectID);
 			std::string SecondActiveObjectString = "Choose active object";
 			if (!SecondActiveObjectString.empty() && SecondObject != nullptr)
 				SecondActiveObjectString = SecondObject->GetName();
@@ -392,7 +390,7 @@ void MainWindowRender()
 				std::vector<std::string> AllObjectIDs = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectsIDList();
 				for (size_t i = 0; i < AllObjectIDs.size(); i++)
 				{
-					AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(AllObjectIDs[i]);
+					AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(AllObjectIDs[i]);
 					if (CurrentObject == nullptr)
 						continue;
 					bool bIsSelected = (AllObjectIDs[i] == SecondChoosenActiveObjectID);

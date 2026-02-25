@@ -53,7 +53,7 @@ COLMAPProject* COLMAPDataManager::CreateNewProject(std::string& ParentAnalysisOb
 {
 	COLMAPProject* Result = nullptr;
 
-	AnalysisObject* ParentAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentAnalysisObjectID);
+	AnalysisObject* ParentAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ParentAnalysisObjectID);
 	if (ParentAnalysisObject == nullptr)
 		return Result;
 

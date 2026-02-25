@@ -131,16 +131,6 @@ void AnalysisObject::SetName(std::string NewName)
 	Name = NewName;
 }
 
-bool AnalysisObject::IsRenderedInScene()
-{
-	return bRenderInScene;
-}
-
-void AnalysisObject::SetRenderInScene(bool NewValue)
-{
-	bRenderInScene = NewValue;
-}
-
 std::string AnalysisObject::GetFilePath() 
 {
 	return FilePath;

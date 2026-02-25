@@ -46,6 +46,9 @@ bool MainSceneManager::AddLinesToEntity(FEEntity** Entity, std::vector<FELine> L
 {
 	if (*Entity == nullptr)
 	{
+		if (LinesToAdd.empty())
+			return false;
+
 		*Entity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Debug lines entity");
 		if (*Entity == nullptr)
 			return false;

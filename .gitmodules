@@ -1,3 +1,6 @@
 [submodule "FocalEngine"]
 	path = SubSystems/FocalEngine
 	url = https://github.com/Azzinoth/FocalEngine
+[submodule "SubSystems/FESceneGraphUI"]
+	path = SubSystems/FESceneGraphUI
+	url = https://github.com/Azzinoth/FESceneGraphUI

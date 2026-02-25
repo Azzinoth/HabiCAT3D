@@ -11,6 +11,8 @@ ObjectViewerWindow::ObjectViewerWindow()
 
 		MeshIcon = RESOURCE_MANAGER.LoadPNGTexture("Resources/mesh.png", "MeshIcon");
 		PointCloudIcon = RESOURCE_MANAGER.LoadPNGTexture("Resources/point_cloud.png", "PointCloudIcon");
+
+		SceneGraphUI = new FESceneGraphUI();
 	}
 }
 
@@ -24,23 +26,174 @@ void ObjectViewerWindow::SetVisible(bool NewValue)
 	bVisible = NewValue;
 }
 
-std::string ObjectViewerWindow::ClipTextToWidth(const std::string& Text, float MaxWidth)
+#define ANALISYS_OBJECTS_DEPTH 1
+#define PHOTOGRAMMETRY_ANCHOR_DEPTH (ANALISYS_OBJECTS_DEPTH + 1)
+#define PHOTOGRAMMETRY_RESOURCES_DEPTH (PHOTOGRAMMETRY_ANCHOR_DEPTH + 1)
+
+bool ObjectViewerWindow::ShouldRenderNode(FENaiveSceneGraphNode* SubTreeRoot)
 {
-	std::string Result = Text;
-	float TextWidth = ImGui::CalcTextSize(Text.c_str()).x;
+	size_t Depth = SubTreeRoot->GetDepth();
+	if (Depth == 0)
+		return true;
 
-	if (TextWidth > MaxWidth)
+	FEEntity* CurrentEntity = SubTreeRoot->GetEntity();
+	if (CurrentEntity == nullptr)
+		return false;
+
+	std::string CurrentEntityName = CurrentEntity->GetName();
+	if (CurrentEntityName.find("COLMAPPhysicalCamera_") != std::string::npos)
+		return false;
+
+	if (Depth == ANALISYS_OBJECTS_DEPTH)
 	{
-		const char* EllipsisText = "...";
-		float EllipsisWidth = ImGui::CalcTextSize(EllipsisText).x;
-
-		while (!Result.empty() && ImGui::CalcTextSize((Result + EllipsisText).c_str()).x > MaxWidth)
-			Result.pop_back();
-
-		Result += EllipsisText;
+		AnalysisObject* CurrentAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+		if (CurrentAnalysisObject == nullptr)
+			return false;
 	}
 
-	return Result;
+	if (Depth == PHOTOGRAMMETRY_ANCHOR_DEPTH)
+	{
+		if (CurrentEntityName.find("PhotogrammetryAnchor_") == std::string::npos)
+			return false;
+	}
+
+	if (Depth == PHOTOGRAMMETRY_RESOURCES_DEPTH)
+	{
+		if (CurrentEntityName.find("COLMAPImages") == std::string::npos &&
+			CurrentEntityName.find("Tie Points") == std::string::npos)
+			return false;
+	}
+
+	return true;
+}
+
+std::string ObjectViewerWindow::GetDisplayedName(FENaiveSceneGraphNode* SubTreeRoot)
+{
+	size_t Depth = SubTreeRoot->GetDepth();
+
+	std::string DisplayedName = SubTreeRoot->GetName();
+	FEEntity* CurrentEntity = SubTreeRoot->GetEntity();
+	if (Depth == ANALISYS_OBJECTS_DEPTH)
+	{
+		AnalysisObject* CurrentAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+		if (CurrentAnalysisObject != nullptr)
+			DisplayedName = CurrentAnalysisObject->GetName();
+	}
+	if (Depth == PHOTOGRAMMETRY_ANCHOR_DEPTH)
+	{
+		DisplayedName = "Photogrammetry";
+	}
+	if (Depth == PHOTOGRAMMETRY_RESOURCES_DEPTH)
+	{
+		std::string CurrentEntityName = CurrentEntity->GetName();
+		if (CurrentEntityName.find("COLMAPImages") != std::string::npos)
+		{
+			DisplayedName = "Images";
+		}
+		else if (CurrentEntityName.find("Tie Points") != std::string::npos)
+		{
+			DisplayedName = "Tie Points";
+		}
+	}
+
+	return DisplayedName;
+}
+
+bool ObjectViewerWindow::ShouldShowChildren(FENaiveSceneGraphNode* SubTreeRoot)
+{
+	size_t Depth = SubTreeRoot->GetDepth();
+	if (Depth == PHOTOGRAMMETRY_RESOURCES_DEPTH)
+		return false;
+
+	return true;
+}
+
+FETexture* ObjectViewerWindow::NodeIcon(FENaiveSceneGraphNode* Node)
+{
+	FEEntity* CurrentEntity = Node->GetEntity();
+	if (CurrentEntity == nullptr)
+		return nullptr;
+
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+	if (CurrentObject == nullptr)
+		return nullptr;
+
+	return CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? OBJECT_VIEWER_WINDOW.MeshIcon : OBJECT_VIEWER_WINDOW.PointCloudIcon;
+}
+
+void ObjectViewerWindow::OnDoubleClickNode(FENaiveSceneGraphNode* Node, ImGuiMouseButton_ MouseButton)
+{
+	if (MouseButton != ImGuiMouseButton_Left)
+		return;
+
+	FEEntity* CurrentEntity = Node->GetEntity();
+	if (CurrentEntity == nullptr)
+		return;
+
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+	if (CurrentObject == nullptr)
+		return;
+
+	UI.bModelCamera ? UI.ModelCameraAdjustment(CurrentObject) : UI.FreeCameraAdjustment(CurrentObject);
+}
+
+AnalysisObject* GetAnalysisObjectFromNode(FENaiveSceneGraphNode* Node)
+{
+	FEEntity* CurrentEntity = Node->GetEntity();
+	if (CurrentEntity == nullptr)
+		return nullptr;
+
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+	if (CurrentObject != nullptr)
+		return CurrentObject;
+
+	// If we are here, we need to go to parent nodes to find the corresponding analysis object.
+	FENaiveSceneGraphNode* CurrentNode = Node->GetParent();
+	while (CurrentNode != nullptr)
+	{
+		CurrentEntity = CurrentNode->GetEntity();
+		if (CurrentEntity != nullptr)
+		{
+			CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+			if (CurrentObject != nullptr)
+				return CurrentObject;
+		}
+
+		CurrentNode = CurrentNode->GetParent();
+	}
+
+	return CurrentObject;
+}
+
+void ObjectViewerWindow::OnNodeClicked(FENaiveSceneGraphNode* Node, ImGuiMouseButton_ MouseButton)
+{
+	if (MouseButton != ImGuiMouseButton_Left)
+		return;
+
+	FEEntity* CurrentEntity = Node->GetEntity();
+	if (CurrentEntity == nullptr)
+		return;
+
+	AnalysisObject* CurrentObject = GetAnalysisObjectFromNode(Node);
+	if (CurrentObject != nullptr)
+		ANALYSIS_OBJECT_MANAGER.SetActiveAnalysisObject(CurrentObject->GetID());
+}
+
+void ObjectViewerWindow::OnNodeSelectionChanged(FENaiveSceneGraphNode* Node, bool bOldState)
+{
+	FEEntity* CurrentEntity = Node->GetEntity();
+	if (CurrentEntity == nullptr)
+		return;
+
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+	if (CurrentObject == nullptr)
+	{
+
+	}
+	else
+	{
+		ANALYSIS_OBJECT_MANAGER.SetActiveAnalysisObject(CurrentObject->GetID());
+	}
 }
 
 void ObjectViewerWindow::Render()
@@ -55,6 +208,59 @@ void ObjectViewerWindow::Render()
 		ImGui::SetNextWindowSize(ImVec2(350, 300), ImGuiCond_FirstUseEver);
 
 		bFirstTime = false;
+
+		SceneGraphUI->SetNodeRenderPredicate(ObjectViewerWindow::ShouldRenderNode);
+		SceneGraphUI->SetNodeDisplayNameProvider(ObjectViewerWindow::GetDisplayedName);
+		SceneGraphUI->SetNodeChildrenVisiblePredicate(ObjectViewerWindow::ShouldShowChildren);
+
+		SceneGraphUI->SetNodeIconProvider(ObjectViewerWindow::NodeIcon);
+
+		SceneGraphUI->AddOnNodeClickedCallback(ObjectViewerWindow::OnNodeClicked);
+		SceneGraphUI->AddOnNodeDoubleClickedCallback(ObjectViewerWindow::OnDoubleClickNode);
+		SceneGraphUI->AddOnNodeSelectionChangedCallback(ObjectViewerWindow::OnNodeSelectionChanged);
+		
+		TrashWidget.Icon = TrashBinIcon;
+		TrashWidget.bIsInteractive = true;
+		TrashWidget.OnClickCallback = [](FENaiveSceneGraphNode* Node) {
+			FEEntity* CurrentEntity = Node->GetEntity();
+			if (CurrentEntity == nullptr)
+				return;
+
+			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+			if (CurrentObject == nullptr)
+				return;
+
+			ANALYSIS_OBJECT_MANAGER.DeleteAnalysisObject(CurrentObject->GetID());
+		};
+		TrashWidget.bIsVisibleByDefault = true;
+		TrashWidget.TooltipText = "Delete";
+
+		SceneGraphUI->AddNodeWidget(TrashWidget);
+
+		
+		VisibilityToggleWidget.Icon = VisibilityOnIcon;
+		VisibilityToggleWidget.DynamicIconProvider = [this](FENaiveSceneGraphNode* Node) -> FETexture* {
+			FEEntity* CurrentEntity = Node->GetEntity();
+			if (CurrentEntity == nullptr)
+				return nullptr;
+
+			bool bIsVisible = CurrentEntity->IsVisible();
+			return bIsVisible ? VisibilityOnIcon : VisibilityOffIcon;
+		};
+
+		VisibilityToggleWidget.bIsInteractive = true;
+		VisibilityToggleWidget.OnClickCallback = [](FENaiveSceneGraphNode* Node) {
+			FEEntity* CurrentEntity = Node->GetEntity();
+			if (CurrentEntity == nullptr)
+				return;
+
+			bool bIsVisible = CurrentEntity->IsVisible();
+			CurrentEntity->SetVisible(!bIsVisible);
+		};
+		VisibilityToggleWidget.bIsVisibleByDefault = true;
+		VisibilityToggleWidget.TooltipText = "Show/Hide";
+
+		SceneGraphUI->AddNodeWidget(VisibilityToggleWidget);
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
@@ -64,100 +270,27 @@ void ObjectViewerWindow::Render()
 		ImVec2 CurrentWindowPosition = ImGui::GetWindowPos();
 		ImVec2 CurrentWindowSize = ImGui::GetWindowSize();
 
-		std::vector<std::string> ObjectIDs = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectsIDList();
-		std::vector<AnalysisObject*> Objects;
-		std::vector<FEPointCloud*> PointClouds;
-		std::vector<std::string> PointCloudIDs = RESOURCE_MANAGER.GetPointCloudIDList();
-		for (size_t i = 0; i < PointCloudIDs.size(); i++)
-		{
-			FEPointCloud* CurrentPointCloud = RESOURCE_MANAGER.GetPointCloud(PointCloudIDs[i]);
-			if (CurrentPointCloud == nullptr)
-				continue;
+		static bool bSceneGraphDebugMode = false;
+		if (ImGui::Checkbox("Scene Graph Debug Mode", &bSceneGraphDebugMode))
+			SceneGraphUI->SetDebugMode(bSceneGraphDebugMode);
 
-			PointClouds.push_back(CurrentPointCloud);
-		}
-
-		for (size_t i = 0; i < ObjectIDs.size(); i++)
-		{
-			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ObjectIDs[i]);
-			if (CurrentObject == nullptr)
-				continue;
-
-			Objects.push_back(CurrentObject);
-		}
-
-		if (ImGui::BeginListBox("##Objects ListBox", ImVec2(ImGui::GetContentRegionAvail())))
-		{
-			for (size_t i = 0; i < Objects.size(); i++)
-			{
-				AnalysisObject* CurrentObject = Objects[i];
-
-				if (ImGui::GetIO().Fonts->Fonts.Size > 0)
-					ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
-
-				ImGui::Image(CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? MeshIcon->GetTextureID() : PointCloudIcon->GetTextureID(), ImVec2(32.0f, 32.0f));
-				ImGui::SameLine();
-
-				std::string TruncatedName = ClipTextToWidth(CurrentObject->GetName(), ImGui::GetContentRegionAvail().x - 80.0f - 4.0f);
-				TruncatedName += "##" + CurrentObject->GetID(); // To have unique names for ImGui.
-
-				bool bIsSelected = false;
-				if (ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject() != nullptr)
-					bIsSelected = CurrentObject->GetID() == ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject()->GetID();
-				if (ImGui::Selectable(TruncatedName.c_str(), bIsSelected, ImGuiSelectableFlags_None, ImVec2(ImGui::GetContentRegionAvail().x - 80, 32)))
-				{
-					ANALYSIS_OBJECT_MANAGER.SetActiveAnalysisObject(CurrentObject->GetID());
-				}
-
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-				{
-					UI.bModelCamera ? UI.ModelCameraAdjustment(CurrentObject) : UI.FreeCameraAdjustment(CurrentObject);
-				}
-
-				float IconSize = ImGui::GetItemRectSize().y - 6.0f;
-
-				ImGui::SameLine();
-				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.2f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.3f));
-				FETexture* IconToUse = CurrentObject->IsRenderedInScene() ? VisibilityOnIcon : VisibilityOffIcon;
-				if (ImGui::ImageButton(("##VisibilityOnOff" + CurrentObject->GetID()).c_str(), IconToUse->GetTextureID(), ImVec2(IconSize, IconSize)))
-					CurrentObject->SetRenderInScene(!CurrentObject->IsRenderedInScene());
-				ImGui::PopStyleColor(3);
-
-				ImGui::SameLine();
-				ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 6.0f);
-				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.4f, 0.4f, 0.2f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.4f, 0.4f, 0.3f));
-				if (ImGui::ImageButton(("##DeleteObject" + CurrentObject->GetID()).c_str(), TrashBinIcon->GetTextureID(), ImVec2(IconSize, IconSize)))
-				{
-					ANALYSIS_OBJECT_MANAGER.DeleteAnalysisObject(CurrentObject->GetID());
-
-					ImGui::PopStyleColor(3);
-					if (ImGui::GetIO().Fonts->Fonts.Size > 0)
-						ImGui::PopFont();
-
-					ImGui::EndListBox();
-
-					ImGui::End();
-					ImGui::PopStyleVar(2);
-
-					return;
-				}
-
-				ImGui::PopStyleColor(3);
-
-				if (ImGui::GetIO().Fonts->Fonts.Size > 0)
-					ImGui::PopFont();
-			}
-
-			ImGui::EndListBox();
-		}
+		SceneGraphUI->Render(MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetRoot(), false);
 	}
 
 	ImGui::End();
 	ImGui::PopStyleVar(2);
+}
+
+FEEntity* ObjectViewerWindow::GetSelectedEntity()
+{
+	std::vector<std::string> SelectedNodes = SceneGraphUI->GetSelectedNodeIDs();
+	// Although SceneGraphUI support multiple selection, we use default single selection mode.
+	if (SelectedNodes.empty())
+		return nullptr;
+
+	FENaiveSceneGraphNode* SelectedNode = MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetNodeByID(SelectedNodes[0]);
+	if (SelectedNode == nullptr)
+		return nullptr;
+
+	return SelectedNode->GetEntity();
 }

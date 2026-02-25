@@ -13,7 +13,7 @@ DataLayer::DataLayer(std::vector<std::string> ParentIDs)
 
 	for (size_t i = 0; i < ParentIDs.size(); i++)
 	{
-		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentIDs[i]);
+		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ParentIDs[i]);
 		if (CurrentObject != nullptr)
 			ParentObjectIDs.push_back(ParentIDs[i]);
 	}
@@ -24,7 +24,7 @@ DataLayer::DataLayer(std::vector<std::string> ParentIDs, const std::vector<float
 	ID = APPLICATION.GetUniqueHexID();
 	for (size_t i = 0; i < ParentIDs.size(); i++)
 	{
-		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentIDs[i]);
+		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ParentIDs[i]);
 		if (CurrentObject != nullptr)
 			ParentObjectIDs.push_back(ParentIDs[i]);
 	}
@@ -33,7 +33,7 @@ DataLayer::DataLayer(std::vector<std::string> ParentIDs, const std::vector<float
 		return;
 
 	// FIX ME: Right now we only support one parent object.
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentObjectIDs[0]);
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ParentObjectIDs[0]);
 	if (CurrentObject == nullptr)
 		return;
 
@@ -99,7 +99,7 @@ AnalysisObject* DataLayer::GetMainParentObject()
 	if (ParentObjectIDs.empty())
 		return nullptr;
 
-	return ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentObjectIDs[0]);
+	return ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ParentObjectIDs[0]);
 }
 
 std::vector<AnalysisObject*> DataLayer::GetAllParentObjects()
@@ -107,7 +107,7 @@ std::vector<AnalysisObject*> DataLayer::GetAllParentObjects()
 	std::vector<AnalysisObject*> Result;
 	for (size_t i = 0; i < ParentObjectIDs.size(); i++)
 	{
-		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentObjectIDs[i]);
+		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ParentObjectIDs[i]);
 		if (CurrentObject != nullptr)
 			Result.push_back(CurrentObject);
 	}

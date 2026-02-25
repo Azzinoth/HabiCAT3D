@@ -179,6 +179,7 @@ bool COLMAPProject::CreateCameraSceneRepresentation(std::string CameraID)
 		return false;
 
 	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("COLMAPPhysicalCamera_" + PhysicalCamera->GetID());
+	CameraEntity->AttachTo(GetPhotogrammetryAnchorEntity(), false);
 	CameraEntity->AddComponent<FECameraComponent>();
 	CAMERA_SYSTEM.SetCameraRenderingPipeline(CameraEntity, FERenderingPipeline::Forward_Simplified);
 	FECameraComponent& CameraComponent = CameraEntity->GetComponent<FECameraComponent>();
@@ -436,7 +437,7 @@ bool COLMAPProject::RenderViewFromImage(int ImageID)
 	std::unordered_map<std::string, bool> PreviousAnalysisObjectsVisibility;
 	if (CurrentViewRenderSettings->bRenderOnlyCurrentAnalysisObject)
 	{
-		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(ParentAnalysisObjectID);
+		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ParentAnalysisObjectID);
 		
 		std::vector<std::string> AllAnalysisObjectIDs = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectsIDList();
 		for (size_t i = 0; i < AllAnalysisObjectIDs.size(); i++)
@@ -444,12 +445,12 @@ bool COLMAPProject::RenderViewFromImage(int ImageID)
 			if (ActiveObject->GetID() == AllAnalysisObjectIDs[i])
 				continue;
 
-			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(AllAnalysisObjectIDs[i]);
+			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(AllAnalysisObjectIDs[i]);
 			FEEntity* CurrentEntity = CurrentObject->GetEntity();
 			if (CurrentEntity != nullptr)
 			{
-				PreviousAnalysisObjectsVisibility[CurrentObject->GetID()] = CurrentObject->IsRenderedInScene();
-				CurrentObject->SetRenderInScene(false);
+				PreviousAnalysisObjectsVisibility[CurrentObject->GetID()] = CurrentEntity->IsVisible();
+				CurrentEntity->SetVisible(false);
 				CurrentEntity->SetComponentVisible(ComponentVisibilityType::ALL, false);
 
 				COLMAPProject* OtherProject = COLMAP_DATA_MANAGER.GetProjectByAnalysisObjectID(CurrentObject->GetID());
@@ -493,13 +494,13 @@ bool COLMAPProject::RenderViewFromImage(int ImageID)
 	{
 		for (const auto& CurrentEntityVisibilityPair : PreviousAnalysisObjectsVisibility)
 		{
-			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObject(CurrentEntityVisibilityPair.first);
+			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(CurrentEntityVisibilityPair.first);
 			if (CurrentObject != nullptr)
-				CurrentObject->SetRenderInScene(CurrentEntityVisibilityPair.second);
-
-			FEEntity* CurrentEntity = CurrentObject->GetEntity();
-			if (CurrentEntity != nullptr)
-				CurrentEntity->SetComponentVisible(ComponentVisibilityType::ALL, CurrentEntityVisibilityPair.second);
+			{
+				FEEntity* CurrentEntity = CurrentObject->GetEntity();
+				if (CurrentEntity != nullptr)
+					CurrentEntity->SetVisible(CurrentEntityVisibilityPair.second);
+			}
 		}
 	}
 
@@ -668,7 +669,7 @@ COLMAPImage* COLMAPProject::ImageUnderMouse(float* HitDistance)
 		return Result;
 
 	float Distance = 0.0f;
-	std::vector<pair<int, int>> InstanceIndexAndHitDistance;
+	std::vector<pair<size_t, float>> InstanceIndexAndHitDistance;
 	for (size_t i = 0; i < ImagesInstancedComponent.IndividualInstancedAABB.size(); i++)
 	{
 		FEAABB IndividualAABB = ImagesInstancedComponent.IndividualInstancedAABB[i];
@@ -686,7 +687,7 @@ COLMAPImage* COLMAPProject::ImageUnderMouse(float* HitDistance)
 		if (CurrentInstance.second < LocalHitDistance)
 		{
 			LocalHitDistance = CurrentInstance.second;
-			int ImageID = ImageInstanceIndexToImageID[CurrentInstance.first];
+			int ImageID = ImageInstanceIndexToImageID[static_cast<int>(CurrentInstance.first)];
 			Result = GetImage(ImageID);
 		}
 	}
@@ -1028,7 +1029,7 @@ bool COLMAPProject::CreateTiePointsSceneRepresentation()
 
 
 	FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(FEPoints, "", "", false, true);
-	FEEntity* NewEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Point cloud entity");
+	FEEntity* NewEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Tie Points_" + GetID());
 	TiePointsEntityID = NewEntity->GetObjectID();
 	NewEntity->AddComponent<FEPointCloudComponent>(NewPointCloud);
 
