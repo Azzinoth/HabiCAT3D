@@ -416,6 +416,7 @@ struct PerAnalysisObjectJitterData
 
 class JitterManager
 {
+	friend class DeveloperMode;
 	friend class UIManager;
 	friend class LayerManager;
 public:

@@ -749,8 +749,6 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 
 	if (SaveMode == SaveAs32bitTIF)
 	{
-		GDALAllRegister();
-
 		int ImageWidth = CurrentResolution;
 		int ImageHeight = CurrentResolution;
 		int BandsCount = 1;
@@ -805,8 +803,6 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 	}
 	else if (SaveMode == SaveAsTIF)
 	{
-		GDALAllRegister();
-
 		int ImageWidth = CurrentResolution;
 		int ImageHeight = CurrentResolution;
 		int BandsCount = 4;

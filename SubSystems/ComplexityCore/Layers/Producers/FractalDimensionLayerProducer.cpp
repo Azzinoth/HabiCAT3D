@@ -8,7 +8,7 @@ FractalDimensionLayerProducer::FractalDimensionLayerProducer()
 {
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
 	if (!APPLICATION.HasConsoleWindow())
-		UI.AddOnDebugGridSelectedCellChangedCallback(OnDebugGridSelectedCellChanged);
+		DEVELOPER_MODE.AddOnDebugGridSelectedCellChangedCallback(OnDebugGridSelectedCellChanged);
 }
 
 FractalDimensionLayerProducer::~FractalDimensionLayerProducer() {}
@@ -368,7 +368,7 @@ double FractalDimensionLayerProducer::RunOnAllInternalNodesWithData(GridNode* Ou
 
 void FractalDimensionLayerProducer::UpdateDebugBoxes(glm::vec3 SelectedCell)
 {
-	MeasurementGrid* DebugGrid = UI.GetDebugGrid();
+	MeasurementGrid* DebugGrid = DEVELOPER_MODE.GetDebugGrid();
 	if (DebugGrid == nullptr)
 	{
 		MAIN_SCENE_MANAGER.ClearLinesFromEntity(FRACTAL_DIMENSION_LAYER_PRODUCER.DebugLinesEntity);

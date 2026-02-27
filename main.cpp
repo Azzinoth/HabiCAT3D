@@ -3,6 +3,8 @@
 using namespace FocalEngine;
 #include <shellapi.h>
 
+#include "ogrsf_frmts.h"
+
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
 
 double MouseX;
@@ -48,7 +50,7 @@ void AfterNewResourceLoads(AnalysisObject* NewObject)
 	if (!APPLICATION.HasConsoleWindow())
 	{
 		if (ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount() == 1)
-			UI.SetIsModelCamera(true);
+			SETTINGS_WINDOW.SetIsModelCamera(true);
 
 		if (NewObject->GetType() == DATA_SOURCE_TYPE::MESH)
 			ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(ANALYSIS_OBJECT_MANAGER.GetAllMeshObjectsAverageNormal()));
@@ -179,7 +181,7 @@ void MouseButtonCallback(int button, int action, int mods)
 
 			if (MeshHitDistance > PhotogrammetryHitDistance)
 			{
-				
+
 			}
 			else
 			{
@@ -196,15 +198,6 @@ void MouseButtonCallback(int button, int action, int mods)
 				UI.UpdateMeshSelectedTrianglesRendering();
 			}
 		}
-
-		if (ActiveObject != nullptr && UI.GetDebugGrid() != nullptr)
-		{
-			if (UI.GetDebugGrid()->RenderingMode != 0)
-			{
-				UI.GetDebugGrid()->MouseClick(MouseX, MouseY);
-				UI.UpdateRenderingMode(UI.GetDebugGrid(), UI.GetDebugGrid()->RenderingMode);
-			}
-		}	
 	}
 }
 
@@ -560,7 +553,7 @@ void MainWindowRender()
 								std::vector<glm::dvec3> CurrentTriangle = CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[i]];
 								PointsToInclude.insert(PointsToInclude.end(), CurrentTriangle.begin(), CurrentTriangle.end());
 							}
-							
+
 							AABBToCheck = FEAABB(PointsToInclude);
 						}
 
@@ -586,7 +579,7 @@ void MainWindowRender()
 			ImGui::Text("Number of images read: %d", static_cast<int>(CurrentCOLMAPProject->GetImageCount()));
 			ImGui::Text("Choose image to see info:");
 
-			
+
 			static int ImageIDToSelect = 0;
 			ImGui::InputInt("Image ID", &ImageIDToSelect);
 			if (ImGui::Button("Select image by ID"))
@@ -613,14 +606,14 @@ void MainWindowRender()
 				{
 					if (ImGui::Button("Render view from a current image camera"))
 						CurrentCOLMAPProject->RenderViewFromImage(SelectedImage->GetID());
-					
+
 					std::string PhotoPath = CurrentCOLMAPProject->GetPathToPhotoByImageID(SelectedImage->GetID());
 					if (!FILE_SYSTEM.DoesFileExist(PhotoPath))
 						ImGui::BeginDisabled();
 
 					ImGui::Text("Full photo path: ");
 					ImGui::Text(PhotoPath.c_str());
-					
+
 					if (ImGui::Button("Show original Photo"))
 					{
 						ShellExecute(NULL, "open", PhotoPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
@@ -721,10 +714,89 @@ GLFWimage ConvertIconToGLFWImage(HICON Icon)
 	return Result;
 }
 
+void TestReadShapeFile()
+{
+	std::vector<std::vector<glm::vec2>> polygons;
+	std::vector<glm::vec2> polylines;
+
+	//auto* ds = (GDALDataset*)GDALOpenEx("ne_110m_admin_0_countries/ne_110m_admin_0_countries.shp", GDAL_OF_VECTOR, nullptr, nullptr, nullptr);
+	auto* ds = (GDALDataset*)GDALOpenEx("D:/CloudBathymetry_Client_Master/Resources/NCCoast50m/NCCoast50m.shp", GDAL_OF_VECTOR, nullptr, nullptr, nullptr);
+
+
+	auto* layer = ds->GetLayer(0);
+
+	//double x = 0.0; // longitude
+	//double y = 0.0; // latitude
+
+	//OGRPoint testPoint(x, y);
+
+	//for (auto& feature : layer) {
+	//	OGRGeometry* geom = feature->GetGeometryRef();
+	//	if (geom->Contains(&testPoint)) {
+	//		// inside this polygon
+	//	}
+	//}
+
+	for (auto& feature : layer) {
+		OGRGeometry* geom = feature->GetGeometryRef();
+
+		if (auto* poly = dynamic_cast<OGRPolygon*>(geom)) {
+			// single polygon
+			OGRLinearRing* ring = poly->getExteriorRing();
+			int n = ring->getNumPoints();
+			std::vector<glm::vec2> points(n);
+			for (int i = 0; i < n; i++)
+				points[i] = glm::vec2(ring->getX(i), ring->getY(i));
+			polygons.push_back(std::move(points));
+		}
+		else if (auto* multi = dynamic_cast<OGRMultiPolygon*>(geom)) {
+			for (int p = 0; p < multi->getNumGeometries(); p++) {
+				auto* poly = dynamic_cast<OGRPolygon*>(multi->getGeometryRef(p));
+				if (!poly) continue;
+				OGRLinearRing* ring = poly->getExteriorRing();
+				int n = ring->getNumPoints();
+				std::vector<glm::vec2> points(n);
+				for (int i = 0; i < n; i++)
+					points[i] = glm::vec2(ring->getX(i), ring->getY(i));
+				polygons.push_back(std::move(points));
+			}
+		}
+		else if (auto* line = dynamic_cast<OGRLineString*>(geom)) {
+			int n = line->getNumPoints();
+			//std::vector<glm::vec2> points(n);
+			for (int i = 0; i < n; i++)
+				polylines.push_back(glm::vec2(line->getX(i), line->getY(i)));
+			//points[i] = glm::vec2(line->getX(i), line->getY(i));
+
+		//polylines = std::move(points);
+		//polylines.push_back(std::move(points));
+		}
+	}
+
+	int layerCount = ds->GetLayerCount();
+	std::string LayerInfo = "Number of layers: " + std::to_string(layerCount) + "\n";
+
+	for (int i = 0; i < layerCount; i++) {
+		OGRLayer* layer = ds->GetLayer(i);
+		const char* name = layer->GetName();
+		int featureCount = layer->GetFeatureCount();
+
+		OGRwkbGeometryType type = layer->GetGeomType();
+		const char* typeName = OGRGeometryTypeToName(type);
+
+		LayerInfo += "Layer " + std::to_string(i) + ": '" + name + "' | Features: " + std::to_string(featureCount) + " | Geometry: " + typeName + "\n";
+
+		//printf("Layer %d: '%s' | Features: %d | Geometry: %s\n", i, name, featureCount, typeName);
+	}
+
+	GDALClose(ds);
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	//LOG.SetFileOutput(true);
-	
+	GDALAllRegister();
+
 	const auto ProcessorCount = THREAD_POOL.GetLogicalCoreCount();
 	const unsigned int HowManyToUse = ProcessorCount > 4 ? ProcessorCount - 2 : 1;
 
@@ -736,6 +808,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	ParsedCommandActions = APPLICATION.ParseCommandLine(lpCmdLine);
 	if (!ParsedCommandActions.empty())
 		std::transform(ParsedCommandActions[0].Action.begin(), ParsedCommandActions[0].Action.end(), ParsedCommandActions[0].Action.begin(), [](unsigned char c) { return std::tolower(c); });
+
+	//TestReadShapeFile();
 
 	if (!ParsedCommandActions.empty() && ParsedCommandActions[0].Action == "console")
 	{
@@ -791,6 +865,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(AfterNewResourceLoads);
 
 		SCREENSHOT_MANAGER.Init();
+		DEVELOPER_MODE.Initialize();
 
 		while (ENGINE.IsNotTerminated())
 		{

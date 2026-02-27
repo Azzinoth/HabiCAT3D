@@ -10,10 +10,13 @@ public:	SINGLETON_PUBLIC_PART(ScreenshotManager)
 	void Init();
 	void TakeScreenshot();
 	void RenderTargetWasResized();
+
+	bool IsActive() const;
 private:
 	SINGLETON_PRIVATE_PART(ScreenshotManager)
 
 	FEFramebuffer* FrameBufferObject = nullptr;
+	bool bActive = false;
 
 	void CreateFB();
 	void UpdateFB();

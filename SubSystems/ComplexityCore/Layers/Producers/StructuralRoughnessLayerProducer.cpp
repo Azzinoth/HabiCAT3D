@@ -14,7 +14,7 @@ StructuralRoughnessLayerProducer::StructuralRoughnessLayerProducer()
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
 
 	if (!APPLICATION.HasConsoleWindow())
-		UI.AddOnDebugGridSelectedCellChangedCallback(OnDebugGridSelectedCellChanged);
+		DEVELOPER_MODE.AddOnDebugGridSelectedCellChangedCallback(OnDebugGridSelectedCellChanged);
 
 	DebugPlaneEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Structural Roughness Debug Plane");
 	FEMesh* PlaneMesh = RESOURCE_MANAGER.GetMesh("1Y251E6E6T78013635793156"/*"plane"*/);
@@ -223,7 +223,7 @@ void StructuralRoughnessLayerProducer::RenderDebugInfoForSelectedNode(Measuremen
 
 void StructuralRoughnessLayerProducer::OnDebugGridSelectedCellChanged(glm::vec3 NewSelectedCell)
 {
-	MeasurementGrid* DebugGrid = UI.GetDebugGrid();
+	MeasurementGrid* DebugGrid = DEVELOPER_MODE.GetDebugGrid();
 	if (DebugGrid == nullptr)
 	{
 		STRUCTURAL_ROUGHNESS_LAYER_PRODUCER.DebugPlaneEntity->SetComponentVisible(ComponentVisibilityType::ALL, false);

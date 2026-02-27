@@ -20,6 +20,11 @@ void ScreenshotManager::Init()
 	CreateFB();
 }
 
+bool ScreenshotManager::IsActive() const
+{
+	return bActive;
+}
+
 int ScreenshotManager::FindHighestIntPostfix(std::string Prefix, std::string Delimiter, std::vector<std::string> List)
 {
 	int Result = 0;
@@ -159,12 +164,14 @@ void ScreenshotManager::TakeScreenshot()
 		return;
 	}
 
+	bActive = true;
+
 	FrameBufferObject->Bind();
 	FE_GL_ERROR(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
 	RENDERER.RenderGameModelComponentForward(ActiveEntity, MAIN_SCENE_MANAGER.GetMainCamera());
 
-	UI.Render(true);
+	UI.Render();
 
 	auto TempRenderFunction = APPLICATION.GetMainWindow()->GetRenderFunction();
 	APPLICATION.GetMainWindow()->ClearRenderFunction();
@@ -175,6 +182,8 @@ void ScreenshotManager::TakeScreenshot()
 	FrameBufferObject->UnBind();
 
 	RESOURCE_MANAGER.ExportFETextureToPNG(FrameBufferObject->GetColorAttachment(), SuitableNewFileName(FILE_SYSTEM.GetFileName(ActiveObject->GetFilePath(), false), ".png").c_str());
+
+	bActive = false;
 }
 
 void ScreenshotManager::RenderTargetWasResized()

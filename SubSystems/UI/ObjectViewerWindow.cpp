@@ -134,7 +134,7 @@ void ObjectViewerWindow::OnDoubleClickNode(FENaiveSceneGraphNode* Node, ImGuiMou
 	if (CurrentObject == nullptr)
 		return;
 
-	UI.bModelCamera ? UI.ModelCameraAdjustment(CurrentObject) : UI.FreeCameraAdjustment(CurrentObject);
+	SETTINGS_WINDOW.FocusCameraOnObject(CurrentObject);
 }
 
 AnalysisObject* GetAnalysisObjectFromNode(FENaiveSceneGraphNode* Node)

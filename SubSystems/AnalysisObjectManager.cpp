@@ -847,7 +847,7 @@ void AnalysisObjectManager::UpdateMeshUniforms(AnalysisObject* Object)
 
 		DataLayer* ActiveLayer = Object->GetActiveLayer();
 
-		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("AmbientFactor", UI.GetAmbientLightFactor());
+		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("AmbientFactor", SETTINGS_WINDOW.GetAmbientLightFactor());
 		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("HaveColor", ActiveMesh->GetColorCount() == 0 ? 0 : 1);
 		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("HeatMapType", CurrentMeshAnalysisData->GetHeatMapType());
 		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("LayerIndex", Object->GetActiveLayerIndex());
@@ -1750,7 +1750,7 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 			FEMesh* ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
 			if (ActiveMesh != nullptr)
 			{
-				if (UI.GetWireFrameMode())
+				if (SETTINGS_WINDOW.GetWireFrameMode())
 				{
 					CurrentEntity->GetComponent<FEGameModelComponent>().SetWireframeMode(true);
 				}

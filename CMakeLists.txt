@@ -103,7 +103,14 @@ file(GLOB SubSystems_ComplexityCore_SRC
 	"SubSystems/ComplexityCore/JitterManager.h"
 )
 
+file(GLOB SubSystems_Developer_Mode_SRC
+	"SubSystems/DeveloperMode.cpp"
+	"SubSystems/DeveloperMode.h"
+)
+
 file(GLOB SubSystems_UI_SRC
+	"SubSystems/UI/UICore.cpp"
+	"SubSystems/UI/UICore.h"
 	"SubSystems/UI/UIComponents.cpp"
 	"SubSystems/UI/UIComponents.h"
 	"SubSystems/UI/UIWeightedHistogram.cpp"
@@ -114,6 +121,10 @@ file(GLOB SubSystems_UI_SRC
 	"SubSystems/UI/LoadPhotogrammetryWindow.h"
 	"SubSystems/UI/ObjectViewerWindow.cpp"
 	"SubSystems/UI/ObjectViewerWindow.h"
+	"SubSystems/UI/SettingsWindow.cpp"
+	"SubSystems/UI/SettingsWindow.h"
+	"SubSystems/UI/UIInspector.cpp"
+	"SubSystems/UI/UIInspector.h"
 	"SubSystems/UI/UIManager.cpp"
 	"SubSystems/UI/UIManager.h"
 )
@@ -205,6 +216,7 @@ add_executable(HabiCAT3D WIN32
 					     ${SubSystems_SRC}
 					     ${SubSystems_Layers_SRC}
 						 ${SubSystems_Layers_Producers_SRC}
+						 ${SubSystems_Developer_Mode_SRC}
 					     ${SubSystems_UI_SRC}
 					     ${SubSystems_ConsoleJobs_SRC}
 					     ${SubSystems_ComplexityCore_SRC}
@@ -217,7 +229,8 @@ target_link_libraries(HabiCAT3D
 		FocalEngine
 		FESceneGraphUI
 	 PUBLIC
-		${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/gdal_i.lib
+		debug ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/Lib/x64/Debug/gdald.lib
+        optimized ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/Lib/x64/Release/gdal.lib
 )
 
 source_group("Source Files" FILES ${MAIN_SOURCE_FILES})
@@ -229,6 +242,7 @@ source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})
 source_group("Source Files/SubSystems/ComplexityCore" FILES ${SubSystems_ComplexityCore_SRC})
 source_group("Source Files/SubSystems/ComplexityCore/Layers" FILES ${SubSystems_Layers_SRC})
 source_group("Source Files/SubSystems/ComplexityCore/Layers/Producers" FILES ${SubSystems_Layers_Producers_SRC})
+source_group("Source Files/SubSystems/DeveloperMode" FILES ${SubSystems_Developer_Mode_SRC})
 source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
 source_group("Source Files/Shaders/Mesh/" FILES ${MeshShaders_SRC})
 source_group("Source Files/Shaders/PointCloud/" FILES ${PointCloudShaders_SRC})
@@ -259,6 +273,13 @@ if(LASZIP_FINAL_DLL)
         "$<TARGET_FILE_DIR:HabiCAT3D>"
 	)
 endif()
+
+set(GDAL_DLL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/Lib/x64")
+add_custom_command(TARGET HabiCAT3D POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${GDAL_DLL_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>"
+    "$<TARGET_FILE_DIR:HabiCAT3D>"
+)
 
 add_custom_command(TARGET HabiCAT3D PRE_BUILD
 	COMMAND ${CMAKE_COMMAND}
