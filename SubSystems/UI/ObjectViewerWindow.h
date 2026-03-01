@@ -4,6 +4,7 @@
 
 class ObjectViewerWindow
 {
+	friend class UIInspector;
 	SINGLETON_PRIVATE_PART(ObjectViewerWindow)
 
 	bool bVisible = true;

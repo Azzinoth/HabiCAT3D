@@ -204,3 +204,19 @@ COLMAPFoundData COLMAPDataManager::FindCOLMAPDataInFolder(const std::string& Fol
 
 	return Result;
 }
+
+void COLMAPDataManager::AddOnSelectedImageChangedCallback(std::function<void(COLMAPProject*, int)> Callback)
+{
+	OnSelectedImageChangedCallbacks.push_back(Callback);
+}
+
+void COLMAPDataManager::ClearOnSelectedImageChangedCallbacks()
+{
+	OnSelectedImageChangedCallbacks.clear();
+}
+
+void COLMAPDataManager::RegisterOnSelectedImageChanged(COLMAPProject* Project, int ImageID)
+{
+	for (const auto& CurrentCallback : OnSelectedImageChangedCallbacks)
+		CurrentCallback(Project, ImageID);
+}

@@ -116,28 +116,6 @@ void UIManager::Render()
 
 	OBJECT_VIEWER_WINDOW.Render();
 
-	if (LAYER_MANAGER.GetActiveLayer() != nullptr)
-	{
-		DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
-		LayerInterpolationData* InterpolationData = ActiveLayer->GetInterpolationData();
-		if (ActiveLayer->GetType() == LAYER_TYPE::INTERPOLATION && InterpolationData != nullptr)
-		{
-			if (ImGui::Begin("Interpolation Settings"))
-			{
-				ImGui::Text("Layers blend factor:");
-				float GlobalFactor = InterpolationData->GetInterpolationFactor();
-				ImGui::DragFloat("##InterpolationFactor", &GlobalFactor, 0.001f, 0.0f, 1.0f, "%.3f");
-				InterpolationData->SetInterpolationFactor(GlobalFactor);
-
-				bool bUseMinMaxInterpolation = InterpolationData->IsMinMaxInterpolationEnabled();
-				ImGui::Checkbox("Use Min/Max interpolation", &bUseMinMaxInterpolation);
-				InterpolationData->SetMinMaxInterpolationEnabled(bUseMinMaxInterpolation);
-
-				ImGui::End();
-			}
-		}
-	}
-
 	DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
 	if (ActiveLayer != nullptr)
 	{
@@ -155,8 +133,6 @@ void UIManager::Render()
 
 	NEW_LAYER_WINDOW.Render();
 	LOAD_PHOTOGRAMMETRY_WINDOW.Render();
-
-	RenderLayerDebugInfo(DEVELOPER_MODE.GetDebugGrid());
 
 	if (UI.bShouldOpenProgressPopup)
 	{
@@ -1480,58 +1456,6 @@ void UIManager::RenderSettingsWindow()
 	}
 
 	ImGui::End();
-}
-
-void UIManager::RenderLayerDebugInfo(MeasurementGrid* Grid)
-{
-	if (Grid == nullptr)
-		return;
-
-	if (Grid->RenderingMode == 0)
-		return;
-
-	DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
-	if (CurrentLayer == nullptr)
-		return;
-
-	if (CurrentLayer->GetType() == LAYER_TYPE::UNKNOWN)
-		return;
-
-	switch (CurrentLayer->GetType())
-	{
-		case LAYER_TYPE::RUGOSITY:
-		{
-			RUGOSITY_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
-			break;
-		}
-
-		case LAYER_TYPE::VECTOR_DISPERSION:
-		{
-			VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
-			break;
-		}
-
-		case LAYER_TYPE::FRACTAL_DIMENSION:
-		{
-			FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
-			break;
-		}
-
-		case LAYER_TYPE::POINT_DENSITY:
-		{
-			POINT_DENSITY_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
-			break;
-		}
-
-		case LAYER_TYPE::STRUCTURAL_ROUGHNESS:
-		{
-			STRUCTURAL_ROUGHNESS_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(Grid);
-			break;
-		}
-
-		default:
-			break;
-	}
 }
 
 void UIManager::SetShouldTakeScreenshot(bool NewValue)

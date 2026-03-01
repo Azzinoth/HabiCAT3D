@@ -1,7 +1,10 @@
 #pragma once
 
 #include "UICore.h"
+#include "../LayerRasterizationManager.h"
+#include "NewLayerWindow.h"
 #include "ObjectViewerWindow.h"
+#include "LoadPhotogrammetryWindow.h"
 #include "../ComplexityCore/Layers/LayerManager.h"
 
 class UIInspector
@@ -25,6 +28,8 @@ private:
 	char CurrentDistributionEdit[1024];
 	glm::vec2 CurrentDistribution = glm::vec2();
 	void RenderLayerTab();
+
+	static void OnSelectedImageChangedCallback(COLMAPProject* Project, int ImageID);
 };
 
 #define UI_INSPECTOR UIInspector::GetInstance()

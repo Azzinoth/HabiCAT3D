@@ -18,12 +18,12 @@ class COLMAPDataManager
 
 	std::unordered_map<std::string, COLMAPProject*> Projects;
 	bool CreateVisualsForNewProject(COLMAPProject* NewProject);
+	void RegisterOnSelectedImageChanged(COLMAPProject* Project, int ImageID);
+	std::vector<std::function<void(COLMAPProject*, int)>> OnSelectedImageChangedCallbacks;
 
 	FEShader* ImagesInstancedShader = nullptr;
 	FEMaterial* ImagesInstancedMaterial = nullptr;
 	FEGameModel* ImagesInstancedGameModel = nullptr;
-
-	COLMAPProject* GetProjectByEntityID(const std::string& EntityID);
 
 	static void MouseButtonCallback(int Button, int Action, int Mods);
 	bool IsPhotoFolderFound(const std::string& FolderPath) const;
@@ -33,9 +33,13 @@ public:
 	COLMAPProject* CreateNewProject(std::string& ParentAnalysisObjectID, std::string& FolderPath, COLMAPFoundData WhatToLoad = {true, true, true, true});
 	COLMAPProject* GetProjectByID(const std::string& ProjectID);
 	COLMAPProject* GetProjectByAnalysisObjectID(const std::string& AnalysisObjectID);
+	COLMAPProject* GetProjectByEntityID(const std::string& EntityID);
 	bool DeleteProject(const std::string& ProjectID);
 	std::vector<std::string> GetProjectsIDList() const;
 	COLMAPFoundData FindCOLMAPDataInFolder(const std::string& FolderPath) const;
+
+	void AddOnSelectedImageChangedCallback(std::function<void(COLMAPProject*, int)> Callback);
+	void ClearOnSelectedImageChangedCallbacks();
 };
 
 #define COLMAP_DATA_MANAGER COLMAPDataManager::GetInstance()

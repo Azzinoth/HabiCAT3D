@@ -1,10 +1,6 @@
 #pragma once
 
-#include "NewLayerWindow.h"
-#include "../LayerRasterizationManager.h"
-#include "LoadPhotogrammetryWindow.h"
 #include "SettingsWindow.h"
-
 #include "UIInspector.h"
 
 const COMDLG_FILTERSPEC MODEL_EXPORT_FILE_FILTER[] =
@@ -117,8 +113,6 @@ private:
 	static void OnLayerRasterizationCalculationsStart();
 	static void OnLayerRasterizationCalculationsEnd();
 	void RasterizationSettingsUI();
-
-	void RenderLayerDebugInfo(MeasurementGrid* Grid);
 
 	static void WindowResizeCallback(int Width, int Height);
 };

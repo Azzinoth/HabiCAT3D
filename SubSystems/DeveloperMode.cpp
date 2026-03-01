@@ -1,5 +1,6 @@
 #include "DeveloperMode.h"
 using namespace FocalEngine;
+#include "UI/NewLayerWindow.h"
 
 DeveloperMode::DeveloperMode() {}
 DeveloperMode::~DeveloperMode() {}
@@ -263,7 +264,48 @@ void DeveloperMode::ShowLayerDebugUI()
 			}
 #endif
 
-			ImGui::Separator();
+			DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
+			if (CurrentLayer == nullptr)
+				return;
+
+			if (CurrentLayer->GetType() == LAYER_TYPE::UNKNOWN)
+				return;
+
+			switch (CurrentLayer->GetType())
+			{
+				case LAYER_TYPE::RUGOSITY:
+				{
+					RUGOSITY_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugGrid);
+					break;
+				}
+
+				case LAYER_TYPE::VECTOR_DISPERSION:
+				{
+					VECTOR_DISPERSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugGrid);
+					break;
+				}
+
+				case LAYER_TYPE::FRACTAL_DIMENSION:
+				{
+					FRACTAL_DIMENSION_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugGrid);
+					break;
+				}
+
+				case LAYER_TYPE::POINT_DENSITY:
+				{
+					POINT_DENSITY_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugGrid);
+					break;
+				}
+
+				case LAYER_TYPE::STRUCTURAL_ROUGHNESS:
+				{
+					STRUCTURAL_ROUGHNESS_LAYER_PRODUCER.RenderDebugInfoForSelectedNode(DebugGrid);
+					break;
+				}
+
+				default:
+					break;
+			}
 		}
 	}
 }

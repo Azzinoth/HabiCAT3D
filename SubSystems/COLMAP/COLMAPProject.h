@@ -57,6 +57,7 @@ class COLMAPProject
 	const glm::vec4 SelectedImageColor = glm::vec4(0.1f, 1.0f, 0.1f, 1.0f);
 	int SelectedImageID = -1;
 	void SetColorForImageInternal(int ImageID, glm::vec4 Color);
+	std::vector<std::function<void(int)>> OnSelectedImageChangedCallbacks;
 	bool SetSelectedImageByIDInternal(int ImageID);
 	std::vector<int> HighlightedImageIDs;
 	bool IsImageHighlighted(int ImageID) const;
@@ -121,10 +122,13 @@ public:
 	bool SelectImageByID(int ImageID);
 	void ResetSelectedImage();
 	COLMAPImage* GetSelectedImage();
+	void AddOnSelectedImageChangedCallback(std::function<void(int)> Callback);
+	void ClearOnSelectedImageChangedCallbacks();
 	COLMAPViewRenderSettings* GetCurrentViewRenderSettings();
 	bool RenderViewFromImage(int ImageID);
 	void HighlightImagesThatSeeAABB(FEAABB AABBToTest, bool bSelectClosest = true);
 	bool IsPhotoFolderAvailable() const;
+	FEEntity* GetImagesInstancedEntity();
 
 	bool IsTiePointsLoaded() const;
 	COLMAPPoint3D* GetTiePoint(int ID);

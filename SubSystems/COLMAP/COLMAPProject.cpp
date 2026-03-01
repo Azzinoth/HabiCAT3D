@@ -580,6 +580,11 @@ bool COLMAPProject::IsPhotoFolderAvailable() const
 	return COLMAP_DATA_MANAGER.IsPhotoFolderFound(FolderPath);
 }
 
+FEEntity* COLMAPProject::GetImagesInstancedEntity()
+{
+	return MAIN_SCENE_MANAGER.GetMainScene()->GetEntity(ImagesInstancedEntityID);
+}
+
 void COLMAPProject::BeforeRenderCallback(FEEntity* Entity)
 {
 	if (Entity == nullptr || !Entity->HasComponent<FEInstancedComponent>())
@@ -751,6 +756,16 @@ bool COLMAPProject::IsImageHighlighted(int ImageID) const
 	return false;
 }
 
+void COLMAPProject::AddOnSelectedImageChangedCallback(std::function<void(int)> Callback)
+{
+	OnSelectedImageChangedCallbacks.push_back(Callback);
+}
+
+void COLMAPProject::ClearOnSelectedImageChangedCallbacks()
+{
+	OnSelectedImageChangedCallbacks.clear();
+}
+
 bool COLMAPProject::SetSelectedImageByIDInternal(int ImageID)
 {
 	if (SelectedImageID == ImageID)
@@ -783,7 +798,11 @@ bool COLMAPProject::SetSelectedImageByIDInternal(int ImageID)
 		SetColorForImageInternal(PreviouslySelectedImageID, IsImageHighlighted(PreviouslySelectedImageID) ? HighlightedImageColor : DefaultImageColor);
 		SetColorForImageInternal(ImageID, SelectedImageColor);
 	}
-	
+
+	for (size_t i = 0; i < OnSelectedImageChangedCallbacks.size(); i++)
+		OnSelectedImageChangedCallbacks[i](SelectedImageID);
+
+	COLMAP_DATA_MANAGER.RegisterOnSelectedImageChanged(this, SelectedImageID);
 	return true;
 }
 
