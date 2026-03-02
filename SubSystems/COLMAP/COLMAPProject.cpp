@@ -411,7 +411,7 @@ COLMAPViewRenderSettings* COLMAPProject::GetCurrentViewRenderSettings()
 	return CurrentViewRenderSettings;
 }
 
-bool COLMAPProject::RenderViewFromImage(int ImageID)
+bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EXPORT_MODE DepthExportMode)
 {
 	COLMAPImage* Image = GetImage(ImageID);
 	if (Image == nullptr)
@@ -483,8 +483,20 @@ bool COLMAPProject::RenderViewFromImage(int ImageID)
 	CAMERA_SYSTEM.IndividualUpdate(CameraEntity, 0.0);
 	RENDERER.Render(MainScene);
 
-	FETexture* CameraResult = RENDERER.GetCameraResult(CameraEntity);
-	RESOURCE_MANAGER.ExportFETextureToPNG(CameraResult, "CameraView.png");
+	if (!bDepthMap)
+	{
+		FETexture* CameraResult = RENDERER.GetCameraResult(CameraEntity);
+		RESOURCE_MANAGER.ExportFETextureToPNG(CameraResult, "CameraView.png");
+	}
+	else
+	{
+		FECameraRenderingData* CameraData = RENDERER.GetCameraRenderingData(CameraEntity);
+		if (CameraData != nullptr)
+		{
+			FETexture* DepthTexture = CameraData->SceneToTextureFB->GetDepthAttachment();
+			RESOURCE_MANAGER.ExportFETextureToPNG(DepthTexture, "CameraViewDepth.png", DepthExportMode);
+		}
+	}
 
 	CAMERA_SYSTEM.SetMainCamera(CurrentMainCamera);
 
@@ -516,7 +528,8 @@ bool COLMAPProject::RenderViewFromImage(int ImageID)
 			AllImagesInstancedEntity->SetComponentVisible(ComponentVisibilityType::ALL, bWasImagesInstancedEntityInitiallyVisible);
 	}
 
-	std::string FullPath = FILE_SYSTEM.GetCurrentWorkingPath() + "/CameraView.png";
+	std::string FullPath = FILE_SYSTEM.GetCurrentWorkingPath();
+	FullPath += bDepthMap ? "/CameraViewDepth.png" : "/CameraView.png";
 	if (FILE_SYSTEM.DoesFileExist(FullPath) && CurrentViewRenderSettings->bAutoOpenResult)
 		ShellExecute(NULL, "open", FullPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
 

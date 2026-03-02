@@ -206,6 +206,12 @@ void UIInspector::RenderSelectedObjectTab()
 						if (ImGui::Button("Render view from a current image camera"))
 							CurrentCOLMAPProject->RenderViewFromImage(SelectedImage->GetID());
 
+						if (ImGui::Button("Render view from a current image camera(Depth 8-bit)"))
+							CurrentCOLMAPProject->RenderViewFromImage(SelectedImage->GetID(), true);
+
+						if (ImGui::Button("Render view from a current image camera(Depth 16-bit)"))
+							CurrentCOLMAPProject->RenderViewFromImage(SelectedImage->GetID(), true, FE_DEPTH_EXPORT_16BIT_PNG);
+
 						std::string PhotoPath = CurrentCOLMAPProject->GetPathToPhotoByImageID(SelectedImage->GetID());
 						if (!FILE_SYSTEM.DoesFileExist(PhotoPath))
 							ImGui::BeginDisabled();
