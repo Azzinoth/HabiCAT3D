@@ -71,67 +71,6 @@ void LoadResource(std::string FileName)
 	ANALYSIS_OBJECT_MANAGER.LoadResource(FileName);
 }
 
-void OutputSelectedAreaInfoToFile()
-{
-	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-	if (ActiveObject == nullptr)
-		return;
-
-	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
-		return;
-
-	if (CurrentMeshAnalysisData->TriangleSelected.size() < 2)
-		return;
-
-	bool bCurrentSettings = LOG.IsFileOutputActive();
-	if (!bCurrentSettings)
-		LOG.SetFileOutput(true);
-
-	std::string Text = "Area radius : " + std::to_string(UI.GetRadiusOfAreaToMeasure());
-	LOG.Add(Text, FILE_SYSTEM.GetFileName(ActiveObject->GetFilePath()));
-
-	Text = "Area approximate center : X - ";
-	const glm::vec3 Center = CurrentMeshAnalysisData->TrianglesCentroids[CurrentMeshAnalysisData->TriangleSelected[0]];
-	Text += std::to_string(Center.x);
-	Text += " Y - ";
-	Text += std::to_string(Center.y);
-	Text += " Z - ";
-	Text += std::to_string(Center.z);
-	LOG.Add(Text, FILE_SYSTEM.GetFileName(ActiveObject->GetFilePath()));
-
-	for (size_t i = 0; i < ActiveObject->Layers.size(); i++)
-	{
-		DataLayer* CurrentLayer = ActiveObject->Layers[i];
-
-		Text = "Layer \"" + CurrentLayer->GetCaption() + "\" : \n";
-		Text += "Area average value : ";
-
-		float TotalValue = 0.0f;
-		if (CurrentLayer->GetType() == LAYER_TYPE::INTERPOLATION)
-		{
-			TotalValue = std::numeric_limits<float>::quiet_NaN();
-		}
-		else
-		{
-			for (size_t j = 0; j < CurrentMeshAnalysisData->TriangleSelected.size(); j++)
-			{
-				TotalValue += CurrentLayer->ElementsToData[CurrentMeshAnalysisData->TriangleSelected[j]];
-			}
-		}
-
-		float AverageValue = std::numeric_limits<float>::quiet_NaN();
-		if (!isnan(TotalValue))
-			AverageValue = TotalValue / CurrentMeshAnalysisData->TriangleSelected.size();
-
-		Text += std::to_string(AverageValue);
-		LOG.Add(Text, FILE_SYSTEM.GetFileName(ActiveObject->GetFilePath()));
-	}
-
-	if (!bCurrentSettings)
-		LOG.SetFileOutput(false);
-}
-
 void MouseButtonCallback(int button, int action, int mods)
 {
 	if (ImGui::GetIO().WantCaptureMouse)
@@ -147,56 +86,6 @@ void MouseButtonCallback(int button, int action, int mods)
 	else if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_RELEASE)
 	{
 		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
-	}
-
-	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
-	{
-		//LAYER_RASTERIZATION_MANAGER.DebugMouseClick();
-
-		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-		FEMesh* ActiveMesh = nullptr;
-		if (ActiveObject != nullptr && ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
-			ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
-
-		if (ActiveMesh != nullptr)
-		{
-			// Check if photogrammetry element should be selected first
-			COLMAPProject* CurrentProject = COLMAP_DATA_MANAGER.GetProjectByAnalysisObjectID(ActiveObject->GetID());
-			float PhotogrammetryHitDistance = std::numeric_limits<float>::max();
-			if (CurrentProject != nullptr)
-				CurrentProject->ImageUnderMouse(&PhotogrammetryHitDistance);
-
-			float MeshHitDistance = std::numeric_limits<float>::max();
-			int TriangleIndexUnderMouse = -1;
-			std::vector<int> TriangleIndexesInRadius;
-			if (UI.GetLayerSelectionMode() == 1)
-			{
-				TriangleIndexUnderMouse = ANALYSIS_OBJECT_MANAGER.GetTriangleIndexUnderMouse(&MeshHitDistance);
-			}
-			else if (UI.GetLayerSelectionMode() == 2)
-			{
-				TriangleIndexesInRadius = ANALYSIS_OBJECT_MANAGER.GetTriangleIndexesInRadius(UI.GetRadiusOfAreaToMeasure());
-			}
-
-			if (MeshHitDistance > PhotogrammetryHitDistance)
-			{
-
-			}
-			else
-			{
-				if (UI.GetLayerSelectionMode() == 1)
-				{
-					ANALYSIS_OBJECT_MANAGER.SelectTriangleByIndex(TriangleIndexUnderMouse);
-				}
-				else if (UI.GetLayerSelectionMode() == 2)
-				{
-					ANALYSIS_OBJECT_MANAGER.SelectTrianglesByIndexes(TriangleIndexesInRadius);
-					OutputSelectedAreaInfoToFile();
-				}
-
-				UI.UpdateMeshSelectedTrianglesRendering();
-			}
-		}
 	}
 }
 
@@ -263,12 +152,12 @@ void MainWindowRender()
 {
 	static bool FirstFrame = true;
 
-	if (UI.ShouldTakeScreenshot())
+	if (UI_INSPECTOR.ShouldTakeScreenshot())
 	{
-		ClearColor.w = UI.ShouldUseTransparentBackground() ? 0.0f : 1.0f;
+		ClearColor.w = UI_INSPECTOR.ShouldUseTransparentBackground() ? 0.0f : 1.0f;
 		glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w);
 
-		UI.SetShouldTakeScreenshot(false);
+		UI_INSPECTOR.SetShouldTakeScreenshot(false);
 		SCREENSHOT_MANAGER.TakeScreenshot();
 		return;
 	}

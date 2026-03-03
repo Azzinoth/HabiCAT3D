@@ -3,11 +3,6 @@
 #include "SettingsWindow.h"
 #include "UIInspector.h"
 
-const COMDLG_FILTERSPEC MODEL_EXPORT_FILE_FILTER[] =
-{
-	{ L"3D Model file (*.obj)", L"*.obj" }
-};
-
 class UIManager
 {
 	friend class ObjectViewerWindow;
@@ -18,12 +13,6 @@ public:
 
 	static void OnNewObjectLoaded(AnalysisObject* NewObject);
 
-	float GetRadiusOfAreaToMeasure();
-	void SetRadiusOfAreaToMeasure(float NewValue);
-
-	int GetLayerSelectionMode();
-	void SetLayerSelectionMode(int NewValue);
-
 	bool GetOutputSelectionToFile();
 	void SetOutputSelectionToFile(bool NewValue);
 
@@ -31,18 +20,7 @@ public:
 	void SetApplyStandardLayoutOnResize(bool NewValue);
 	void ApplyStandardWindowsSizeAndPosition();
 
-	bool ShouldTakeScreenshot();
-	void SetShouldTakeScreenshot(bool NewValue);
-
-	bool ShouldUseTransparentBackground();
-	void SetUseTransparentBackground(bool NewValue);
-
 	bool IsProgressModalPopupOpen();
-
-	bool ExportOBJ(std::string FilePath, int LayerIndex);
-
-	void UpdateMeshSelectedTrianglesRendering();
-
 
 	FEWeightedHistogram* GetHistogramPointer();
 private:
@@ -51,18 +29,12 @@ private:
 	bool bPreviousFrameWindowWasNull = true;
 	float TimeTookToJitter = 0.0f;
 
-	FEEntity* SelectionLinesEntity = nullptr;
-	void CleanUpSelectionLinesComponent();
-
 	bool bApplyStandardLayoutOnResize = true;
 
 	std::string NoDataText = "No Data.(Drag & Drop model or point cloud)";
 
 	bool bShouldOpenProgressPopup = false;
 	bool bShouldCloseProgressPopup = true;
-
-	float RadiusOfAreaToMeasure = 1.0f;
-	int LayerSelectionMode = 0;
 
 	FEColorRangeAdjuster HeatMapColorRange;
 
@@ -98,12 +70,6 @@ private:
 
 	int TotalWidthNeededForLayerList(int ButtonUsed);
 
-	void RenderSettingsWindow();
-	void RenderExportTab();
-
-	bool bNextFrameForScreenshot = false;
-	bool bUseTransparentBackground = false;
-
 	bool IsActiveObjectAndLayerValid();
 
 	float ProgressModalPopupCurrentValue = 0.0f;
@@ -112,7 +78,6 @@ private:
 	bool bLayerRasterizationCalculationsInProgress = false;
 	static void OnLayerRasterizationCalculationsStart();
 	static void OnLayerRasterizationCalculationsEnd();
-	void RasterizationSettingsUI();
 
 	static void WindowResizeCallback(int Width, int Height);
 };

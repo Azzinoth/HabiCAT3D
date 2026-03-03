@@ -899,7 +899,7 @@ void AnalysisObjectManager::UpdateMeshUniforms(AnalysisObject* Object)
 		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("MeasuredRugosityAreaRadius", -1.0f);
 		if (ActiveObject != nullptr)
 		{
-			if (CurrentMeshAnalysisData->TriangleSelected.size() > 1 && UI.GetLayerSelectionMode() == 2)
+			if (CurrentMeshAnalysisData->TriangleSelected.size() > 1 && UI_INSPECTOR.GetMeshSelectionMode() == 2)
 			{
 				float TempMeasuredRugosityAreaRadius = 0.0f;
 				glm::vec3 TempMeasuredRugosityAreaCenter = glm::vec3(0.0f);
