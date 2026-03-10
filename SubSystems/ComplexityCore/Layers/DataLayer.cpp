@@ -142,8 +142,6 @@ void DataLayer::ComputeStatistics()
 
 			TotalSum += ElementsToData[i];
 		}
-
-
 	}
 	else
 	{
@@ -237,6 +235,57 @@ void DataLayer::ComputeStatistics()
 	}
 }
 
+bool DataLayer::SetVertexValuesByTriangleIndex(AnalysisObject* Object, std::vector<float>& VertexData, int TriangleIndex, float Value)
+{
+	if (Object == nullptr)
+		return false;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
+	if (CurrentMeshAnalysisData == nullptr)
+		return false;
+
+	const int BaseIndex = TriangleIndex * 3;
+	for (size_t i = 0; i < 3; i++)
+	{
+		const int VertexIndex = CurrentMeshAnalysisData->Indices[BaseIndex + i] * 3;
+		VertexData[VertexIndex] = Value;
+		VertexData[VertexIndex + 1] = Value;
+		VertexData[VertexIndex + 2] = Value;
+	}
+
+	return true;
+}
+
+bool DataLayer::TransfareDataFromTrianglesToVertices(AnalysisObject* Object, std::vector<float>& TriangleData, std::vector<float>& VertexData)
+{
+	if (Object == nullptr)
+		return false;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
+	if (CurrentMeshAnalysisData == nullptr)
+		return false;
+
+	if (TriangleData.size() != CurrentMeshAnalysisData->Triangles.size())
+		return false;
+
+	if (VertexData.size() != CurrentMeshAnalysisData->Vertices.size())
+		return false;
+
+	for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+	{
+		const int BaseIndex = static_cast<int>(i * 3);
+		for (size_t j = 0; j < 3; j++)
+		{
+			const int VertexIndex = CurrentMeshAnalysisData->Indices[BaseIndex + j] * 3;
+			VertexData[VertexIndex] = TriangleData[i];
+			VertexData[VertexIndex + 1] = TriangleData[i];
+			VertexData[VertexIndex + 2] = TriangleData[i];
+		}
+	}
+
+	return true;
+}
+
 void DataLayer::FillRawData()
 {
 	AnalysisObject* CurrentObject = GetMainParentObject();
@@ -257,39 +306,8 @@ void DataLayer::FillRawData()
 			if (CurrentMeshAnalysisData == nullptr)
 				return;
 
-			std::vector<int> IndexVector;
-			for (size_t i = 0; i < CurrentMeshAnalysisData->Indices.size(); i++)
-			{
-				IndexVector.push_back(CurrentMeshAnalysisData->Indices[i]);
-			}
-
 			RawData.resize(CurrentMeshAnalysisData->Vertices.size());
-			auto GetVertexOfFace = [&](const int FaceIndex) {
-				std::vector<int> Result;
-				Result.push_back(IndexVector[FaceIndex * 3]);
-				Result.push_back(IndexVector[FaceIndex * 3 + 1]);
-				Result.push_back(IndexVector[FaceIndex * 3 + 2]);
-
-				return Result;
-			};
-
-			auto SetRugosityOfVertex = [&](const int Index, const float Value) {
-				RawData[Index * 3] = Value;
-				RawData[Index * 3 + 1] = Value;
-				RawData[Index * 3 + 2] = Value;
-			};
-
-			auto SetRugosityOfFace = [&](const int FaceIndex, const float Value) {
-				const std::vector<int> FaceVertex = GetVertexOfFace(FaceIndex);
-
-				for (size_t i = 0; i < FaceVertex.size(); i++)
-				{
-					SetRugosityOfVertex(FaceVertex[i], Value);
-				}
-			};
-
-			for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
-				SetRugosityOfFace(static_cast<int>(i), ElementsToData[i]);
+			TransfareDataFromTrianglesToVertices(CurrentObject, ElementsToData, RawData);
 
 			// After all steps compact the RawData to have one value per vertex.
 			std::vector<float> CompactedRawData;

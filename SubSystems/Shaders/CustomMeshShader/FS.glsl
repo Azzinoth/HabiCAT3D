@@ -16,6 +16,7 @@ in VS_OUT
 	float AdditionalLayer;
 
 	vec4 BulkLayers[6];
+	float Annotation;
 } FS_IN;
 
 @ViewMatrix@
@@ -52,6 +53,17 @@ uniform float UnselectedAreaSaturationFactor;  // A factor between 0.0 and 1.0
 uniform float UnselectedAreaBrightnessFactor;   // A value to add/subtract for brightness. Can be positive or negative.
 
 layout (location = 0) out vec4 out_Color;
+
+uniform int AnnotationVisualizationActive;
+struct AnnotationColorEntry
+{
+    vec4 Color;
+};
+
+layout(std430, binding = 0) buffer AnnotationColorBuffer
+{
+    AnnotationColorEntry AnnotationColors[];
+};
 
 // Copyright 2019 Google LLC.
 // SPDX-License-Identifier: Apache-2.0
@@ -297,7 +309,6 @@ vec3 getCorrectColor()
 				result = getCompareColormapValue(CompareMapFactor);
 				break;
 	}
-	
 
 	return result;
 }
@@ -365,6 +376,13 @@ void main(void)
 			// Convert back to RGB
 			finalBaseColor.rgb = ConvertHSVToRGB(HSV);
 		}
+	}
+
+	if (AnnotationVisualizationActive == 1)
+	{
+		int AnnotationID = int(round(FS_IN.Annotation));
+		if (AnnotationID > 0 && AnnotationID < AnnotationColors.length())
+			finalBaseColor += AnnotationColors[AnnotationID].Color.rgb;
 	}
 
 	out_Color = vec4(ambientColor * (diffuseFactor * finalBaseColor) * 0.5, 1.0f);

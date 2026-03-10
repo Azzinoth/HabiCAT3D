@@ -7,7 +7,7 @@ UIInspector::UIInspector()
 	LAYER_MANAGER.AddActiveLayerChangedCallback(OnLayerChange);
 	COLMAP_DATA_MANAGER.AddOnSelectedImageChangedCallback(OnSelectedImageChangedCallback);
 	ANALYSIS_OBJECT_MANAGER.AddOnActiveObjectChangeCallback(OnActiveObjectChange);
-	ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(OnObjectLoad);
+	ANALYSIS_OBJECT_MANAGER.AddOnObjectLoadCallback(OnObjectLoad);
 
 	APPLICATION.GetMainWindow()->AddOnMouseButtonCallback(MouseButtonCallback);
 }
@@ -636,26 +636,27 @@ void UIInspector::UpdateMeshSelectedTrianglesRendering()
 
 	FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
 	std::vector<FELine> LinesToRender;
+	float LineWidth = 0.5f;
 	if (CurrentMeshAnalysisData->TriangleSelected.size() == 1)
 	{
 		std::vector<glm::dvec3> SelectedTrianglePoints = CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[0]];
-		LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-		LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-		LinesToRender.push_back(FELine(SelectedTrianglePoints[1], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+		LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f), LineWidth));
+		LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f), LineWidth));
+		LinesToRender.push_back(FELine(SelectedTrianglePoints[1], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f), LineWidth));
 
 		if (!CurrentMeshAnalysisData->TrianglesNormals.empty())
 		{
 			glm::vec3 Point = SelectedTrianglePoints[0];
 			glm::vec3 Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][0];
-			LinesToRender.push_back(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+			LinesToRender.push_back(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f), LineWidth));
 
 			Point = SelectedTrianglePoints[1];
 			Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][1];
-			LinesToRender.push_back(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+			LinesToRender.push_back(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f), LineWidth));
 
 			Point = SelectedTrianglePoints[2];
 			Normal = CurrentMeshAnalysisData->TrianglesNormals[CurrentMeshAnalysisData->TriangleSelected[0]][2];
-			LinesToRender.push_back(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f)));
+			LinesToRender.push_back(FELine(Point, Point + Normal, glm::vec3(0.0f, 0.0f, 1.0f), LineWidth));
 		}
 	}
 	else if (CurrentMeshAnalysisData->TriangleSelected.size() > 1)
@@ -663,9 +664,9 @@ void UIInspector::UpdateMeshSelectedTrianglesRendering()
 		for (size_t i = 0; i < CurrentMeshAnalysisData->TriangleSelected.size(); i++)
 		{
 			std::vector<glm::dvec3> SelectedTrianglePoints = CurrentMeshAnalysisData->Triangles[CurrentMeshAnalysisData->TriangleSelected[i]];
-			LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f)));
-			LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
-			LinesToRender.push_back(FELine(SelectedTrianglePoints[1], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f)));
+			LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[1], glm::vec3(1.0f, 1.0f, 0.0f), LineWidth));
+			LinesToRender.push_back(FELine(SelectedTrianglePoints[0], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f), LineWidth));
+			LinesToRender.push_back(FELine(SelectedTrianglePoints[1], SelectedTrianglePoints[2], glm::vec3(1.0f, 1.0f, 0.0f), LineWidth));
 		}
 	}
 

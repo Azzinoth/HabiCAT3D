@@ -185,6 +185,11 @@ file(GLOB SubSystems_VRManager_SRC
 	"SubSystems/VRManager/VRManager.cpp"
 )
 
+file(GLOB SubSystems_AnnotationManager_SRC
+	"SubSystems/AnnotationManager.h"
+	"SubSystems/AnnotationManager.cpp"
+)
+
 set(MAIN_SOURCE_FILES "")
 list(APPEND MAIN_SOURCE_FILES
     "EngineInclude.h"
@@ -222,6 +227,7 @@ add_executable(HabiCAT3D WIN32
 					     ${SubSystems_ComplexityCore_SRC}
 						 ${SubSystems_VRManager_SRC}
 						 ${SubSystems_COLMAP_SRC}
+						 ${SubSystems_AnnotationManager_SRC}
 )
 
 target_link_libraries(HabiCAT3D
@@ -250,6 +256,7 @@ source_group("Source Files/Shaders/COLMAPShaders/" FILES ${COLMAP_Shaders_SRC})
 source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJobs_SRC})
 source_group("Source Files/SubSystems/VRManager" FILES ${SubSystems_VRManager_SRC})
 source_group("Source Files/SubSystems/COLMAP/" FILES ${SubSystems_COLMAP_SRC})
+source_group("Source Files/SubSystems/AnnotationManager" FILES ${SubSystems_AnnotationManager_SRC})
 
 # set as the startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT HabiCAT3D)
@@ -282,6 +289,11 @@ add_custom_command(TARGET HabiCAT3D POST_BUILD
 )
 
 add_custom_command(TARGET HabiCAT3D PRE_BUILD
-	COMMAND ${CMAKE_COMMAND}
-		-P ${CMAKE_CURRENT_SOURCE_DIR}/UpdateHabiCAT3DVersion.cmake
+    COMMAND ${CMAKE_COMMAND}
+        -D PROJECT_VERSION_PREFIX=HabiCAT3D_
+        -D PROJECT_VERSION_MAJOR=0
+        -D PROJECT_VERSION_MINOR=9
+        -D PROJECT_VERSION_PATCH=1
+        -D PROJECT_VERSION_DIR=${CMAKE_CURRENT_SOURCE_DIR}/VersionInfo
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/VersionInfo/UpdateProjectVersion.cmake
 )

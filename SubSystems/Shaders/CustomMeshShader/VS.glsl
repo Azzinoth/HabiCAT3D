@@ -14,6 +14,8 @@ layout (location = 12) in vec4 BulkLayerData_3;
 layout (location = 13) in vec4 BulkLayerData_4;
 layout (location = 14) in vec4 BulkLayerData_5;
 
+layout (location = 15) in vec4 AnnotationsAndAdditionalData;
+
 @In_Color@
 
 @WorldMatrix@
@@ -40,6 +42,7 @@ out VS_OUT
 	float AdditionalLayer;
 
 	vec4 BulkLayers[6];
+	float Annotation;
 } vs_out;
 
 void main(void)
@@ -68,5 +71,7 @@ void main(void)
         vs_out.BulkLayers[4] = BulkLayerData_4;
         vs_out.BulkLayers[5] = BulkLayerData_5;
     }
+
+	vs_out.Annotation = AnnotationsAndAdditionalData.x;
 }
 )";

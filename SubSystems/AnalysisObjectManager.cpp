@@ -501,7 +501,7 @@ void AnalysisObjectManager::LoadResource(std::string FilePath)
 	OnAnalysisObjectLoad(LoadedResource);
 }
 
-void AnalysisObjectManager::AddOnLoadCallback(std::function<void(AnalysisObject*)> Callback)
+void AnalysisObjectManager::AddOnObjectLoadCallback(std::function<void(AnalysisObject*)> Callback)
 {
 	ClientOnLoadCallbacks.push_back(Callback);
 }
@@ -1769,7 +1769,7 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 				if (CurrentMeshAnalysisData->GetSecondLayerBufferID() > 0) FE_GL_ERROR(glEnableVertexAttribArray(8));
 
 				DataLayer* ActiveLayer = CurrentObject->GetActiveLayer();
-				if (ActiveLayer != nullptr)
+				if (ActiveLayer != nullptr && ActiveLayer->GetType() == LAYER_TYPE::INTERPOLATION)
 				{
 					LayerInterpolationData* CurrentInterpolationData = ActiveLayer->GetInterpolationData();
 					if (CurrentInterpolationData != nullptr)
@@ -1779,6 +1779,14 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 							FE_GL_ERROR(glEnableVertexAttribArray(AttribArrayToEnable[i]));
 					}
 				}
+
+				//// Check if object has annotations.
+				//AnnotationData* CurrentAnnotationData = CurrentObject->GetAnnotationData();
+				//if (CurrentMeshAnalysisData->AnnotationsAndAdditionalDataBufferID != GLuint(-1))
+				//{
+				//	FE_GL_ERROR(glEnableVertexAttribArray(15));
+				//	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, CurrentMeshAnalysisData->AnnotationsAndAdditionalDataBufferID));
+				//}
 			}
 		}
 		else if (CurrentObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)

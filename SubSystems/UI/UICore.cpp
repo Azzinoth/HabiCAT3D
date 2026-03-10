@@ -4,40 +4,29 @@ using namespace FocalEngine;
 UICore::UICore() {}
 UICore::~UICore() {}
 
-std::string UICore::GetHabiCAT3DVersion()
+std::string UICore::GetVersion()
 {
-	return std::to_string(HabiCAT3D_VERSION_MAJOR) + "."
-		   + std::to_string(HabiCAT3D_VERSION_MINOR) + "."
-		   + std::to_string(HabiCAT3D_VERSION_PATCH);
+	return GetHabiCAT3D_VersionInfo().GetVersion();
 }
 
-int UICore::GetHabiCAT3DBuildNumber()
+int UICore::GetBuildNumber()
 {
-	return HabiCAT3D_BUILD_NUMBER;
+	return GetHabiCAT3D_VersionInfo().BuildNumber;
 }
 
-std::string UICore::GetHabiCAT3DBuildTimestamp()
+std::string UICore::GetBuildTimestamp()
 {
-	return HabiCAT3D_BUILD_TIMESTAMP;
+	return GetHabiCAT3D_VersionInfo().BuildTimestamp;
 }
 
-std::string UICore::GetHabiCAT3DBuildInfo()
+std::string UICore::GetBuildInfo()
 {
-	std::string Result = "build " + std::to_string(HabiCAT3D_BUILD_NUMBER) + " (" + std::string(HabiCAT3D_GIT_HASH);
-
-	if (HabiCAT3D_BUILD_BRANCH_OFFSET > 0)
-		Result += " " + std::string(HabiCAT3D_GIT_BRANCH) + " +" + std::to_string(HabiCAT3D_BUILD_BRANCH_OFFSET) + " from master";
-	
-	if (HabiCAT3D_GIT_DIRTY)
-		Result += ", dirty";
-
-	Result += ")";
-	return Result;
+	return GetHabiCAT3D_VersionInfo().GetBuildInfo();
 }
 
-std::string UICore::GetHabiCAT3DFullVersion()
+std::string UICore::GetFullVersion()
 {
-	return "HabiCAT3D " + GetHabiCAT3DVersion() + " " + GetHabiCAT3DBuildInfo();
+	return "HabiCAT3D " + GetHabiCAT3D_VersionInfo().GetFullVersionString();
 }
 
 std::string UICore::TruncateAfterDot(std::string FloatingPointNumber, const int DigitCount)

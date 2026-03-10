@@ -3,7 +3,7 @@ using namespace FocalEngine;
 
 JitterManager::JitterManager()
 {
-	ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(JitterManager::OnNewAnalysisObjectLoaded);
+	ANALYSIS_OBJECT_MANAGER.AddOnObjectLoadCallback(JitterManager::OnNewAnalysisObjectLoaded);
 	ANALYSIS_OBJECT_MANAGER.AddOnObjectDeleteCallback(JitterManager::OnAnalysisObjectDeleted);
 
 	JitterVectorSetNames.push_back("1");

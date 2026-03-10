@@ -2,7 +2,9 @@
 #define CGAL_NO_GMP 1				// To suppress the warning in the CGAL library(warning C4068: unknown pragma 'CGAL_WARNING')
 
 #include "SubSystems/FocalEngine/FEngine.h"
-#include "HabiCAT3DVersion.h"
+#include "VersionInfo/HabiCAT3D_Version.h"
+#include "VersionInfo/FEVersionInfo.h"
+FE_DEFINE_VERSION_INFO(HabiCAT3D_)
 
 // Copyright 2019 Google LLC.
 // SPDX-License-Identifier: Apache-2.0

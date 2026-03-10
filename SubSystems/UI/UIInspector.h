@@ -6,6 +6,7 @@
 #include "ObjectViewerWindow.h"
 #include "LoadPhotogrammetryWindow.h"
 #include "../ComplexityCore/Layers/LayerManager.h"
+#include "../SubSystems/AnnotationManager.h"
 
 const COMDLG_FILTERSPEC MODEL_EXPORT_FILE_FILTER[] =
 {

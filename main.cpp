@@ -4,6 +4,170 @@ using namespace FocalEngine;
 
 #include "ogrsf_frmts.h"
 
+bool IsPointInsideClosedPolygon(const std::vector<glm::vec3>& PolygonVertices, const glm::vec3& Point)
+{
+	OGRLinearRing Ring;
+	for (int i = 0; i < PolygonVertices.size(); i++)
+		Ring.addPoint(PolygonVertices[i].x, PolygonVertices[i].y, PolygonVertices[i].z);
+	
+	// GDAL rings must be explicitly closed.
+	if (PolygonVertices.size() > 0)
+		Ring.closeRings();
+
+	// Wrap the ring in an OGRPolygon
+	OGRPolygon Polygon;
+	Polygon.addRing(&Ring);
+
+	OGRPoint PointToTest(Point.x, Point.y, Point.z);
+	return Polygon.Contains(&PointToTest) == true;
+}
+
+FEEntity* CanvasEntity = nullptr;
+FEGameModel* CanvasGameModel = nullptr;
+FEMaterial* CanvasMaterial = nullptr;
+FEMesh* CanvasMesh = nullptr;
+std::vector<std::vector<glm::vec3>> OriginalMeshTrianglePositions;
+std::vector<std::vector<glm::vec3>> TransformedMeshTrianglePositions;
+std::vector<std::vector<glm::vec2>> MeshTriangleUVs;
+
+FEPlane CanvasPlane;
+bool bCollectingPointsForPolygon = true;
+std::vector<glm::vec3> ClickedPoints;
+std::vector<glm::vec3> ClickedPointsTransformed;
+std::vector<FELine> LinesOnPlane;
+void VisualizePolygon();
+
+void SetupCanvas()
+{
+	FEScene* MainScene = MAIN_SCENE_MANAGER.GetMainScene();
+	if (MainScene == nullptr)
+		return;
+
+	CanvasMesh = RESOURCE_MANAGER.GetMesh("1Y251E6E6T78013635793156"/*"plane"*/);
+	CanvasMaterial = RESOURCE_MANAGER.GetMaterial("6917497A5E0C05454876186F");
+	CanvasGameModel = RESOURCE_MANAGER.CreateGameModel(CanvasMesh, CanvasMaterial, "Canvas GameModel");
+	CanvasEntity = MainScene->CreateEntity("Canvas Entity");
+	CanvasEntity->AddComponent<FEGameModelComponent>(CanvasGameModel);
+
+	OriginalMeshTrianglePositions = CanvasMesh->GetTrianglePositions();
+	TransformedMeshTrianglePositions = OriginalMeshTrianglePositions;
+	MeshTriangleUVs = CanvasMesh->GetTriangleUVs();
+
+	CanvasPlane = FEPlane(OriginalMeshTrianglePositions[0][0], OriginalMeshTrianglePositions[0][1], OriginalMeshTrianglePositions[0][2]);
+}
+
+void UpdateCanvasTrianglePositions()
+{
+	if (CanvasEntity == nullptr)
+		return;
+
+	for (size_t i = 0; i < OriginalMeshTrianglePositions.size(); i++)
+	{
+		TransformedMeshTrianglePositions[i][0] = glm::vec3(CanvasEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(OriginalMeshTrianglePositions[i][0], 1.0f));
+		TransformedMeshTrianglePositions[i][1] = glm::vec3(CanvasEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(OriginalMeshTrianglePositions[i][1], 1.0f));
+		TransformedMeshTrianglePositions[i][2] = glm::vec3(CanvasEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(OriginalMeshTrianglePositions[i][2], 1.0f));
+	}
+
+	ClickedPointsTransformed.clear();
+	ClickedPointsTransformed.resize(ClickedPoints.size());
+	for (size_t i = 0; i < ClickedPoints.size(); i++)
+	{
+		ClickedPointsTransformed[i] = glm::vec3(CanvasEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(ClickedPoints[i], 1.0f));
+	}
+
+	if (!LinesOnPlane.empty())
+	{
+		LinesOnPlane.clear();
+		VisualizePolygon();
+	}
+
+	CanvasPlane = FEPlane(TransformedMeshTrianglePositions[0][0], TransformedMeshTrianglePositions[0][1], TransformedMeshTrianglePositions[0][2]);
+}
+
+void SetCanvasMesh(FEMesh* NewCanvasMesh)
+{
+	if (NewCanvasMesh == nullptr)
+		return;
+
+	CanvasMesh = NewCanvasMesh;
+	OriginalMeshTrianglePositions = CanvasMesh->GetTrianglePositions();
+	TransformedMeshTrianglePositions = OriginalMeshTrianglePositions;
+	MeshTriangleUVs = CanvasMesh->GetTriangleUVs();
+}
+
+bool InteractionRayToCanvasSpace(glm::dvec3 RayOrigin, glm::dvec3 RayDirection, glm::vec2* IntersectionPointInUVCanvasSpace, glm::vec3* IntersectionPointIn3DSpace = nullptr)
+{
+	UpdateCanvasTrianglePositions();
+
+	for (size_t i = 0; i < TransformedMeshTrianglePositions.size(); i++)
+	{
+		std::vector<glm::dvec3> CurrentTriangle;
+		CurrentTriangle.push_back(glm::dvec3(TransformedMeshTrianglePositions[i][0].x, TransformedMeshTrianglePositions[i][0].y, TransformedMeshTrianglePositions[i][0].z));
+		CurrentTriangle.push_back(glm::dvec3(TransformedMeshTrianglePositions[i][1].x, TransformedMeshTrianglePositions[i][1].y, TransformedMeshTrianglePositions[i][1].z));
+		CurrentTriangle.push_back(glm::dvec3(TransformedMeshTrianglePositions[i][2].x, TransformedMeshTrianglePositions[i][2].y, TransformedMeshTrianglePositions[i][2].z));
+		double Distance = 0.0;
+		glm::dvec3 HitPoint = glm::dvec3(0.0);
+		double U = 0.0;
+		double V = 0.0;
+
+		if (GEOMETRY.IsRayIntersectingTriangle(RayOrigin, RayDirection, CurrentTriangle, Distance, &HitPoint, &U, &V))
+		{
+			if (IntersectionPointIn3DSpace != nullptr)
+				*IntersectionPointIn3DSpace = HitPoint;
+
+			// Load texture coordinates of the triangle vertices.
+			glm::dvec2 UV0 = MeshTriangleUVs[i][0];
+			glm::dvec2 UV1 = MeshTriangleUVs[i][1];
+			glm::dvec2 UV2 = MeshTriangleUVs[i][2];
+
+			// Calculate texture coordinates of the hit point using interpolation.
+			glm::dvec2 HitUV = (1.0 - U - V) * UV0 + U * UV1 + V * UV2;
+			*IntersectionPointInUVCanvasSpace = HitUV;
+
+			//InvokeMouseEnterCallback(1);
+			//bRayColidingWithCanvas = true;
+			//LastRayIntersectionDistance = Distance;
+			return true;
+		}
+	}
+
+	//InvokeMouseEnterCallback(0);
+	//bRayColidingWithCanvas = false;
+	//LastRayIntersectionDistance = 0.0;
+	return false;
+}
+
+
+void VisualizePolygon()
+{
+	if (ClickedPointsTransformed.size() < 3)
+		return;
+
+	for (size_t i = 0; i < ClickedPointsTransformed.size(); i++)
+	{
+		if (i == ClickedPointsTransformed.size() - 1)
+		{
+			// Connect last point to first point
+			LinesOnPlane.push_back(FELine(ClickedPointsTransformed[i], ClickedPointsTransformed[0]));
+		}
+		else
+		{
+			LinesOnPlane.push_back(FELine(ClickedPointsTransformed[i], ClickedPointsTransformed[i + 1]));
+		}
+	}
+}
+
+void UpdateRayIntersection()
+{
+	glm::vec2 HitUV = glm::vec2(0.0f);
+	glm::dvec3 MouseRay = MAIN_SCENE_MANAGER.GetMouseRayDirection();
+	glm::vec3 IntersectionPoint = glm::vec3(0.0f);
+	if (InteractionRayToCanvasSpace(MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE), MouseRay, &HitUV, &IntersectionPoint))
+	{
+		ClickedPoints.push_back(IntersectionPoint);
+	}
+}
+
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
 
 double MouseX;
@@ -77,6 +241,12 @@ void MouseButtonCallback(int button, int action, int mods)
 	{
 		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
 		return;
+	}
+
+	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
+	{
+		if (bCollectingPointsForPolygon)
+			UpdateRayIntersection();
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS)
@@ -160,6 +330,100 @@ void MainWindowRender()
 		UI_INSPECTOR.SetShouldTakeScreenshot(false);
 		SCREENSHOT_MANAGER.TakeScreenshot();
 		return;
+	}
+
+	bool bAnnotationVisualizationActive = ANNOTATION_MANAGER.IsVisualizationActive();
+	ImGui::Checkbox("Annotation visualization active", &bAnnotationVisualizationActive);
+	ANNOTATION_MANAGER.SetVisualizationActive(bAnnotationVisualizationActive);
+
+	ImGui::Text("Canvas transform:");
+	UI_CORE.ShowTransformConfiguration("Debug Canvas transform", &CanvasEntity->GetComponent<FETransformComponent>());
+	UpdateCanvasTrianglePositions();
+
+	ImGui::Checkbox("Collect points for polygon", &bCollectingPointsForPolygon);
+	ImGui::Text("Points clicked on canvas: %d", (int)ClickedPoints.size());
+	if (ImGui::Button("Clear clicked points"))
+		ClickedPoints.clear();
+	if (ImGui::Button("Clear polygon visualization"))
+		LinesOnPlane.clear();
+
+	if (ImGui::Button("Create a polygon visualization"))
+	{
+		VisualizePolygon();
+	}
+
+	if (ImGui::Button("Selected triangles in polygon"))
+	{
+		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		if (ActiveObject == nullptr)
+			return;
+
+		MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+		if (CurrentMeshAnalysisData == nullptr)
+			return;
+
+		CurrentMeshAnalysisData->TriangleSelected.clear();
+		for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+		{
+			glm::vec3 TriangleCentroid = CurrentMeshAnalysisData->TrianglesCentroids[i];
+			glm::vec3 TransformedTriangleCentroid = ActiveObject->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TriangleCentroid, 1.0f);
+
+			glm::vec3 ProjectedTriangleCentroid = CanvasPlane.ProjectPoint(TransformedTriangleCentroid);
+
+			if (IsPointInsideClosedPolygon(ClickedPointsTransformed, ProjectedTriangleCentroid))
+				CurrentMeshAnalysisData->TriangleSelected.push_back(i);
+		}
+
+		UI_INSPECTOR.UpdateMeshSelectedTrianglesRendering();
+
+		if (!CurrentMeshAnalysisData->TriangleSelected.empty())
+		{
+			AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(ActiveObject->GetID());
+			if (CurrentAnnotationData->DataBufferID == GLuint(-1))
+				ANNOTATION_MANAGER.InitalizeBuffer(CurrentAnnotationData);
+
+			ANNOTATION_MANAGER.UpdateBuffer(CurrentAnnotationData);
+		}
+	}
+
+	if (ImGui::Button("Check if selected triangle is in polygon"))
+	{
+		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		if (ActiveObject == nullptr)
+			return;
+
+		MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+		if (CurrentMeshAnalysisData == nullptr)
+			return;
+
+		int SelectedTriangleIndex = 222137;
+
+		if (!CurrentMeshAnalysisData->TriangleSelected.empty())
+		{
+			SelectedTriangleIndex = CurrentMeshAnalysisData->TriangleSelected[0];
+			glm::vec3 TriangleCentroid = CurrentMeshAnalysisData->TrianglesCentroids[SelectedTriangleIndex];
+			std::vector<glm::dvec3> SelectedTrianglePoints = CurrentMeshAnalysisData->Triangles[SelectedTriangleIndex];
+
+			glm::vec3 TransformedPointA = ActiveObject->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(SelectedTrianglePoints[0], 1.0f);
+			glm::vec3 TransformedPointB = ActiveObject->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(SelectedTrianglePoints[1], 1.0f);
+			glm::vec3 TransformedPointC = ActiveObject->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(SelectedTrianglePoints[2], 1.0f);
+
+			glm::vec3 TransformedTriangleCentroid = ActiveObject->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TriangleCentroid, 1.0f);
+	
+			glm::vec3 ProjectedPointA = CanvasPlane.ProjectPoint(TransformedPointA);
+			glm::vec3 ProjectedPointB = CanvasPlane.ProjectPoint(TransformedPointB);
+			glm::vec3 ProjectedPointC = CanvasPlane.ProjectPoint(TransformedPointC);
+
+			glm::vec3 ProjectedTriangleCentroid = CanvasPlane.ProjectPoint(TransformedTriangleCentroid);
+
+			IsPointInsideClosedPolygon(ClickedPointsTransformed, ProjectedTriangleCentroid);
+		}
+
+	}
+
+	for (size_t i = 0; i < LinesOnPlane.size(); i++)
+	{
+		RENDERER.DebugDrawLine(LinesOnPlane[i]);
 	}
 
 	bool bGraphDebugWindow = true;
@@ -620,10 +884,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		CameraComponent.SetNearPlane(0.1f);
 		CameraComponent.SetActive(false);
 
-		ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(AfterNewResourceLoads);
+		ANALYSIS_OBJECT_MANAGER.AddOnObjectLoadCallback(AfterNewResourceLoads);
 
 		SCREENSHOT_MANAGER.Init();
 		DEVELOPER_MODE.Initialize();
+		ANNOTATION_MANAGER.Initialize();
+
+		SetupCanvas();
 
 		while (ENGINE.IsNotTerminated())
 		{

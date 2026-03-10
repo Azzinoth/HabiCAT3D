@@ -121,6 +121,8 @@ public:
 
 	static std::vector<DATA_SOURCE_TYPE> GetDataSourceTypeForLayerType(LAYER_TYPE Type);
 
+	static bool SetVertexValuesByTriangleIndex(AnalysisObject* Object, std::vector<float>& VertexData, int TriangleIndex, float Value);
+	static bool TransfareDataFromTrianglesToVertices(AnalysisObject* Object, std::vector<float>& TriangleData, std::vector<float>& VertexData);
 	void FillRawData();
 
 	std::string GetID();

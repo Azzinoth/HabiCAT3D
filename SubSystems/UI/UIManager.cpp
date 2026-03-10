@@ -20,7 +20,7 @@ UIManager::UIManager()
 	JITTER_MANAGER.SetOnCalculationsStartCallback(OnJitterCalculationsStart);
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
 
-	ANALYSIS_OBJECT_MANAGER.AddOnLoadCallback(UIManager::OnNewObjectLoaded);
+	ANALYSIS_OBJECT_MANAGER.AddOnObjectLoadCallback(UIManager::OnNewObjectLoaded);
 	LAYER_MANAGER.AddActiveLayerChangedCallback(UIManager::OnLayerChange);
 
 	LAYER_RASTERIZATION_MANAGER.SetOnCalculationsStartCallback(OnLayerRasterizationCalculationsStart);
@@ -929,47 +929,43 @@ void UIManager::RenderAboutWindow()
 		bShouldOpenAboutWindow = false;
 	}
 
-	std::string VersionText = UI_CORE.GetHabiCAT3DFullVersion();
-	float TextWidth = ImGui::CalcTextSize(VersionText.c_str()).x;
+	
 
-	float PopupWidth = std::max(450.0f, TextWidth + 40.0f);
-	float PopupHeight = 135.0f;
-	ImGui::SetNextWindowSize(ImVec2(PopupWidth, PopupHeight));
+	ImGui::SetNextWindowSizeConstraints(ImVec2(400.0f, 0.0f), ImVec2(FLT_MAX, FLT_MAX));
 	if (ImGui::BeginPopupModal("About", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
 	{
-		int WindowWidth = 0;
-		int WindowHeight = 0;
-		APPLICATION.GetMainWindow()->GetSize(&WindowWidth, &WindowHeight);
+		int WindowW = 0;
+		int WindowH = 0;
+		APPLICATION.GetMainWindow()->GetSize(&WindowW, &WindowH);
 
-		ImGui::SetWindowPos(ImVec2(WindowWidth / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowHeight / 2.0f - ImGui::GetWindowHeight() / 2.0f));
-		
-		std::string Text = UI_CORE.GetHabiCAT3DFullVersion();
-		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupWidth / 2.0f - TextSize.x / 2.0f);
-		ImGui::Text(Text.c_str());
+		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
+
+		float ContentW = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+		auto CenteredText = [ContentW](const std::string& Text) {
+			ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
+			ImGui::SetCursorPosX((ContentW - TextSize.x) / 2.0f + ImGui::GetWindowContentRegionMin().x);
+			ImGui::Text("%s", Text.c_str());
+		};
+		CenteredText(UI_CORE.GetFullVersion());
+
+		ImGui::Separator();
+		ImGui::Text("Modules:");
+
+		CenteredText(APPLICATION.GetFullVersion());
+		CenteredText(ENGINE.GetFullVersion());
+		CenteredText(OBJECT_VIEWER_WINDOW.SceneGraphUI->GetFullVersion());
 
 		ImGui::Separator();
 
-		Text = "To submit a bug report or provide feedback, ";
-		TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupWidth / 2.0f - TextSize.x / 2.0f);
-		ImGui::Text(Text.c_str());
-
-		Text = "please email me at kberegovyi@ccom.unh.edu.";
-		TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupWidth / 2.0f - TextSize.x / 2.0f);
-		ImGui::Text(Text.c_str());
+		CenteredText("To submit a bug report or provide feedback,");
+		CenteredText("please email me at kberegovyi@ccom.unh.edu.");
+		CenteredText("University of New Hampshire CCOM");
 
 		ImGui::Separator();
 
-		Text = "UNH CCOM";
-		TextSize = ImGui::CalcTextSize(Text.c_str());
-		ImGui::SetCursorPosX(PopupWidth / 2.0f - TextSize.x / 2.0f);
-		ImGui::Text(Text.c_str());
-
-		ImGui::SetCursorPosX(PopupWidth / 2.0f - 210.0f / 2.0f);
-		ImGui::SetNextItemWidth(210);
-		if (ImGui::Button("Close", ImVec2(210.0f, 20.0f)))
+		float ButtonW = 210.0f;
+		ImGui::SetCursorPosX((ContentW - ButtonW) / 2.0f + ImGui::GetWindowContentRegionMin().x);
+		if (ImGui::Button("Close", ImVec2(ButtonW, 25.0f)))
 			ImGui::CloseCurrentPopup();
 
 		ImGui::EndPopup();
