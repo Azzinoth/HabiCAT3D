@@ -16,7 +16,7 @@ in VS_OUT
 	float AdditionalLayer;
 
 	vec4 BulkLayers[6];
-	float Annotation;
+	flat float Annotation;
 } FS_IN;
 
 @ViewMatrix@
@@ -381,8 +381,8 @@ void main(void)
 	if (AnnotationVisualizationActive == 1)
 	{
 		int AnnotationID = int(round(FS_IN.Annotation));
-		if (AnnotationID > 0 && AnnotationID < AnnotationColors.length())
-			finalBaseColor += AnnotationColors[AnnotationID].Color.rgb;
+		if (AnnotationID >= 0 && AnnotationID < AnnotationColors.length())
+			finalBaseColor = mix(finalBaseColor, AnnotationColors[AnnotationID].Color.rgb, 0.7f);
 	}
 
 	out_Color = vec4(ambientColor * (diffuseFactor * finalBaseColor) * 0.5, 1.0f);

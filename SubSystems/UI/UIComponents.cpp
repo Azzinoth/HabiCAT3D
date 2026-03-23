@@ -942,11 +942,22 @@ void FEGraphRender::Render()
 
 					// Code to ensure proper stack order and height.
 					FEStackBounds Bound = GetStackBoundAtX(StacksInfo[i].ID, XNormalized);
+					float NormalizedPixelHeight = 1.0f / Size.y;
+
+					bool bSmallerThanOnePixel = false;
+					// If the stack height at this X is less than 1 pixel(110% height of 1 pixel), we will skip it to avoid visual glitches.
+					if (Bound.Top - Bound.Bottom < NormalizedPixelHeight * 1.1f)
+						bSmallerThanOnePixel = true;
+
+					//if (XNormalized > 0.5f)
+					//{
+					//	int y = 0;
+					//	y++;
+					//}
+
 					float CurrentStackYNormalizedTop = Bound.Top;
 					float CurrentStackYNormalizedBottom = Bound.Bottom;
-
-
-					bool bShouldDraw = false;
+					
 					if (StacksInfo[i].XNormalizedPositionBounds.x > XNormalized ||
 						StacksInfo[i].XNormalizedPositionBounds.y < XNormalized)
 						continue;
@@ -961,13 +972,16 @@ void FEGraphRender::Render()
 					int YStart = std::min(PreviousYPosition, CurrentStackYPixelTop);
 					int YEnd = std::max(PreviousYPosition, CurrentStackYPixelTop);
 
-					for (int y = YStart; y <= YEnd; y++)
+					if (!bSmallerThanOnePixel)
 					{
-						ImVec2 MinPosition = ImVec2(Position.x + XPosition, static_cast<float>(y));
-						ImVec2 MaxPosition = ImVec2(Position.x + XPosition + 1, static_cast<float>(y + 1));
-						ImGui::GetWindowDrawList()->AddRectFilled(WindowPosition + MinPosition,
-							WindowPosition + MaxPosition,
-							CurrentColor);
+						for (int y = YStart; y <= YEnd; y++)
+						{
+							ImVec2 MinPosition = ImVec2(Position.x + XPosition, static_cast<float>(y));
+							ImVec2 MaxPosition = ImVec2(Position.x + XPosition + 1, static_cast<float>(y + 1));
+							ImGui::GetWindowDrawList()->AddRectFilled(WindowPosition + MinPosition,
+																	  WindowPosition + MaxPosition,
+																	  CurrentColor);
+						}
 					}
 
 					int CurrentStackYPixelBottom = GraphBottom - static_cast<int>(CurrentStackYNormalizedBottom * Size.y);

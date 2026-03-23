@@ -213,7 +213,7 @@ void StructuralRoughnessLayerProducer::RenderDebugInfoForSelectedNode(Measuremen
 
 		FEMesh* PlaneMesh = RESOURCE_MANAGER.GetMesh("1Y251E6E6T78013635793156"/*"plane"*/);
 		FEAABB PlaneAABB = PlaneMesh->GetAABB();
-		glm::vec3 PlaneNormal = glm::normalize(PlaneAABB.GetAproximateForwardDirection());
+		glm::vec3 PlaneNormal = glm::normalize(PlaneAABB.GetApproximateForwardDirection());
 		glm::quat RotationQuaternion = glm::rotation(PlaneNormal, BestFitPlaneNormal);
 		DebugPlaneEntity->GetComponent<FETransformComponent>().SetQuaternion(RotationQuaternion, FE_WORLD_SPACE);
 	}

@@ -51,9 +51,9 @@ bool ObjectViewerWindow::ShouldRenderNode(FENaiveSceneGraphNode* SubTreeRoot)
 			return false;
 	}
 
-	if (Depth == PHOTOGRAMMETRY_ANCHOR_DEPTH)
+	if (Depth == ANALISYS_OBJECTS_DEPTH + 1)
 	{
-		if (CurrentEntityName.find("PhotogrammetryAnchor_") == std::string::npos)
+		if (CurrentEntityName.find("PhotogrammetryAnchor_") == std::string::npos && CurrentEntityName.find("AnnotationEntity_") == std::string::npos)
 			return false;
 	}
 
@@ -73,19 +73,26 @@ std::string ObjectViewerWindow::GetDisplayedName(FENaiveSceneGraphNode* SubTreeR
 
 	std::string DisplayedName = SubTreeRoot->GetName();
 	FEEntity* CurrentEntity = SubTreeRoot->GetEntity();
+	std::string CurrentEntityName = CurrentEntity->GetName();
 	if (Depth == ANALISYS_OBJECTS_DEPTH)
 	{
 		AnalysisObject* CurrentAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
 		if (CurrentAnalysisObject != nullptr)
 			DisplayedName = CurrentAnalysisObject->GetName();
 	}
-	if (Depth == PHOTOGRAMMETRY_ANCHOR_DEPTH)
+	if (Depth == ANALISYS_OBJECTS_DEPTH + 1)
 	{
-		DisplayedName = "Photogrammetry";
+		if (CurrentEntityName.find("Annotation") != std::string::npos)
+		{
+			DisplayedName = "Annotations";
+		}
+		else 
+		{
+			DisplayedName = "Photogrammetry";
+		}
 	}
 	if (Depth == PHOTOGRAMMETRY_RESOURCES_DEPTH)
 	{
-		std::string CurrentEntityName = CurrentEntity->GetName();
 		if (CurrentEntityName.find("COLMAPImages") != std::string::npos)
 		{
 			DisplayedName = "Images";
@@ -227,10 +234,17 @@ void ObjectViewerWindow::Render()
 				return;
 
 			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
-			if (CurrentObject == nullptr)
-				return;
+			if (CurrentObject != nullptr)
+			{
+				ANALYSIS_OBJECT_MANAGER.DeleteAnalysisObject(CurrentObject->GetID());
+			}
 
-			ANALYSIS_OBJECT_MANAGER.DeleteAnalysisObject(CurrentObject->GetID());
+			AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByEntityID(CurrentEntity->GetObjectID());
+			if (CurrentAnnotationData != nullptr)
+			{
+				AnalysisObject* AnnotatedObject = CurrentAnnotationData->GetAnalysisObject();
+				ANNOTATION_MANAGER.RemoveAnnotationFromAnalysisObject(AnnotatedObject->GetID());
+			}
 		};
 		TrashWidget.bIsVisibleByDefault = true;
 		TrashWidget.TooltipText = "Delete";

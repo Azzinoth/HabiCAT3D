@@ -6,7 +6,7 @@
 #include "ObjectViewerWindow.h"
 #include "LoadPhotogrammetryWindow.h"
 #include "../ComplexityCore/Layers/LayerManager.h"
-#include "../SubSystems/AnnotationManager.h"
+#include "../SubSystems/Annotations/AnnotationManager.h"
 
 const COMDLG_FILTERSPEC MODEL_EXPORT_FILE_FILTER[] =
 {
@@ -47,6 +47,10 @@ private:
 	static void OnLayerChange();
 
 	void RenderSelectedObjectTab();
+	void RenderPhotogrammetryInformation(COLMAPProject* CurrentCOLMAPProject);
+	void RenderAnnotationInformation(AnnotationData* CurrentAnnotationData);
+
+	void AddAnnotationToCurrentObject();
 
 	char CurrentDistributionEdit[1024];
 	glm::vec2 CurrentDistribution = glm::vec2();

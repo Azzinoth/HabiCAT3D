@@ -9,8 +9,11 @@ project(HabiCAT3D)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS_DEBUG "/MP /Zi /MTd /INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF /Od")
+set(CMAKE_CXX_FLAGS_DEBUG "/MP /Zi /MTd /Od")
 set(CMAKE_CXX_FLAGS_RELEASE "/MP /MT")
+
+set(CMAKE_EXE_LINKER_FLAGS_DEBUG "/INCREMENTAL /DEBUG")
+
 # Set the stack reserve size to 10 MB
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:10485760")
 
@@ -186,8 +189,10 @@ file(GLOB SubSystems_VRManager_SRC
 )
 
 file(GLOB SubSystems_AnnotationManager_SRC
-	"SubSystems/AnnotationManager.h"
-	"SubSystems/AnnotationManager.cpp"
+	"SubSystems/Annotations/PolygonPlane.h"
+	"SubSystems/Annotations/PolygonPlane.cpp"
+	"SubSystems/Annotations/AnnotationManager.h"
+	"SubSystems/Annotations/AnnotationManager.cpp"
 )
 
 set(MAIN_SOURCE_FILES "")
@@ -256,7 +261,7 @@ source_group("Source Files/Shaders/COLMAPShaders/" FILES ${COLMAP_Shaders_SRC})
 source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJobs_SRC})
 source_group("Source Files/SubSystems/VRManager" FILES ${SubSystems_VRManager_SRC})
 source_group("Source Files/SubSystems/COLMAP/" FILES ${SubSystems_COLMAP_SRC})
-source_group("Source Files/SubSystems/AnnotationManager" FILES ${SubSystems_AnnotationManager_SRC})
+source_group("Source Files/SubSystems/Annotations" FILES ${SubSystems_AnnotationManager_SRC})
 
 # set as the startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT HabiCAT3D)

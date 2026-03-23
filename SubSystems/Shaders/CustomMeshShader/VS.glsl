@@ -42,7 +42,7 @@ out VS_OUT
 	float AdditionalLayer;
 
 	vec4 BulkLayers[6];
-	float Annotation;
+	flat float Annotation;
 } vs_out;
 
 void main(void)
