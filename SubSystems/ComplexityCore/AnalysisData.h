@@ -2,8 +2,6 @@
 #include "../../EngineInclude.h"
 using namespace FocalEngine;
 
-#define APPLICATION_VERSION_FLOAT (GetHabiCAT3D_VersionInfo().Major + GetHabiCAT3D_VersionInfo().Minor / 10.0f + GetHabiCAT3D_VersionInfo().Patch / 100.0f)
-
 const COMDLG_FILTERSPEC RUGOSITY_LOAD_FILE_FILTER[] =
 {
 	{ L"Mesh files (*.obj; *.rug)", L"*.obj;*.rug" }

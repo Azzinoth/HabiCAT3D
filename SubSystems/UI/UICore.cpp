@@ -1,6 +1,10 @@
 #include "UICore.h"
 using namespace FocalEngine;
 
+#include "../VersionInfo/HabiCAT3D_Version.h"
+#include "../VersionInfo/FEVersionInfo.h"
+FE_DEFINE_VERSION_INFO(HabiCAT3D_)
+
 UICore::UICore() {}
 UICore::~UICore() {}
 

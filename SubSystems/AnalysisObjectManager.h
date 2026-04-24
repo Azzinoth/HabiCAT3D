@@ -71,6 +71,9 @@ private:
 	void LoadLayersDataFromRUGFile(std::fstream& File, AnalysisObject* Object);
 	void SaveLayersDataToRUGFile(std::fstream& File, AnalysisObject* Object);
 
+	void LoadAnnotationsDataFromRUGFile(std::fstream& File, AnalysisObject* Object);
+	void SaveAnnotationsDataToRUGFile(std::fstream& File, AnalysisObject* Object);
+
 	std::vector<std::function<void(AnalysisObject*)>> ClientOnLoadCallbacks;
 	std::vector<std::function<void(AnalysisObject*)>> ClientOnActiveObjectChangeCallbacks;
 	std::vector<std::function<void(AnalysisObject*)>> ClientOnObjectDeleteCallbacks;

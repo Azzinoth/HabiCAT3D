@@ -561,8 +561,8 @@ void FEGraphRender::UpdateAfterDataPointsChange()
 {
 	Ceiling = FLT_MAX;
 
-	GlobalXValueBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
-	GlobalYValueBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
+	GlobalXValueBounds = glm::dvec2(std::numeric_limits<double>::max(), -std::numeric_limits<double>::max());
+	GlobalYValueBounds = glm::dvec2(std::numeric_limits<double>::max(), -std::numeric_limits<double>::max());
 
 	auto MapIterator = StackIDToDataPointsMap.begin();
 	while (MapIterator != StackIDToDataPointsMap.end())
@@ -570,8 +570,8 @@ void FEGraphRender::UpdateAfterDataPointsChange()
 		std::vector<FEGraphDataPoint>& DataPointsForStack = MapIterator->second;
 		FEGraphStackInfo* CurrentStackInfo = GetStackInfoByID(MapIterator->first);
 
-		double CurrentStackMinYValue = DBL_MAX;
-		double CurrentStackMaxYValue = -DBL_MAX;
+		double CurrentStackMinYValue = std::numeric_limits<double>::max();
+		double CurrentStackMaxYValue = -std::numeric_limits<double>::max();
 
 		for (size_t i = 0; i < DataPointsForStack.size(); i++)
 		{
@@ -589,7 +589,7 @@ void FEGraphRender::UpdateAfterDataPointsChange()
 		}
 
 		GlobalYValueBounds.x = std::min(GlobalYValueBounds.x, CurrentStackMinYValue);
-		GlobalYValueBounds.y = GlobalYValueBounds.y == -DBL_MAX ? CurrentStackMaxYValue : GlobalYValueBounds.y + CurrentStackMaxYValue;
+		GlobalYValueBounds.y = GlobalYValueBounds.y == -std::numeric_limits<double>::max() ? CurrentStackMaxYValue : GlobalYValueBounds.y + CurrentStackMaxYValue;
 
 		MapIterator++;
 	}
@@ -608,7 +608,7 @@ void FEGraphRender::UpdateAfterDataPointsChange()
 		MapIterator++;
 	}
 
-	if (GlobalYValueBounds.x != DBL_MAX && GlobalYValueBounds.y != -DBL_MAX)
+	if (GlobalYValueBounds.x != std::numeric_limits<double>::max() && GlobalYValueBounds.y != -std::numeric_limits<double>::max())
 		Ceiling = static_cast<float>(GlobalYValueBounds.y * 1.1);
 
 	UpdateXLegend();
@@ -669,7 +669,7 @@ void FEGraphRender::UpdateXLegend()
 	if (Size.x <= 0.0f)
 		return;
 
-	if (GlobalXValueBounds.x == DBL_MAX || GlobalXValueBounds.y == -DBL_MAX)
+	if (GlobalXValueBounds.x == std::numeric_limits<double>::max() || GlobalXValueBounds.y == -std::numeric_limits<double>::max())
 		return;
 
 	float ValueRange = static_cast<float>(GlobalXValueBounds.y - GlobalXValueBounds.x);
@@ -723,7 +723,7 @@ double FEGraphRender::GetGraphYValue(glm::vec2 NormizedPosition)
 {
 	FEGraphStackInfo* StackInfo = GetStackInfoByID(GetStackID(NormizedPosition));
 	if (StackInfo == nullptr)
-		return -DBL_MAX;
+		return -std::numeric_limits<double>::max();
 
 	FEStackBounds Bound = GetStackBoundAtX(StackInfo->ID, NormizedPosition.x);
 	float CurrentStackYNormalizedBottom = Bound.Bottom;
@@ -949,12 +949,6 @@ void FEGraphRender::Render()
 					if (Bound.Top - Bound.Bottom < NormalizedPixelHeight * 1.1f)
 						bSmallerThanOnePixel = true;
 
-					//if (XNormalized > 0.5f)
-					//{
-					//	int y = 0;
-					//	y++;
-					//}
-
 					float CurrentStackYNormalizedTop = Bound.Top;
 					float CurrentStackYNormalizedBottom = Bound.Bottom;
 					
@@ -1085,7 +1079,7 @@ void FEGraphRender::Render()
 		ImGui::Text("Y Position: %d", PixelY);
 		ImGui::Text("Normalized Y Position: %.4f", NormilizedY);
 		double YValue = GetGraphYValue(glm::vec2(NormilizedX, NormilizedY));
-		if (YValue == -DBL_MAX)
+		if (YValue == -std::numeric_limits<double>::max())
 			ImGui::Text("Y Value: N/A");
 		else
 			ImGui::Text("Y Value: %.4f", YValue);

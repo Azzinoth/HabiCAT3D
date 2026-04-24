@@ -1,12 +1,15 @@
 #pragma once
 
 #include "../ComplexityCore/Layers/LayerManager.h"
+#include "ShapeFileData.h"
 #include "PolygonPlane.h"
 using namespace FocalEngine;
 
 struct AnnotationInfo
 {
 	friend struct AnnotationData;
+	friend class AnnotationManager;
+	friend class AnalysisObjectManager;
 private:
 	glm::vec4 Color;
 public:
@@ -28,6 +31,7 @@ enum class ANNOTATION_SOURCE_TYPE
 struct AnnotationData
 {
 	friend class AnnotationManager;
+	friend class AnalysisObjectManager;
 private:
 	std::vector<AnnotationInfo> UsedAnnotations;
 	void UpdateColorInfoOnGPU();
@@ -48,9 +52,18 @@ public:
 	std::vector<int> PerTriangleID;
 	std::vector<glm::vec4> FinalPerVertexData;
 
+	void ClearAllAnnotation();
+	bool UpdateAnnotationForTriangle(int TriangleIndex, int AnnotationID);
+	bool UpdateAnnotationForTriangles(std::vector<int>& TriangleIndexes, int AnnotationID);
+
 	std::vector< AnnotationInfo> GetAllAnnotationInfos();
+	void ClearAllAnnotationsInfo();
+
+	AnnotationInfo* AddAnnotationInfo(std::string Name, std::string Description, glm::vec4 Color);
 	AnnotationInfo* GetAnnotationInfoByID(int ID);
 	AnnotationInfo* GetAnnotationInfoByPolygonIndex(int PolygonIndex);
+	AnnotationInfo* GetAnnotationInfoByName(std::string Name);
+
 	bool IsPolygonIndexAnnotated(int PolygonIndex);
 	bool SetPolygonIndexAnnotation(int PolygonIndex, int AnnotationID);
 
@@ -77,6 +90,9 @@ public:
 	AnnotationData* GetAnnotationDataByEntityID(std::string EntityID);
 	bool RemoveAnnotationFromAnalysisObject(std::string AnalysisObjectID);
 
+	bool ReadAndAddAnnotationsFromShapeFile(std::string ShapeFilePath, AnalysisObject* Object);
+	bool ReadAnnotationsToPolygonPlane(std::string ShapeFilePath, PolygonPlane* TargetPlane, std::unordered_map<int, AnnotationInfo>& PolygonIndexToAnnotationInfoMap);
+
 	void InitalizeBuffer(AnnotationData* Data);
 	void UpdateBuffer(AnnotationData* Data);
 private:
@@ -84,13 +100,14 @@ private:
 
 	std::unordered_map<std::string, AnnotationData*> AnalisysObjectsToAnnotationData;
 
-	static void OnAnalysisObjectLoad(AnalysisObject* NewObject);
 	static void OnAnalysisObjectDelete(AnalysisObject* DeletedObject);
 
 	static void BeforeRender(FEEntity* CurrentEntity);
 
 	static void OnLayerChange();
 	void UpdateHistogramData(AnnotationData* Data);
+
+	glm::vec4 GetColor(const ShapeFileFeature& Feature);
 };
 
 #define ANNOTATION_MANAGER AnnotationManager::GetInstance()

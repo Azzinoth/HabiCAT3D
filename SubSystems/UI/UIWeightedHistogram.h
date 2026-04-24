@@ -2,8 +2,8 @@
 
 class FEWeightedHistogram
 {
-	double MinValue = DBL_MAX;
-	double MaxValue = -DBL_MAX;
+	double MinValue = std::numeric_limits<double>::max();
+	double MaxValue = -std::numeric_limits<double>::max();
 
 	int CurrentBinCount = 128;
 
@@ -33,7 +33,11 @@ public:
 	void SetCeiling(float NewValue);
 
 	void FillDataBins(const std::vector<double>& Values, const std::vector<double>& Weights, size_t BinsCount);
-	std::vector<FEGraphDataPoint> ConvertToDataPoints(const std::vector<double>& Values, const std::vector<double>& Weights, size_t BinsCount);
+	std::vector<FEGraphDataPoint> ConvertToDataPoints(const std::vector<double>& Values,
+													  const std::vector<double>& Weights,
+													  size_t BinsCount,
+													  double OverrideMinValue = std::numeric_limits<double>::max(),
+													  double OverrideMaxValue = -std::numeric_limits<double>::max());
 
 	FEGraphRender* GetGraphPointer();
 };

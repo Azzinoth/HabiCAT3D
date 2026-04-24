@@ -5,6 +5,11 @@ using namespace FocalEngine;
 #include "Shaders/CustomMeshShader/FS.glsl"
 #include "Shaders/PointCloudColorShader/CS.glsl"
 
+#include "../VersionInfo/HabiCAT3D_Version.h"
+#include "../VersionInfo/FEVersionInfo.h"
+FE_DEFINE_VERSION_INFO(HabiCAT3D_)
+#define APPLICATION_VERSION_FLOAT (GetHabiCAT3D_VersionInfo().Major + GetHabiCAT3D_VersionInfo().Minor / 10.0f + GetHabiCAT3D_VersionInfo().Patch / 100.0f)
+
 AnalysisObjectManager::AnalysisObjectManager()
 {
 	if (!APPLICATION.HasConsoleWindow())
@@ -1298,6 +1303,85 @@ void AnalysisObjectManager::SaveLayersDataToRUGFile(std::fstream& File, Analysis
 	}
 }
 
+void AnalysisObjectManager::SaveAnnotationsDataToRUGFile(std::fstream& File, AnalysisObject* Object)
+{
+	int Indicator = 0;
+	AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(Object->GetID());
+	if (CurrentAnnotationData == nullptr)
+	{
+		File.write((char*)&Indicator, sizeof(int));
+		return;
+	}
+
+	Indicator = 1;
+	File.write((char*)&Indicator, sizeof(int));
+
+	std::vector<AnnotationInfo> AllAnnotationInfos = CurrentAnnotationData->GetAllAnnotationInfos();
+	int AnnotationInfoCount = static_cast<int>(AllAnnotationInfos.size());
+	File.write((char*)&AnnotationInfoCount, sizeof(int));
+	for (size_t i = 0; i < AllAnnotationInfos.size(); i++)
+	{
+		File.write((char*)&AllAnnotationInfos[i].ID, sizeof(int));
+
+		int StringSize = static_cast<int>(AllAnnotationInfos[i].Name.size());
+		File.write((char*)&StringSize, sizeof(int));
+		File.write((char*)AllAnnotationInfos[i].Name.c_str(), sizeof(char) * StringSize);
+
+		StringSize = static_cast<int>(AllAnnotationInfos[i].Description.size());
+		File.write((char*)&StringSize, sizeof(int));
+		File.write((char*)AllAnnotationInfos[i].Description.c_str(), sizeof(char) * StringSize);
+
+		File.write((char*)&AllAnnotationInfos[i].Color, sizeof(glm::vec4));
+	}
+
+	int VectorSize = static_cast<int>(CurrentAnnotationData->PerTriangleID.size());
+	File.write((char*)&VectorSize, sizeof(int));
+	File.write((char*)&CurrentAnnotationData->PerTriangleID.data()[0], sizeof(int) * VectorSize);
+}
+
+void AnalysisObjectManager::LoadAnnotationsDataFromRUGFile(std::fstream& File, AnalysisObject* Object)
+{
+	char* Buffer = new char[4];
+	File.read(Buffer, 4);
+	const int Indicator = *(int*)Buffer;
+	if (Indicator == 0)
+		return;
+
+	if (!ANNOTATION_MANAGER.AddAnnotationToAnalysisObject(Object->GetID()))
+		return;
+
+	AnnotationData* NewAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(Object->GetID());
+	if (NewAnnotationData == nullptr)
+		return;
+
+	File.read(Buffer, 4);
+	int AnnotationInfoCount = *(int*)Buffer;
+	std::vector<AnnotationInfo> ReadAnnotationInfo;
+	ReadAnnotationInfo.resize(AnnotationInfoCount);
+	for (size_t i = 0; i < AnnotationInfoCount; i++)
+	{
+		File.read(Buffer, 4);
+		ReadAnnotationInfo[i].ID = *(int*)Buffer;
+
+		ReadAnnotationInfo[i].Name = FILE_SYSTEM.ReadFEString(File);
+		ReadAnnotationInfo[i].Description = FILE_SYSTEM.ReadFEString(File);
+
+		File.read(Buffer, sizeof(glm::vec4));
+		ReadAnnotationInfo[i].Color = *(glm::vec4*)Buffer;
+	}
+
+	NewAnnotationData->UsedAnnotations = ReadAnnotationInfo;
+
+	File.read(Buffer, 4);
+	const int VectorSize = *(int*)Buffer;
+	std::vector<int> PerTriangleID;
+	NewAnnotationData->PerTriangleID.resize(VectorSize);
+	File.read((char*)NewAnnotationData->PerTriangleID.data(), VectorSize * sizeof(int));
+
+	ANNOTATION_MANAGER.InitalizeBuffer(NewAnnotationData);
+	ANNOTATION_MANAGER.UpdateBuffer(NewAnnotationData);
+}
+
 void AnalysisObjectManager::SaveToRUGFile(std::string FilePath)
 {
 	if (FilePath.empty())
@@ -1345,6 +1429,7 @@ void AnalysisObjectManager::SaveToRUGFile(std::string FilePath)
 
 			SaveAnalysisDataToRUGFile(File, CurrentObject);
 			SaveLayersDataToRUGFile(File, CurrentObject);
+			SaveAnnotationsDataToRUGFile(File, CurrentObject);
 		}
 
 		ObjectsMapIterator++;
@@ -1720,6 +1805,7 @@ bool AnalysisObjectManager::LoadRUGFile_V0_9_1(std::string FilePath)
 		LoadLayersDataFromRUGFile(File, NewAnalysisObject);
 		AnalysisObjects[NewAnalysisObject->GetID()] = NewAnalysisObject;
 		OnAnalysisObjectLoad(NewAnalysisObject);
+		LoadAnnotationsDataFromRUGFile(File, NewAnalysisObject);
 
 		FEEntity* CurrentEntity = NewAnalysisObject->GetEntity();
 		if (CurrentEntity != nullptr)
@@ -1834,7 +1920,7 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 				{
 					if (BufferIndex >= BufferIDs.size())
 					{
-						LOG.Add("AnalysisObjectManager::BeforeRender: BufferIndex is out of range", "FE_LOG_RENDERING", FE_LOG_ERROR);
+						LOG.Add("AnalysisObjectManager::BeforeRender: BufferIndex is out of range", "ANALYSIS_OBJECT_MANAGER", FE_LOG_ERROR);
 					}
 					else
 					{

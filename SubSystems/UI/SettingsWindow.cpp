@@ -96,9 +96,9 @@ void SettingsWindow::Render()
 			//if (DebugGrid != nullptr && DebugGrid->RenderingMode != 0)
 				//UpdateRenderingMode(DebugGrid, 0);
 		}
-
-		ImGui::End();
 	}
+
+	ImGui::End();
 }
 
 void SettingsWindow::ShowCameraTransform()

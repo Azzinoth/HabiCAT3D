@@ -44,7 +44,9 @@ void VRManager::Initialize()
 	FEOpenXR_INPUT.SetLeftViveMenuClickCallBack(&VRManager::OnLeftViveMenuClick);
 
 	// Cylinder
-	FEMesh* CylinderMesh = RESOURCE_MANAGER.LoadFEMesh("Resources//Cylinder.model");
+	FEMesh* CylinderMesh = RESOURCE_MANAGER.GetMesh("583C221E48395B72517E4037");
+	if (CylinderMesh == nullptr)
+		CylinderMesh = RESOURCE_MANAGER.LoadFEMesh("Resources//Cylinder.model");
 
 	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
 	// FIX ME: Work of this shader is not correct.

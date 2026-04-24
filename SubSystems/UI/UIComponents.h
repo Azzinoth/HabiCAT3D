@@ -140,11 +140,11 @@ struct FEGraphStackInfo
 	ImColor OutlineColor = ImColor(56.0f / 255.0f, 165.0f / 255.0f, 237.0f / 255.0f);
 	std::string Name = "Stack";
 
-	glm::dvec2 XNormalizedPositionBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
-	glm::dvec2 YNormalizedPositionBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
+	glm::dvec2 XNormalizedPositionBounds = glm::dvec2(std::numeric_limits<double>::max(), -std::numeric_limits<double>::max());
+	glm::dvec2 YNormalizedPositionBounds = glm::dvec2(std::numeric_limits<double>::max(), -std::numeric_limits<double>::max());
 
-	glm::dvec2 XValueBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
-	glm::dvec2 YValueBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
+	glm::dvec2 XValueBounds = glm::dvec2(std::numeric_limits<double>::max(), -std::numeric_limits<double>::max());
+	glm::dvec2 YValueBounds = glm::dvec2(std::numeric_limits<double>::max(), -std::numeric_limits<double>::max());
 };
 
 struct GraphQueryResult
@@ -170,8 +170,8 @@ class FEGraphRender
 {
 	std::unordered_map<int, std::vector<FEGraphDataPoint>> StackIDToDataPointsMap;
 
-	glm::dvec2 GlobalXValueBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
-	glm::dvec2 GlobalYValueBounds = glm::dvec2(DBL_MAX, -DBL_MAX);
+	glm::dvec2 GlobalXValueBounds = glm::dvec2(std::numeric_limits<double>::max(), -std::numeric_limits<double>::max());
+	glm::dvec2 GlobalYValueBounds = glm::dvec2(std::numeric_limits<double>::max(), -std::numeric_limits<double>::max());
 
 	std::vector<FEStackBounds> GetStackBoundsAtX(float NormalizedX);
 	FEStackBounds GetStackBoundAtX(int StackID, float NormalizedX);

@@ -114,12 +114,11 @@ void UIInspector::RenderSelectedObjectTab()
 		{
 			SelectedObjectType = "Annotation";
 		}
-
-		if (SelectedObjectType == "Photogrammetry")
+		else if (SelectedEntityName.find("Images") != std::string::npos)
 		{
 			COLMAPImage* SelectedImage = CurrentCOLMAPProject->GetSelectedImage();
 			if (SelectedImage != nullptr)
-				SelectedObjectType += "(Image)";
+				SelectedObjectType = "Photogrammetry (Image)";
 		}
 	}
 
@@ -264,11 +263,37 @@ void UIInspector::RenderSelectedObjectTab()
 			{
 				AddAnnotationToCurrentObject();
 			}
+
+			if (ImGui::Button("Load annotations from shape file..."))
+			{
+				FEEntity* SelectedEntity = OBJECT_VIEWER_WINDOW.GetSelectedEntity();
+				if (SelectedEntity != nullptr)
+				{
+					std::string ShapeFilePath;
+					//NewShapeFileData.Load("C:/Users/kberegovyi/Downloads/SegmentationPainter-main/Annotations/annotated-shapes.shp");
+					//NewShapeFileData.Load("C:/Users/kberegovyi/Downloads/SegmentationPainter-main/Annotations_2/annotated-shapes.shp");
+					ShapeFilePath = "C:/Users/kberegovyi/Downloads/SegmentationPainter-main/Annotations_2/simp/simp.shp";
+					//NewShapeFileData.Load("simp/simp.shp");
+					//NewShapeFileData.Load("C:/Users/Kindr/Downloads/Annotations_2/annotated-shapes.shp");
+
+					ANNOTATION_MANAGER.ReadAndAddAnnotationsFromShapeFile(ShapeFilePath, ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject());
+
+					/*AnnotationData* ExistingAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject()->GetID());
+					std::unordered_map<int, AnnotationInfo> PolygonIndexToAnnotationInfoMap;
+
+					ANNOTATION_MANAGER.ReadAnnotationsToPolygonPlane("C:/Users/kberegovyi/Downloads/SegmentationPainter-main/Annotations_2/simp/simp.shp",
+						ExistingAnnotationData->GetPolygonPlane(), PolygonIndexToAnnotationInfoMap);*/
+
+					FENaiveSceneGraphNode* AnnotationSceneNode = MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetNodeByEntityID(SelectedEntity->GetObjectID());
+					OBJECT_VIEWER_WINDOW.SceneGraphUI->ExpandToNode(AnnotationSceneNode);
+					OBJECT_VIEWER_WINDOW.SceneGraphUI->SetNodeSelected(AnnotationSceneNode, true);
+				}
+			}
 		}
 	}
 	else
 	{
-		if (SelectedObjectType == "Photogrammetry")
+		if (SelectedObjectType == "Photogrammetry" || SelectedObjectType == "Photogrammetry (Image)")
 		{
 			if (CurrentCOLMAPProject != nullptr && CurrentCOLMAPProject->GetImageCount() > 0)
 				RenderPhotogrammetryInformation(CurrentCOLMAPProject);
@@ -419,11 +444,15 @@ void UIInspector::RenderPhotogrammetryInformation(COLMAPProject* CurrentCOLMAPPr
 
 void UIInspector::RenderAnnotationInformation(AnnotationData* CurrentAnnotationData)
 {
+	if (ImGui::Button("Clear All Annotations from mesh/point cloud"))
+	{
+		CurrentAnnotationData->ClearAllAnnotation();
+	}
+
 	bool bInEditingMode = CurrentAnnotationData->IsInEditingMode();
 	ImGui::Checkbox("Editing mode", &bInEditingMode);
 	CurrentAnnotationData->SetEditingMode(bInEditingMode);
 
-	ImGui::Button("Load annotations from shape file...");
 	ImGui::Separator();
 
 	PolygonPlane* CurrentPolygonPlane = CurrentAnnotationData->GetPolygonPlane();

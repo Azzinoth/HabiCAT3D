@@ -189,6 +189,8 @@ file(GLOB SubSystems_VRManager_SRC
 )
 
 file(GLOB SubSystems_AnnotationManager_SRC
+	"SubSystems/Annotations/ShapeFileData.h"
+	"SubSystems/Annotations/ShapeFileData.cpp"
 	"SubSystems/Annotations/PolygonPlane.h"
 	"SubSystems/Annotations/PolygonPlane.cpp"
 	"SubSystems/Annotations/AnnotationManager.h"

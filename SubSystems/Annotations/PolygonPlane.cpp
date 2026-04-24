@@ -22,11 +22,11 @@ void FEPolygon::BuildVisualizationLines()
 		if (i == PointsTransformed.size() - 1)
 		{
 			// Connect last point to first point.
-			Lines.push_back(FELine(PointsTransformed[i], PointsTransformed[0]));
+			Lines.push_back(FELine(PointsTransformed[i], PointsTransformed[0], glm::vec3(1.0f), 0.25f));
 		}
 		else
 		{
-			Lines.push_back(FELine(PointsTransformed[i], PointsTransformed[i + 1]));
+			Lines.push_back(FELine(PointsTransformed[i], PointsTransformed[i + 1], glm::vec3(1.0f), 0.25f));
 		}
 	}
 }
@@ -76,6 +76,23 @@ void PolygonPlane::Initialize()
 	CanvasPlane = FEPlane(OriginalPlaneTrianglePositions[0][0], OriginalPlaneTrianglePositions[0][1], OriginalPlaneTrianglePositions[0][2]);
 }
 
+OGRPolygon PolygonPlane::CreatedPolygonInOGRFormat(FEPolygon* OrdinaryPolygon)
+{
+	OGRLinearRing Ring;
+	for (int i = 0; i < OrdinaryPolygon->PointsTransformed.size(); i++)
+		Ring.addPoint(OrdinaryPolygon->PointsTransformed[i].x, OrdinaryPolygon->PointsTransformed[i].y, OrdinaryPolygon->PointsTransformed[i].z);
+
+	// GDAL rings must be explicitly closed.
+	if (OrdinaryPolygon->PointsTransformed.size() > 0)
+		Ring.closeRings();
+
+	// Wrap the ring in an OGRPolygon
+	OGRPolygon Polygon;
+	Polygon.addRing(&Ring);
+
+	return Polygon;
+}
+
 FEPolygon* PolygonPlane::GetPolygonByIndex(size_t Index)
 {
 	if (Index >= Polygons.size())
@@ -102,6 +119,7 @@ bool PolygonPlane::DeletePolygon(size_t Index)
 	if (Index >= Polygons.size())
 		return false;
 
+	OGRPolygons.erase(OGRPolygons.begin() + Index);
 	Polygons.erase(Polygons.begin() + Index);
 	return true;
 }
@@ -138,6 +156,7 @@ void PolygonPlane::FinalizeDraftPolygon()
 	if (Polygons[DraftPolygonIndex].Points.size() < 3)
 		return;
 
+	OGRPolygons.push_back(CreatedPolygonInOGRFormat(&Polygons[DraftPolygonIndex]));
 	Polygons[DraftPolygonIndex].bFinalized = true;
 	DraftPolygonIndex = -1;
 }
@@ -166,6 +185,7 @@ void PolygonPlane::UpdateCanvasTrianglePositions()
 	for (size_t i = 0; i < Polygons.size(); i++)
 	{
 		Polygons[i].UpdateTransformedPoints(*this);
+		OGRPolygons[i] = CreatedPolygonInOGRFormat(&Polygons[i]);
 
 		if (!Polygons[i].Lines.empty())
 		{
@@ -251,10 +271,10 @@ glm::vec3 PolygonPlane::UVPositionToWorld(const glm::vec2& UVPosition) const
 		if (U >= 0.0 && V >= 0.0 && (U + V) <= 1.0)
 		{
 			// Interpolate world position using the same barycentric coordinates.
-			glm::vec3 WorldPos = (float)(1.0 - U - V) * TransformedPlaneTrianglePositions[i][0]
-				+ (float)U * TransformedPlaneTrianglePositions[i][1]
-				+ (float)V * TransformedPlaneTrianglePositions[i][2];
-			return WorldPos;
+			glm::vec3 WorldPosition = (float)(1.0 - U - V) * TransformedPlaneTrianglePositions[i][0]
+									  + (float)U * TransformedPlaneTrianglePositions[i][1]
+									  + (float)V * TransformedPlaneTrianglePositions[i][2];
+			return WorldPosition;
 		}
 	}
 
@@ -263,6 +283,7 @@ glm::vec3 PolygonPlane::UVPositionToWorld(const glm::vec2& UVPosition) const
 
 void PolygonPlane::RenderAdditionalVisualization()
 {
+	return;
 	if (DraftPolygonIndex != -1)
 	{
 		for (size_t i = 0; i < Polygons[DraftPolygonIndex].Points.size(); i++)
@@ -279,27 +300,13 @@ void PolygonPlane::RenderAdditionalVisualization()
 	}
 }
 
-std::vector<int> PolygonPlane::GetTriangleIndicesInPolygon(AnalysisObject* ObjectOfInterest, int PolygonIndex)
+std::vector<int> PolygonPlane::GetTriangleIndicesInPolygon(FEPolygon& CurrentPolygon,
+														   OGRPolygon& CurrentOGRPolygon,
+														   std::vector<glm::vec3>& ProjectedTriangleCentroids,
+														   std::vector<OGRPoint>& OGRProjectedTriangleCentroids)
 {
-	std::vector<int> Result;
-	FEPolygon* CurrentPolygon = GetPolygonByIndex(PolygonIndex);
-	if (CurrentPolygon == nullptr)
-		return Result;
-
-	MeshAnalysisData* CurrentMeshAnalysisData = ObjectOfInterest->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
-		return Result;
-
-	CurrentMeshAnalysisData->TriangleSelected.clear();
-	for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
-	{
-		glm::vec3 TriangleCentroid = CurrentMeshAnalysisData->TrianglesCentroids[i];
-		glm::vec3 TransformedTriangleCentroid = ObjectOfInterest->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TriangleCentroid, 1.0f);
-
-		glm::vec3 ProjectedTriangleCentroid = CanvasPlane.ProjectPoint(TransformedTriangleCentroid);
-		if (CurrentPolygon->IsPointInside(ProjectedTriangleCentroid))
-			Result.push_back(static_cast<int>(i));
-	}
+	std::vector<glm::vec3> CurrentPolygonPositions = CurrentPolygon.PointsTransformed;
+	std::vector<int> Result = FEPolygon::GetTriangleIndicesInPolygon(CurrentPolygonPositions, CurrentOGRPolygon, ProjectedTriangleCentroids, OGRProjectedTriangleCentroids);
 
 	return Result;
 }
@@ -307,11 +314,83 @@ std::vector<int> PolygonPlane::GetTriangleIndicesInPolygon(AnalysisObject* Objec
 std::vector<std::pair<int, std::vector<int>>> PolygonPlane::GetTriangleIndicesInAllPolygons(AnalysisObject* ObjectOfInterest)
 {
 	std::vector < std::pair<int, std::vector<int>>> Result;
+	MeshAnalysisData* CurrentMeshAnalysisData = ObjectOfInterest->GetMeshAnalysisData();
+	if (CurrentMeshAnalysisData == nullptr)
+		return Result;
+
+	std::vector<glm::vec3> ProjectedTriangleCentroids;
+	std::vector<OGRPoint> OGRProjectedTriangleCentroids;
+	ProjectedTriangleCentroids.resize(CurrentMeshAnalysisData->TrianglesCentroids.size());
+	OGRProjectedTriangleCentroids.resize(CurrentMeshAnalysisData->TrianglesCentroids.size());
+	for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+	{
+		glm::vec3 TriangleCentroid = CurrentMeshAnalysisData->TrianglesCentroids[i];
+		glm::vec3 TransformedTriangleCentroid = ObjectOfInterest->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TriangleCentroid, 1.0f);
+		ProjectedTriangleCentroids[i] = CanvasPlane.ProjectPoint(TransformedTriangleCentroid);
+		// FE_DEBUG
+		//ProjectedTriangleCentroids[i] = glm::vec3(CurrentMeshAnalysisData->TrianglesCentroids[i].x, CurrentMeshAnalysisData->TrianglesCentroids[i].y, 0.0f);
+		
+		OGRProjectedTriangleCentroids[i] = OGRPoint(ProjectedTriangleCentroids[i].x, ProjectedTriangleCentroids[i].y, ProjectedTriangleCentroids[i].z);
+	}
+	
 	for (size_t i = 0; i < Polygons.size(); i++)
 	{
-		std::vector<int> CurrentPolygonResult = GetTriangleIndicesInPolygon(ObjectOfInterest, static_cast<int>(i));
+		Polygons[i].UpdateTransformedPoints(*this);
+		std::vector<int> CurrentPolygonResult = GetTriangleIndicesInPolygon(Polygons[i], OGRPolygons[i], ProjectedTriangleCentroids, OGRProjectedTriangleCentroids);
 		Result.push_back(std::make_pair(static_cast<int>(i), CurrentPolygonResult));
 	}
 
 	return Result;
+}
+
+FEPolygon* PolygonPlane::AddPolygon(std::vector<glm::vec2> PointsInUV)
+{
+	FEPolygon NewPolygon;
+	NewPolygon.PointsInUV = PointsInUV;
+	NewPolygon.UpdateTransformedPoints(*this);
+
+	NewPolygon.bFinalized = true;
+	OGRPolygons.push_back(CreatedPolygonInOGRFormat(&NewPolygon));
+	Polygons.push_back(NewPolygon);
+
+	UpdateCanvasTrianglePositions();
+
+	std::vector<FELine> LinesToLoad;
+	for (auto CurrentPolygon : Polygons)
+	{
+		for (size_t i = 0; i < CurrentPolygon.Lines.size(); i++)
+			LinesToLoad.push_back(CurrentPolygon.Lines[i]);
+	}
+
+	if (CanvasLineCollection != nullptr)
+	{
+		RESOURCE_MANAGER.DeleteFELineCollection(CanvasLineCollection);
+		CanvasLineCollection = nullptr;
+	}
+		
+	CanvasLineCollection = RESOURCE_MANAGER.RawDataToFELineCollection(LinesToLoad);
+	if (CanvasEntity != nullptr)
+	{
+		if (CanvasEntity->HasComponent<FELineComponent>())
+		{
+			CanvasEntity->GetComponent<FELineComponent>().SetLineCollection(CanvasLineCollection);
+		}
+		else
+		{
+			CanvasEntity->AddComponent<FELineComponent>(CanvasLineCollection);
+		}
+	}
+
+	return &Polygons.back();
+}
+
+size_t PolygonPlane::GetPolygonIndex(FEPolygon* Polygon)
+{
+	for (size_t i = 0; i < Polygons.size(); i++)
+	{
+		if (&Polygons[i] == Polygon)
+			return i;
+	}
+
+	return -1;
 }

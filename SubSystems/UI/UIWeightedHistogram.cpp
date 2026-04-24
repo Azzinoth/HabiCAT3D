@@ -39,8 +39,8 @@ void FEWeightedHistogram::Clear()
 {
 	Graph.Clear();
 
-	MinValue = DBL_MAX;
-	MaxValue = -DBL_MAX;
+	MinValue = std::numeric_limits<double>::max();
+	MaxValue = -std::numeric_limits<double>::max();
 }
 
 void FEWeightedHistogram::SetLegendCaption(float NormalizedPosition, std::string Text)
@@ -58,7 +58,11 @@ void FEWeightedHistogram::SetCeiling(float NewValue)
 	Graph.SetCeiling(NewValue);
 }
 
-std::vector<FEGraphDataPoint> FEWeightedHistogram::ConvertToDataPoints(const std::vector<double>& Values, const std::vector<double>& Weights, size_t BinsCount)
+std::vector<FEGraphDataPoint> FEWeightedHistogram::ConvertToDataPoints(const std::vector<double>& Values,
+																	   const std::vector<double>& Weights,
+																	   size_t BinsCount,
+																	   double OverrideMinValue,
+																	   double OverrideMaxValue)
 {
 	std::vector<FEGraphDataPoint> Result;
 	Result.resize(BinsCount);
@@ -69,8 +73,23 @@ std::vector<FEGraphDataPoint> FEWeightedHistogram::ConvertToDataPoints(const std
 	std::vector<float> BinUpperBounds;
 	BinUpperBounds.resize(BinsCount);
 
-	MinValue = *std::min_element(Values.begin(), Values.end());
-	MaxValue = *std::max_element(Values.begin(), Values.end());
+	if (OverrideMinValue != std::numeric_limits<double>::max())
+	{
+		MinValue = OverrideMinValue;
+	}
+	else
+	{
+		MinValue = *std::min_element(Values.begin(), Values.end());
+	}
+
+	if (OverrideMaxValue != -std::numeric_limits<double>::max())
+	{
+		MaxValue = OverrideMaxValue;
+	}
+	else
+	{
+		MaxValue = *std::max_element(Values.begin(), Values.end());
+	}
 
 	for (size_t i = 0; i < BinsCount; i++)
 	{
