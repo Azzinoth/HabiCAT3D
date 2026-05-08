@@ -1,6 +1,7 @@
 #pragma once
 #include "../AnalysisObjectManager.h"
-#include "FESceneGraphUI.h"
+#include "../FESceneGraphUI/TreeView.h"
+#include "HabiCATGraphBackend.h"
 
 class ObjectViewerWindow
 {
@@ -9,25 +10,25 @@ class ObjectViewerWindow
 	SINGLETON_PRIVATE_PART(ObjectViewerWindow)
 
 	bool bVisible = true;
-	FESceneGraphUI* SceneGraphUI = nullptr;
+	SceneGraphUI::TreeView* SceneGraphUI = nullptr;
+	HabiCATGraphBackend* GraphBackend = nullptr;
 
 	FETexture* VisibilityOnIcon = nullptr;
 	FETexture* VisibilityOffIcon = nullptr;
 	FETexture* TrashBinIcon = nullptr;
 	FETexture* MeshIcon = nullptr;
 	FETexture* PointCloudIcon = nullptr;
-	FESceneGraphNodeWidget TrashWidget;
-	FESceneGraphNodeWidget VisibilityToggleWidget;
+	SceneGraphUI::NodeWidget TrashWidget;
+	SceneGraphUI::NodeWidget VisibilityToggleWidget;
 
-	static bool ShouldRenderNode(FENaiveSceneGraphNode* SubTreeRoot);
-	static std::string GetDisplayedName(FENaiveSceneGraphNode* SubTreeRoot);
-	static bool ShouldShowChildren(FENaiveSceneGraphNode* SubTreeRoot);
+	static bool ShouldRenderNode(SceneGraphUI::NodeHandle SubTreeRoot);
+	static bool ShouldShowChildren(SceneGraphUI::NodeHandle SubTreeRoot);
 
-	static FETexture* NodeIcon(FENaiveSceneGraphNode* Node);
+	static ImTextureID NodeIcon(SceneGraphUI::NodeHandle Node);
 
-	static void OnNodeClicked(FENaiveSceneGraphNode* Node, ImGuiMouseButton_ MouseButton);
-	static void OnDoubleClickNode(FENaiveSceneGraphNode* Node, ImGuiMouseButton_ MouseButton);
-	static void OnNodeSelectionChanged(FENaiveSceneGraphNode* Node, bool bOldState);
+	static void OnNodeClicked(SceneGraphUI::NodeHandle Node, ImGuiMouseButton_ MouseButton);
+	static void OnDoubleClickNode(SceneGraphUI::NodeHandle Node, ImGuiMouseButton_ MouseButton);
+	static void OnNodeSelectionChanged(SceneGraphUI::NodeHandle Node, bool bOldState);
 public:
 	SINGLETON_PUBLIC_PART(ObjectViewerWindow)
 
@@ -37,6 +38,9 @@ public:
 	void Render();
 
 	FEEntity* GetSelectedEntity();
+	
+	void SetNodeSelected(FENaiveSceneGraphNode* Node, bool bSelected);
+	void ExpandToNode(FENaiveSceneGraphNode* Node);
 };
 
 #define OBJECT_VIEWER_WINDOW ObjectViewerWindow::GetInstance()

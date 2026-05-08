@@ -31,6 +31,7 @@ if(NOT TARGET FocalEngine)
 	add_subdirectory(SubSystems/FocalEngine)
 endif()
 
+set(DEAR_IMGUI_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/SubSystems/FocalEngine/SubSystems/FEBasicApplication/ThirdParty/imgui CACHE PATH "Path to Dear ImGui directory." FORCE)
 if(NOT TARGET FESceneGraphUI)
     add_subdirectory(SubSystems/FESceneGraphUI)
 endif()
@@ -122,6 +123,8 @@ file(GLOB SubSystems_UI_SRC
 	"SubSystems/UI/NewLayerWindow.h"
 	"SubSystems/UI/LoadPhotogrammetryWindow.cpp"
 	"SubSystems/UI/LoadPhotogrammetryWindow.h"
+	"SubSystems/UI/HabiCATGraphBackend.cpp"
+	"SubSystems/UI/HabiCATGraphBackend.h"
 	"SubSystems/UI/ObjectViewerWindow.cpp"
 	"SubSystems/UI/ObjectViewerWindow.h"
 	"SubSystems/UI/SettingsWindow.cpp"

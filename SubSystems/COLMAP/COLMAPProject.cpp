@@ -194,7 +194,7 @@ bool COLMAPProject::CreateCameraSceneRepresentation(std::string CameraID)
 	CameraComponent.SetFOV(FOVYDegrees);
 	CameraComponent.SetAspectRatio(AspectRatio);
 	CameraComponent.TryToSetViewportSize(PhysicalCamera->GetWidth(), PhysicalCamera->GetHeight());
-	// Magic number, fix later
+	// FE_FIX_ME: Magic number, fix later
 	CameraComponent.SetFarPlane(50.0f);
 	CAMERA_SYSTEM.IndividualUpdate(CameraEntity, 1.0);
 	CameraEntity->GetComponent<FECameraComponent>().SetActive(false);

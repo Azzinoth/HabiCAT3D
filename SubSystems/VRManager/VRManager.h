@@ -1,5 +1,5 @@
 #pragma once
-#include "../AnalysisObjectManager.h"
+#include "../Annotations/AnnotationManager.h"
 using namespace FocalEngine;
 
 class VRManager
@@ -84,13 +84,26 @@ class VRManager
 	bool bLeftControllerTriggerIsPressed = false;
 	bool bRightControllerTriggerIsPressed = false;
 
-	/*std::vector<FEMesh*> SphereCursorMeshes;
+	std::vector<FEMesh*> SphereCursorMeshes;
 	FEMaterial* SphereCursorMaterial = nullptr;
 	std::vector<FEGameModel*> SphereCursorGameModels;
 	std::vector<FEEntity*> SphereCursorEntities;
 	glm::vec3 SphereCursorPosition = glm::vec3(0.0f, 0.0f, -0.035f);
 	float SphereCursorScale = 0.008f;
-	bool bSphereCursorIsActive = false;*/
+	bool bSphereCursorIsActive = false;
+
+	void InitializeSphereCursor();
+	void AnimateSphereCursor();
+	void AttachSphereCursorToController();
+	void RotateTowardCamera(FEEntity* Entity, FEEntity* CameraEntity);
+
+	bool IsSphereCursorActive() const;
+	bool IsSphereCursorVisible() const;
+	void ShowSphereCursor();
+	void HideSphereCursor();
+
+	GLuint DeletionFlagBuffer;
+	float SphereCursorActionScale = 1.0f / 2.55f;
 
 	FEEntity* GreenCylinderEntity = nullptr;
 	FEEntity* RedCylinderEntity = nullptr;
@@ -130,6 +143,16 @@ class VRManager
 	void HideVirtualKeyboard();
 
 	void SetImGuiStyleForVR();*/
+
+// FE_FIX_ME: It is temporary here.
+public:
+	std::vector<glm::vec3> TriangleCentroidsForAnnotation;
+	GLuint TriangleCentroids = GLuint(-1);
+	GLuint AnnotationIDBuffer = GLuint(-1);
+	void InitiailizeTriangleCentroidsBuffer();
+	FEShader* DeletePointsComputeShader = nullptr;
+	void Annotate(glm::vec3 Center, float Radius, int AnnotationID);
+	int AnnotationIDToUse = -1;
 public:
 	SINGLETON_PUBLIC_PART(VRManager)
 

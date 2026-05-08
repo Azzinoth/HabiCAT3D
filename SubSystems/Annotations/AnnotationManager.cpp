@@ -292,6 +292,8 @@ bool AnnotationManager::AddAnnotationToAnalysisObject(std::string AnalysisObject
 		AnnotationEntity->AttachTo(Entity, false);
 
 		RENDERER.AddBeforeRenderCallback(Entity, AnnotationManager::BeforeRender);
+
+		InitalizeBuffer(CurrentAnnotationData);
 	}
 
 	return true;
@@ -378,7 +380,8 @@ void AnnotationManager::BeforeRender(FEEntity* CurrentEntity)
 	if (bShouldBeVisualized)
 	{
 		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("AnnotationVisualizationActive", 1);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, CurrentAnnotationData->AnnotationSSBO);
+		FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, CurrentAnnotationData->AnnotationSSBO));
+		FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, CurrentAnnotationData->AnnotationSSBO));
 
 		FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
 
@@ -485,7 +488,53 @@ void AnnotationManager::UpdateBuffer(AnnotationData* Data)
 	}
 
 	FE_GL_ERROR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * Data->FinalPerVertexData.size() * 4, Data->FinalPerVertexData.data()));
+	Data->UpdateColorInfoOnGPU();
 	UpdateHistogramData(Data);
+}
+
+bool AnnotationManager::ReadBackBuffer(AnnotationData* Data)
+{
+	if (Data == nullptr)
+		return false;
+
+	if (Data->DataBufferID == GLuint(-1))
+		return false;
+
+	AnalysisObject* Object = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(Data->AnalysisObjectID);
+	if (Object == nullptr)
+		return false;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
+	if (CurrentMeshAnalysisData == nullptr)
+		return false;
+
+	const size_t VertexCount = CurrentMeshAnalysisData->Vertices.size() / 3;
+	const size_t TriangleCount = CurrentMeshAnalysisData->Triangles.size();
+
+	if (VertexCount == 0 || TriangleCount == 0)
+		return false;
+
+	if (CurrentMeshAnalysisData->Indices.size() < TriangleCount * 3)
+		return false;
+
+	Data->FinalPerVertexData.resize(VertexCount);
+
+	FE_GL_ERROR(glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT));
+	FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, Data->DataBufferID));
+	FE_GL_ERROR(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0,
+		sizeof(glm::vec4) * VertexCount,
+		Data->FinalPerVertexData.data()));
+	FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0));
+
+	Data->PerTriangleID.resize(TriangleCount);
+	for (size_t i = 0; i < TriangleCount; i++)
+	{
+		const int VertexIndex = CurrentMeshAnalysisData->Indices[i * 3];
+		Data->PerTriangleID[i] = static_cast<int>(std::lround(Data->FinalPerVertexData[VertexIndex].x));
+	}
+
+	UpdateHistogramData(Data);
+	return true;
 }
 
 void AnnotationManager::UpdateHistogramData(AnnotationData* Data)

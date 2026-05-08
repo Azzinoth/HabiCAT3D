@@ -286,6 +286,36 @@ bool DataLayer::TransfareDataFromTrianglesToVertices(AnalysisObject* Object, std
 	return true;
 }
 
+bool DataLayer::TransfareDataFromTrianglesToVertices(AnalysisObject* Object, std::vector<glm::vec3>& TriangleData, std::vector<glm::vec3>& VertexData)
+{
+	if (Object == nullptr)
+		return false;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
+	if (CurrentMeshAnalysisData == nullptr)
+		return false;
+
+	// Adjust these size checks to match how Triangles/Vertices are actually stored.
+	// If Vertices is a flat float array: VertexData.size() != CurrentMeshAnalysisData->Vertices.size() / 3
+	if (TriangleData.size() != CurrentMeshAnalysisData->Triangles.size())
+		return false;
+
+	if (VertexData.size() != CurrentMeshAnalysisData->Vertices.size())
+		return false;
+
+	for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+	{
+		const int BaseIndex = static_cast<int>(i * 3);
+		for (size_t j = 0; j < 3; j++)
+		{
+			const int VertexIndex = CurrentMeshAnalysisData->Indices[BaseIndex + j];
+			VertexData[VertexIndex] = TriangleData[i];
+		}
+	}
+
+	return true;
+}
+
 void DataLayer::FillRawData()
 {
 	AnalysisObject* CurrentObject = GetMainParentObject();

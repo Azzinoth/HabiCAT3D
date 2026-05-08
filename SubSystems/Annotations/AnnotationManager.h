@@ -95,6 +95,7 @@ public:
 
 	void InitalizeBuffer(AnnotationData* Data);
 	void UpdateBuffer(AnnotationData* Data);
+	bool ReadBackBuffer(AnnotationData* Data);
 private:
 	SINGLETON_PRIVATE_PART(AnnotationManager)
 

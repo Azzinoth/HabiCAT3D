@@ -1341,9 +1341,8 @@ void AnalysisObjectManager::SaveAnnotationsDataToRUGFile(std::fstream& File, Ana
 
 void AnalysisObjectManager::LoadAnnotationsDataFromRUGFile(std::fstream& File, AnalysisObject* Object)
 {
-	char* Buffer = new char[4];
-	File.read(Buffer, 4);
-	const int Indicator = *(int*)Buffer;
+	int Indicator = 0;
+	File.read((char*)&Indicator, sizeof(int));
 	if (Indicator == 0)
 		return;
 
@@ -1354,27 +1353,23 @@ void AnalysisObjectManager::LoadAnnotationsDataFromRUGFile(std::fstream& File, A
 	if (NewAnnotationData == nullptr)
 		return;
 
-	File.read(Buffer, 4);
-	int AnnotationInfoCount = *(int*)Buffer;
+	int AnnotationInfoCount = 0;
+	File.read((char*)&AnnotationInfoCount, sizeof(int));
+
 	std::vector<AnnotationInfo> ReadAnnotationInfo;
 	ReadAnnotationInfo.resize(AnnotationInfoCount);
-	for (size_t i = 0; i < AnnotationInfoCount; i++)
+	for (int i = 0; i < AnnotationInfoCount; i++)
 	{
-		File.read(Buffer, 4);
-		ReadAnnotationInfo[i].ID = *(int*)Buffer;
-
+		File.read((char*)&ReadAnnotationInfo[i].ID, sizeof(int));
 		ReadAnnotationInfo[i].Name = FILE_SYSTEM.ReadFEString(File);
 		ReadAnnotationInfo[i].Description = FILE_SYSTEM.ReadFEString(File);
-
-		File.read(Buffer, sizeof(glm::vec4));
-		ReadAnnotationInfo[i].Color = *(glm::vec4*)Buffer;
+		File.read((char*)&ReadAnnotationInfo[i].Color, sizeof(glm::vec4));
 	}
 
 	NewAnnotationData->UsedAnnotations = ReadAnnotationInfo;
 
-	File.read(Buffer, 4);
-	const int VectorSize = *(int*)Buffer;
-	std::vector<int> PerTriangleID;
+	int VectorSize = 0;
+	File.read((char*)&VectorSize, sizeof(int));
 	NewAnnotationData->PerTriangleID.resize(VectorSize);
 	File.read((char*)NewAnnotationData->PerTriangleID.data(), VectorSize * sizeof(int));
 

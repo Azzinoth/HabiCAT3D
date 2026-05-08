@@ -58,7 +58,7 @@ void UIInspector::OnSelectedImageChangedCallback(COLMAPProject* Project, int Ima
 	FEScene* Scene = MAIN_SCENE_MANAGER.GetMainScene();
 	FENaiveSceneGraphNode* ImageInstancedSceneNode = Scene->SceneGraph.GetNodeByEntityID(ImageEntity->GetObjectID());
 
-	OBJECT_VIEWER_WINDOW.SceneGraphUI->SetNodeSelected(ImageInstancedSceneNode, true);
+	OBJECT_VIEWER_WINDOW.SetNodeSelected(ImageInstancedSceneNode, true);
 }
 
 void UIInspector::RenderSelectedObjectTab()
@@ -270,23 +270,16 @@ void UIInspector::RenderSelectedObjectTab()
 				if (SelectedEntity != nullptr)
 				{
 					std::string ShapeFilePath;
-					//NewShapeFileData.Load("C:/Users/kberegovyi/Downloads/SegmentationPainter-main/Annotations/annotated-shapes.shp");
-					//NewShapeFileData.Load("C:/Users/kberegovyi/Downloads/SegmentationPainter-main/Annotations_2/annotated-shapes.shp");
-					ShapeFilePath = "C:/Users/kberegovyi/Downloads/SegmentationPainter-main/Annotations_2/simp/simp.shp";
-					//NewShapeFileData.Load("simp/simp.shp");
-					//NewShapeFileData.Load("C:/Users/Kindr/Downloads/Annotations_2/annotated-shapes.shp");
+					FILE_SYSTEM.ShowFileOpenDialog(ShapeFilePath, SHAPE_LOAD_FILE_FILTER, 1);
+					
+					if (!ShapeFilePath.empty() && FILE_SYSTEM.DoesFileExist(ShapeFilePath))
+					{
+						ANNOTATION_MANAGER.ReadAndAddAnnotationsFromShapeFile(ShapeFilePath, ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject());
 
-					ANNOTATION_MANAGER.ReadAndAddAnnotationsFromShapeFile(ShapeFilePath, ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject());
-
-					/*AnnotationData* ExistingAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject()->GetID());
-					std::unordered_map<int, AnnotationInfo> PolygonIndexToAnnotationInfoMap;
-
-					ANNOTATION_MANAGER.ReadAnnotationsToPolygonPlane("C:/Users/kberegovyi/Downloads/SegmentationPainter-main/Annotations_2/simp/simp.shp",
-						ExistingAnnotationData->GetPolygonPlane(), PolygonIndexToAnnotationInfoMap);*/
-
-					FENaiveSceneGraphNode* AnnotationSceneNode = MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetNodeByEntityID(SelectedEntity->GetObjectID());
-					OBJECT_VIEWER_WINDOW.SceneGraphUI->ExpandToNode(AnnotationSceneNode);
-					OBJECT_VIEWER_WINDOW.SceneGraphUI->SetNodeSelected(AnnotationSceneNode, true);
+						FENaiveSceneGraphNode* AnnotationSceneNode = MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetNodeByEntityID(SelectedEntity->GetObjectID());
+						OBJECT_VIEWER_WINDOW.ExpandToNode(AnnotationSceneNode);
+						OBJECT_VIEWER_WINDOW.SetNodeSelected(AnnotationSceneNode, true);
+					}
 				}
 			}
 		}
@@ -334,8 +327,8 @@ void UIInspector::AddAnnotationToCurrentObject()
 	FEEntity* AnnotationEntity = CurrentAnnotationData->GetEntity();
 
 	FENaiveSceneGraphNode* AnnotationSceneNode = MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetNodeByEntityID(AnnotationEntity->GetObjectID());
-	OBJECT_VIEWER_WINDOW.SceneGraphUI->ExpandToNode(AnnotationSceneNode);
-	OBJECT_VIEWER_WINDOW.SceneGraphUI->SetNodeSelected(AnnotationSceneNode, true);
+	OBJECT_VIEWER_WINDOW.ExpandToNode(AnnotationSceneNode);
+	OBJECT_VIEWER_WINDOW.SetNodeSelected(AnnotationSceneNode, true);
 }
 
 void UIInspector::RenderPhotogrammetryInformation(COLMAPProject* CurrentCOLMAPProject)
@@ -957,7 +950,7 @@ void UIInspector::OnObjectLoad(AnalysisObject* NewObject)
 	{
 		FEScene* Scene = MAIN_SCENE_MANAGER.GetMainScene();
 		FENaiveSceneGraphNode* Node = Scene->SceneGraph.GetNodeByEntityID(NewActiveEntity->GetObjectID());
-		OBJECT_VIEWER_WINDOW.SceneGraphUI->SetNodeSelected(Scene->SceneGraph.GetNodeByEntityID(NewActiveEntity->GetObjectID()), true);
+		OBJECT_VIEWER_WINDOW.SetNodeSelected(Scene->SceneGraph.GetNodeByEntityID(NewActiveEntity->GetObjectID()), true);
 	}
 }
 

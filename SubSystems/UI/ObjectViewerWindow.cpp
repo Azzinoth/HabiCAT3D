@@ -1,5 +1,6 @@
 #include "ObjectViewerWindow.h"
 #include "UIManager.h"
+using namespace SceneGraphUI;
 
 ObjectViewerWindow::ObjectViewerWindow()
 {
@@ -12,7 +13,8 @@ ObjectViewerWindow::ObjectViewerWindow()
 		MeshIcon = RESOURCE_MANAGER.LoadPNGTexture("Resources/mesh.png", "MeshIcon");
 		PointCloudIcon = RESOURCE_MANAGER.LoadPNGTexture("Resources/point_cloud.png", "PointCloudIcon");
 
-		SceneGraphUI = new FESceneGraphUI();
+		GraphBackend = new HabiCATGraphBackend();
+		SceneGraphUI = new TreeView(GraphBackend);
 	}
 }
 
@@ -26,17 +28,14 @@ void ObjectViewerWindow::SetVisible(bool NewValue)
 	bVisible = NewValue;
 }
 
-#define ANALISYS_OBJECTS_DEPTH 1
-#define PHOTOGRAMMETRY_ANCHOR_DEPTH (ANALISYS_OBJECTS_DEPTH + 1)
-#define PHOTOGRAMMETRY_RESOURCES_DEPTH (PHOTOGRAMMETRY_ANCHOR_DEPTH + 1)
-
-bool ObjectViewerWindow::ShouldRenderNode(FENaiveSceneGraphNode* SubTreeRoot)
+bool ObjectViewerWindow::ShouldRenderNode(SceneGraphUI::NodeHandle SubTreeRoot)
 {
-	size_t Depth = SubTreeRoot->GetDepth();
+	FENaiveSceneGraphNode* CurrentNode = SubTreeRoot.As<FENaiveSceneGraphNode>();
+	size_t Depth = CurrentNode->GetDepth();
 	if (Depth == 0)
 		return true;
 
-	FEEntity* CurrentEntity = SubTreeRoot->GetEntity();
+	FEEntity* CurrentEntity = CurrentNode->GetEntity();
 	if (CurrentEntity == nullptr)
 		return false;
 
@@ -67,73 +66,37 @@ bool ObjectViewerWindow::ShouldRenderNode(FENaiveSceneGraphNode* SubTreeRoot)
 	return true;
 }
 
-std::string ObjectViewerWindow::GetDisplayedName(FENaiveSceneGraphNode* SubTreeRoot)
+bool ObjectViewerWindow::ShouldShowChildren(SceneGraphUI::NodeHandle SubTreeRoot)
 {
-	size_t Depth = SubTreeRoot->GetDepth();
-
-	std::string DisplayedName = SubTreeRoot->GetName();
-	FEEntity* CurrentEntity = SubTreeRoot->GetEntity();
-	std::string CurrentEntityName = CurrentEntity->GetName();
-	if (Depth == ANALISYS_OBJECTS_DEPTH)
-	{
-		AnalysisObject* CurrentAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
-		if (CurrentAnalysisObject != nullptr)
-			DisplayedName = CurrentAnalysisObject->GetName();
-	}
-	if (Depth == ANALISYS_OBJECTS_DEPTH + 1)
-	{
-		if (CurrentEntityName.find("Annotation") != std::string::npos)
-		{
-			DisplayedName = "Annotations";
-		}
-		else 
-		{
-			DisplayedName = "Photogrammetry";
-		}
-	}
-	if (Depth == PHOTOGRAMMETRY_RESOURCES_DEPTH)
-	{
-		if (CurrentEntityName.find("COLMAPImages") != std::string::npos)
-		{
-			DisplayedName = "Images";
-		}
-		else if (CurrentEntityName.find("Tie Points") != std::string::npos)
-		{
-			DisplayedName = "Tie Points";
-		}
-	}
-
-	return DisplayedName;
-}
-
-bool ObjectViewerWindow::ShouldShowChildren(FENaiveSceneGraphNode* SubTreeRoot)
-{
-	size_t Depth = SubTreeRoot->GetDepth();
+	FENaiveSceneGraphNode* CurrentNode = SubTreeRoot.As<FENaiveSceneGraphNode>();
+	size_t Depth = CurrentNode->GetDepth();
 	if (Depth == PHOTOGRAMMETRY_RESOURCES_DEPTH)
 		return false;
 
 	return true;
 }
 
-FETexture* ObjectViewerWindow::NodeIcon(FENaiveSceneGraphNode* Node)
+ImTextureID ObjectViewerWindow::NodeIcon(SceneGraphUI::NodeHandle Node)
 {
-	FEEntity* CurrentEntity = Node->GetEntity();
+	FENaiveSceneGraphNode* CurrentNode = Node.As<FENaiveSceneGraphNode>();
+	FEEntity* CurrentEntity = CurrentNode->GetEntity();
 	if (CurrentEntity == nullptr)
-		return nullptr;
+		return 0;
 
 	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
 	if (CurrentObject == nullptr)
-		return nullptr;
+		return 0;
 
-	return CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? OBJECT_VIEWER_WINDOW.MeshIcon : OBJECT_VIEWER_WINDOW.PointCloudIcon;
+	return CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH ? OBJECT_VIEWER_WINDOW.MeshIcon->GetTextureID() : OBJECT_VIEWER_WINDOW.PointCloudIcon->GetTextureID();
 }
 
-void ObjectViewerWindow::OnDoubleClickNode(FENaiveSceneGraphNode* Node, ImGuiMouseButton_ MouseButton)
+void ObjectViewerWindow::OnDoubleClickNode(SceneGraphUI::NodeHandle Node, ImGuiMouseButton_ MouseButton)
 {
 	if (MouseButton != ImGuiMouseButton_Left)
 		return;
 
-	FEEntity* CurrentEntity = Node->GetEntity();
+	FENaiveSceneGraphNode* CurrentNode = Node.As<FENaiveSceneGraphNode>();
+	FEEntity* CurrentEntity = CurrentNode->GetEntity();
 	if (CurrentEntity == nullptr)
 		return;
 
@@ -172,23 +135,25 @@ AnalysisObject* GetAnalysisObjectFromNode(FENaiveSceneGraphNode* Node)
 	return CurrentObject;
 }
 
-void ObjectViewerWindow::OnNodeClicked(FENaiveSceneGraphNode* Node, ImGuiMouseButton_ MouseButton)
+void ObjectViewerWindow::OnNodeClicked(SceneGraphUI::NodeHandle Node, ImGuiMouseButton_ MouseButton)
 {
 	if (MouseButton != ImGuiMouseButton_Left)
 		return;
 
-	FEEntity* CurrentEntity = Node->GetEntity();
+	FENaiveSceneGraphNode* CurrentNode = Node.As<FENaiveSceneGraphNode>();
+	FEEntity* CurrentEntity = CurrentNode->GetEntity();
 	if (CurrentEntity == nullptr)
 		return;
 
-	AnalysisObject* CurrentObject = GetAnalysisObjectFromNode(Node);
+	AnalysisObject* CurrentObject = GetAnalysisObjectFromNode(CurrentNode);
 	if (CurrentObject != nullptr)
 		ANALYSIS_OBJECT_MANAGER.SetActiveAnalysisObject(CurrentObject->GetID());
 }
 
-void ObjectViewerWindow::OnNodeSelectionChanged(FENaiveSceneGraphNode* Node, bool bOldState)
+void ObjectViewerWindow::OnNodeSelectionChanged(SceneGraphUI::NodeHandle Node, bool bOldState)
 {
-	FEEntity* CurrentEntity = Node->GetEntity();
+	FENaiveSceneGraphNode* CurrentNode = Node.As<FENaiveSceneGraphNode>();
+	FEEntity* CurrentEntity = CurrentNode->GetEntity();
 	if (CurrentEntity == nullptr)
 		return;
 
@@ -217,7 +182,6 @@ void ObjectViewerWindow::Render()
 		bFirstTime = false;
 
 		SceneGraphUI->SetNodeRenderPredicate(ObjectViewerWindow::ShouldRenderNode);
-		SceneGraphUI->SetNodeDisplayNameProvider(ObjectViewerWindow::GetDisplayedName);
 		SceneGraphUI->SetNodeChildrenVisiblePredicate(ObjectViewerWindow::ShouldShowChildren);
 
 		SceneGraphUI->SetNodeIconProvider(ObjectViewerWindow::NodeIcon);
@@ -226,10 +190,11 @@ void ObjectViewerWindow::Render()
 		SceneGraphUI->AddOnNodeDoubleClickedCallback(ObjectViewerWindow::OnDoubleClickNode);
 		SceneGraphUI->AddOnNodeSelectionChangedCallback(ObjectViewerWindow::OnNodeSelectionChanged);
 		
-		TrashWidget.Icon = TrashBinIcon;
+		TrashWidget.Icon = TrashBinIcon->GetTextureID();
 		TrashWidget.bIsInteractive = true;
-		TrashWidget.OnClickCallback = [](FENaiveSceneGraphNode* Node) {
-			FEEntity* CurrentEntity = Node->GetEntity();
+		TrashWidget.OnClickCallback = [](SceneGraphUI::NodeHandle Node) {
+			FENaiveSceneGraphNode* CurrentNode = Node.As<FENaiveSceneGraphNode>();
+			FEEntity* CurrentEntity = CurrentNode->GetEntity();
 			if (CurrentEntity == nullptr)
 				return;
 
@@ -252,19 +217,21 @@ void ObjectViewerWindow::Render()
 		SceneGraphUI->AddNodeWidget(TrashWidget);
 
 		
-		VisibilityToggleWidget.Icon = VisibilityOnIcon;
-		VisibilityToggleWidget.DynamicIconProvider = [this](FENaiveSceneGraphNode* Node) -> FETexture* {
-			FEEntity* CurrentEntity = Node->GetEntity();
+		VisibilityToggleWidget.Icon = VisibilityOnIcon->GetTextureID();
+		VisibilityToggleWidget.DynamicIconProvider = [this](SceneGraphUI::NodeHandle Node) -> ImTextureID {
+			FENaiveSceneGraphNode* CurrentNode = Node.As<FENaiveSceneGraphNode>();
+			FEEntity* CurrentEntity = CurrentNode->GetEntity();
 			if (CurrentEntity == nullptr)
-				return nullptr;
+				return 0;
 
 			bool bIsVisible = CurrentEntity->IsVisible();
-			return bIsVisible ? VisibilityOnIcon : VisibilityOffIcon;
+			return bIsVisible ? VisibilityOnIcon->GetTextureID() : VisibilityOffIcon->GetTextureID();
 		};
 
 		VisibilityToggleWidget.bIsInteractive = true;
-		VisibilityToggleWidget.OnClickCallback = [](FENaiveSceneGraphNode* Node) {
-			FEEntity* CurrentEntity = Node->GetEntity();
+		VisibilityToggleWidget.OnClickCallback = [](SceneGraphUI::NodeHandle Node) {
+			FENaiveSceneGraphNode* CurrentNode = Node.As<FENaiveSceneGraphNode>();
+			FEEntity* CurrentEntity = CurrentNode->GetEntity();
 			if (CurrentEntity == nullptr)
 				return;
 
@@ -284,11 +251,8 @@ void ObjectViewerWindow::Render()
 		ImVec2 CurrentWindowPosition = ImGui::GetWindowPos();
 		ImVec2 CurrentWindowSize = ImGui::GetWindowSize();
 
-		static bool bSceneGraphDebugMode = false;
-		if (ImGui::Checkbox("Scene Graph Debug Mode", &bSceneGraphDebugMode))
-			SceneGraphUI->SetDebugMode(bSceneGraphDebugMode);
-
-		SceneGraphUI->Render(MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetRoot(), false);
+		GraphBackend->SetSceneID(MAIN_SCENE_MANAGER.GetMainScene()->GetObjectID());
+		SceneGraphUI->Render(SceneGraphUI::NodeHandle(MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetRoot(), GraphBackend), false);
 	}
 
 	ImGui::End();
@@ -307,4 +271,14 @@ FEEntity* ObjectViewerWindow::GetSelectedEntity()
 		return nullptr;
 
 	return SelectedNode->GetEntity();
+}
+
+void ObjectViewerWindow::SetNodeSelected(FENaiveSceneGraphNode* Node, bool bSelected)
+{
+	SceneGraphUI->SetNodeSelected(SceneGraphUI::NodeHandle(Node, GraphBackend), bSelected);
+}
+
+void ObjectViewerWindow::ExpandToNode(FENaiveSceneGraphNode* Node)
+{
+	SceneGraphUI->ExpandToNode(SceneGraphUI::NodeHandle(Node, GraphBackend));
 }

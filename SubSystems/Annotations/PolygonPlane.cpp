@@ -146,6 +146,7 @@ void PolygonPlane::BeginDraftPolygon()
 
 	Polygons.push_back(FEPolygon());
 	DraftPolygonIndex = static_cast<int>(Polygons.size()) - 1;
+	OGRPolygons.resize(Polygons.size());
 }
 
 void PolygonPlane::FinalizeDraftPolygon()

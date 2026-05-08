@@ -146,6 +146,36 @@ void ConsoleThreadCode(void* InputData)
 	}
 }
 
+bool MarkTrianglesInRangeForAnnotation(AnalysisObject* Object, DataLayer* Layer, float LowerLevel, float UpperLevel)
+{
+	if (Object == nullptr || Layer == nullptr)
+		return false;
+
+	MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
+	if (CurrentMeshAnalysisData == nullptr)
+		return false;
+
+	AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(Object->GetID());
+	if (CurrentAnnotationData == nullptr)
+		return false;
+
+	bool bAtLeastOneTriangleAnnotated = false;
+	for (size_t i = 0; i < Layer->ElementsToData.size(); i++)
+	{
+		float CurrentValue = Layer->ElementsToData[i];
+		if (CurrentValue >= LowerLevel && CurrentValue <= UpperLevel)
+		{
+			CurrentAnnotationData->PerTriangleID[i] = 1;
+			bAtLeastOneTriangleAnnotated = true;
+		}
+	}
+
+	if (bAtLeastOneTriangleAnnotated)
+		ANNOTATION_MANAGER.UpdateBuffer(CurrentAnnotationData);
+
+	return bAtLeastOneTriangleAnnotated;
+}
+
 void MainWindowRender()
 {
 	static bool FirstFrame = true;
@@ -158,6 +188,14 @@ void MainWindowRender()
 		UI_INSPECTOR.SetShouldTakeScreenshot(false);
 		SCREENSHOT_MANAGER.TakeScreenshot();
 		return;
+	}
+
+	static int AnnotationID = 0;
+	ImGui::InputInt("Annotation ID", &VR_MANAGER.AnnotationIDToUse);
+
+	if (ImGui::Button("Read annotations data from GPU memory"))
+	{
+		ANNOTATION_MANAGER.ReadBackBuffer(ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject()->GetID()));
 	}
 
 	bool bGraphDebugWindow = true;
@@ -188,6 +226,33 @@ void MainWindowRender()
 		static std::string SecondChoosenActiveObjectID;
 		static int SecondChoosenLayerIndex = -1;
 
+		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		if (ActiveObject != nullptr)
+		{
+			DataLayer* ActiveLayer = ActiveObject->GetActiveLayer();
+			if (ActiveLayer != nullptr)
+			{
+				ImGui::Separator();
+				ImGui::Text("DEBUG OF ANNOTATIONS AND GRAPH:");
+
+				float LayerMin = ActiveLayer->GetMin();
+				float LayerMax = ActiveLayer->GetMax();
+
+				static float LowerLevel = 0.0f;
+				ImGui::DragFloat("Lower level of metric", &LowerLevel, 0.01f, LayerMin, LayerMax);
+
+				static float UpperLevel = 0.0f;
+				ImGui::DragFloat("Upper level of metric", &UpperLevel, 0.01f, LayerMin, LayerMax);
+
+				if (ImGui::Button("Add annotation to triangles in this range"))
+				{
+					MarkTrianglesInRangeForAnnotation(ActiveObject, ActiveLayer, LowerLevel, UpperLevel);
+				}
+
+				ImGui::Separator();
+			}
+		}
+		
 		bool bHaveAnyObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount() > 0;
 		if (bHaveAnyObject)
 		{
@@ -396,11 +461,9 @@ void MainWindowRender()
 						Weights.push_back(std::get<1>(Tuple));
 					}
 
-					std::vector<FEGraphDataPoint> NoAnnotationGraphDataPoints = UI.GetHistogramPointer()->ConvertToDataPoints(Values, Weights, BinsCount);
+					std::vector<FEGraphDataPoint> NoAnnotationGraphDataPoints = UI.GetHistogramPointer()->ConvertToDataPoints(Values, Weights,
+																															  BinsCount, ActiveLayerData->GetMin(), ActiveLayerData->GetMax());
 					UI.GetHistogramPointer()->GetGraphPointer()->AddDataPoints(NoAnnotationGraphDataPoints);
-
-					Values.clear();
-					Weights.clear();
 
 					std::vector<AnnotationInfo> AllAnnotationInfo = AnnotationData->GetAllAnnotationInfos();
 					std::vector<std::vector<FEGraphDataPoint>> AnnotationGraphDataPoints;
@@ -411,13 +474,16 @@ void MainWindowRender()
 						if (AllAnnotationInfo[i].HistogramData.empty())
 							continue;
 
+						Values.clear();
+						Weights.clear();
 						for (const auto& Tuple : AllAnnotationInfo[i].HistogramData)
 						{
 							Values.push_back(std::get<0>(Tuple));
 							Weights.push_back(std::get<1>(Tuple));
 						}
 
-						std::vector<FEGraphDataPoint> CurrentAnnotationGraphDataPoints = UI.GetHistogramPointer()->ConvertToDataPoints(Values, Weights, BinsCount);
+						std::vector<FEGraphDataPoint> CurrentAnnotationGraphDataPoints = UI.GetHistogramPointer()->ConvertToDataPoints(Values, Weights,
+																																	   BinsCount, ActiveLayerData->GetMin(), ActiveLayerData->GetMax());
 						for (size_t j = 0; j < CurrentAnnotationGraphDataPoints.size(); j++)
 							CurrentAnnotationGraphDataPoints[j].StackID = GraphStackIndex;
 
@@ -544,7 +610,13 @@ void MainWindowRender()
 	if (bVRMode)
 	{
 		VR_MANAGER.Update();
-
+		
+		/*std::pair<glm::vec3, glm::vec3> EyeGazeData = FEOpenXR_INPUT.GetEyeGazeOriginAndDirection();
+		float RayLength = 10.0f;
+		glm::vec3 OutEnd = EyeGazeData.first + EyeGazeData.second * RayLength;
+		RENDERER.DebugLineCounter = 0;
+		RENDERER.DebugDrawLine(EyeGazeData.first, OutEnd, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), 2.0f);*/
+		
 		FEEntity* VRRigEntity = OpenXR_MANAGER.GetVRRigEntity();
 		if (VRRigEntity != nullptr)
 		{
@@ -608,84 +680,6 @@ GLFWimage ConvertIconToGLFWImage(HICON Icon)
 	return Result;
 }
 
-void TestReadShapeFile()
-{
-	std::vector<std::vector<glm::vec2>> polygons;
-	std::vector<glm::vec2> polylines;
-
-	//auto* ds = (GDALDataset*)GDALOpenEx("ne_110m_admin_0_countries/ne_110m_admin_0_countries.shp", GDAL_OF_VECTOR, nullptr, nullptr, nullptr);
-	auto* ds = (GDALDataset*)GDALOpenEx("D:/CloudBathymetry_Client_Master/Resources/NCCoast50m/NCCoast50m.shp", GDAL_OF_VECTOR, nullptr, nullptr, nullptr);
-
-
-	auto* layer = ds->GetLayer(0);
-
-	//double x = 0.0; // longitude
-	//double y = 0.0; // latitude
-
-	//OGRPoint testPoint(x, y);
-
-	//for (auto& feature : layer) {
-	//	OGRGeometry* geom = feature->GetGeometryRef();
-	//	if (geom->Contains(&testPoint)) {
-	//		// inside this polygon
-	//	}
-	//}
-
-	for (auto& feature : layer) {
-		OGRGeometry* geom = feature->GetGeometryRef();
-
-		if (auto* poly = dynamic_cast<OGRPolygon*>(geom)) {
-			// single polygon
-			OGRLinearRing* ring = poly->getExteriorRing();
-			int n = ring->getNumPoints();
-			std::vector<glm::vec2> points(n);
-			for (int i = 0; i < n; i++)
-				points[i] = glm::vec2(ring->getX(i), ring->getY(i));
-			polygons.push_back(std::move(points));
-		}
-		else if (auto* multi = dynamic_cast<OGRMultiPolygon*>(geom)) {
-			for (int p = 0; p < multi->getNumGeometries(); p++) {
-				auto* poly = dynamic_cast<OGRPolygon*>(multi->getGeometryRef(p));
-				if (!poly) continue;
-				OGRLinearRing* ring = poly->getExteriorRing();
-				int n = ring->getNumPoints();
-				std::vector<glm::vec2> points(n);
-				for (int i = 0; i < n; i++)
-					points[i] = glm::vec2(ring->getX(i), ring->getY(i));
-				polygons.push_back(std::move(points));
-			}
-		}
-		else if (auto* line = dynamic_cast<OGRLineString*>(geom)) {
-			int n = line->getNumPoints();
-			//std::vector<glm::vec2> points(n);
-			for (int i = 0; i < n; i++)
-				polylines.push_back(glm::vec2(line->getX(i), line->getY(i)));
-			//points[i] = glm::vec2(line->getX(i), line->getY(i));
-
-		//polylines = std::move(points);
-		//polylines.push_back(std::move(points));
-		}
-	}
-
-	int layerCount = ds->GetLayerCount();
-	std::string LayerInfo = "Number of layers: " + std::to_string(layerCount) + "\n";
-
-	for (int i = 0; i < layerCount; i++) {
-		OGRLayer* layer = ds->GetLayer(i);
-		const char* name = layer->GetName();
-		int featureCount = static_cast<int>(layer->GetFeatureCount());
-
-		OGRwkbGeometryType type = layer->GetGeomType();
-		const char* typeName = OGRGeometryTypeToName(type);
-
-		LayerInfo += "Layer " + std::to_string(i) + ": '" + name + "' | Features: " + std::to_string(featureCount) + " | Geometry: " + typeName + "\n";
-
-		//printf("Layer %d: '%s' | Features: %d | Geometry: %s\n", i, name, featureCount, typeName);
-	}
-
-	GDALClose(ds);
-}
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	//LOG.SetFileOutput(true);
@@ -702,8 +696,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	ParsedCommandActions = APPLICATION.ParseCommandLine(lpCmdLine);
 	if (!ParsedCommandActions.empty())
 		std::transform(ParsedCommandActions[0].Action.begin(), ParsedCommandActions[0].Action.end(), ParsedCommandActions[0].Action.begin(), [](unsigned char c) { return std::tolower(c); });
-
-	//TestReadShapeFile();
 
 	if (!ParsedCommandActions.empty() && ParsedCommandActions[0].Action == "console")
 	{

@@ -13,6 +13,11 @@ const COMDLG_FILTERSPEC MODEL_EXPORT_FILE_FILTER[] =
 	{ L"3D Model file (*.obj)", L"*.obj" }
 };
 
+const COMDLG_FILTERSPEC SHAPE_LOAD_FILE_FILTER[] =
+{
+	{ L"Shapefiles (*.shp)", L"*.shp" }
+};
+
 class UIInspector
 {
 	friend class UIManager;

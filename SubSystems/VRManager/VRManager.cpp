@@ -107,6 +107,13 @@ void VRManager::Initialize()
 	FETransformComponent& WhiteCylinderTransform = WhiteCylinderEntity->GetComponent<FETransformComponent>();
 	WhiteCylinderTransform.SetScale(glm::vec3(VR_MANAGER.SelectionRayWideness, 0.1f, VR_MANAGER.SelectionRayWideness));
 	WhiteCylinderTransform.SetRotation(glm::vec3(0.0f, 0.0f, 90.0f));
+
+	InitializeSphereCursor();
+
+	DeletePointsComputeShader = RESOURCE_MANAGER.CreateShader("AnnotationComputeShader",
+		nullptr, nullptr,
+		nullptr, nullptr,
+		nullptr, RESOURCE_MANAGER.LoadGLSL("Resources//Annotation_CS.glsl").c_str());
 }
 
 float VRManager::ControllerDistance()
@@ -228,12 +235,14 @@ void VRManager::ScaleWorldUpdate()
 
 void VRManager::OnRightTriggerPress()
 {
-
+	VR_MANAGER.bSphereCursorIsActive = true;
+	VR_MANAGER.bRightControllerTriggerIsPressed = true;
 }
 
 void VRManager::OnRightTriggerRelease()
 {
-	
+	VR_MANAGER.bSphereCursorIsActive = false;
+	VR_MANAGER.bRightControllerTriggerIsPressed = false;
 }
 
 void VRManager::OnLeftTriggerPress()
@@ -313,8 +322,18 @@ void VRManager::Update()
 {
 	if (OpenXR_MANAGER.GetVRRigEntity() == nullptr)
 		return;
+
+	if (bRightControllerTriggerIsPressed)
+	{
+		FEScene* MainScene = MAIN_SCENE_MANAGER.GetMainScene();
+		FEAABB SphereCursorAABB = MainScene->GetEntityAABB(SphereCursorEntities[0]);
+
+		Annotate(SphereCursorAABB.GetCenter(), SphereCursorAABB.GetLongestAxisLength() * SphereCursorActionScale, AnnotationIDToUse);
+	}
 	
 	ScaleWorldUpdate();
+	ShowSphereCursor();
+	AnimateSphereCursor();
 }
 
 std::pair<glm::vec3, glm::vec3> VRManager::GetControllerInteractionRay(bool bLeftController) const
@@ -392,13 +411,14 @@ void VRManager::OnControllerReConnected(bool bLeftController)
 	}
 	else
 	{
-
+		AttachSphereCursorToController();
 	}
 }
 
 void VRManager::OnControllerConnected(bool bLeftController)
 {
-
+	if (!bLeftController)
+		AttachSphereCursorToController();
 }
 
 void VRManager::OnControllerConnectionStatusChangeCallBack(bool bLeft, FE_VR_CONTROLLER_STATE_CHANGE Change)
@@ -415,4 +435,267 @@ void VRManager::OnControllerConnectionStatusChangeCallBack(bool bLeft, FE_VR_CON
 	{
 		VR_MANAGER.OnControllerReConnected(bLeft);
 	}
+}
+
+void VRManager::InitializeSphereCursor()
+{
+	SphereCursorMeshes.resize(3);
+	// In the beginning, different meshes were used for inner, middle and outer parts of the cursor.
+	SphereCursorMeshes[0] = RESOURCE_MANAGER.LoadFEMesh("Resources/SphereCursor/TorusMiddleMesh.model", "TorusMiddleMesh");
+	SphereCursorMeshes[1] = SphereCursorMeshes[0];
+	SphereCursorMeshes[2] = SphereCursorMeshes[1];
+
+	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
+	SphereCursorMaterial = RESOURCE_MANAGER.CreateMaterial();
+	SphereCursorMaterial->Shader = SolidColorShader;
+	SphereCursorMaterial->SetBaseColor(glm::vec3(0.9f, 0.9f, 0.9f));
+
+	SphereCursorGameModels.resize(3);
+	SphereCursorGameModels[0] = RESOURCE_MANAGER.CreateGameModel(SphereCursorMeshes[0], SphereCursorMaterial, "Sphere Cursor Inner Game Model");
+	SphereCursorGameModels[1] = RESOURCE_MANAGER.CreateGameModel(SphereCursorMeshes[1], SphereCursorMaterial, "Sphere Cursor Middle Game Model");
+	SphereCursorGameModels[2] = RESOURCE_MANAGER.CreateGameModel(SphereCursorMeshes[2], SphereCursorMaterial, "Sphere Cursor Outer Game Model");
+
+	FEScene* MainScene = MAIN_SCENE_MANAGER.GetMainScene();
+	SphereCursorEntities.resize(3);
+	SphereCursorEntities[0] = MainScene->CreateEntity("Sphere Cursor Inner Entity");
+	SphereCursorEntities[0]->AddComponent<FEGameModelComponent>(SphereCursorGameModels[0]);
+	SphereCursorEntities[1] = MainScene->CreateEntity("Sphere Cursor Middle Entity");
+	SphereCursorEntities[1]->AddComponent<FEGameModelComponent>(SphereCursorGameModels[1]);
+	SphereCursorEntities[2] = MainScene->CreateEntity("Sphere Cursor Outer Entity");
+	SphereCursorEntities[2]->AddComponent<FEGameModelComponent>(SphereCursorGameModels[2]);
+
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+	{
+		FETransformComponent& SphereCursorTransform = SphereCursorEntities[i]->GetComponent<FETransformComponent>();
+		SphereCursorTransform.SetPosition(SphereCursorPosition);
+		SphereCursorTransform.SetScale(glm::vec3(SphereCursorScale));
+	}
+
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+		SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
+
+	glGenBuffers(1, &DeletionFlagBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, DeletionFlagBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t), nullptr, GL_DYNAMIC_READ);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, DeletionFlagBuffer);
+}
+
+void VRManager::RotateTowardCamera(FEEntity* Entity, FEEntity* CameraEntity)
+{
+	if (Entity == nullptr || CameraEntity == nullptr)
+		return;
+
+	FETransformComponent& CameraTransform = CameraEntity->GetComponent<FETransformComponent>();
+	glm::vec3 CameraPosition = CameraTransform.GetPosition(FE_WORLD_SPACE);
+
+	FETransformComponent& EntityTransform = Entity->GetComponent<FETransformComponent>();
+	glm::vec3 EntityPosition = EntityTransform.GetPosition(FE_WORLD_SPACE);
+
+	if (glm::all(glm::epsilonEqual(CameraPosition, EntityPosition, glm::vec3(1e-6f))))
+		return;
+
+	glm::vec3 DirectionToCamera = glm::normalize(CameraPosition - EntityPosition);
+
+	if (glm::all(glm::isnan(DirectionToCamera)))
+		return;
+
+	FEAABB SelectedOriginalAABB = Entity->GetParentScene()->GetEntityAABB(Entity, true);
+	glm::vec3 OriginalAABBNormal = glm::normalize(SelectedOriginalAABB.GetApproximateForwardDirection());
+	glm::quat RotationQuaternion = glm::rotation(OriginalAABBNormal, DirectionToCamera);
+	EntityTransform.SetQuaternion(RotationQuaternion, FE_WORLD_SPACE);
+}
+
+bool VRManager::IsSphereCursorActive() const
+{
+	return bSphereCursorIsActive;
+}
+
+bool VRManager::IsSphereCursorVisible() const
+{
+	int VisibleCount = 0;
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+	{
+		if (SphereCursorEntities[i] != nullptr)
+		{
+			if (SphereCursorEntities[i]->IsComponentVisible(ComponentVisibilityType::GAME_MODEL))
+				VisibleCount++;
+		}
+	}
+
+	return VisibleCount == 3;
+}
+
+void VRManager::ShowSphereCursor()
+{
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+	{
+		if (SphereCursorEntities[i] != nullptr)
+			SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, true);
+	}
+}
+
+void VRManager::HideSphereCursor()
+{
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+	{
+		if (SphereCursorEntities[i] != nullptr)
+			SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
+	}
+}
+
+void VRManager::AnimateSphereCursor()
+{
+	if (SphereCursorEntities.size() == 3 && SphereCursorEntities[0] != nullptr && SphereCursorEntities[1] != nullptr && SphereCursorEntities[2] != nullptr)
+	{
+		double TimeEscaped = ENGINE.GetGpuTime() + ENGINE.GetCpuTime();
+		double RotationAmount = 0.35 * TimeEscaped;
+
+		FETransformComponent& SphereCursorInnerTransform = SphereCursorEntities[0]->GetComponent<FETransformComponent>();
+		SphereCursorInnerTransform.RotateAroundAxis(glm::vec3(1.0f, 0.0f, 0.0f), float(RotationAmount), FE_COORDINATE_SPACE_TYPE::FE_LOCAL_SPACE);
+
+		FETransformComponent& SphereCursorMiddleTransform = SphereCursorEntities[1]->GetComponent<FETransformComponent>();
+		SphereCursorMiddleTransform.RotateAroundAxis(glm::vec3(0.0f, .0f, 1.0f), float(RotationAmount), FE_COORDINATE_SPACE_TYPE::FE_LOCAL_SPACE);
+
+		RotateTowardCamera(SphereCursorEntities[2], OpenXR_MANAGER.GetVRHeadsetEntity());
+	}
+
+	glm::vec3 SphereCursorColor = glm::vec3(0.9f, 0.9f, 0.9f);
+	if (bSphereCursorIsActive)
+		SphereCursorColor = glm::vec3(0.9f, 0.0f, 0.0f);
+
+	SphereCursorMaterial->SetBaseColor(SphereCursorColor);
+}
+
+void VRManager::AttachSphereCursorToController()
+{
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+	{
+		if (SphereCursorEntities[i] != nullptr)
+			OpenXR_MANAGER.GetRightControllerEntity()->AttachChild(SphereCursorEntities[i], false);
+	}
+}
+
+void VRManager::InitiailizeTriangleCentroidsBuffer()
+{
+	AnalysisObject* ActiveAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveAnalysisObject == nullptr)
+		return;
+
+	FEEntity* ActiveEntity = ActiveAnalysisObject->GetEntity();
+	FEMesh* ActiveMesh = nullptr;
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveAnalysisObject->GetMeshAnalysisData();
+	if (ActiveAnalysisObject->GetType() == DATA_SOURCE_TYPE::MESH)
+	{
+		ActiveMesh = ActiveEntity->GetComponent<FEGameModelComponent>().GetGameModel()->GetMesh();
+	}
+	else if (ActiveAnalysisObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+		return;
+	}
+
+	TriangleCentroidsForAnnotation.resize(CurrentMeshAnalysisData->TrianglesCentroids.size());
+	for (size_t i = 0; i < CurrentMeshAnalysisData->TrianglesCentroids.size(); i++)
+	{
+		TriangleCentroidsForAnnotation[i] = CurrentMeshAnalysisData->TrianglesCentroids[i];
+	}
+
+	std::vector<glm::vec3> PerVertexData;
+	PerVertexData.resize(CurrentMeshAnalysisData->Vertices.size());
+
+	DataLayer::TransfareDataFromTrianglesToVertices(ActiveAnalysisObject, TriangleCentroidsForAnnotation, PerVertexData);
+	std::vector<glm::vec3> CompactedVertexData;
+	CompactedVertexData.resize(CurrentMeshAnalysisData->Vertices.size() / 3);
+	for (size_t i = 0; i < CurrentMeshAnalysisData->Vertices.size() / 3; i++)
+		CompactedVertexData[i] = PerVertexData[i * 3];
+
+	std::vector<glm::vec4> FinalPerVertexData;
+	FinalPerVertexData.resize(CurrentMeshAnalysisData->Vertices.size() / 3);
+
+	for (size_t i = 0; i < CurrentMeshAnalysisData->Vertices.size() / 3; i++)
+	{
+		FinalPerVertexData[i].x = CurrentMeshAnalysisData->Vertices[i * 3];
+		FinalPerVertexData[i].y = CurrentMeshAnalysisData->Vertices[i * 3 + 1];
+		FinalPerVertexData[i].z = CurrentMeshAnalysisData->Vertices[i * 3 + 2];
+		FinalPerVertexData[i].w = 0.0f;
+	}
+
+	glGenBuffers(1, &TriangleCentroids);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, TriangleCentroids);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, FinalPerVertexData.size() * sizeof(glm::vec4), FinalPerVertexData.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	glGenBuffers(1, &AnnotationIDBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, AnnotationIDBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(int), nullptr, GL_DYNAMIC_DRAW);
+	
+}
+
+void VRManager::Annotate(glm::vec3 Center, float Radius, int AnnotationID)
+{
+	if (DeletePointsComputeShader == nullptr)
+	{
+		DeletePointsComputeShader = RESOURCE_MANAGER.CreateShader("AnnotationComputeShader",
+			nullptr, nullptr,
+			nullptr, nullptr,
+			nullptr, RESOURCE_MANAGER.LoadGLSL("Resources//Annotation_CS.glsl").c_str());
+	}
+
+	AnalysisObject* ActiveAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveAnalysisObject == nullptr)
+		return;
+
+	FEEntity* ActiveEntity = ActiveAnalysisObject->GetEntity();
+	FEMesh* ActiveMesh = nullptr;
+	MeshAnalysisData* CurrentMeshAnalysisData = ActiveAnalysisObject->GetMeshAnalysisData();
+	if (ActiveAnalysisObject->GetType() == DATA_SOURCE_TYPE::MESH)
+	{
+		ActiveMesh = ActiveEntity->GetComponent<FEGameModelComponent>().GetGameModel()->GetMesh();
+	}
+	else if (ActiveAnalysisObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+		return;
+	}
+
+	AnnotationData* ActiveAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(ActiveAnalysisObject->GetID());
+	if (ActiveAnnotationData == nullptr)
+		return;
+
+	if (ActiveAnnotationData->DataBufferID == GLuint(-1))
+		return;
+	
+	if (TriangleCentroids == GLuint(-1))
+		InitiailizeTriangleCentroidsBuffer();
+
+	for (size_t i = 0; i < VR_MANAGER.SphereCursorEntities.size(); i++)
+	{
+		if (VR_MANAGER.SphereCursorEntities[i] == nullptr)
+			return;
+
+		if (!VR_MANAGER.SphereCursorEntities[i]->IsComponentVisible(ComponentVisibilityType::GAME_MODEL))
+			return;
+	}
+
+	DeletePointsComputeShader->Start();
+
+	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ActiveAnnotationData->DataBufferID));
+	FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ActiveAnnotationData->DataBufferID));
+
+	FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, TriangleCentroids));
+	FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, TriangleCentroids));
+
+	FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, AnnotationIDBuffer));
+	FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, AnnotationIDBuffer));
+	FE_GL_ERROR(glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int), &AnnotationID));
+	FE_GL_ERROR(glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT));
+
+	DeletePointsComputeShader->UpdateUniformData("FEWorldMatrix", ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix());
+	DeletePointsComputeShader->UpdateUniformData("Center", Center);
+	DeletePointsComputeShader->UpdateUniformData("Radius", Radius);
+	DeletePointsComputeShader->LoadUniformsDataToGPU();
+
+	int NumTriangles = (CurrentMeshAnalysisData->Vertices.size() / 3);
+	DeletePointsComputeShader->Dispatch(static_cast<GLuint>((NumTriangles / 1024) + 1), 1, 1);
+	FE_GL_ERROR(glMemoryBarrier(GL_ALL_BARRIER_BITS));
+
+	DeletePointsComputeShader->Stop();
 }

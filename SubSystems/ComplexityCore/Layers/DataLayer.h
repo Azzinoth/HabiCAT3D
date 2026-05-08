@@ -123,6 +123,7 @@ public:
 
 	static bool SetVertexValuesByTriangleIndex(AnalysisObject* Object, std::vector<float>& VertexData, int TriangleIndex, float Value);
 	static bool TransfareDataFromTrianglesToVertices(AnalysisObject* Object, std::vector<float>& TriangleData, std::vector<float>& VertexData);
+	static bool TransfareDataFromTrianglesToVertices(AnalysisObject* Object, std::vector<glm::vec3>& TriangleData, std::vector<glm::vec3>& VertexData);
 	void FillRawData();
 
 	std::string GetID();
