@@ -613,9 +613,9 @@ void VRManager::InitiailizeTriangleCentroidsBuffer()
 
 	for (size_t i = 0; i < CurrentMeshAnalysisData->Vertices.size() / 3; i++)
 	{
-		FinalPerVertexData[i].x = CurrentMeshAnalysisData->Vertices[i * 3];
-		FinalPerVertexData[i].y = CurrentMeshAnalysisData->Vertices[i * 3 + 1];
-		FinalPerVertexData[i].z = CurrentMeshAnalysisData->Vertices[i * 3 + 2];
+		FinalPerVertexData[i].x = static_cast<float>(CurrentMeshAnalysisData->Vertices[i * 3]);
+		FinalPerVertexData[i].y = static_cast<float>(CurrentMeshAnalysisData->Vertices[i * 3 + 1]);
+		FinalPerVertexData[i].z = static_cast<float>(CurrentMeshAnalysisData->Vertices[i * 3 + 2]);
 		FinalPerVertexData[i].w = 0.0f;
 	}
 
@@ -693,7 +693,7 @@ void VRManager::Annotate(glm::vec3 Center, float Radius, int AnnotationID)
 	DeletePointsComputeShader->UpdateUniformData("Radius", Radius);
 	DeletePointsComputeShader->LoadUniformsDataToGPU();
 
-	int NumTriangles = (CurrentMeshAnalysisData->Vertices.size() / 3);
+	int NumTriangles = static_cast<int>(CurrentMeshAnalysisData->Vertices.size() / 3);
 	DeletePointsComputeShader->Dispatch(static_cast<GLuint>((NumTriangles / 1024) + 1), 1, 1);
 	FE_GL_ERROR(glMemoryBarrier(GL_ALL_BARRIER_BITS));
 

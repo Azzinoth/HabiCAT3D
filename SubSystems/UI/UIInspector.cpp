@@ -333,6 +333,9 @@ void UIInspector::AddAnnotationToCurrentObject()
 
 void UIInspector::RenderPhotogrammetryInformation(COLMAPProject* CurrentCOLMAPProject)
 {
+	if (CurrentCOLMAPProject == nullptr)
+		return;
+
 	int TreeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen;
 
 	AnalysisObject* COLMAPProjectAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(CurrentCOLMAPProject->GetParentAnalysisObjectID());
@@ -432,6 +435,63 @@ void UIInspector::RenderPhotogrammetryInformation(COLMAPProject* CurrentCOLMAPPr
 	else
 	{
 		ImGui::Text("No image selected.");
+
+		if (ImGui::Button("Bulk render view from all image cameras"))
+		{
+			bool bAutoOpenFiles = CurrentCOLMAPProject->GetCurrentViewRenderSettings()->GetAutoOpenResult();
+			CurrentCOLMAPProject->GetCurrentViewRenderSettings()->SetAutoOpenResult(false);
+
+			if (!FILE_SYSTEM.DoesDirectoryExist(FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut/"))
+				FILE_SYSTEM.MakeDirectory(FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut/");
+
+			std::vector<int> ImagesIDList = CurrentCOLMAPProject->GetImagesIDList();
+			for (size_t i = 0; i < ImagesIDList.size(); i++)
+			{
+				std::string OriginalPhotoPath = CurrentCOLMAPProject->GetPathToPhotoByImageID(ImagesIDList[i]);
+				std::string OriginalPhotoFileName = FILE_SYSTEM.GetFileName(OriginalPhotoPath, false);
+				CurrentCOLMAPProject->RenderViewFromImage(ImagesIDList[i], false, FE_DEPTH_EXPORT_NONE, FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut/" + OriginalPhotoFileName + "_Color" + ".png");
+			}
+
+			CurrentCOLMAPProject->GetCurrentViewRenderSettings()->SetAutoOpenResult(bAutoOpenFiles);
+		}
+
+		if (ImGui::Button("Bulk render view from all image cameras(Depth 8-bit)"))
+		{
+			bool bAutoOpenFiles = CurrentCOLMAPProject->GetCurrentViewRenderSettings()->GetAutoOpenResult();
+			CurrentCOLMAPProject->GetCurrentViewRenderSettings()->SetAutoOpenResult(false);
+
+			if (!FILE_SYSTEM.DoesDirectoryExist(FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut_8bit_Depth/"))
+				FILE_SYSTEM.MakeDirectory(FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut_8bit_Depth/");
+
+			std::vector<int> ImagesIDList = CurrentCOLMAPProject->GetImagesIDList();
+			for (size_t i = 0; i < ImagesIDList.size(); i++)
+			{
+				std::string OriginalPhotoPath = CurrentCOLMAPProject->GetPathToPhotoByImageID(ImagesIDList[i]);
+				std::string OriginalPhotoFileName = FILE_SYSTEM.GetFileName(OriginalPhotoPath, false);
+				CurrentCOLMAPProject->RenderViewFromImage(ImagesIDList[i], true, FE_DEPTH_EXPORT_GRAYSCALE_PNG, FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut_8bit_Depth/" + OriginalPhotoFileName + "_Depth8bit" + ".png");
+			}
+
+			CurrentCOLMAPProject->GetCurrentViewRenderSettings()->SetAutoOpenResult(bAutoOpenFiles);
+		}
+
+		if (ImGui::Button("Bulk render view from all image cameras(Depth 16-bit)"))
+		{
+			bool bAutoOpenFiles = CurrentCOLMAPProject->GetCurrentViewRenderSettings()->GetAutoOpenResult();
+			CurrentCOLMAPProject->GetCurrentViewRenderSettings()->SetAutoOpenResult(false);
+
+			if (!FILE_SYSTEM.DoesDirectoryExist(FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut_16bit_Depth/"))
+				FILE_SYSTEM.MakeDirectory(FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut_16bit_Depth/");
+
+			std::vector<int> ImagesIDList = CurrentCOLMAPProject->GetImagesIDList();
+			for (size_t i = 0; i < ImagesIDList.size(); i++)
+			{
+				std::string OriginalPhotoPath = CurrentCOLMAPProject->GetPathToPhotoByImageID(ImagesIDList[i]);
+				std::string OriginalPhotoFileName = FILE_SYSTEM.GetFileName(OriginalPhotoPath, false);
+				CurrentCOLMAPProject->RenderViewFromImage(ImagesIDList[i], true, FE_DEPTH_EXPORT_16BIT_PNG, FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut_16bit_Depth/" + OriginalPhotoFileName + "_Depth16bit" + ".png");
+			}
+
+			CurrentCOLMAPProject->GetCurrentViewRenderSettings()->SetAutoOpenResult(bAutoOpenFiles);
+		}
 	}
 }
 

@@ -125,7 +125,7 @@ public:
 	void AddOnSelectedImageChangedCallback(std::function<void(int)> Callback);
 	void ClearOnSelectedImageChangedCallbacks();
 	COLMAPViewRenderSettings* GetCurrentViewRenderSettings();
-	bool RenderViewFromImage(int ImageID, bool bDepthMap = false, FE_DEPTH_EXPORT_MODE DepthExportMode = FE_DEPTH_EXPORT_GRAYSCALE_PNG);
+	bool RenderViewFromImage(int ImageID, bool bDepthMap = false, FE_DEPTH_EXPORT_MODE DepthExportMode = FE_DEPTH_EXPORT_GRAYSCALE_PNG, std::string OutputPath = "");
 	void HighlightImagesThatSeeAABB(FEAABB AABBToTest, bool bSelectClosest = true);
 	bool IsPhotoFolderAvailable() const;
 	FEEntity* GetImagesInstancedEntity();

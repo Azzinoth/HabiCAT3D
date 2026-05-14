@@ -411,7 +411,7 @@ COLMAPViewRenderSettings* COLMAPProject::GetCurrentViewRenderSettings()
 	return CurrentViewRenderSettings;
 }
 
-bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EXPORT_MODE DepthExportMode)
+bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EXPORT_MODE DepthExportMode, std::string OutputFilePath)
 {
 	COLMAPImage* Image = GetImage(ImageID);
 	if (Image == nullptr)
@@ -428,6 +428,15 @@ bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EX
 	FEEntity* CameraEntity = PhysicalCamera->GetSceneEntity();
 	if (CameraEntity == nullptr)
 		return false;
+
+	if (!OutputFilePath.empty())
+	{
+		std::string DirectoryPath = FILE_SYSTEM.GetDirectoryPath(OutputFilePath);
+		if (!FILE_SYSTEM.DoesDirectoryExist(DirectoryPath))
+			return false;
+	}
+
+	AttachCameraVisualizationToImage(ImageID);
 
 	FEScene* MainScene = MAIN_SCENE_MANAGER.GetMainScene();
 
@@ -480,13 +489,20 @@ bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EX
 	
 	FEEntity* CurrentMainCamera = CAMERA_SYSTEM.GetMainCamera(MainScene);
 	CAMERA_SYSTEM.SetMainCamera(CameraEntity);
+	// Updating starting from parent to ensure world transform is correct
+	TRANSFORM_SYSTEM.ForceUpdateTransformComponent(AllImagesInstancedEntity);
 	CAMERA_SYSTEM.IndividualUpdate(CameraEntity, 0.0);
 	RENDERER.Render(MainScene);
+
+	std::string FinalOutputFilePath = OutputFilePath;
 
 	if (!bDepthMap)
 	{
 		FETexture* CameraResult = RENDERER.GetCameraResult(CameraEntity);
-		RESOURCE_MANAGER.ExportFETextureToPNG(CameraResult, "CameraView.png");
+		if (FinalOutputFilePath.empty())
+			FinalOutputFilePath = "CameraView.png";
+		
+		RESOURCE_MANAGER.ExportFETextureToPNG(CameraResult, FinalOutputFilePath.c_str());
 	}
 	else
 	{
@@ -494,7 +510,9 @@ bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EX
 		if (CameraData != nullptr)
 		{
 			FETexture* DepthTexture = CameraData->SceneToTextureFB->GetDepthAttachment();
-			RESOURCE_MANAGER.ExportFETextureToPNG(DepthTexture, "CameraViewDepth.png", DepthExportMode);
+			if (FinalOutputFilePath.empty())
+				FinalOutputFilePath = "CameraViewDepth.png";
+			RESOURCE_MANAGER.ExportFETextureToPNG(DepthTexture, FinalOutputFilePath.c_str(), DepthExportMode);
 		}
 	}
 
@@ -528,10 +546,8 @@ bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EX
 			AllImagesInstancedEntity->SetComponentVisible(ComponentVisibilityType::ALL, bWasImagesInstancedEntityInitiallyVisible);
 	}
 
-	std::string FullPath = FILE_SYSTEM.GetCurrentWorkingPath();
-	FullPath += bDepthMap ? "/CameraViewDepth.png" : "/CameraView.png";
-	if (FILE_SYSTEM.DoesFileExist(FullPath) && CurrentViewRenderSettings->bAutoOpenResult)
-		ShellExecute(NULL, "open", FullPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
+	if (FILE_SYSTEM.DoesFileExist(FinalOutputFilePath) && CurrentViewRenderSettings->bAutoOpenResult)
+		ShellExecute(NULL, "open", FinalOutputFilePath.c_str(), NULL, NULL, SW_SHOWNORMAL);
 
 	return true;
 }

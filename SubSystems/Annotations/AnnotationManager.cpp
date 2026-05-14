@@ -828,7 +828,7 @@ bool AnnotationManager::ReadAnnotationsToPolygonPlane(std::string ShapeFilePath,
 			else
 			{
 				LocalAnnotationInfoMap[Label] = AnnotationInfo();
-				LocalAnnotationInfoMap[Label].ID = LocalAnnotationInfoMap.size() - 1;
+				LocalAnnotationInfoMap[Label].ID = static_cast<int>(LocalAnnotationInfoMap.size() - 1);
 				LocalAnnotationInfoMap[Label].Name = Label;
 
 				glm::vec4 CurrentColor = GetColor(Features[i]);
@@ -850,7 +850,7 @@ bool AnnotationManager::ReadAnnotationsToPolygonPlane(std::string ShapeFilePath,
 			}
 
 			FEPolygon* Polygon = TargetPlane->AddPolygon(PolygonPointsInUV);
-			PolygonIndexToAnnotationInfoMap[TargetPlane->GetPolygonIndex(Polygon)] = *CurrentInfo;
+			PolygonIndexToAnnotationInfoMap[static_cast<int>(TargetPlane->GetPolygonIndex(Polygon))] = *CurrentInfo;
 		}
 	}
 
