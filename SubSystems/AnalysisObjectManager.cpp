@@ -154,7 +154,7 @@ AnalysisObject* AnalysisObjectManager::ImportOBJ(const char* FilePath, bool bFor
 		Result->Name = FILE_SYSTEM.GetFileName(FilePath, false);
 		Result->AnalysisData = ExtractAdditionalGeometryData(FirstObject->DVerC, FirstObject->FColorsC, FirstObject->FTexC, FirstObject->FTanC, FirstObject->FInd, FirstObject->FNorC);
 		
-		Result->AppliedShift = RESOURCE_MANAGER.GetLastLoadedMeshAppliedShift();
+		Result->AppliedShift = OBJLoader.GetLastAppliedShift();
 	}
 	
 	return Result;
@@ -452,7 +452,7 @@ void AnalysisObjectManager::LoadResource(std::string FilePath)
 	if (FileExtension == ".obj")
 	{
 		LoadedResource = ImportOBJ(FilePath.c_str(), true);
-		LoadedResource->AppliedShift = RESOURCE_MANAGER.GetLastLoadedMeshAppliedShift();
+		LoadedResource->AppliedShift = FEObjLoader::GetInstance().GetLastAppliedShift();
 	}
 	else if (FileExtension == ".rug")
 	{

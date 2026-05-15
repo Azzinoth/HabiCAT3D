@@ -519,24 +519,24 @@ void LayerRasterizationManager::PrepareRawImageData()
 
 	if (Mode == GridRasterizationMode::Cumulative)
 	{
-		FEAABB TempAABB = Grid[0][0].AABB;
+		FEAABB TemporaryAABB = Grid[0][0].AABB;
 
 		double AABBWidth = 0.0;
 		double AABBHeight = 0.0;
 		if (CurrentProjectionVector.x > 0.0)
 		{
-			AABBWidth = TempAABB.GetMax().y - TempAABB.GetMin().y;
-			AABBHeight = TempAABB.GetMax().z - TempAABB.GetMin().z;
+			AABBWidth = TemporaryAABB.GetMax().y - TemporaryAABB.GetMin().y;
+			AABBHeight = TemporaryAABB.GetMax().z - TemporaryAABB.GetMin().z;
 		}
 		else if (CurrentProjectionVector.y > 0.0)
 		{
-			AABBWidth = TempAABB.GetMax().x - TempAABB.GetMin().x;
-			AABBHeight = TempAABB.GetMax().z - TempAABB.GetMin().z;
+			AABBWidth = TemporaryAABB.GetMax().x - TemporaryAABB.GetMin().x;
+			AABBHeight = TemporaryAABB.GetMax().z - TemporaryAABB.GetMin().z;
 		}
 		else if (CurrentProjectionVector.z > 0.0)
 		{
-			AABBWidth = TempAABB.GetMax().x - TempAABB.GetMin().x;
-			AABBHeight = TempAABB.GetMax().y - TempAABB.GetMin().y;
+			AABBWidth = TemporaryAABB.GetMax().x - TemporaryAABB.GetMin().x;
+			AABBHeight = TemporaryAABB.GetMax().y - TemporaryAABB.GetMin().y;
 		}
 
 		double UnitArea = (AABBWidth * AABBHeight);
@@ -1367,16 +1367,16 @@ void LayerRasterizationManager::ShowDebugWindow()
 		std::string SelectedCellText = "Selected cell - X : " + std::to_string(int(DebugSelectedCell.x)) + " Y : " + std::to_string(int(DebugSelectedCell.y));
 		ImGui::Text(SelectedCellText.c_str());
 
-		static int TempCellX = 0;
-		static int TempCellY = 0;
-		ImGui::InputInt("SelectedCellX", &TempCellX);
+		static int TemporaryCellX = 0;
+		static int TemporaryCellY = 0;
+		ImGui::InputInt("SelectedCellX", &TemporaryCellX);
 
-		int TempInt = static_cast<int>(DebugSelectedCell.y);
-		ImGui::InputInt("SelectedCellY", &TempCellY);
+		int TemporaryInt = static_cast<int>(DebugSelectedCell.y);
+		ImGui::InputInt("SelectedCellY", &TemporaryCellY);
 
 		if (ImGui::Button("Select cell"))
 		{
-			DebugSelectCell(TempCellX, TempCellY);
+			DebugSelectCell(TemporaryCellX, TemporaryCellY);
 		}
 
 		ImGui::End();

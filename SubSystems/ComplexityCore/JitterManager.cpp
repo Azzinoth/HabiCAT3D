@@ -130,7 +130,7 @@ void JitterManager::GatherCalculationThreadWork(void* OutputData)
 {
 	JITTER_MANAGER.JitterThreadFinishedCount++;
 	JITTER_MANAGER.TotalJitterIndex++;
-	if (JITTER_MANAGER.JitterThreadFinishedCount == JITTER_MANAGER.THREAD_COUNT)
+	if (JITTER_MANAGER.JitterThreadFinishedCount >= JITTER_MANAGER.THREAD_COUNT)
 	{
 		JITTER_MANAGER.JitterThreadFinishedCount = 0;
 		JITTER_MANAGER.AfterAllCurrentJitterThreadsFinished();
@@ -177,7 +177,7 @@ void JitterManager::AfterAllCurrentJitterThreadsFinished()
 	JITTER_MANAGER.LastUsedGrid->bFullyLoaded = true;
 	JITTER_MANAGER.MoveResultDataFromGrid(JITTER_MANAGER.LastUsedGrid);
 
-	if (JITTER_MANAGER.JitterDoneCount != JITTER_MANAGER.JitterToDoCount)
+	if (JITTER_MANAGER.JitterDoneCount < JITTER_MANAGER.JitterToDoCount)
 	{
 		delete JITTER_MANAGER.LastUsedGrid;
 		JITTER_MANAGER.LastUsedGrid = nullptr;
@@ -397,7 +397,7 @@ void JitterManager::AfterCalculationFinishGridCallback(void* OutputData)
 	JITTER_MANAGER.JitterDoneCount++;
 
 	JITTER_MANAGER.MoveResultDataFromGrid(JITTER_MANAGER.LastUsedGrid);
-	if (JITTER_MANAGER.JitterDoneCount != JITTER_MANAGER.JitterToDoCount)
+	if (JITTER_MANAGER.JitterDoneCount < JITTER_MANAGER.JitterToDoCount)
 	{
 		delete JITTER_MANAGER.LastUsedGrid;
 		JITTER_MANAGER.LastUsedGrid = nullptr;
@@ -449,7 +449,7 @@ void JitterManager::MoveResultDataFromGrid(MeasurementGrid* Grid)
 		}
 	}
 
-	if (JITTER_MANAGER.JitterDoneCount == JITTER_MANAGER.JitterToDoCount)
+	if (JITTER_MANAGER.JitterDoneCount >= JITTER_MANAGER.JitterToDoCount)
 	{
 		for (size_t i = 0; i < Result.size(); i++)
 		{

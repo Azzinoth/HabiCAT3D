@@ -322,6 +322,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		}
 
 		ActiveObject->AddLayer(NewLayer);
+		ActiveObject->SetActiveLayer(NewLayer->GetID());
 
 		std::cout << "Height Layer calculation completed." << std::endl;
 	}
@@ -337,6 +338,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 			return false;
 		}
 		ActiveObject->AddLayer(NewLayer);
+		ActiveObject->SetActiveLayer(NewLayer->GetID());
 
 		std::cout << "Area Layer calculation completed." << std::endl;
 	}
@@ -362,6 +364,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 			return false;
 		}
 		ActiveObject->AddLayer(NewLayer);
+		ActiveObject->SetActiveLayer(NewLayer->GetID());
 
 		std::cout << "Triangle Edge Layer calculation completed." << std::endl;
 	}
@@ -486,6 +489,7 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 			return false;
 		}
 		ActiveObject->AddLayer(NewLayer);
+		ActiveObject->SetActiveLayer(NewLayer->GetID());
 
 		std::cout << "Compare Layer calculation completed." << std::endl;
 	}

@@ -200,6 +200,17 @@ file(GLOB SubSystems_AnnotationManager_SRC
 	"SubSystems/Annotations/AnnotationManager.cpp"
 )
 
+file(GLOB Tests_SRC
+	"Tests/RunAllTests.h"
+	"Tests/TestTools.h"
+	"Tests/TestTools.cpp"
+)
+
+file(GLOB Tests_AnalysisObject_SRC
+	"Tests/AnalysisObjectTests/AnalysisObjectTests.h"
+	"Tests/AnalysisObjectTests/AnalysisObjectTests.cpp"
+)
+
 set(MAIN_SOURCE_FILES "")
 list(APPEND MAIN_SOURCE_FILES
     "EngineInclude.h"
@@ -238,12 +249,15 @@ add_executable(HabiCAT3D WIN32
 						 ${SubSystems_VRManager_SRC}
 						 ${SubSystems_COLMAP_SRC}
 						 ${SubSystems_AnnotationManager_SRC}
+						 ${Tests_SRC}
+						 ${Tests_AnalysisObject_SRC}
 )
 
 target_link_libraries(HabiCAT3D
 	PRIVATE
 		FocalEngine
 		FESceneGraphUI
+		FocalEngine::GTest
 	 PUBLIC
 		debug ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/Lib/x64/Debug/gdald.lib
         optimized ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/Lib/x64/Release/gdal.lib
@@ -267,6 +281,8 @@ source_group("Source Files/SubSystems/ConsoleJobs" FILES ${SubSystems_ConsoleJob
 source_group("Source Files/SubSystems/VRManager" FILES ${SubSystems_VRManager_SRC})
 source_group("Source Files/SubSystems/COLMAP/" FILES ${SubSystems_COLMAP_SRC})
 source_group("Source Files/SubSystems/Annotations" FILES ${SubSystems_AnnotationManager_SRC})
+source_group("Source Files/Tests" FILES ${Tests_SRC})
+source_group("Source Files/Tests/AnalysisObjectTests" FILES ${Tests_AnalysisObject_SRC})
 
 # set as the startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT HabiCAT3D)

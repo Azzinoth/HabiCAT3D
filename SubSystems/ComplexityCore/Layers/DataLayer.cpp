@@ -573,12 +573,12 @@ void DataLayerDebugInfo::FromFile(std::fstream& File)
 		File.read(Buffer32, 4);
 		EntrySize = *(int*)Buffer32;
 
-		char* TempBuffer = new char[EntrySize];
-		File.read(TempBuffer, EntrySize);
+		char* TemporaryBuffer = new char[EntrySize];
+		File.read(TemporaryBuffer, EntrySize);
 
-		DebugEntry NewEntry(Type, EntrySize, TempBuffer);
+		DebugEntry NewEntry(Type, EntrySize, TemporaryBuffer);
 		NewEntry.Name = Name;
-		delete[] TempBuffer;
+		delete[] TemporaryBuffer;
 
 		Entries.push_back(NewEntry);
 	}
@@ -593,14 +593,14 @@ void DataLayerDebugInfo::ToFile(std::fstream& File)
 	int Count = static_cast<int>(Entries.size());
 	File.write((char*)&Count, sizeof(int));
 
-	std::string TempType;
+	std::string TemporaryType;
 	for (size_t i = 0; i < Entries.size(); i++)
 	{
-		TempType = Entries[i].Type;
+		TemporaryType = Entries[i].Type;
 
-		Count = static_cast<int>(TempType.size());
+		Count = static_cast<int>(TemporaryType.size());
 		File.write((char*)&Count, sizeof(int));
-		File.write(TempType.data(), sizeof(char) * Count);
+		File.write(TemporaryType.data(), sizeof(char) * Count);
 
 		Count = static_cast<int>(Entries[i].Name.size());
 		File.write((char*)&Count, sizeof(int));

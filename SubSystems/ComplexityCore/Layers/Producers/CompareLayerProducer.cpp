@@ -129,8 +129,8 @@ DataLayer* CompareLayerProducer::Calculate(DataLayer* FirstLayer, DataLayer* Sec
 	NewLayer->DebugInfo->AddEntry("Start time", StartTime);
 	NewLayer->DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
 
-	std::string TempString = bNormalize ? "Yes" : "No";
-	NewLayer->DebugInfo->AddEntry("Normalized", TempString);
+	std::string TemporaryString = bNormalize ? "Yes" : "No";
+	NewLayer->DebugInfo->AddEntry("Normalized", TemporaryString);
 
 	NewLayer->DebugInfo->AddEntry("First layer ID", FirstLayer->GetID());
 	NewLayer->DebugInfo->AddEntry("First layer caption", FirstLayer->GetCaption());

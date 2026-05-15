@@ -1,4 +1,5 @@
 #include "EvaluationJob.h"
+#include "../AnalysisObjectManager.h"
 using namespace FocalEngine;
 
 bool EvaluationJob::Failed()
@@ -158,14 +159,31 @@ bool ComplexityEvaluationJob::Execute(void* InputData, void* OutputData)
 {
 	if (EvaluationType == "COMPLEXITY")
 	{
-		if (LAYER_MANAGER.GetLayerCount() == 0)
+		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		if (ActiveObject == nullptr || ActiveObject->Layers.empty())
 		{
 			std::string ErrorMessage = "Error: No layers to evaluate. Please calculate a layer before attempting to evaluate.";
 			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
 			return false;
 		}
 
-		DataLayer* LayerToEvaluate = LAYER_MANAGER.GetActiveLayer();
+		DataLayer* LayerToEvaluate = nullptr;
+		if (GetLayerIndex() != -1)
+		{
+			if (GetLayerIndex() < 0 || GetLayerIndex() >= static_cast<int>(ActiveObject->Layers.size()))
+			{
+				std::string ErrorMessage = "Error: layer_index " + std::to_string(GetLayerIndex()) + " is out of range. Please check the layer index and try again.";
+				OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+				return false;
+			}
+
+			LayerToEvaluate = ActiveObject->Layers[GetLayerIndex()];
+		}
+		else
+		{
+			LayerToEvaluate = ActiveObject->Layers.back();
+		}
+
 		if (LayerToEvaluate == nullptr)
 		{
 			std::string ErrorMessage = "Error: Layer to evaluate is null. Please check the layer index and try again.";

@@ -20,6 +20,7 @@ imgui.ini
 *.aps
 cmake_install.cmake
 HabiCAT3D_Version.h
+HabiCAT3D_Tests.xml
 
 # Folders
 Debug/

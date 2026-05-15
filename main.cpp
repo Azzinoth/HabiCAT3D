@@ -1,5 +1,6 @@
 #include "SubSystems/ConsoleJobs/ConsoleJobManager.h"
 #include "SubSystems/VRManager/VRManager.h"
+#include "Tests/RunAllTests.h"
 using namespace FocalEngine;
 
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
@@ -708,6 +709,42 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		FEConsoleWindow* Console = APPLICATION.CreateConsoleWindow(ConsoleThreadCode);
 		Console->WaitForCreation();
 		Console->SetTitle("HabiCAT3D console");
+
+		bool bRunTestsRequested = false;
+		if (!ParsedCommandActions.empty())
+		{
+			std::string FirstAction = ParsedCommandActions[0].Action;
+			std::transform(FirstAction.begin(), FirstAction.end(), FirstAction.begin(), [](unsigned char c) { return std::tolower(c); });
+			if (FirstAction == "run_tests")
+			{
+				bRunTestsRequested = true;
+				ParsedCommandActions.erase(ParsedCommandActions.begin());
+			}
+		}
+
+		if (bRunTestsRequested)
+		{
+			testing::GTEST_FLAG(output) = "xml:HabiCAT3D_Tests.xml";
+			int FakeArgc = 1;
+			char FakeArgv0[] = "HabiCAT3D";
+			char* FakeArgv[] = { FakeArgv0, nullptr };
+			testing::InitGoogleTest(&FakeArgc, FakeArgv);
+
+			std::cout << "Running HabiCAT3D test suite..." << std::endl;
+			int TestResult = RUN_ALL_TESTS();
+			std::cout << std::endl << "Test suite finished with exit code " << TestResult << "." << std::endl;
+			std::cout << "Close the console window to exit." << std::endl;
+
+			while (APPLICATION.IsNotTerminated())
+			{
+				APPLICATION.BeginFrame();
+				APPLICATION.RenderWindows();
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				APPLICATION.EndFrame();
+			}
+
+			return TestResult;
+		}
 
 		std::vector<ConsoleJob*> ParsedJobs = CONSOLE_JOB_MANAGER.ConvertCommandAction(ParsedCommandActions);
 		for (size_t i = 0; i < ParsedJobs.size(); i++)
