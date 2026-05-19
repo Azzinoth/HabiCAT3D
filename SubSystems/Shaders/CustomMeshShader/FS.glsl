@@ -339,7 +339,8 @@ vec3 ConvertHSVToRGB(vec3 HSVColor)
 
 void main(void)
 {
-	float diffuseFactor = max(dot(FS_IN.vertexNormal, lightDirection), 0.15);
+	vec3 shadingNormal = gl_FrontFacing ? FS_IN.vertexNormal : -FS_IN.vertexNormal;
+	float diffuseFactor = max(dot(shadingNormal, lightDirection), 0.15);
 	vec3 ambientColor = vec3(1.0f, 1.0f, 1.0f) * AmbientFactor;
 
 	vec3 firstRugosityLayer = getCorrectColor();

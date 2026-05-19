@@ -10,6 +10,34 @@ UIInspector::UIInspector()
 	ANALYSIS_OBJECT_MANAGER.AddOnObjectLoadCallback(OnObjectLoad);
 
 	APPLICATION.GetMainWindow()->AddOnMouseButtonCallback(MouseButtonCallback);
+	APPLICATION.GetMainWindow()->AddOnScrollCallback(MouseScrollCallback);
+}
+
+void UIInspector::MouseScrollCallback(double XOffset, double YOffset)
+{
+	if (ImGui::GetIO().WantCaptureMouse)
+		return;
+
+	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
+	if (CameraEntity == nullptr || !CameraEntity->HasComponent<FENativeScriptComponent>())
+		return;
+
+	FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
+	if (!NativeScriptComponent.IsInitialized())
+		return;
+
+	float CurrentDistance = 0.0f;
+	if (!NativeScriptComponent.GetVariableValue<float>("DistanceToModel", CurrentDistance))
+		return;
+
+	float MouseWheelSensitivity = 1.0f;
+	NativeScriptComponent.GetVariableValue<float>("MouseWheelSensitivity", MouseWheelSensitivity);
+
+	float NewDistance = CurrentDistance + static_cast<float>(YOffset) * 2.0f * MouseWheelSensitivity;
+	if (NewDistance < 0.1f)
+		NewDistance = 0.1f;
+
+	NativeScriptComponent.SetVariableValue("DistanceToModel", NewDistance);
 }
 
 UIInspector::~UIInspector() {}
@@ -1056,8 +1084,15 @@ void UIInspector::MouseButtonCallback(int Button, int Action, int Mods)
 		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
 	}
 
+	if (Button == GLFW_MOUSE_BUTTON_1 && Action == GLFW_PRESS)
+	{
+		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(true);
+	}
+
 	if (Button == GLFW_MOUSE_BUTTON_1 && Action == GLFW_RELEASE)
 	{
+		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
+
 		//LAYER_RASTERIZATION_MANAGER.DebugMouseClick();
 
 		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();

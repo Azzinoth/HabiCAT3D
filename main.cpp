@@ -177,9 +177,26 @@ bool MarkTrianglesInRangeForAnnotation(AnalysisObject* Object, DataLayer* Layer,
 	return bAtLeastOneTriangleAnnotated;
 }
 
+void ApplyHeadLight()
+{
+	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
+	if (CameraEntity != nullptr && CameraEntity->HasComponent<FECameraComponent>() && ANALYSIS_OBJECT_MANAGER.CustomMeshShader != nullptr)
+	{
+		const glm::mat4 ViewMatrix = CameraEntity->GetComponent<FECameraComponent>().GetViewMatrix();
+		const glm::vec3 CameraRight = glm::vec3(ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0]);
+		const glm::vec3 CameraUp = glm::vec3(ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]);
+		const glm::vec3 CameraForward = -glm::vec3(ViewMatrix[0][2], ViewMatrix[1][2], ViewMatrix[2][2]);
+
+		const glm::vec3 LightDirection = glm::normalize(-CameraForward + 0.4f * CameraUp - 0.2f * CameraRight);
+		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", LightDirection);
+	}
+}
+
 void MainWindowRender()
 {
 	static bool FirstFrame = true;
+
+	ApplyHeadLight();
 
 	if (UI_INSPECTOR.ShouldTakeScreenshot())
 	{
@@ -190,6 +207,60 @@ void MainWindowRender()
 		SCREENSHOT_MANAGER.TakeScreenshot();
 		return;
 	}
+
+	//// Arcball orientation gizmo.
+	//{
+	//	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
+	//	if (CameraEntity != nullptr
+	//		&& CameraEntity->HasComponent<FECameraComponent>()
+	//		&& CameraEntity->HasComponent<FENativeScriptComponent>())
+	//	{
+	//		FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
+	//		float ProbeDistance = 0.0f;
+	//		const bool bIsArcBallCamera = NativeScriptComponent.IsInitialized()
+	//			&& NativeScriptComponent.GetVariableValue<float>("DistanceToModel", ProbeDistance);
+
+	//		FECameraComponent& CameraComponent = CameraEntity->GetComponent<FECameraComponent>();
+	//		const FEViewport* Viewport = CameraComponent.GetViewport();
+	//		if (bIsArcBallCamera && Viewport != nullptr)
+	//		{
+	//			const double ViewportWidth = static_cast<double>(Viewport->GetWidth());
+	//			const double ViewportHeight = static_cast<double>(Viewport->GetHeight());
+	//			const ImVec2 GizmoCenter(
+	//				static_cast<float>(Viewport->GetX() + ViewportWidth * 0.5),
+	//				static_cast<float>(Viewport->GetY() + ViewportHeight * 0.5));
+	//			const float GizmoRadius = static_cast<float>(0.5 * (ViewportWidth < ViewportHeight ? ViewportWidth : ViewportHeight));
+
+	//			const glm::mat4 ViewMatrix = CameraComponent.GetViewMatrix();
+	//			const glm::vec3 WorldXInEye = glm::vec3(ViewMatrix[0]);
+	//			const glm::vec3 WorldYInEye = glm::vec3(ViewMatrix[1]);
+	//			const glm::vec3 WorldZInEye = glm::vec3(ViewMatrix[2]);
+
+	//			ImDrawList* DrawList = ImGui::GetBackgroundDrawList();
+	//			DrawList->AddCircle(GizmoCenter, GizmoRadius, IM_COL32(220, 220, 220, 90), 64, 1.0f);
+
+	//			auto DrawGreatCircle = [&](const glm::vec3& BasisOne, const glm::vec3& BasisTwo, ImU32 Color)
+	//			{
+	//				const int Segments = 72;
+	//				ImVec2 Points[72];
+	//				for (int i = 0; i < Segments; i++)
+	//				{
+	//					const float Theta = 2.0f * glm::pi<float>() * static_cast<float>(i) / static_cast<float>(Segments);
+	//					const float CosTheta = cos(Theta);
+	//					const float SinTheta = sin(Theta);
+	//					const float ScreenX = CosTheta * BasisOne.x + SinTheta * BasisTwo.x;
+	//					const float ScreenY = CosTheta * BasisOne.y + SinTheta * BasisTwo.y;
+	//					Points[i] = ImVec2(GizmoCenter.x + ScreenX * GizmoRadius, GizmoCenter.y - ScreenY * GizmoRadius);
+	//				}
+	//				DrawList->AddPolyline(Points, Segments, Color, ImDrawFlags_Closed, 1.5f);
+	//			};
+
+	//			DrawGreatCircle(WorldYInEye, WorldZInEye, IM_COL32(255,  90,  90, 200));
+	//			DrawGreatCircle(WorldZInEye, WorldXInEye, IM_COL32( 90, 220,  90, 200));
+	//			DrawGreatCircle(WorldXInEye, WorldYInEye, IM_COL32(110, 130, 255, 200));
+	//		}
+	//	}
+	//}
 
 	static int AnnotationID = 0;
 	ImGui::InputInt("Annotation ID", &VR_MANAGER.AnnotationIDToUse);

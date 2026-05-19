@@ -51,6 +51,11 @@ if(USE_STATIC_RUNTIME)
 	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/2B7956623302254F620A675F/FirstScript.h"
 	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/2B7956623302254F620A675F/FirstScript.cpp"
     )
+
+    file(GLOB HabiCATNativeScripts_ArcBall_SRC
+        "SubSystems/ArcBallCameraController.h"
+        "SubSystems/ArcBallCameraController.cpp"
+    )
 endif()
 
 # *************** SUB_SYSTEM ***************
@@ -220,9 +225,14 @@ list(APPEND MAIN_SOURCE_FILES
 )
 
 set(EXTRACTED_NATIVE_SCRIPTS "")
+set(APP_NATIVE_SCRIPTS_SRC "")
 if(USE_STATIC_RUNTIME)
 	list(APPEND EXTRACTED_NATIVE_SCRIPTS
 		${Unpacked_NativeScript_2B7956623302254F620A675F_SRC}
+	)
+
+	list(APPEND APP_NATIVE_SCRIPTS_SRC
+		${HabiCATNativeScripts_ArcBall_SRC}
 	)
 
     add_definitions(-DGLEW_STATIC)
@@ -235,6 +245,7 @@ link_directories(${GLFW_LIB_DIR})
 add_executable(HabiCAT3D WIN32
 					     ${MAIN_SOURCE_FILES}
 						 ${EXTRACTED_NATIVE_SCRIPTS}
+						 ${APP_NATIVE_SCRIPTS_SRC}
 						 ${MeshShaders_SRC}
 						 ${PointCloudShaders_SRC}
 						 ${COLMAP_Shaders_SRC}
@@ -266,6 +277,7 @@ target_link_libraries(HabiCAT3D
 source_group("Source Files" FILES ${MAIN_SOURCE_FILES})
 if(USE_STATIC_RUNTIME)
 	source_group("Source Files/FocalEngine/2B7956623302254F620A675F" FILES ${EXTRACTED_NATIVE_SCRIPTS})
+	source_group("Source Files/SubSystems/NativeScripts" FILES ${APP_NATIVE_SCRIPTS_SRC})
 endif()
 # *************** SUB_SYSTEM ***************
 source_group("Source Files/SubSystems" FILES ${SubSystems_SRC})

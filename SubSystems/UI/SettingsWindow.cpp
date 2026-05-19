@@ -420,9 +420,30 @@ void SettingsWindow::SwitchCameraMode(bool bModelCamera, glm::vec3 ModelCameraFo
 
 			if (CurrentEntity->HasComponent<FECameraComponent>() && CurrentEntity->HasComponent<FENativeScriptComponent>())
 			{
+				const std::string ArcBallCameraModuleID = "4A7C82E16F9013ABEDC05324";
+
+				const std::vector<std::string> ActiveModuleIDs = NATIVE_SCRIPT_SYSTEM.GetActiveModuleIDList();
+				bool bModuleAlreadyActive = false;
+				for (size_t ActiveIndex = 0; ActiveIndex < ActiveModuleIDs.size(); ActiveIndex++)
+				{
+					if (ActiveModuleIDs[ActiveIndex] == ArcBallCameraModuleID)
+					{
+						bModuleAlreadyActive = true;
+						break;
+					}
+				}
+
+				if (!bModuleAlreadyActive)
+				{
+					if (RESOURCE_MANAGER.GetNativeScriptModule(ArcBallCameraModuleID) == nullptr)
+						RESOURCE_MANAGER.CreateNativeScriptModule("ArcBall camera module", ArcBallCameraModuleID);
+
+					NATIVE_SCRIPT_SYSTEM.ActivateNativeScriptModule(ArcBallCameraModuleID);
+				}
+
 				CameraEntity->RemoveComponent<FENativeScriptComponent>();
 				CameraEntity->AddComponent<FENativeScriptComponent>();
-				NATIVE_SCRIPT_SYSTEM.InitializeScriptComponent(CameraEntity, CurrentEntity->GetComponent<FENativeScriptComponent>().GetModuleID(), "ModelViewCameraController");
+				NATIVE_SCRIPT_SYSTEM.InitializeScriptComponent(CameraEntity, ArcBallCameraModuleID, "ArcBallCameraController");
 				FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
 				NativeScriptComponent.SetVariableValue("TargetPosition", ModelCameraFocusPoint);
 

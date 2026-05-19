@@ -68,6 +68,7 @@ private:
 	static void OnSelectedImageChangedCallback(COLMAPProject* Project, int ImageID);
 
 	static void MouseButtonCallback(int Button, int Action, int Mods);
+	static void MouseScrollCallback(double XOffset, double YOffset);
 
 	// Geometry selection.
 	FEEntity* SelectionLinesEntity = nullptr;

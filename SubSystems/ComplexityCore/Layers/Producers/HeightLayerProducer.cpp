@@ -37,7 +37,7 @@ DataLayer* HeightLayerProducer::Calculate()
 	// Smallest value should be 0.0f.
 	for (size_t i = 0; i < NewLayer->ElementsToData.size(); i++)
 	{
-		NewLayer->ElementsToData[i] += static_cast<float>(abs(Min));
+		NewLayer->ElementsToData[i] -= static_cast<float>(Min);
 	}
 	
 	NewLayer->SetCaption(LAYER_MANAGER.SuitableNewLayerCaption("Height"));
