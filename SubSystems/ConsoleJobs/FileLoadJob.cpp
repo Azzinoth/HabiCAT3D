@@ -19,6 +19,13 @@ FileLoadJob* FileLoadJob::CreateInstance(CommandLineAction ActionToParse)
 	
 	Result = new FileLoadJob(ActionToParse.Settings["filepath"]);
 
+	if (ActionToParse.Settings.find("keep_existing_data") != ActionToParse.Settings.end())
+	{
+		std::string Value = ActionToParse.Settings["keep_existing_data"];
+		std::transform(Value.begin(), Value.end(), Value.begin(), [](unsigned char Character) { return std::tolower(Character); });
+		Result->bKeepExistingData = (Value == "true");
+	}
+
 	return Result;
 }
 
@@ -31,6 +38,12 @@ ConsoleJobInfo FileLoadJob::GetInfo()
 	CurrentSettingInfo.Name = "filepath";
 	CurrentSettingInfo.Description = "The path of the file to load.";
 	CurrentSettingInfo.bIsOptional = false;
+	Info.SettingsInfo.push_back(CurrentSettingInfo);
+
+	CurrentSettingInfo.Name = "keep_existing_data";
+	CurrentSettingInfo.Description = "Whether to keep existing data when loading a new file.";
+	CurrentSettingInfo.DefaultValue = "false";
+	CurrentSettingInfo.bIsOptional = true;
 	Info.SettingsInfo.push_back(CurrentSettingInfo);
 
 	return Info;
@@ -49,6 +62,15 @@ bool FileLoadJob::Execute(void* InputData, void* OutputData)
 		return false;
 	}
 
+	// Old versions of application was able to load one file at a time.
+	// To preserve this behavior, we clear all previously loaded data before loading new file.
+	if (!bKeepExistingData)
+	{
+		std::cout << "Clearing previously loaded data..." << std::endl;
+		std::cout << "To prevent this behavior, please use file_load command with keep_existing_data=\"true\" option." << std::endl;
+		ANALYSIS_OBJECT_MANAGER.ClearAll();
+	}
+
 	std::cout << "File found. Loading file: " << FilePath << std::endl;
 
 	ANALYSIS_OBJECT_MANAGER.LoadResource(FilePath);
@@ -56,11 +78,18 @@ bool FileLoadJob::Execute(void* InputData, void* OutputData)
 	if (ActiveObject == nullptr)
 		return false;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
-		return false;
+	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
+	{
+		MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+		if (CurrentMeshAnalysisData == nullptr)
+			return false;
 
-	CurrentMeshAnalysisData->UpdateAverageNormal();
+		CurrentMeshAnalysisData->UpdateAverageNormal();
+	}
+	else if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+		
+	}
 
 	OutputConsoleTextWithColor("Successfully completed loading file: ", 0, 255, 0);
 	OutputConsoleTextWithColor(FilePath, 0, 255, 0);

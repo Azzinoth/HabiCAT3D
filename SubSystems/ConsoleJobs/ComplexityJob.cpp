@@ -122,7 +122,7 @@ ConsoleJobInfo ComplexityJob::GetInfo()
 	CurrentSettingInfo.Name = "type";
 	CurrentSettingInfo.Description = "Specifies the type of complexity calculation.";
 	CurrentSettingInfo.bIsOptional = false;
-	CurrentSettingInfo.PossibleValues = { "HEIGHT", "AREA", "RUGOSITY", "TRIANGLE_EDGE", "TRIANGLE_COUNT", "VECTOR_DISPERSION", "FRACTAL_DIMENSION", "COMPARE" };
+	CurrentSettingInfo.PossibleValues = { "HEIGHT", "AREA", "RUGOSITY", "TRIANGLE_EDGE", "TRIANGLE_COUNT", "VECTOR_DISPERSION", "FRACTAL_DIMENSION", "COMPARE", "POINT_DENSITY", "STRUCTURAL_ROUGHNESS" };
 	Info.SettingsInfo.push_back(CurrentSettingInfo);
 
 	CurrentSettingInfo = ConsoleJobSettingsInfo();
@@ -456,6 +456,51 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
 		std::cout << std::endl;
 		std::cout << "Fractal Dimension Layer calculation completed." << std::endl;
+	}
+	else if (ComplexityType == "POINT_DENSITY")
+	{
+		if (ActiveObject->GetType() != DATA_SOURCE_TYPE::POINT_CLOUD)
+		{
+			std::string ErrorMessage = "Error: POINT_DENSITY complexity type requires a point cloud. Loaded object is not a point cloud.";
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return false;
+		}
+
+		std::cout << "Initiating Point Density Layer calculation." << std::endl;
+
+		POINT_DENSITY_LAYER_PRODUCER.CalculateWithJitterAsync(false);
+
+		WaitForJitterManager();
+
+		std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
+		std::cout << std::endl;
+		std::cout << "Point Density Layer calculation completed." << std::endl;
+	}
+	else if (ComplexityType == "STRUCTURAL_ROUGHNESS")
+	{
+		if (ActiveObject->GetType() != DATA_SOURCE_TYPE::POINT_CLOUD)
+		{
+			std::string ErrorMessage = "Error: STRUCTURAL_ROUGHNESS complexity type requires a point cloud. Loaded object is not a point cloud.";
+			OutputConsoleTextWithColor(ErrorMessage, 255, 0, 0);
+			return false;
+		}
+
+		std::cout << "Initiating Structural Roughness Layer calculation." << std::endl;
+
+		if (Settings.IsRunOnWholeModel())
+		{
+			STRUCTURAL_ROUGHNESS_LAYER_PRODUCER.CalculateOnEntireObject();
+		}
+		else
+		{
+			STRUCTURAL_ROUGHNESS_LAYER_PRODUCER.CalculateWithJitterAsync(false);
+		}
+
+		WaitForJitterManager();
+
+		std::cout << "\rProgress: " << std::to_string(100.0f) << " %" << std::flush;
+		std::cout << std::endl;
+		std::cout << "Structural Roughness Layer calculation completed." << std::endl;
 	}
 	else if (ComplexityType == "COMPARE")
 	{

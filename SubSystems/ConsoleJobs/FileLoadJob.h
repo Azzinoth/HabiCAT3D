@@ -9,6 +9,7 @@ class FileLoadJob : public ConsoleJob
 {
 	friend ConsoleJobManager;
 	std::string FilePath;
+	bool bKeepExistingData = false;
 
 	static ConsoleJobInfo GetInfo();
 	bool Execute(void* InputData = nullptr, void* OutputData = nullptr);
