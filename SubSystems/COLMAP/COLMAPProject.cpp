@@ -411,7 +411,7 @@ COLMAPViewRenderSettings* COLMAPProject::GetCurrentViewRenderSettings()
 	return CurrentViewRenderSettings;
 }
 
-bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EXPORT_MODE DepthExportMode, std::string OutputFilePath)
+bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EXPORT_MODE DepthExportMode, std::string OutputFilePath, bool bExportToFile)
 {
 	COLMAPImage* Image = GetImage(ImageID);
 	if (Image == nullptr)
@@ -429,7 +429,7 @@ bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EX
 	if (CameraEntity == nullptr)
 		return false;
 
-	if (!OutputFilePath.empty())
+	if (bExportToFile && !OutputFilePath.empty())
 	{
 		std::string DirectoryPath = FILE_SYSTEM.GetDirectoryPath(OutputFilePath);
 		if (!FILE_SYSTEM.DoesDirectoryExist(DirectoryPath))
@@ -496,7 +496,9 @@ bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EX
 
 	std::string FinalOutputFilePath = OutputFilePath;
 
-	if (!bDepthMap)
+	// When bExportToFile is false, the render was done only to update the camera's framebuffers,
+	// so the in-memory color and depth attachments can be read back without touching the disk.
+	if (bExportToFile && !bDepthMap)
 	{
 		FETexture* CameraResult = RENDERER.GetCameraResult(CameraEntity);
 		if (FinalOutputFilePath.empty())
@@ -504,7 +506,7 @@ bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EX
 		
 		RESOURCE_MANAGER.ExportFETextureToPNG(CameraResult, FinalOutputFilePath.c_str());
 	}
-	else
+	else if (bExportToFile)
 	{
 		FECameraRenderingData* CameraData = RENDERER.GetCameraRenderingData(CameraEntity);
 		if (CameraData != nullptr)
@@ -512,7 +514,7 @@ bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EX
 			FETexture* DepthTexture = CameraData->SceneToTextureFB->GetDepthAttachment();
 			if (FinalOutputFilePath.empty())
 				FinalOutputFilePath = "CameraViewDepth.png";
-			RESOURCE_MANAGER.ExportFETextureToPNG(DepthTexture, FinalOutputFilePath.c_str(), DepthExportMode);
+			RESOURCE_MANAGER.ExportDepthMap(DepthTexture, FinalOutputFilePath.c_str(), DepthExportMode);
 		}
 	}
 
@@ -546,7 +548,7 @@ bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EX
 			AllImagesInstancedEntity->SetComponentVisible(ComponentVisibilityType::ALL, bWasImagesInstancedEntityInitiallyVisible);
 	}
 
-	if (FILE_SYSTEM.DoesFileExist(FinalOutputFilePath) && CurrentViewRenderSettings->bAutoOpenResult)
+	if (bExportToFile && FILE_SYSTEM.DoesFileExist(FinalOutputFilePath) && CurrentViewRenderSettings->bAutoOpenResult)
 		ShellExecute(NULL, "open", FinalOutputFilePath.c_str(), NULL, NULL, SW_SHOWNORMAL);
 
 	return true;

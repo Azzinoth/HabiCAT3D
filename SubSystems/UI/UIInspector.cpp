@@ -72,9 +72,9 @@ void UIInspector::Render(bool bScreenshotMode)
 
 			ImGui::EndTabBar();
 		}
-
-		ImGui::End();
 	}
+
+	ImGui::End();
 }
 
 void UIInspector::OnSelectedImageChangedCallback(COLMAPProject* Project, int ImageID)
@@ -225,7 +225,6 @@ void UIInspector::RenderSelectedObjectTab()
 						}
 
 						ImGui::Text(Text.c_str());
-						ImGui::End();
 					}
 					else if (CurrentMeshAnalysisData->TriangleSelected.size() > 1 && ActiveLayer != nullptr)
 					{
@@ -516,6 +515,25 @@ void UIInspector::RenderPhotogrammetryInformation(COLMAPProject* CurrentCOLMAPPr
 				std::string OriginalPhotoPath = CurrentCOLMAPProject->GetPathToPhotoByImageID(ImagesIDList[i]);
 				std::string OriginalPhotoFileName = FILE_SYSTEM.GetFileName(OriginalPhotoPath, false);
 				CurrentCOLMAPProject->RenderViewFromImage(ImagesIDList[i], true, FE_DEPTH_EXPORT_16BIT_PNG, FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut_16bit_Depth/" + OriginalPhotoFileName + "_Depth16bit" + ".png");
+			}
+
+			CurrentCOLMAPProject->GetCurrentViewRenderSettings()->SetAutoOpenResult(bAutoOpenFiles);
+		}
+
+		if (ImGui::Button("Bulk render view from all image cameras(Depth 32-bit float PFM)"))
+		{
+			bool bAutoOpenFiles = CurrentCOLMAPProject->GetCurrentViewRenderSettings()->GetAutoOpenResult();
+			CurrentCOLMAPProject->GetCurrentViewRenderSettings()->SetAutoOpenResult(false);
+
+			if (!FILE_SYSTEM.DoesDirectoryExist(FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut_32bit_Depth/"))
+				FILE_SYSTEM.MakeDirectory(FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut_32bit_Depth/");
+
+			std::vector<int> ImagesIDList = CurrentCOLMAPProject->GetImagesIDList();
+			for (size_t i = 0; i < ImagesIDList.size(); i++)
+			{
+				std::string OriginalPhotoPath = CurrentCOLMAPProject->GetPathToPhotoByImageID(ImagesIDList[i]);
+				std::string OriginalPhotoFileName = FILE_SYSTEM.GetFileName(OriginalPhotoPath, false);
+				CurrentCOLMAPProject->RenderViewFromImage(ImagesIDList[i], true, FE_DEPTH_EXPORT_32BIT_PFM_RAW, FILE_SYSTEM.GetCurrentWorkingPath() + "/BulkImageOut_32bit_Depth/" + OriginalPhotoFileName + "_Depth32bit" + ".pfm");
 			}
 
 			CurrentCOLMAPProject->GetCurrentViewRenderSettings()->SetAutoOpenResult(bAutoOpenFiles);
@@ -1528,7 +1546,6 @@ void UIInspector::RenderExportTab()
 			}
 
 			ImGui::Text(Text.c_str());
-			ImGui::End();
 		}
 		else if (CurrentMeshAnalysisData->TriangleSelected.size() > 1 && ActiveLayer != nullptr)
 		{

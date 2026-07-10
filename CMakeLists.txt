@@ -220,6 +220,8 @@ set(MAIN_SOURCE_FILES "")
 list(APPEND MAIN_SOURCE_FILES
     "EngineInclude.h"
 	"EngineInclude.cpp"
+	"VolumeTransferFunctionWidget.h"
+	"VolumeTransferFunctionWidget.cpp"
 	"main.cpp"
 	"HabiCAT3D.rc"
 )
