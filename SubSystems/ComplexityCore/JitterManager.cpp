@@ -322,12 +322,12 @@ void JitterManager::RunNextJitter()
 
 	int LastAssignedIndex = -1;
 	int CurrentlyAssignedNodes = 0;
-	int CurrentlyAssignedTriangles = 0;
+	int CurrentlyAssignedObjects = 0;
 	std::vector<CalculationThreadData*> ThreadData;
 	for (int i = 0; i < THREAD_COUNT; i++)
 	{
 		CurrentlyAssignedNodes = 0;
-		CurrentlyAssignedTriangles = 0;
+		CurrentlyAssignedObjects = 0;
 		CalculationThreadData* NewThreadData = new CalculationThreadData();
 
 		if (i == THREAD_COUNT - 1)
@@ -343,8 +343,8 @@ void JitterManager::RunNextJitter()
 			{
 				NewThreadData->Nodes.push_back(NodesWithData[j]);
 
-				CurrentlyAssignedTriangles += static_cast<int>(NodesWithData[j]->TrianglesInCell.size());
-				if (CurrentlyAssignedTriangles >= NumberOfObjectsPerThread)
+				CurrentlyAssignedObjects += static_cast<int>(ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH ? NodesWithData[j]->TrianglesInCell.size() : NodesWithData[j]->PointsInCell.size());
+				if (CurrentlyAssignedObjects >= NumberOfObjectsPerThread)
 				{
 					LastAssignedIndex = static_cast<int>(j);
 					break;

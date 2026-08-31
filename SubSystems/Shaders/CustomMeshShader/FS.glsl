@@ -50,7 +50,7 @@ uniform float SelectedRangeMin;
 uniform float SelectedRangeMax;
 
 uniform float UnselectedAreaSaturationFactor;  // A factor between 0.0 and 1.0
-uniform float UnselectedAreaBrightnessFactor;   // A value to add/subtract for brightness. Can be positive or negative.
+uniform float UnselectedAreaBrightnessFactor;  // A value to add/subtract for brightness. Can be positive or negative.
 
 layout (location = 0) out vec4 out_Color;
 

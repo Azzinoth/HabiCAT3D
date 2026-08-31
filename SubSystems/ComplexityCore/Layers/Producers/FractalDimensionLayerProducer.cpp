@@ -287,36 +287,60 @@ double FractalDimensionLayerProducer::RunOnAllInternalNodesWithData(GridNode* Ou
 		// Iterate through all geometry elements (triangles or points).
 		for (size_t j = 0; j < ElementCount; j++)
 		{
-			int MinGridX = 0, MinGridY = 0, MinGridZ = 0, MaxGridX = 0, MaxGridY = 0, MaxGridZ = 0;
-			std::vector<glm::dvec3> CurrentTriangle;
-			glm::dvec3 CurrentPoint;
-			if (CurrentType == DATA_SOURCE_TYPE::MESH)
+			if (CurrentType == DATA_SOURCE_TYPE::POINT_CLOUD)
 			{
-				CurrentTriangle = CurrentMeshAnalysisData->Triangles[OuterNode->TrianglesInCell[j]];
+				glm::dvec3 CurrentPoint = glm::dvec3(CurrentPointCloudAnalysisData->RawPointCloudData[OuterNode->PointsInCell[j]].X,
+													 CurrentPointCloudAnalysisData->RawPointCloudData[OuterNode->PointsInCell[j]].Y,
+													 CurrentPointCloudAnalysisData->RawPointCloudData[OuterNode->PointsInCell[j]].Z);
 
-				FEAABB TriangleBBox = FEAABB(CurrentTriangle);
-				MinGridX = static_cast<int>((TriangleBBox.GetMin()[0] - OuterNode->AABB.GetMin()[0]) / BoxSize);
-				MinGridY = static_cast<int>((TriangleBBox.GetMin()[1] - OuterNode->AABB.GetMin()[1]) / BoxSize);
-				MinGridZ = static_cast<int>((TriangleBBox.GetMin()[2] - OuterNode->AABB.GetMin()[2]) / BoxSize);
-				MaxGridX = static_cast<int>((TriangleBBox.GetMax()[0] - OuterNode->AABB.GetMin()[0]) / BoxSize);
-				MaxGridY = static_cast<int>((TriangleBBox.GetMax()[1] - OuterNode->AABB.GetMin()[1]) / BoxSize);
-				MaxGridZ = static_cast<int>((TriangleBBox.GetMax()[2] - OuterNode->AABB.GetMin()[2]) / BoxSize);
-			}
-			else if (CurrentType == DATA_SOURCE_TYPE::POINT_CLOUD)
-			{
-				CurrentPoint = glm::dvec3(CurrentPointCloudAnalysisData->RawPointCloudData[OuterNode->PointsInCell[j]].X,
-										  CurrentPointCloudAnalysisData->RawPointCloudData[OuterNode->PointsInCell[j]].Y,
-										  CurrentPointCloudAnalysisData->RawPointCloudData[OuterNode->PointsInCell[j]].Z);
+				// A point can occupy only one box; points exactly on the max face of the node AABB belong to the last box.
+				int X = static_cast<int>((CurrentPoint[0] - OuterNode->AABB.GetMin()[0]) / BoxSize);
+				int Y = static_cast<int>((CurrentPoint[1] - OuterNode->AABB.GetMin()[1]) / BoxSize);
+				int Z = static_cast<int>((CurrentPoint[2] - OuterNode->AABB.GetMin()[2]) / BoxSize);
 
-				// FIX ME: Ensure that magic numbers are not needed here.
-				// They are the same as in grid filling.
-				MinGridX = static_cast<int>((CurrentPoint[0] - OuterNode->AABB.GetMin()[0]) / BoxSize) - 2;
-				MinGridY = static_cast<int>((CurrentPoint[1] - OuterNode->AABB.GetMin()[1]) / BoxSize) - 2;
-				MinGridZ = static_cast<int>((CurrentPoint[2] - OuterNode->AABB.GetMin()[2]) / BoxSize) - 2;
-				MaxGridX = MinGridX + 3;
-				MaxGridY = MinGridY + 3;
-				MaxGridZ = MinGridZ + 3;
+				if (X < 0)
+					X = 0;
+
+				if (X >= GridX)
+					X = GridX - 1;
+
+				if (Y < 0)
+					Y = 0;
+
+				if (Y >= GridY)
+					Y = GridY - 1;
+
+				if (Z < 0)
+					Z = 0;
+
+				if (Z >= GridZ)
+					Z = GridZ - 1;
+
+				if (!Grid[X][Y][Z])
+				{
+					Grid[X][Y][Z] = true;
+					Count++;
+
+					if (FunctionWithAdditionalCode != nullptr)
+					{
+						glm::vec3 BoxMin(X * BoxSize + OuterNode->AABB.GetMin()[0], Y * BoxSize + OuterNode->AABB.GetMin()[1], Z * BoxSize + OuterNode->AABB.GetMin()[2]);
+						glm::vec3 BoxMax((X + 1) * BoxSize + OuterNode->AABB.GetMin()[0], (Y + 1) * BoxSize + OuterNode->AABB.GetMin()[1], (Z + 1) * BoxSize + OuterNode->AABB.GetMin()[2]);
+						FunctionWithAdditionalCode(static_cast<int>(i), FEAABB(BoxMin, BoxMax));
+					}
+				}
+
+				continue;
 			}
+
+			std::vector<glm::dvec3> CurrentTriangle = CurrentMeshAnalysisData->Triangles[OuterNode->TrianglesInCell[j]];
+
+			FEAABB TriangleBBox = FEAABB(CurrentTriangle);
+			int MinGridX = static_cast<int>((TriangleBBox.GetMin()[0] - OuterNode->AABB.GetMin()[0]) / BoxSize);
+			int MinGridY = static_cast<int>((TriangleBBox.GetMin()[1] - OuterNode->AABB.GetMin()[1]) / BoxSize);
+			int MinGridZ = static_cast<int>((TriangleBBox.GetMin()[2] - OuterNode->AABB.GetMin()[2]) / BoxSize);
+			int MaxGridX = static_cast<int>((TriangleBBox.GetMax()[0] - OuterNode->AABB.GetMin()[0]) / BoxSize);
+			int MaxGridY = static_cast<int>((TriangleBBox.GetMax()[1] - OuterNode->AABB.GetMin()[1]) / BoxSize);
+			int MaxGridZ = static_cast<int>((TriangleBBox.GetMax()[2] - OuterNode->AABB.GetMin()[2]) / BoxSize);
 
 			for (int X = MinGridX; X <= MaxGridX; ++X)
 			{
@@ -332,9 +356,7 @@ double FractalDimensionLayerProducer::RunOnAllInternalNodesWithData(GridNode* Ou
 								glm::vec3 BoxMax((X + 1) * BoxSize + OuterNode->AABB.GetMin()[0], (Y + 1) * BoxSize + OuterNode->AABB.GetMin()[1], (Z + 1) * BoxSize + OuterNode->AABB.GetMin()[2]);
 								FEAABB Box(BoxMin, BoxMax);
 
-								bool bIntersects = false;
-								bIntersects = CurrentType == DATA_SOURCE_TYPE::MESH ? GEOMETRY.IsAABBIntersectTriangle(Box, CurrentTriangle) : Box.ContainsPoint(CurrentPoint);
-								if (bIntersects)
+								if (GEOMETRY.IsAABBIntersectTriangle(Box, CurrentTriangle))
 								{
 									Grid[X][Y][Z] = true;
 									Count++;

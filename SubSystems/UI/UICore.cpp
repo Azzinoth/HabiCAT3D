@@ -80,19 +80,19 @@ void UICore::ShowTransformConfiguration(const std::string Name, FETransformCompo
 	ImGui::Text("Position : ");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##X pos : ") + Name).c_str(), &Position[0], 0.1f))
+	if (ImGui::DragFloat((std::string("##X pos : ") + Name).c_str(), &Position[0], 0.01f))
 		bModified = true;
 	ShowToolTip("X position");
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##Y pos : ") + Name).c_str(), &Position[1], 0.1f))
+	if (ImGui::DragFloat((std::string("##Y pos : ") + Name).c_str(), &Position[1], 0.01f))
 		bModified = true;
 	ShowToolTip("Y position");
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##Z pos : ") + Name).c_str(), &Position[2], 0.1f))
+	if (ImGui::DragFloat((std::string("##Z pos : ") + Name).c_str(), &Position[2], 0.01f))
 		bModified = true;
 	ShowToolTip("Z position");
 
@@ -106,19 +106,19 @@ void UICore::ShowTransformConfiguration(const std::string Name, FETransformCompo
 	ImGui::Text("World Position : ");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##World X pos : ") + Name).c_str(), &WorldPosition[0], 0.1f))
+	if (ImGui::DragFloat((std::string("##World X pos : ") + Name).c_str(), &WorldPosition[0], 0.01f))
 		bModified = true;
 	ShowToolTip("X position");
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##World Y pos : ") + Name).c_str(), &WorldPosition[1], 0.1f))
+	if (ImGui::DragFloat((std::string("##World Y pos : ") + Name).c_str(), &WorldPosition[1], 0.01f))
 		bModified = true;
 	ShowToolTip("Y position");
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##World Z pos : ") + Name).c_str(), &WorldPosition[2], 0.1f))
+	if (ImGui::DragFloat((std::string("##World Z pos : ") + Name).c_str(), &WorldPosition[2], 0.01f))
 		bModified = true;
 	ShowToolTip("Z position");
 
@@ -132,19 +132,19 @@ void UICore::ShowTransformConfiguration(const std::string Name, FETransformCompo
 	ImGui::Text("Rotation : ");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##X rot : ") + Name).c_str(), &Rotation[0], 0.1f, -360.0f, 360.0f))
+	if (ImGui::DragFloat((std::string("##X rot : ") + Name).c_str(), &Rotation[0], 0.01f, -360.0f, 360.0f))
 		bModified = true;
 	ShowToolTip("X rotation");
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##Y rot : ") + Name).c_str(), &Rotation[1], 0.1f, -360.0f, 360.0f))
+	if (ImGui::DragFloat((std::string("##Y rot : ") + Name).c_str(), &Rotation[1], 0.01f, -360.0f, 360.0f))
 		bModified = true;
 	ShowToolTip("Y rotation");
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##Z rot : ") + Name).c_str(), &Rotation[2], 0.1f, -360.0f, 360.0f))
+	if (ImGui::DragFloat((std::string("##Z rot : ") + Name).c_str(), &Rotation[2], 0.01f, -360.0f, 360.0f))
 		bModified = true;
 	ShowToolTip("Z rotation");
 
@@ -158,19 +158,19 @@ void UICore::ShowTransformConfiguration(const std::string Name, FETransformCompo
 	ImGui::Text("World Rotation : ");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##World X rot : ") + Name).c_str(), &WorldRotation[0], 0.1f, -360.0f, 360.0f))
+	if (ImGui::DragFloat((std::string("##World X rot : ") + Name).c_str(), &WorldRotation[0], 0.01f, -360.0f, 360.0f))
 		bModified = true;
 	ShowToolTip("X rotation");
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##World Y rot : ") + Name).c_str(), &WorldRotation[1], 0.1f, -360.0f, 360.0f))
+	if (ImGui::DragFloat((std::string("##World Y rot : ") + Name).c_str(), &WorldRotation[1], 0.01f, -360.0f, 360.0f))
 		bModified = true;
 	ShowToolTip("Y rotation");
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(EditWidth);
-	if (ImGui::DragFloat((std::string("##World Z rot : ") + Name).c_str(), &WorldRotation[2], 0.1f, -360.0f, 360.0f))
+	if (ImGui::DragFloat((std::string("##World Z rot : ") + Name).c_str(), &WorldRotation[2], 0.01f, -360.0f, 360.0f))
 		bModified = true;
 	ShowToolTip("Z rotation");
 

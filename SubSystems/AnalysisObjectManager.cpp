@@ -487,6 +487,56 @@ void AnalysisObjectManager::LoadResource(std::string FilePath)
 			LoadedResource->AnalysisData = ExtractAdditionalGeometryData(static_cast<FEPointCloud*>(LoadedObject));
 			LoadedResource->AppliedShift = RESOURCE_MANAGER.GetLastLoadedPointCloudAppliedShift();
 		}
+		else if (LoadedObject->GetType() == FE_MESH)
+		{
+			FEMesh* LoadedMesh = static_cast<FEMesh*>(LoadedObject);
+
+			std::vector<float> FEFloatVertices;
+			FEFloatVertices.resize(LoadedMesh->GetPositionsCount());
+			FE_GL_ERROR(glGetNamedBufferSubData(LoadedMesh->GetPositionsBufferID(), 0, sizeof(float) * LoadedMesh->GetPositionsCount(), FEFloatVertices.data()));
+			std::vector<double> FEVertices(FEFloatVertices.begin(), FEFloatVertices.end());
+
+			std::vector<int> FEIndices;
+			FEIndices.resize(LoadedMesh->GetIndicesCount());
+			FE_GL_ERROR(glGetNamedBufferSubData(LoadedMesh->GetIndicesBufferID(), 0, sizeof(int) * LoadedMesh->GetIndicesCount(), FEIndices.data()));
+
+			std::vector<float> FEColors;
+			if (LoadedMesh->GetColorCount() > 0)
+			{
+				FEColors.resize(LoadedMesh->GetColorCount());
+				FE_GL_ERROR(glGetNamedBufferSubData(LoadedMesh->GetColorBufferID(), 0, sizeof(float) * LoadedMesh->GetColorCount(), FEColors.data()));
+			}
+
+			std::vector<float> FEUVs;
+			if (LoadedMesh->GetUVCount() > 0)
+			{
+				FEUVs.resize(LoadedMesh->GetUVCount());
+				FE_GL_ERROR(glGetNamedBufferSubData(LoadedMesh->GetUVBufferID(), 0, sizeof(float) * LoadedMesh->GetUVCount(), FEUVs.data()));
+			}
+
+			std::vector<float> FETangents;
+			if (LoadedMesh->GetTangentsCount() > 0)
+			{
+				FETangents.resize(LoadedMesh->GetTangentsCount());
+				FE_GL_ERROR(glGetNamedBufferSubData(LoadedMesh->GetTangentsBufferID(), 0, sizeof(float) * LoadedMesh->GetTangentsCount(), FETangents.data()));
+			}
+
+			std::vector<float> FENormals;
+			if (LoadedMesh->GetNormalsCount() > 0)
+			{
+				FENormals.resize(LoadedMesh->GetNormalsCount());
+				FE_GL_ERROR(glGetNamedBufferSubData(LoadedMesh->GetNormalsBufferID(), 0, sizeof(float) * LoadedMesh->GetNormalsCount(), FENormals.data()));
+			}
+
+			LoadedResource = new AnalysisObject();
+			LoadedResource->Type = DATA_SOURCE_TYPE::MESH;
+			LoadedResource->FilePath = FilePath;
+			LoadedResource->Name = FILE_SYSTEM.GetFileName(FilePath, false);
+			LoadedResource->EngineResource = LoadedMesh;
+			LoadedResource->AnalysisData = ExtractAdditionalGeometryData(FEVertices, FEColors, FEUVs, FETangents, FEIndices, FENormals);
+			// PLY mesh import does not shift positions, unlike OBJ and point cloud imports.
+			LoadedResource->AppliedShift = glm::dvec3(0.0);
+		}
 	}
 	else if (FileExtension == ".las" || FileExtension == ".laz")
 	{
@@ -863,7 +913,7 @@ void AnalysisObjectManager::UpdateMeshUniforms(AnalysisObject* Object)
 			ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolationActive", CurrentInterpolationData == nullptr ? 0 : 1);
 			if (CurrentInterpolationData != nullptr)
 			{
-				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolationLayerCount", CurrentInterpolationData->GetLayerCount());
+				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolationLayerCount", static_cast<int>(CurrentInterpolationData->GetLayerCount()));
 				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolationLayersMin", CurrentInterpolationData->GetLayersMinValues());
 				ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("InterpolationLayersMax", CurrentInterpolationData->GetLayersMaxValues());
 
@@ -1580,22 +1630,22 @@ void AnalysisObjectManager::LoadPointCloudDataFromRUGFile(std::fstream& File, An
 	Object->AppliedShift.z = *(double*)Buffer_8Byte;
 
 	File.read(Buffer_8Byte, sizeof(size_t));
-	const size_t VertexCout = *(size_t*)Buffer_8Byte;
-	char* VertexBuffer = new char[VertexCout * sizeof(float)];
-	File.read(VertexBuffer, VertexCout * sizeof(float));
+	const size_t PositionFloatCount = *(size_t*)Buffer_8Byte;
+	char* PositionBuffer = new char[PositionFloatCount * sizeof(float)];
+	File.read(PositionBuffer, PositionFloatCount * sizeof(float));
 
 	File.read(Buffer_8Byte, sizeof(size_t));
-	const size_t ColorCout = *(size_t*)Buffer_8Byte;
-	char* ColorBuffer = new char[ColorCout * sizeof(unsigned char)];
-	File.read(ColorBuffer, ColorCout * sizeof(unsigned char));
+	const size_t ColorByteCount = *(size_t*)Buffer_8Byte;
+	char* ColorBuffer = new char[ColorByteCount * sizeof(unsigned char)];
+	File.read(ColorBuffer, ColorByteCount * sizeof(unsigned char));
 
 	std::vector<FEPointCloudVertex> PointCloudData;
-	for (size_t i = 0; i < VertexCout / 3; i++)
+	for (size_t i = 0; i < PositionFloatCount / 3; i++)
 	{
 		PointCloudData.push_back(FEPointCloudVertex());
-		PointCloudData[i].X = *(float*)(VertexBuffer + i * 3 * sizeof(float));
-		PointCloudData[i].Y = *(float*)(VertexBuffer + i * 3 * sizeof(float) + sizeof(float));
-		PointCloudData[i].Z = *(float*)(VertexBuffer + i * 3 * sizeof(float) + sizeof(float) * 2);
+		PointCloudData[i].X = *(float*)(PositionBuffer + i * 3 * sizeof(float));
+		PointCloudData[i].Y = *(float*)(PositionBuffer + i * 3 * sizeof(float) + sizeof(float));
+		PointCloudData[i].Z = *(float*)(PositionBuffer + i * 3 * sizeof(float) + sizeof(float) * 2);
 
 		PointCloudData[i].R = *(unsigned char*)(ColorBuffer + i * 4 * sizeof(unsigned char));
 		PointCloudData[i].G = *(unsigned char*)(ColorBuffer + i * 4 * sizeof(unsigned char) + sizeof(unsigned char));
@@ -1609,7 +1659,7 @@ void AnalysisObjectManager::LoadPointCloudDataFromRUGFile(std::fstream& File, An
 	Object->AnalysisData = ExtractAdditionalGeometryData(NewPointCloud);
 
 	delete[] Buffer_8Byte;
-	delete[] VertexBuffer;
+	delete[] PositionBuffer;
 	delete[] ColorBuffer;
 }
 

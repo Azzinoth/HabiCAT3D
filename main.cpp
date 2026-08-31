@@ -1888,7 +1888,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		APPLICATION.GetMainWindow()->AddOnResizeCallback(WindowResizeCallback);
 
 		FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
-		CAMERA_SYSTEM.SetCameraRenderingPipeline(CameraEntity, FERenderingPipeline::Deferred);
+		CAMERA_SYSTEM.SetCameraRenderingPipeline(CameraEntity, FERenderingPipeline::Forward_Simplified);
 		FECameraComponent& CameraComponent = CameraEntity->GetComponent<FECameraComponent>();
 		CameraComponent.SetClearColor(glm::vec4(ClearColor.x, ClearColor.y, ClearColor.z, ClearColor.w));
 		CameraComponent.SetNearPlane(0.1f);
