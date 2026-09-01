@@ -15,16 +15,6 @@ StructuralRoughnessLayerProducer::StructuralRoughnessLayerProducer()
 
 	if (!APPLICATION.HasConsoleWindow())
 		DEVELOPER_MODE.AddOnDebugGridSelectedCellChangedCallback(OnDebugGridSelectedCellChanged);
-
-	DebugPlaneEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Structural Roughness Debug Plane");
-	FEMesh* PlaneMesh = RESOURCE_MANAGER.GetMesh("1Y251E6E6T78013635793156"/*"plane"*/);
-	FEMaterial* BlueMaterial = RESOURCE_MANAGER.CreateMaterial();
-	BlueMaterial->Shader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
-	BlueMaterial->SetBaseColor(glm::vec3(0.0f, 0.0f, 0.6f));
-	BlueMaterial->Shader->UpdateUniformData("BrightnessFactor", 1.0f);
-	FEGameModel* BluePlaneGameModel = RESOURCE_MANAGER.CreateGameModel(PlaneMesh, BlueMaterial);
-	DebugPlaneEntity->AddComponent<FEGameModelComponent>(BluePlaneGameModel);
-	DebugPlaneEntity->SetComponentVisible(ComponentVisibilityType::ALL, false);
 }
 
 StructuralRoughnessLayerProducer::~StructuralRoughnessLayerProducer() {}

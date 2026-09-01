@@ -23,6 +23,7 @@ class ComplexityJobSettings
 	std::string Rugosity_MinAlgorithm_Quality = "91";
 
 	bool bFractalDimension_FilterValues = true;
+	bool bFractalDimension_FilterValuesWasExplicitlySet = false;
 
 	bool bCalculateStandardDeviation = false;
 
@@ -77,6 +78,8 @@ public:
 	bool GetFractalDimension_ShouldFilterValues();
 	// Should app filter values that are less than 2.0
 	void SetFractalDimension_ShouldFilterValues(bool NewValue);
+	// Whether the filter setting was provided by the user; if not, the default depends on the object type.
+	bool IsFractalDimension_FilterValuesExplicitlySet();
 
 	// Possible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH
 	std::string GetTriangleEdges_Mode();

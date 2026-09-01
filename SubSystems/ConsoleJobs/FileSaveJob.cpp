@@ -43,7 +43,12 @@ bool FileSaveJob::Execute(void* InputData, void* OutputData)
 	if (ActiveObject == nullptr)
 		return false;
 
-	ANALYSIS_OBJECT_MANAGER.SaveToRUGFile(FilePath);
+	if (!ANALYSIS_OBJECT_MANAGER.SaveToRUGFile(FilePath))
+	{
+		OutputConsoleTextWithColor("Failed to save file: " + FilePath + ". Please check that the path is valid and the folder exists.", 255, 0, 0);
+		return false;
+	}
+
 	OutputConsoleTextWithColor("File saved successfully.", 0, 255, 0);
 
 	return true;

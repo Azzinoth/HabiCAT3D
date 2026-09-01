@@ -540,17 +540,79 @@ void AnalysisObjectManager::LoadResource(std::string FilePath)
 	}
 	else if (FileExtension == ".las" || FileExtension == ".laz")
 	{
-		FEPointCloud* PointCloud = RESOURCE_MANAGER.ImportPointCloud(FilePath);
-		if (PointCloud == nullptr)
-			return;
+		if (APPLICATION.HasConsoleWindow())
+		{
+			if (!LAS_LOADER.ReadFile(FilePath))
+				return;
 
-		LoadedResource = new AnalysisObject();
-		LoadedResource->Type = DATA_SOURCE_TYPE::POINT_CLOUD;
-		LoadedResource->FilePath = FilePath;
-		LoadedResource->Name = FILE_SYSTEM.GetFileName(FilePath, false);
-		LoadedResource->EngineResource = PointCloud;
-		LoadedResource->AnalysisData = ExtractAdditionalGeometryData(PointCloud);
-		LoadedResource->AppliedShift = RESOURCE_MANAGER.GetLastLoadedPointCloudAppliedShift();
+			FELASData* LoadedData = nullptr;
+			LAS_LOADER.TakeOwnershipOfLastLoadedData(LoadedData);
+			if (LoadedData == nullptr)
+				return;
+
+			std::vector<FEPointCloudVertexDouble>& Vertices = LoadedData->PointCloudVertices;
+
+			glm::dvec3 Min = glm::dvec3(std::numeric_limits<double>::max());
+			glm::dvec3 Max = glm::dvec3(-std::numeric_limits<double>::max());
+
+			for (size_t i = 0; i < Vertices.size(); i++)
+			{
+				if (Vertices[i].X < Min.x)
+					Min.x = Vertices[i].X;
+
+				if (Vertices[i].X > Max.x)
+					Max.x = Vertices[i].X;
+
+				if (Vertices[i].Y < Min.y)
+					Min.y = Vertices[i].Y;
+
+				if (Vertices[i].Y > Max.y)
+					Max.y = Vertices[i].Y;
+
+				if (Vertices[i].Z < Min.z)
+					Min.z = Vertices[i].Z;
+
+				if (Vertices[i].Z > Max.z)
+					Max.z = Vertices[i].Z;
+			}
+
+			glm::dvec3 Extent = Max - Min;
+			glm::dvec3 Center = Min + Extent / 2.0;
+
+			// The centered coordinates are truncated to float because GUI path uses floats also.
+			for (size_t i = 0; i < Vertices.size(); i++)
+			{
+				Vertices[i].X = static_cast<float>(Vertices[i].X - Center.x);
+				Vertices[i].Y = static_cast<float>(Vertices[i].Y - Center.y);
+				Vertices[i].Z = static_cast<float>(Vertices[i].Z - Center.z);
+			}
+
+			FEAABB PointCloudAABB = FEAABB(Min - Center, Max - Center);
+
+			LoadedResource = new AnalysisObject();
+			LoadedResource->Type = DATA_SOURCE_TYPE::POINT_CLOUD;
+			LoadedResource->FilePath = FilePath;
+			LoadedResource->Name = FILE_SYSTEM.GetFileName(FilePath, false);
+			LoadedResource->EngineResource = nullptr;
+			LoadedResource->AnalysisData = ExtractAdditionalGeometryData(LoadedData->PointCloudVertices, PointCloudAABB);
+			LoadedResource->AppliedShift = Center;
+
+			delete LoadedData;
+		}
+		else
+		{
+			FEPointCloud* PointCloud = RESOURCE_MANAGER.ImportPointCloud(FilePath);
+			if (PointCloud == nullptr)
+				return;
+
+			LoadedResource = new AnalysisObject();
+			LoadedResource->Type = DATA_SOURCE_TYPE::POINT_CLOUD;
+			LoadedResource->FilePath = FilePath;
+			LoadedResource->Name = FILE_SYSTEM.GetFileName(FilePath, false);
+			LoadedResource->EngineResource = PointCloud;
+			LoadedResource->AnalysisData = ExtractAdditionalGeometryData(PointCloud);
+			LoadedResource->AppliedShift = RESOURCE_MANAGER.GetLastLoadedPointCloudAppliedShift();
+		}
 	}
 
 	OnAnalysisObjectLoad(LoadedResource);
@@ -671,15 +733,17 @@ void AnalysisObjectManager::ComplexityMetricDataToGPU(std::string LayerID, int G
 		if (CurrentPointCloudAnalysisData == nullptr)
 			return;
 
+		FEPointCloud* PointCloud = static_cast<FEPointCloud*>(ActiveObject->GetEngineResource());
+		if (PointCloud == nullptr)
+			return;
+
 		for (size_t i = 0; i < CurrentLayer->ValuesComputeShaderBuffers.size(); i++)
 		{
 			if (CurrentLayer->ValuesComputeShaderBuffers[i] != GLuint(-1))
 				FE_GL_ERROR(glDeleteBuffers(1, &CurrentLayer->ValuesComputeShaderBuffers[i]));
-			
-			CurrentLayer->ValuesComputeShaderBuffers.clear();
 		}
+		CurrentLayer->ValuesComputeShaderBuffers.clear();
 
-		FEPointCloud* PointCloud = static_cast<FEPointCloud*>(ActiveObject->GetEngineResource());
 		for (size_t i = 0; i < PointCloud->GetPointCount(); i += FEPointCloud::MaxPointsPerBuffer)
 		{
 			CurrentLayer->ValuesComputeShaderBuffers.resize(CurrentLayer->ValuesComputeShaderBuffers.size() + 1);
@@ -1064,6 +1128,22 @@ PointCloudAnalysisData* AnalysisObjectManager::ExtractAdditionalGeometryData(FEP
 	return Result;
 }
 
+PointCloudAnalysisData* AnalysisObjectManager::ExtractAdditionalGeometryData(std::vector<FEPointCloudVertexDouble>& PointCloudVertices, FEAABB PointCloudAABB)
+{
+	PointCloudAnalysisData* Result = new PointCloudAnalysisData();
+
+	Result->RawPointCloudData = std::move(PointCloudVertices);
+	Result->OriginalColors.resize(Result->RawPointCloudData.size());
+	for (size_t i = 0; i < Result->RawPointCloudData.size(); i++)
+	{
+		FEPointCloudVertexDouble& CurrentVertex = Result->RawPointCloudData[i];
+		Result->OriginalColors[i] = { CurrentVertex.R, CurrentVertex.G, CurrentVertex.B, CurrentVertex.A };
+	}
+
+	Result->AABB = PointCloudAABB;
+	return Result;
+}
+
 FEEntity* AnalysisObjectManager::GetActiveEntity()
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
@@ -1234,40 +1314,34 @@ void AnalysisObjectManager::SaveMeshDataToRUGFile(std::fstream& File, AnalysisOb
 
 void AnalysisObjectManager::SavePointCloudToRUGFile(std::fstream& File, AnalysisObject* Object)
 {
-	FEPointCloud* PointCloud = static_cast<FEPointCloud*>(Object->GetEngineResource());
-	if (PointCloud == nullptr)
+	PointCloudAnalysisData* CurrentPointCloudAnalysisData = Object->GetPointCloudAnalysisData();
+	if (CurrentPointCloudAnalysisData == nullptr)
 		return;
 
 	File.write((char*)&Object->AppliedShift.x, sizeof(double));
 	File.write((char*)&Object->AppliedShift.y, sizeof(double));
 	File.write((char*)&Object->AppliedShift.z, sizeof(double));
 
-	std::vector<FEPointCloudVertex> RawData = PointCloud->GetRawData();
+	std::vector<FEPointCloudVertexDouble>& Vertices = CurrentPointCloudAnalysisData->RawPointCloudData;
 
-	size_t Count = PointCloud->GetPointCount() * 3;
-	float* Positions = new float[Count];
-	for (size_t i = 0; i < PointCloud->GetPointCount(); i++)
+	size_t Count = Vertices.size() * 3;
+	std::vector<float> Positions(Count);
+	for (size_t i = 0; i < Vertices.size(); i++)
 	{
-		Positions[i * 3] = RawData[i].X;
-		Positions[i * 3 + 1] = RawData[i].Y;
-		Positions[i * 3 + 2] = RawData[i].Z;
+		Positions[i * 3] = static_cast<float>(Vertices[i].X);
+		Positions[i * 3 + 1] = static_cast<float>(Vertices[i].Y);
+		Positions[i * 3 + 2] = static_cast<float>(Vertices[i].Z);
 	}
 
 	File.write((char*)&Count, sizeof(size_t));
-	File.write((char*)Positions, sizeof(float) * Count);
+	File.write((char*)Positions.data(), sizeof(float) * Count);
 
-	Count = PointCloud->GetPointCount() * 4;
-	unsigned char* Colors = new unsigned char[PointCloud->GetPointCount() * 4];
-
+	Count = Vertices.size() * 4;
+	std::vector<unsigned char> Colors(Count);
 	// Use original colors, because point cloud colors can be modified in the application.
-	PointCloudAnalysisData* CurrentPointCloudAnalysisData = Object->GetPointCloudAnalysisData();
-	auto* OriginalColors = &CurrentPointCloudAnalysisData->OriginalColors;
-	if (CurrentPointCloudAnalysisData == nullptr)
-		return;
-
-	for (size_t i = 0; i < CurrentPointCloudAnalysisData->RawPointCloudData.size(); i++)
+	for (size_t i = 0; i < Vertices.size(); i++)
 	{
-		std::vector<unsigned char> OriginalColor = CurrentPointCloudAnalysisData->OriginalColors[i];
+		std::vector<unsigned char>& OriginalColor = CurrentPointCloudAnalysisData->OriginalColors[i];
 
 		Colors[i * 4] = OriginalColor[0];
 		Colors[i * 4 + 1] = OriginalColor[1];
@@ -1276,10 +1350,7 @@ void AnalysisObjectManager::SavePointCloudToRUGFile(std::fstream& File, Analysis
 	}
 
 	File.write((char*)&Count, sizeof(size_t));
-	File.write((char*)Colors, sizeof(unsigned char) * Count);
-
-	delete[] Positions;
-	delete[] Colors;
+	File.write((char*)Colors.data(), sizeof(unsigned char) * Count);
 }
 
 void AnalysisObjectManager::SaveLayersDataToRUGFile(std::fstream& File, AnalysisObject* Object)
@@ -1427,16 +1498,21 @@ void AnalysisObjectManager::LoadAnnotationsDataFromRUGFile(std::fstream& File, A
 	ANNOTATION_MANAGER.UpdateBuffer(NewAnnotationData);
 }
 
-void AnalysisObjectManager::SaveToRUGFile(std::string FilePath)
+bool AnalysisObjectManager::SaveToRUGFile(std::string FilePath)
 {
 	if (FilePath.empty())
-		return;
+		return false;
 
 	if (FilePath.find(".rug") == std::string::npos)
 		FilePath += ".rug";
 
 	std::fstream File;
 	File.open(FilePath, std::ios::out | std::ios::binary);
+	if (!File.is_open())
+	{
+		LOG.Add(std::string("Can't open file: ") + FilePath + " in function SaveToRUGFile.");
+		return false;
+	}
 
 	float Version = APPLICATION_VERSION_FLOAT;
 	File.write((char*)&Version, sizeof(float));
@@ -1470,6 +1546,8 @@ void AnalysisObjectManager::SaveToRUGFile(std::string FilePath)
 			if (CurrentEntity != nullptr)
 				bVisibleInScene = CurrentEntity->IsVisible();
 			int VisibleInScene = bVisibleInScene;
+			if (APPLICATION.HasConsoleWindow())
+				VisibleInScene = 1;
 			File.write((char*)&VisibleInScene, sizeof(int));
 
 			SaveAnalysisDataToRUGFile(File, CurrentObject);
@@ -1481,6 +1559,7 @@ void AnalysisObjectManager::SaveToRUGFile(std::string FilePath)
 	}
 
 	File.close();
+	return true;
 }
 
 void AnalysisObjectManager::LoadMeshDataFromRUGFile(std::fstream& File, AnalysisObject* Object)

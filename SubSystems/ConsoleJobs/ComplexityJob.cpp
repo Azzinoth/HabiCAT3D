@@ -200,9 +200,10 @@ ConsoleJobInfo ComplexityJob::GetInfo()
 
 	CurrentSettingInfo = ConsoleJobSettingsInfo();
 	CurrentSettingInfo.Name = "fractal_dimension_should_filter_values";
-	CurrentSettingInfo.Description = "Specifies if the app should filter values that are less that 2.0. Relevant only for 'FRACTAL_DIMENSION' complexity type.";
+	CurrentSettingInfo.Description = "Specifies if the app should filter values that are less that 2.0. Relevant only for 'FRACTAL_DIMENSION' complexity type. If not specified, it is enabled for meshes and disabled for point clouds.";
 	CurrentSettingInfo.bIsOptional = true;
-	CurrentSettingInfo.DefaultValue = "true";
+	CurrentSettingInfo.DefaultValue = "Depends on object type";
+	CurrentSettingInfo.PossibleValues = { "TRUE", "FALSE" };
 	Info.SettingsInfo.push_back(CurrentSettingInfo);
 
 	CurrentSettingInfo = ConsoleJobSettingsInfo();
@@ -440,7 +441,14 @@ bool ComplexityJob::Execute(void* InputData, void* OutputData)
 		std::cout << "Initiating Fractal Dimension Layer calculation." << std::endl;
 
 		FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldCalculateStandardDeviation(Settings.IsStandardDeviationNeeded());
-		FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldFilterFractalDimensionValues(Settings.GetFractalDimension_ShouldFilterValues());
+
+		// The filter drops values below 2.0, which is meaningful for meshes (surface fractal dimension is in the 2.0-3.0 range)
+		// but wipes out point cloud results, so when not explicitly set it is enabled only for meshes.
+		bool bShouldFilterValues = Settings.GetFractalDimension_ShouldFilterValues();
+		if (!Settings.IsFractalDimension_FilterValuesExplicitlySet())
+			bShouldFilterValues = ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH;
+
+		FRACTAL_DIMENSION_LAYER_PRODUCER.SetShouldFilterFractalDimensionValues(bShouldFilterValues);
 
 		if (Settings.IsRunOnWholeModel())
 		{
@@ -672,6 +680,13 @@ bool ComplexityJobSettings::GetFractalDimension_ShouldFilterValues()
 void ComplexityJobSettings::SetFractalDimension_ShouldFilterValues(bool NewValue)
 {
 	bFractalDimension_FilterValues = NewValue;
+	bFractalDimension_FilterValuesWasExplicitlySet = true;
+}
+
+// Whether the filter setting was provided by the user; if not, the default depends on the object type.
+bool ComplexityJobSettings::IsFractalDimension_FilterValuesExplicitlySet()
+{
+	return bFractalDimension_FilterValuesWasExplicitlySet;
 }
 
 // Possible values: MAX_LEHGTH, MIN_LEHGTH, MEAN_LEHGTH

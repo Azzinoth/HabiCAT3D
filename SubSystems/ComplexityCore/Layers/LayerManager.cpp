@@ -143,7 +143,6 @@ void LayerManager::PropagateLayerEvent(LayerEvent Event)
 				if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
 				{
 					PointCloudAnalysisData* CurrentPointCloudAnalysisData = ActiveObject->GetPointCloudAnalysisData();
-					auto* OriginalColors = &CurrentPointCloudAnalysisData->OriginalColors;
 					if (CurrentPointCloudAnalysisData == nullptr)
 						return;
 
@@ -157,14 +156,14 @@ void LayerManager::PropagateLayerEvent(LayerEvent Event)
 						CurrentPointCloudAnalysisData->RawPointCloudData[i].A = OriginalColor[3];
 					}
 
-					FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudAnalysisData->RawPointCloudData);
-					PointCloud->SetAdvancedRenderingEnabled(true);
-
 					// FIX ME: Should it be done in a better way?
 					FEEntity* PointCloudEntity = ActiveObject->GetEntity();
-					FEPointCloud* OldPointCloud = static_cast<FEPointCloud*>(ActiveObject->GetEngineResource());
 					if (PointCloudEntity != nullptr)
 					{
+						FEPointCloud* PointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(CurrentPointCloudAnalysisData->RawPointCloudData);
+						PointCloud->SetAdvancedRenderingEnabled(true);
+
+						FEPointCloud* OldPointCloud = static_cast<FEPointCloud*>(ActiveObject->GetEngineResource());
 						PointCloudEntity->RemoveComponent<FEPointCloudComponent>();
 						RESOURCE_MANAGER.DeleteFEPointCloud(OldPointCloud);
 						ActiveObject->EngineResource = PointCloud;

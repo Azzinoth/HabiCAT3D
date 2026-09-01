@@ -21,7 +21,7 @@ public:
 	void LoadResource(std::string FilePath);
 	AnalysisObject* CreateAnalysisObject(std::vector<FEPointCloudVertex>& RawPointCloudData, std::string ObjectName = "Unnamed Point Cloud");
 
-	void SaveToRUGFile(std::string FilePath);
+	bool SaveToRUGFile(std::string FilePath);
 	void SaveToRUGFileAskForFilePath();
 
 	size_t GetAnalysisObjectCount();
@@ -82,6 +82,7 @@ private:
 	std::string ActiveAnalysisObjectID = "";
 	MeshAnalysisData* ExtractAdditionalGeometryData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
 	PointCloudAnalysisData* ExtractAdditionalGeometryData(FEPointCloud* PointCloud);
+	PointCloudAnalysisData* ExtractAdditionalGeometryData(std::vector<FEPointCloudVertexDouble>& PointCloudVertices, FEAABB PointCloudAABB);
 
 	void InitializeSceneObjects(AnalysisObject* NewAnalysisObject);
 
