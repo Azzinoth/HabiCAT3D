@@ -660,7 +660,7 @@ void VRManager::Annotate(glm::vec3 Center, float Radius, int AnnotationID)
 	if (ActiveAnnotationData == nullptr)
 		return;
 
-	if (ActiveAnnotationData->DataBufferID == GLuint(-1))
+	if (ActiveAnnotationData->MeshBufferID == GLuint(-1))
 		return;
 	
 	if (TriangleCentroids == GLuint(-1))
@@ -677,8 +677,8 @@ void VRManager::Annotate(glm::vec3 Center, float Radius, int AnnotationID)
 
 	DeletePointsComputeShader->Start();
 
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ActiveAnnotationData->DataBufferID));
-	FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ActiveAnnotationData->DataBufferID));
+	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ActiveAnnotationData->MeshBufferID));
+	FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ActiveAnnotationData->MeshBufferID));
 
 	FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, TriangleCentroids));
 	FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, TriangleCentroids));

@@ -1202,7 +1202,7 @@ bool MarkTrianglesInRangeForAnnotation(AnalysisObject* Object, DataLayer* Layer,
 		float CurrentValue = Layer->ElementsToData[i];
 		if (CurrentValue >= LowerLevel && CurrentValue <= UpperLevel)
 		{
-			CurrentAnnotationData->PerTriangleID[i] = 1;
+			CurrentAnnotationData->PerElementID[i] = 1;
 			bAtLeastOneTriangleAnnotated = true;
 		}
 	}
@@ -1543,22 +1543,43 @@ void MainWindowRender()
 				AnnotationData* AnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(ActiveObject->GetID());
 				if (AnnotationData != nullptr && ActiveLayerData != nullptr)
 				{
-					MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-					if (CurrentMeshAnalysisData == nullptr)
-						return;
-
-					FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
-					if (ActiveMesh == nullptr)
-						return;
-
 					std::vector<std::tuple<double, double, int>> NoAnnotationHistogramData;
-					for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+
+					if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
 					{
-						if (AnnotationData->PerTriangleID[i] == -1)
+						MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+						if (CurrentMeshAnalysisData == nullptr)
+							return;
+
+						FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
+						if (ActiveMesh == nullptr)
+							return;
+
+						for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
 						{
-							double CurrentLayerTriangleValue = ActiveLayerData->ElementsToData[i];
-							NoAnnotationHistogramData.push_back(std::make_tuple(CurrentLayerTriangleValue, CurrentMeshAnalysisData->TrianglesArea[i], i));
+							if (AnnotationData->PerElementID[i] == -1)
+							{
+								double CurrentLayerTriangleValue = ActiveLayerData->ElementsToData[i];
+								NoAnnotationHistogramData.push_back(std::make_tuple(CurrentLayerTriangleValue, CurrentMeshAnalysisData->TrianglesArea[i], i));
+							}
 						}
+					}
+					else if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+					{
+						size_t ElementCount = std::min(AnnotationData->PerElementID.size(), ActiveLayerData->ElementsToData.size());
+						for (size_t i = 0; i < ElementCount; i++)
+						{
+							if (AnnotationData->PerElementID[i] == -1)
+							{
+								double CurrentLayerPointValue = ActiveLayerData->ElementsToData[i];
+								// For point clouds, each point has weight equal to 1.0.
+								NoAnnotationHistogramData.push_back(std::make_tuple(CurrentLayerPointValue, 1.0, static_cast<int>(i)));
+							}
+						}
+					}
+					else
+					{
+						return;
 					}
 
 					std::vector<double> Values;

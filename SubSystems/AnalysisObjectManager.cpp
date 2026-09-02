@@ -1455,9 +1455,9 @@ void AnalysisObjectManager::SaveAnnotationsDataToRUGFile(std::fstream& File, Ana
 		File.write((char*)&AllAnnotationInfos[i].Color, sizeof(glm::vec4));
 	}
 
-	int VectorSize = static_cast<int>(CurrentAnnotationData->PerTriangleID.size());
+	int VectorSize = static_cast<int>(CurrentAnnotationData->PerElementID.size());
 	File.write((char*)&VectorSize, sizeof(int));
-	File.write((char*)&CurrentAnnotationData->PerTriangleID.data()[0], sizeof(int) * VectorSize);
+	File.write((char*)&CurrentAnnotationData->PerElementID.data()[0], sizeof(int) * VectorSize);
 }
 
 void AnalysisObjectManager::LoadAnnotationsDataFromRUGFile(std::fstream& File, AnalysisObject* Object)
@@ -1491,8 +1491,8 @@ void AnalysisObjectManager::LoadAnnotationsDataFromRUGFile(std::fstream& File, A
 
 	int VectorSize = 0;
 	File.read((char*)&VectorSize, sizeof(int));
-	NewAnnotationData->PerTriangleID.resize(VectorSize);
-	File.read((char*)NewAnnotationData->PerTriangleID.data(), VectorSize * sizeof(int));
+	NewAnnotationData->PerElementID.resize(VectorSize);
+	File.read((char*)NewAnnotationData->PerElementID.data(), VectorSize * sizeof(int));
 
 	ANNOTATION_MANAGER.InitalizeBuffer(NewAnnotationData);
 	ANNOTATION_MANAGER.UpdateBuffer(NewAnnotationData);
@@ -1989,21 +1989,25 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 							FE_GL_ERROR(glEnableVertexAttribArray(AttribArrayToEnable[i]));
 					}
 				}
-
-				//// Check if object has annotations.
-				//AnnotationData* CurrentAnnotationData = CurrentObject->GetAnnotationData();
-				//if (CurrentMeshAnalysisData->AnnotationsAndAdditionalDataBufferID != GLuint(-1))
-				//{
-				//	FE_GL_ERROR(glEnableVertexAttribArray(15));
-				//	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, CurrentMeshAnalysisData->AnnotationsAndAdditionalDataBufferID));
-				//}
 			}
 		}
 		else if (CurrentObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
 		{
 			FEPointCloud* PointCloud = static_cast<FEPointCloud*>(CurrentObject->GetEngineResource());
 			DataLayer* ActiveLayer = CurrentObject->GetActiveLayer();
-			if (ActiveLayer == nullptr || ActiveLayer->ValuesComputeShaderBuffers.empty())
+			bool bLayerActive = ActiveLayer != nullptr && !ActiveLayer->ValuesComputeShaderBuffers.empty();
+
+			AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(CurrentObject->GetID());
+			bool bAnnotationDataReady = CurrentAnnotationData != nullptr && !CurrentAnnotationData->AnnotationIDComputeShaderBuffers.empty();
+			bool bAnnotationVisualizationActive = false;
+			if (bAnnotationDataReady)
+			{
+				FEEntity* AnnotationEntity = CurrentAnnotationData->GetEntity();
+				if (AnnotationEntity != nullptr && AnnotationEntity->IsVisible())
+					bAnnotationVisualizationActive = true;
+			}
+
+			if (!bLayerActive && !bAnnotationDataReady)
 			{
 				ObjectsMapIterator++;
 				continue;
@@ -2011,7 +2015,7 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 
 			ANALYSIS_OBJECT_MANAGER.PointCloudRecoloringShader->Start();
 
-			if (ActiveLayer != nullptr)
+			if (bLayerActive)
 			{
 				ANALYSIS_OBJECT_MANAGER.PointCloudRecoloringShader->UpdateUniformData("SelectedRangeMin", ActiveLayer->GetSelectedRangeMin());
 				ANALYSIS_OBJECT_MANAGER.PointCloudRecoloringShader->UpdateUniformData("SelectedRangeMax", ActiveLayer->GetSelectedRangeMax());
@@ -2028,10 +2032,16 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 				ANALYSIS_OBJECT_MANAGER.PointCloudRecoloringShader->UpdateUniformData("SelectedRangeMax", 0.0f);
 			}
 
+			ANALYSIS_OBJECT_MANAGER.PointCloudRecoloringShader->UpdateUniformData("LayerActive", bLayerActive ? 1 : 0);
+			ANALYSIS_OBJECT_MANAGER.PointCloudRecoloringShader->UpdateUniformData("AnnotationVisualizationActive", bAnnotationVisualizationActive ? 1 : 0);
+
 			ANALYSIS_OBJECT_MANAGER.PointCloudRecoloringShader->LoadUniformsDataToGPU();
 
 			FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ANALYSIS_OBJECT_MANAGER.TurboColorBuffer));
 			FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ANALYSIS_OBJECT_MANAGER.TurboColorBuffer));
+
+			if (bAnnotationDataReady)
+				FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, CurrentAnnotationData->AnnotationSSBO));
 
 			// If we have more points than the maximum points per buffer, we will run the compute shader multiple times.
 			if (PointCloud->GetPointCount() > FEPointCloud::MaxPointsPerBuffer)
@@ -2051,8 +2061,17 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 						FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, BufferIDs[BufferIndex]));
 						FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, BufferIDs[BufferIndex]));
 
-						FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ActiveLayer->ValuesComputeShaderBuffers[BufferIndex]));
-						FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ActiveLayer->ValuesComputeShaderBuffers[BufferIndex]));
+						if (bLayerActive && BufferIndex < ActiveLayer->ValuesComputeShaderBuffers.size())
+						{
+							FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ActiveLayer->ValuesComputeShaderBuffers[BufferIndex]));
+							FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ActiveLayer->ValuesComputeShaderBuffers[BufferIndex]));
+						}
+
+						if (bAnnotationDataReady && BufferIndex < CurrentAnnotationData->AnnotationIDComputeShaderBuffers.size())
+						{
+							FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, CurrentAnnotationData->AnnotationIDComputeShaderBuffers[BufferIndex]));
+							FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, CurrentAnnotationData->OriginalColorComputeShaderBuffers[BufferIndex]));
+						}
 						BufferIndex++;
 
 						// Calculate the number of points for the current buffer
@@ -2070,8 +2089,17 @@ void AnalysisObjectManager::BeforeRender(FEEntity* CurrentEntity)
 				FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, BufferID));
 				FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, BufferID));
 
-				FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ActiveLayer->ValuesComputeShaderBuffers[0]));
-				FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ActiveLayer->ValuesComputeShaderBuffers[0]));
+				if (bLayerActive)
+				{
+					FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ActiveLayer->ValuesComputeShaderBuffers[0]));
+					FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ActiveLayer->ValuesComputeShaderBuffers[0]));
+				}
+
+				if (bAnnotationDataReady)
+				{
+					FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, CurrentAnnotationData->AnnotationIDComputeShaderBuffers[0]));
+					FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, CurrentAnnotationData->OriginalColorComputeShaderBuffers[0]));
+				}
 
 				FE_GL_ERROR(ANALYSIS_OBJECT_MANAGER.PointCloudRecoloringShader->Dispatch(static_cast<GLuint>((PointCloud->GetPointCount()/*FEPointCloud::MaxPointsPerBuffer*/ / 1024) + 1), 1, 1));
 				FE_GL_ERROR(glMemoryBarrier(GL_ALL_BARRIER_BITS));

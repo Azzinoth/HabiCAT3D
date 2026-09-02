@@ -48,9 +48,13 @@ public:
 	~AnnotationData();
 
 	GLuint AnnotationSSBO = GLuint(-1);
-	GLuint DataBufferID = GLuint(-1);
-	std::vector<int> PerTriangleID;
+	GLuint MeshBufferID = GLuint(-1);
+	std::vector<int> PerElementID;
 	std::vector<glm::vec4> FinalPerVertexData;
+
+	// Point cloud only.
+	std::vector<GLuint> AnnotationIDComputeShaderBuffers;
+	std::vector<GLuint> OriginalColorComputeShaderBuffers;
 
 	void ClearAllAnnotation();
 	bool UpdateAnnotationForTriangle(int TriangleIndex, int AnnotationID);
@@ -107,6 +111,8 @@ private:
 
 	static void OnLayerChange();
 	void UpdateHistogramData(AnnotationData* Data);
+
+	void UpdatePointCloudBuffers(AnnotationData* Data);
 
 	glm::vec4 GetColor(const ShapeFileFeature& Feature);
 };

@@ -9,6 +9,9 @@ uniform float LayerMaxValue;
 uniform float SelectedRangeMin;
 uniform float SelectedRangeMax;
 
+uniform int LayerActive;
+uniform int AnnotationVisualizationActive;
+
 layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
 struct PointData
@@ -30,6 +33,21 @@ layout (std430, binding = 2) readonly buffer LayerValueBuffer
 layout (std430, binding = 3) readonly buffer ColormapBuffer
 {
     float TurboColormap[];
+};
+
+layout (std430, binding = 4) readonly buffer AnnotationIDBuffer
+{
+    int AnnotationIDs[];
+};
+
+layout (std430, binding = 5) readonly buffer AnnotationColorBuffer
+{
+    vec4 AnnotationColors[];
+};
+
+layout (std430, binding = 6) readonly buffer OriginalColorBuffer
+{
+    uint OriginalColors[];
 };
 
 // Copyright 2019 Google LLC.
@@ -69,13 +87,12 @@ vec3 ConvertHSVToRGB(vec3 HSVColor)
     return HSVColor.z * mix(RGBConstants.xxx, clamp(HueShifts - RGBConstants.xxx, 0.0, 1.0), HSVColor.y);
 }
 
-void main()
+vec3 GetLayerColor()
 {
 	float NormalizedValue = (LayerValues[gl_GlobalInvocationID.x] - LayerMinValue) / (LayerMaxValue - LayerMinValue);
 	NormalizedValue = clamp(NormalizedValue, 0, 1);
 
 	vec3 ColorToUse = GetTurboColormapValue(NormalizedValue);
-
 
 	float UnselectedAreaSaturationFactor = 0.3f;
 	float UnselectedAreaBrightnessFactor = 0.2f;
@@ -108,10 +125,37 @@ void main()
 		}
 	}
 
+	return ColorToUse;
+}
 
+vec3 GetOriginalColor()
+{
+	uint PackedColor = OriginalColors[gl_GlobalInvocationID.x];
+	return vec3(float((PackedColor >> 0) & 255u) / 255.0,
+				float((PackedColor >> 8) & 255u) / 255.0,
+				float((PackedColor >> 16) & 255u) / 255.0);
+}
 
+void main()
+{
+	vec3 ColorToUse;
 
+	if (LayerActive == 1)
+	{
+		ColorToUse = GetLayerColor();
+	}
+	else 
+	{
+		// No active layer, use original color.
+		ColorToUse = GetOriginalColor();
+	}
 
+	if (AnnotationVisualizationActive == 1)
+	{
+		int CurrentAnnotationID = AnnotationIDs[gl_GlobalInvocationID.x];
+		if (CurrentAnnotationID >= 0)
+			ColorToUse = mix(ColorToUse, AnnotationColors[CurrentAnnotationID].rgb, 0.7f);
+	}
 
 	uint R = uint(ColorToUse.x * 255);
 	uint G = uint(ColorToUse.y * 255);

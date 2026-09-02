@@ -14,17 +14,33 @@ AnnotationData::AnnotationData(std::string AnalysisObjectID)
 	if (CurrentObject == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
-		return;
+	if (CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH)
+	{
+		MeshAnalysisData* CurrentMeshAnalysisData = CurrentObject->GetMeshAnalysisData();
+		if (CurrentMeshAnalysisData == nullptr)
+			return;
 
-	FEMesh* ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
-	if (ActiveMesh == nullptr)
-		return;
+		FEMesh* ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+		if (ActiveMesh == nullptr)
+			return;
 
-	PerTriangleID.resize(CurrentMeshAnalysisData->Triangles.size());
-	for (size_t i = 0; i < PerTriangleID.size(); i++)
-		PerTriangleID[i] = -1;
+		PerElementID.resize(CurrentMeshAnalysisData->Triangles.size());
+	}
+	else if (CurrentObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+		PointCloudAnalysisData* CurrentPointCloudAnalysisData = CurrentObject->GetPointCloudAnalysisData();
+		if (CurrentPointCloudAnalysisData == nullptr)
+			return;
+
+		PerElementID.resize(CurrentPointCloudAnalysisData->RawPointCloudData.size());
+	}
+	else
+	{
+		return;
+	}
+
+	for (size_t i = 0; i < PerElementID.size(); i++)
+		PerElementID[i] = -1;
 
 	AnnotationInfo TestInfo;
 	TestInfo.ID = 0;
@@ -60,7 +76,13 @@ AnnotationData::~AnnotationData()
 		delete Plane;
 
 	glDeleteBuffers(1, &AnnotationSSBO);
-	glDeleteBuffers(1, &DataBufferID);
+	glDeleteBuffers(1, &MeshBufferID);
+
+	for (size_t i = 0; i < AnnotationIDComputeShaderBuffers.size(); i++)
+		glDeleteBuffers(1, &AnnotationIDComputeShaderBuffers[i]);
+
+	for (size_t i = 0; i < OriginalColorComputeShaderBuffers.size(); i++)
+		glDeleteBuffers(1, &OriginalColorComputeShaderBuffers[i]);
 }
 
 AnalysisObject* AnnotationData::GetAnalysisObject()
@@ -174,18 +196,18 @@ void AnnotationData::ClearAllAnnotationsInfo()
 
 void AnnotationData::ClearAllAnnotation()
 {
-	for (size_t i = 0; i < PerTriangleID.size(); i++)
-		PerTriangleID[i] = -1;
+	for (size_t i = 0; i < PerElementID.size(); i++)
+		PerElementID[i] = -1;
 
 	ANNOTATION_MANAGER.UpdateBuffer(this);
 }
 
 bool AnnotationData::UpdateAnnotationForTriangle(int TriangleIndex, int AnnotationID)
 {
-	if (TriangleIndex < 0 || TriangleIndex >= PerTriangleID.size())
+	if (TriangleIndex < 0 || TriangleIndex >= PerElementID.size())
 		return false;
 
-	PerTriangleID[TriangleIndex] = AnnotationID;
+	PerElementID[TriangleIndex] = AnnotationID;
 	ANNOTATION_MANAGER.UpdateBuffer(this);
 	return true;
 }
@@ -195,10 +217,10 @@ bool AnnotationData::UpdateAnnotationForTriangles(std::vector<int>& TriangleInde
 	bool bUpdatedAtLeastOne = false;
 	for (size_t i = 0; i < TriangleIndexes.size(); i++)
 	{
-		if (TriangleIndexes[i] < 0 || TriangleIndexes[i] >= PerTriangleID.size())
+		if (TriangleIndexes[i] < 0 || TriangleIndexes[i] >= PerElementID.size())
 			continue;
 
-		PerTriangleID[TriangleIndexes[i]] = AnnotationID;
+		PerElementID[TriangleIndexes[i]] = AnnotationID;
 		bUpdatedAtLeastOne = true;
 	}
 
@@ -374,7 +396,7 @@ void AnnotationManager::BeforeRender(FEEntity* CurrentEntity)
 	if (ActiveMesh == nullptr)
 		bShouldBeVisualized = false;
 
-	if (CurrentAnnotationData->DataBufferID == GLuint(-1))
+	if (CurrentAnnotationData->MeshBufferID == GLuint(-1))
 		bShouldBeVisualized = false;
 
 	if (bShouldBeVisualized)
@@ -386,7 +408,7 @@ void AnnotationManager::BeforeRender(FEEntity* CurrentEntity)
 		FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
 
 		FE_GL_ERROR(glEnableVertexAttribArray(15));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, CurrentAnnotationData->DataBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, CurrentAnnotationData->MeshBufferID));
 
 		FE_GL_ERROR(glBindVertexArray(0));
 	}
@@ -405,33 +427,40 @@ void AnnotationManager::InitalizeBuffer(AnnotationData* Data)
 	if (Object == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
-		return;
-
-	FEMesh* ActiveMesh = static_cast<FEMesh*>(Object->GetEngineResource());
-	if (ActiveMesh == nullptr)
-		return;
-
-	FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
-
-	FE_GL_ERROR(glGenBuffers(1, &Data->DataBufferID));
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, Data->DataBufferID));
-
-	std::vector<glm::vec4> EmptyData;
-	EmptyData.resize(CurrentMeshAnalysisData->Vertices.size() / 3);
-	for (size_t i = 0; i < EmptyData.size(); i++)
+	if (Object->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
-		EmptyData[i].x = 0.0f;
-		EmptyData[i].y = 0.0f;
-		EmptyData[i].z = 0.0f;
-		EmptyData[i].w = 0.0f;
+		MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
+		if (CurrentMeshAnalysisData == nullptr)
+			return;
+
+		FEMesh* ActiveMesh = static_cast<FEMesh*>(Object->GetEngineResource());
+		if (ActiveMesh == nullptr)
+			return;
+
+		FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
+
+		FE_GL_ERROR(glGenBuffers(1, &Data->MeshBufferID));
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, Data->MeshBufferID));
+
+		std::vector<glm::vec4> EmptyData;
+		EmptyData.resize(CurrentMeshAnalysisData->Vertices.size() / 3);
+		for (size_t i = 0; i < EmptyData.size(); i++)
+		{
+			EmptyData[i].x = 0.0f;
+			EmptyData[i].y = 0.0f;
+			EmptyData[i].z = 0.0f;
+			EmptyData[i].w = 0.0f;
+		}
+
+		FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * EmptyData.size() * 4, EmptyData.data(), GL_DYNAMIC_DRAW));
+		FE_GL_ERROR(glVertexAttribPointer(15, 4, GL_FLOAT, false, 0, nullptr));
+
+		glBindVertexArray(0);
 	}
-
-	FE_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * EmptyData.size() * 4, EmptyData.data(), GL_DYNAMIC_DRAW));
-	FE_GL_ERROR(glVertexAttribPointer(15, 4, GL_FLOAT, false, 0, nullptr));
-
-	glBindVertexArray(0);
+	else if (Object->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+		UpdatePointCloudBuffers(Data);
+	}
 }
 
 void AnnotationManager::UpdateBuffer(AnnotationData* Data)
@@ -443,53 +472,114 @@ void AnnotationManager::UpdateBuffer(AnnotationData* Data)
 	if (Object == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
-		return;
-
-	FEMesh* ActiveMesh = static_cast<FEMesh*>(Object->GetEngineResource());
-	if (ActiveMesh == nullptr)
-		return;
-
-	if (Data->DataBufferID == GLuint(-1))
+	if (Object->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
-		InitalizeBuffer(Data);
-		// If it is still -1, it means that buffer initialization failed, so we should not try to update it.
-		if (Data->DataBufferID == GLuint(-1))
-		{
-			LOG.Add("Failed to initialize annotation data buffer for analysis object with ID: " + Object->GetID(), "ANNOTATION_MANAGER", FE_LOG_ERROR);
+		MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
+		if (CurrentMeshAnalysisData == nullptr)
 			return;
+
+		FEMesh* ActiveMesh = static_cast<FEMesh*>(Object->GetEngineResource());
+		if (ActiveMesh == nullptr)
+			return;
+
+		if (Data->MeshBufferID == GLuint(-1))
+		{
+			InitalizeBuffer(Data);
+			// If it is still -1, it means that buffer initialization failed, so we should not try to update it.
+			if (Data->MeshBufferID == GLuint(-1))
+			{
+				LOG.Add("Failed to initialize annotation data buffer for analysis object with ID: " + Object->GetID(), "ANNOTATION_MANAGER", FE_LOG_ERROR);
+				return;
+			}
 		}
+
+		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, Data->MeshBufferID));
+		Data->FinalPerVertexData.resize(CurrentMeshAnalysisData->Vertices.size() / 3);
+
+		std::vector<float> PerVertexData;
+		PerVertexData.resize(CurrentMeshAnalysisData->Vertices.size());
+
+		std::vector<float> PerElementIDFloat;
+		PerElementIDFloat.resize(Data->PerElementID.size());
+		for (size_t i = 0; i < Data->PerElementID.size(); i++)
+			PerElementIDFloat[i] = static_cast<float>(Data->PerElementID[i]);
+
+		DataLayer::TransfareDataFromTrianglesToVertices(Object, PerElementIDFloat, PerVertexData);
+		std::vector<float> CompactedVertexData;
+		CompactedVertexData.resize(CurrentMeshAnalysisData->Vertices.size() / 3);
+		for (size_t i = 0; i < CurrentMeshAnalysisData->Vertices.size() / 3; i++)
+			CompactedVertexData[i] = PerVertexData[i * 3];
+
+		for (size_t i = 0; i < Data->FinalPerVertexData.size(); i++)
+		{
+			Data->FinalPerVertexData[i].x = CompactedVertexData[i];
+			Data->FinalPerVertexData[i].y = 2.0f;
+			Data->FinalPerVertexData[i].z = 3.0f;
+			Data->FinalPerVertexData[i].w = 4.0f;
+		}
+
+		FE_GL_ERROR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * Data->FinalPerVertexData.size() * 4, Data->FinalPerVertexData.data()));
 	}
-
-	FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, Data->DataBufferID));
-	Data->FinalPerVertexData.resize(CurrentMeshAnalysisData->Vertices.size() / 3);
-
-	std::vector<float> PerVertexData;
-	PerVertexData.resize(CurrentMeshAnalysisData->Vertices.size());
-
-	std::vector<float> PerTriangleIDFloat;
-	PerTriangleIDFloat.resize(Data->PerTriangleID.size());
-	for (size_t i = 0; i < Data->PerTriangleID.size(); i++)
-		PerTriangleIDFloat[i] = static_cast<float>(Data->PerTriangleID[i]);
-	
-	DataLayer::TransfareDataFromTrianglesToVertices(Object, PerTriangleIDFloat, PerVertexData);
-	std::vector<float> CompactedVertexData;
-	CompactedVertexData.resize(CurrentMeshAnalysisData->Vertices.size() / 3);
-	for (size_t i = 0; i < CurrentMeshAnalysisData->Vertices.size() / 3; i++)
-		CompactedVertexData[i] = PerVertexData[i * 3];
-
-	for (size_t i = 0; i < Data->FinalPerVertexData.size(); i++)
+	else if (Object->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
 	{
-		Data->FinalPerVertexData[i].x = CompactedVertexData[i];
-		Data->FinalPerVertexData[i].y = 2.0f;
-		Data->FinalPerVertexData[i].z = 3.0f;
-		Data->FinalPerVertexData[i].w = 4.0f;
+		UpdatePointCloudBuffers(Data);
 	}
-
-	FE_GL_ERROR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * Data->FinalPerVertexData.size() * 4, Data->FinalPerVertexData.data()));
 	Data->UpdateColorInfoOnGPU();
 	UpdateHistogramData(Data);
+}
+
+void AnnotationManager::UpdatePointCloudBuffers(AnnotationData* Data)
+{
+	if (Data == nullptr)
+		return;
+
+	AnalysisObject* Object = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(Data->AnalysisObjectID);
+	if (Object == nullptr)
+		return;
+
+	PointCloudAnalysisData* CurrentPointCloudAnalysisData = Object->GetPointCloudAnalysisData();
+	if (CurrentPointCloudAnalysisData == nullptr)
+		return;
+
+	const size_t PointCount = Data->PerElementID.size();
+	if (PointCount == 0 || CurrentPointCloudAnalysisData->OriginalColors.size() < PointCount)
+		return;
+
+	for (size_t i = 0; i < Data->AnnotationIDComputeShaderBuffers.size(); i++)
+		FE_GL_ERROR(glDeleteBuffers(1, &Data->AnnotationIDComputeShaderBuffers[i]));
+	Data->AnnotationIDComputeShaderBuffers.clear();
+
+	for (size_t i = 0; i < Data->OriginalColorComputeShaderBuffers.size(); i++)
+		FE_GL_ERROR(glDeleteBuffers(1, &Data->OriginalColorComputeShaderBuffers[i]));
+	Data->OriginalColorComputeShaderBuffers.clear();
+
+	std::vector<unsigned int> PackedOriginalColors;
+	for (size_t i = 0; i < PointCount; i += FEPointCloud::MaxPointsPerBuffer)
+	{
+		size_t ElementCount = std::min(FEPointCloud::MaxPointsPerBuffer, PointCount - i);
+
+		Data->AnnotationIDComputeShaderBuffers.resize(Data->AnnotationIDComputeShaderBuffers.size() + 1);
+		FE_GL_ERROR(glGenBuffers(1, &Data->AnnotationIDComputeShaderBuffers.back()));
+		FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, Data->AnnotationIDComputeShaderBuffers.back()));
+		FE_GL_ERROR(glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(int) * ElementCount, Data->PerElementID.data() + i, GL_DYNAMIC_DRAW));
+
+		PackedOriginalColors.resize(ElementCount);
+		for (size_t j = 0; j < ElementCount; j++)
+		{
+			const std::vector<unsigned char>& OriginalColor = CurrentPointCloudAnalysisData->OriginalColors[i + j];
+			PackedOriginalColors[j] = (static_cast<unsigned int>(OriginalColor[0]) << 0) |
+				(static_cast<unsigned int>(OriginalColor[1]) << 8) |
+				(static_cast<unsigned int>(OriginalColor[2]) << 16) |
+				(static_cast<unsigned int>(OriginalColor[3]) << 24);
+		}
+
+		Data->OriginalColorComputeShaderBuffers.resize(Data->OriginalColorComputeShaderBuffers.size() + 1);
+		FE_GL_ERROR(glGenBuffers(1, &Data->OriginalColorComputeShaderBuffers.back()));
+		FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, Data->OriginalColorComputeShaderBuffers.back()));
+		FE_GL_ERROR(glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(unsigned int) * ElementCount, PackedOriginalColors.data(), GL_STATIC_DRAW));
+	}
+
+	FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0));
 }
 
 bool AnnotationManager::ReadBackBuffer(AnnotationData* Data)
@@ -497,7 +587,7 @@ bool AnnotationManager::ReadBackBuffer(AnnotationData* Data)
 	if (Data == nullptr)
 		return false;
 
-	if (Data->DataBufferID == GLuint(-1))
+	if (Data->MeshBufferID == GLuint(-1))
 		return false;
 
 	AnalysisObject* Object = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(Data->AnalysisObjectID);
@@ -520,17 +610,17 @@ bool AnnotationManager::ReadBackBuffer(AnnotationData* Data)
 	Data->FinalPerVertexData.resize(VertexCount);
 
 	FE_GL_ERROR(glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT));
-	FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, Data->DataBufferID));
+	FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, Data->MeshBufferID));
 	FE_GL_ERROR(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0,
 		sizeof(glm::vec4) * VertexCount,
 		Data->FinalPerVertexData.data()));
 	FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0));
 
-	Data->PerTriangleID.resize(TriangleCount);
+	Data->PerElementID.resize(TriangleCount);
 	for (size_t i = 0; i < TriangleCount; i++)
 	{
 		const int VertexIndex = CurrentMeshAnalysisData->Indices[i * 3];
-		Data->PerTriangleID[i] = static_cast<int>(std::lround(Data->FinalPerVertexData[VertexIndex].x));
+		Data->PerElementID[i] = static_cast<int>(std::lround(Data->FinalPerVertexData[VertexIndex].x));
 	}
 
 	UpdateHistogramData(Data);
@@ -543,10 +633,6 @@ void AnnotationManager::UpdateHistogramData(AnnotationData* Data)
 	if (Object == nullptr)
 		return;
 
-	MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
-		return;
-
 	DataLayer* ActiveLayerData = Object->GetActiveLayer();
 	if (ActiveLayerData == nullptr)
 		return;
@@ -554,14 +640,37 @@ void AnnotationManager::UpdateHistogramData(AnnotationData* Data)
 	for (int i = 0; i < Data->UsedAnnotations.size(); i++)
 		Data->UsedAnnotations[i].HistogramData.clear();
 
-	for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+	if (Object->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
-		for (int j = 0; j < Data->UsedAnnotations.size(); j++)
+		MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
+		if (CurrentMeshAnalysisData == nullptr)
+			return;
+
+		for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
 		{
-			if (Data->PerTriangleID[i] == Data->UsedAnnotations[j].ID)
+			for (int j = 0; j < Data->UsedAnnotations.size(); j++)
 			{
-				double CurrentLayerTriangleValue = ActiveLayerData->ElementsToData[i];
-				Data->UsedAnnotations[j].HistogramData.push_back(std::make_tuple(CurrentLayerTriangleValue, CurrentMeshAnalysisData->TrianglesArea[i], i));
+				if (Data->PerElementID[i] == Data->UsedAnnotations[j].ID)
+				{
+					double CurrentLayerTriangleValue = ActiveLayerData->ElementsToData[i];
+					Data->UsedAnnotations[j].HistogramData.push_back(std::make_tuple(CurrentLayerTriangleValue, CurrentMeshAnalysisData->TrianglesArea[i], i));
+				}
+			}
+		}
+	}
+	else if (Object->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+		size_t ElementCount = std::min(Data->PerElementID.size(), ActiveLayerData->ElementsToData.size());
+		for (int i = 0; i < ElementCount; i++)
+		{
+			for (int j = 0; j < Data->UsedAnnotations.size(); j++)
+			{
+				if (Data->PerElementID[i] == Data->UsedAnnotations[j].ID)
+				{
+					double CurrentLayerPointValue = ActiveLayerData->ElementsToData[i];
+					// For point clouds each point has weight of 1.0.
+					Data->UsedAnnotations[j].HistogramData.push_back(std::make_tuple(CurrentLayerPointValue, 1.0, i));
+				}
 			}
 		}
 	}

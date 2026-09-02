@@ -585,8 +585,8 @@ void UIInspector::RenderAnnotationInformation(AnnotationData* CurrentAnnotationD
 
 				if (!TriangleIndicesInPolygon.empty())
 				{
-					for (size_t i = 0; i < CurrentAnnotationData->PerTriangleID.size(); i++)
-						CurrentAnnotationData->PerTriangleID[i] = -1;
+					for (size_t i = 0; i < CurrentAnnotationData->PerElementID.size(); i++)
+						CurrentAnnotationData->PerElementID[i] = -1;
 
 					AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(ActiveObject->GetID());
 					for (size_t i = 0; i < TriangleIndicesInPolygon.size(); i++)
@@ -597,22 +597,22 @@ void UIInspector::RenderAnnotationInformation(AnnotationData* CurrentAnnotationD
 						{
 							for (size_t j = 0; j < TriangleIndicesInPolygon[i].second.size(); j++)
 							{
-								CurrentAnnotationData->PerTriangleID[TriangleIndicesInPolygon[i].second[j]] = AssociatedAnnotationInfo->ID;
+								CurrentAnnotationData->PerElementID[TriangleIndicesInPolygon[i].second[j]] = AssociatedAnnotationInfo->ID;
 							}
 						}
 					}
 					
-					if (CurrentAnnotationData->DataBufferID == GLuint(-1))
+					if (CurrentAnnotationData->MeshBufferID == GLuint(-1))
 						ANNOTATION_MANAGER.InitalizeBuffer(CurrentAnnotationData);
 
 					ANNOTATION_MANAGER.UpdateBuffer(CurrentAnnotationData);
 				}
 				else
 				{
-					for (size_t i = 0; i < CurrentAnnotationData->PerTriangleID.size(); i++)
-						CurrentAnnotationData->PerTriangleID[i] = -1;
+					for (size_t i = 0; i < CurrentAnnotationData->PerElementID.size(); i++)
+						CurrentAnnotationData->PerElementID[i] = -1;
 
-					if (CurrentAnnotationData->DataBufferID != GLuint(-1))
+					if (CurrentAnnotationData->MeshBufferID != GLuint(-1))
 						ANNOTATION_MANAGER.UpdateBuffer(CurrentAnnotationData);
 				}
 			}
