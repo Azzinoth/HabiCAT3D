@@ -35,6 +35,26 @@ struct FEPolygon
 		return Polygon;
 	}
 
+	static bool IsPointInsidePolygonXY(const std::vector<glm::vec3>& PolygonPoints, double PointX, double PointY)
+	{
+		bool bInside = false;
+		size_t PointCount = PolygonPoints.size();
+		for (size_t i = 0, j = PointCount - 1; i < PointCount; j = i++)
+		{
+			double CurrentX = PolygonPoints[i].x;
+			double CurrentY = PolygonPoints[i].y;
+			double PreviousX = PolygonPoints[j].x;
+			double PreviousY = PolygonPoints[j].y;
+
+			bool bCrossesRay = ((CurrentY > PointY) != (PreviousY > PointY)) &&
+							   (PointX < (PreviousX - CurrentX) * (PointY - CurrentY) / (PreviousY - CurrentY) + CurrentX);
+			if (bCrossesRay)
+				bInside = !bInside;
+		}
+
+		return bInside;
+	}
+
 	static std::vector<int> GetTriangleIndicesInPolygon(std::vector<glm::vec3>& PolygonPoints,
 														OGRPolygon& OGRPolygon,
 														std::vector<glm::vec3>& ProjectedTriangleCentroids,

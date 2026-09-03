@@ -132,6 +132,7 @@ void UIManager::Render()
 
 	NEW_LAYER_WINDOW.Render();
 	LOAD_PHOTOGRAMMETRY_WINDOW.Render();
+	ANNOTATION_MANAGER.Render();
 
 	if (UI.bShouldOpenProgressPopup)
 	{
@@ -275,7 +276,7 @@ void UIManager::RenderLegend()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 	ImGui::SetNextWindowPos(ImVec2(2, 20));
-	ImGui::SetNextWindowSize(ImVec2(150, 670));
+	ImGui::SetNextWindowSize(ImVec2(150, DEVELOPER_MODE.IsOn() ? 700 : 670));
 	ImGui::Begin("Heat map legend", nullptr,
 									ImGuiWindowFlags_NoMove |
 									ImGuiWindowFlags_NoResize |
@@ -287,25 +288,26 @@ void UIManager::RenderLegend()
 	if (HeatMapColorRange.GetColorRangeFunction() == nullptr)
 		HeatMapColorRange.SetColorRangeFunction(GetTurboColorMap);
 
+	DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
+
 	static bool bLastFrameActiveLayerWasValid = false;
-	if (bLastFrameActiveLayerWasValid && LAYER_MANAGER.GetActiveLayer() == nullptr)
+	if (bLastFrameActiveLayerWasValid && ActiveLayer == nullptr)
 		HeatMapColorRange.Clear();
 
-	bLastFrameActiveLayerWasValid = LAYER_MANAGER.GetActiveLayer() != nullptr;
+	bLastFrameActiveLayerWasValid = ActiveLayer != nullptr;
 
-	if (SCREENSHOT_MANAGER.IsActive() && IsActiveObjectAndLayerValid())
+	if (SCREENSHOT_MANAGER.IsActive() && ActiveLayer != nullptr)
 	{
-		DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
-		if (CurrentLayer->GetMin() == CurrentLayer->GetMax())
+		if (ActiveLayer->GetMin() == ActiveLayer->GetMax())
 		{
 			HeatMapColorRange.Legend.SetDummyValues();
 		}
 		else
 		{
 			HeatMapColorRange.Legend.Clear();
-			HeatMapColorRange.Legend.SetCaption(1.0f, UI_CORE.TruncateAfterDot(std::to_string(CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * HeatMapColorRange.GetSliderValue())));
-			const float MiddleOfUsedRange = (HeatMapColorRange.GetSliderValue() + CurrentLayer->MinVisible / CurrentLayer->GetMax()) / 2.0f;
-			HeatMapColorRange.Legend.SetCaption(0.0f, UI_CORE.TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
+			HeatMapColorRange.Legend.SetCaption(1.0f, UI_CORE.TruncateAfterDot(std::to_string(ActiveLayer->GetMin() + (ActiveLayer->GetMax() - ActiveLayer->GetMin()) * HeatMapColorRange.GetSliderValue())));
+			const float MiddleOfUsedRange = (HeatMapColorRange.GetSliderValue() + ActiveLayer->MinVisible / ActiveLayer->GetMax()) / 2.0f;
+			HeatMapColorRange.Legend.SetCaption(0.0f, UI_CORE.TruncateAfterDot(std::to_string(ActiveLayer->MinVisible)));
 		}
 	}
 
@@ -319,47 +321,53 @@ void UIManager::RenderLegend()
 	}
 
 	static char CurrentRugosityMax[1024];
+	static char CurrentRugosityMin[1024];
 	static float LastValue = HeatMapColorRange.GetSliderValue();
-	if (IsActiveObjectAndLayerValid())
+	static float LastMinVisible = FLT_MAX;
+
+	if (ActiveLayer != nullptr)
 	{
-		DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
-		if (CurrentLayer->GetMin() == CurrentLayer->GetMax())
+		if (ActiveLayer->GetMin() == ActiveLayer->GetMax())
 		{
 			HeatMapColorRange.Legend.SetDummyValues();
 		}
 		else
 		{
-			if (abs(CurrentLayer->GetMax()) < 100000 && LastValue != HeatMapColorRange.GetSliderValue())
+			if (abs(ActiveLayer->GetMax()) < 100000 && LastValue != HeatMapColorRange.GetSliderValue())
 			{
 				LastValue = HeatMapColorRange.GetSliderValue();
-				strcpy_s(CurrentRugosityMax, UI_CORE.TruncateAfterDot(std::to_string(CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * HeatMapColorRange.GetSliderValue())).c_str());
+				strcpy_s(CurrentRugosityMax, UI_CORE.TruncateAfterDot(std::to_string(ActiveLayer->GetMin() + (ActiveLayer->GetMax() - ActiveLayer->GetMin()) * HeatMapColorRange.GetSliderValue())).c_str());
+			}
+
+			if (LastMinVisible != ActiveLayer->MinVisible)
+			{
+				LastMinVisible = ActiveLayer->MinVisible;
+				strcpy_s(CurrentRugosityMin, UI_CORE.TruncateAfterDot(std::to_string(ActiveLayer->MinVisible)).c_str());
 			}
 
 			HeatMapColorRange.Legend.Clear();
-			HeatMapColorRange.Legend.SetCaption(1.0f, "max: " + UI_CORE.TruncateAfterDot(std::to_string(CurrentLayer->GetMax())));
+			HeatMapColorRange.Legend.SetCaption(1.0f, "max: " + UI_CORE.TruncateAfterDot(std::to_string(ActiveLayer->GetMax())));
 
-			HeatMapColorRange.Legend.SetCaption(HeatMapColorRange.GetSliderValue(), /*"current: " +*/ UI_CORE.TruncateAfterDot(std::to_string(CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * HeatMapColorRange.GetSliderValue())));
+			HeatMapColorRange.Legend.SetCaption(HeatMapColorRange.GetSliderValue(), /*"current: " +*/ UI_CORE.TruncateAfterDot(std::to_string(ActiveLayer->GetMin() + (ActiveLayer->GetMax() - ActiveLayer->GetMin()) * HeatMapColorRange.GetSliderValue())));
 
-			const float MiddleOfUsedRange = (HeatMapColorRange.GetSliderValue() + CurrentLayer->MinVisible / CurrentLayer->GetMax()) / 2.0f;
-			HeatMapColorRange.Legend.SetCaption(0.0f, "min: " + UI_CORE.TruncateAfterDot(std::to_string(CurrentLayer->MinVisible)));
+			const float MiddleOfUsedRange = (HeatMapColorRange.GetSliderValue() + ActiveLayer->MinVisible / ActiveLayer->GetMax()) / 2.0f;
+			HeatMapColorRange.Legend.SetCaption(0.0f, "min: " + UI_CORE.TruncateAfterDot(std::to_string(ActiveLayer->MinVisible)));
 
-			CurrentLayer->MaxVisible = CurrentLayer->GetMin() + (CurrentLayer->GetMax() - CurrentLayer->GetMin()) * HeatMapColorRange.GetSliderValue();
+			ActiveLayer->MaxVisible = ActiveLayer->GetMin() + (ActiveLayer->GetMax() - ActiveLayer->GetMin()) * HeatMapColorRange.GetSliderValue();
+			if (ActiveLayer->MinVisible > ActiveLayer->MaxVisible)
+				ActiveLayer->MinVisible = ActiveLayer->MaxVisible;
 		}
 	}
 
 	bool bShouldDisable = false;
-	if (IsActiveObjectAndLayerValid())
+	if (ActiveLayer != nullptr && ActiveLayer->GetType() == LAYER_TYPE::INTERPOLATION)
 	{
-		DataLayer* CurrentLayer = LAYER_MANAGER.GetActiveLayer();
-		if (CurrentLayer->GetType() == LAYER_TYPE::INTERPOLATION)
-		{
-			LayerInterpolationData* InterpolationData = CurrentLayer->GetInterpolationData();
-			if (InterpolationData != nullptr)
-				bShouldDisable = InterpolationData->IsMinMaxInterpolationEnabled();
-		}
+		LayerInterpolationData* InterpolationData = ActiveLayer->GetInterpolationData();
+		if (InterpolationData != nullptr)
+			bShouldDisable = InterpolationData->IsMinMaxInterpolationEnabled();
 	}
 
-	if (!IsActiveObjectAndLayerValid() || bShouldDisable)
+	if (ActiveLayer == nullptr || bShouldDisable)
 		ImGui::BeginDisabled();
 
 	ImGui::SetCursorPosX(10);
@@ -372,18 +380,46 @@ void UIManager::RenderLegend()
 	}
 
 	ImGui::SameLine();
-	if (ImGui::Button("Set", ImVec2(62, 19)))
+	if (ImGui::Button("Set", ImVec2(62, 19)) && ActiveLayer != nullptr)
 	{
-		DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
-
 		float NewValue = float(atof(CurrentRugosityMax));
 		if (NewValue < ActiveLayer->GetMin())
 			NewValue = ActiveLayer->GetMin();
 
+		if (NewValue < ActiveLayer->MinVisible)
+			NewValue = ActiveLayer->MinVisible;
+
 		HeatMapColorRange.SetSliderValue((NewValue - ActiveLayer->GetMin()) / float(ActiveLayer->GetMax() - ActiveLayer->GetMin()));
 	}
+	UI_CORE.ShowToolTip("Set the value that the top of the color scale represents.");
 
-	if (!IsActiveObjectAndLayerValid() || bShouldDisable)
+	if (DEVELOPER_MODE.IsOn())
+	{
+		ImGui::SetCursorPosX(10);
+		ImGui::SetCursorPosY(665);
+		ImGui::SetNextItemWidth(62);
+		ImGui::InputText("##CurrentRugosityMin", CurrentRugosityMin, IM_ARRAYSIZE(CurrentRugosityMin), ImGuiInputTextFlags_EnterReturnsTrue);
+
+		ImGui::SameLine();
+		if (ImGui::Button("Set##Min", ImVec2(62, 19)) && ActiveLayer != nullptr)
+		{
+			float NewValue = float(atof(CurrentRugosityMin));
+			if (NewValue < ActiveLayer->GetMin())
+				NewValue = ActiveLayer->GetMin();
+
+			if (NewValue > ActiveLayer->MaxVisible)
+				NewValue = ActiveLayer->MaxVisible;
+
+			ActiveLayer->MinVisible = NewValue;
+		}
+		UI_CORE.ShowToolTip("Set the value that the bottom of the color scale represents.");
+	}
+	else if (ActiveLayer != nullptr)
+	{
+		ActiveLayer->MinVisible = ActiveLayer->GetMin();
+	}
+
+	if (ActiveLayer == nullptr || bShouldDisable)
 		ImGui::EndDisabled();
 
 	ImGui::PopStyleVar();

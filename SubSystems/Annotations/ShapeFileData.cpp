@@ -127,11 +127,16 @@ void ShapeFileData::ReadGeometry(OGRGeometry* Geometry, ShapeFileFeature& Result
 bool ShapeFileData::Load(const std::string& Filepath)
 {
 	auto* Dataset = (GDALDataset*)GDALOpenEx(Filepath.c_str(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr);
+	if (Dataset == nullptr)
+		return false;
 
 	LayersInfo.resize(Dataset->GetLayerCount());
 	for (int i = 0; i < LayersInfo.size(); i++)
 	{
 		OGRLayer* layer = Dataset->GetLayer(i);
+		if (layer == nullptr)
+			continue;
+
 		LayersInfo[i].Name = layer->GetName();
 		LayersInfo[i].FeatureCount = static_cast<int>(layer->GetFeatureCount());
 		LayersInfo[i].GeometryType = OGRGeometryTypeToName(layer->GetGeomType());

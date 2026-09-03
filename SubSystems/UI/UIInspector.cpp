@@ -297,11 +297,11 @@ void UIInspector::RenderSelectedObjectTab()
 				if (SelectedEntity != nullptr)
 				{
 					std::string ShapeFilePath;
-					FILE_SYSTEM.ShowFileOpenDialog(ShapeFilePath, SHAPE_LOAD_FILE_FILTER, 1);
+					FILE_SYSTEM.ShowFileOpenDialog(ShapeFilePath, VECTOR_LOAD_FILE_FILTER, 1);
 					
 					if (!ShapeFilePath.empty() && FILE_SYSTEM.DoesFileExist(ShapeFilePath))
 					{
-						ANNOTATION_MANAGER.ReadAndAddAnnotationsFromShapeFile(ShapeFilePath, ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject());
+						ANNOTATION_MANAGER.InitializeReadAnnotationDataFromShapeFile(ShapeFilePath, ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject());
 
 						FENaiveSceneGraphNode* AnnotationSceneNode = MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetNodeByEntityID(SelectedEntity->GetObjectID());
 						OBJECT_VIEWER_WINDOW.ExpandToNode(AnnotationSceneNode);

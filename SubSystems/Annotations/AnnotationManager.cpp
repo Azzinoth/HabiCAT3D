@@ -1,4 +1,5 @@
 #include "AnnotationManager.h"
+#include "../DeveloperMode.h"
 using namespace FocalEngine;
 
 glm::vec4 AnnotationInfo::GetColor() const
@@ -701,13 +702,51 @@ void AnnotationManager::OnLayerChange()
 	ANNOTATION_MANAGER.UpdateHistogramData(CurrentAnnotationData);
 }
 
-bool AnnotationManager::ReadAndAddAnnotationsFromShapeFile(std::string ShapeFilePath, AnalysisObject* Object)
-{
-	if (Object == nullptr)
-		return false;
+// ColorBrewer palette used when a label has no color from the file and none chosen by the user.
+static const std::vector<glm::vec4> DefaultAnnotationColors = { { 127 / 255.0f, 59 / 255.0f, 8 / 255.0f, 1.0f },
+																{ 179 / 255.0f, 88 / 255.0f, 6 / 255.0f, 1.0f },
+																{ 224 / 255.0f, 130 / 255.0f, 20 / 255.0f, 1.0f },
+																{ 253 / 255.0f, 184 / 255.0f, 99 / 255.0f, 1.0f },
+																{ 254 / 255.0f, 224 / 255.0f, 182 / 255.0f, 1.0f },
+																{ 216 / 255.0f, 218 / 255.0f, 235 / 255.0f, 1.0f },
+																{ 178 / 255.0f, 171 / 255.0f, 210 / 255.0f, 1.0f },
+																{ 128 / 255.0f, 115 / 255.0f, 172 / 255.0f, 1.0f },
+																{ 84 / 255.0f, 39 / 255.0f, 136 / 255.0f, 1.0f },
+																{ 45 / 255.0f, 0 / 255.0f, 75 / 255.0f, 1.0f } };
 
-	AnnotationData* ExistingAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(Object->GetID());
-	if (ExistingAnnotationData != nullptr)
+void AnnotationManager::ClearTemporaryShapeFileData()
+{
+	delete TemporaryShapeFileData;
+	TemporaryShapeFileData = nullptr;
+	TemporaryFields.clear();
+	FieldLabelToConsiderAnnotation = "";
+	TemporaryLabelToAnnotationInfo.clear();
+}
+
+// Same rule for the popup preview and for the import, so the prepared annotations line up with the created ones.
+std::string AnnotationManager::GetFeatureLabel(const ShapeFileFeature& Feature, const std::string& LabelFieldName)
+{
+	auto FieldIterator = Feature.Fields.find(LabelFieldName);
+	if (FieldIterator == Feature.Fields.end())
+		return "Unlabeled";
+
+	if (const std::string* Text = std::get_if<std::string>(&FieldIterator->second))
+		return Text->empty() ? "Unlabeled" : *Text;
+
+	if (const int64_t* Integer = std::get_if<int64_t>(&FieldIterator->second))
+		return std::to_string(*Integer);
+
+	if (const double* Real = std::get_if<double>(&FieldIterator->second))
+		return std::to_string(*Real);
+
+	return "Unlabeled";
+}
+
+bool AnnotationManager::InitializeReadAnnotationDataFromShapeFile(std::string ShapeFilePath, AnalysisObject* Object)
+{
+	ClearTemporaryShapeFileData();
+
+	if (Object == nullptr)
 		return false;
 
 	if (!FILE_SYSTEM.DoesFileExist(ShapeFilePath))
@@ -716,38 +755,46 @@ bool AnnotationManager::ReadAndAddAnnotationsFromShapeFile(std::string ShapeFile
 		return false;
 	}
 
-	if (!ANNOTATION_MANAGER.AddAnnotationToAnalysisObject(Object->GetID()))
+	TemporaryShapeFileData = new ShapeFileData();
+	TemporaryShapeFileData->Load(ShapeFilePath);
+	TemporaryFields = TemporaryShapeFileData->GetFieldDefinitions();
+
+	if (TemporaryFields.empty())
+		ClearTemporaryShapeFileData();
+
+	return TemporaryShapeFileData != nullptr;
+}
+
+bool AnnotationManager::AddAnnotationsFromShapeFileData(ShapeFileData* CurrentShapeFile, AnalysisObject* Object, const std::string& LabelFieldName)
+{
+	AnnotationData* ExistingAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(Object->GetID());
+	if (ExistingAnnotationData != nullptr)
+	{
+		ClearTemporaryShapeFileData();
 		return false;
+	}
+
+	if (!ANNOTATION_MANAGER.AddAnnotationToAnalysisObject(Object->GetID()))
+	{
+		ClearTemporaryShapeFileData();
+		return false;
+	}
 
 	ExistingAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(Object->GetID());
 	if (ExistingAnnotationData == nullptr)
+	{
+		ClearTemporaryShapeFileData();
 		return false;
+	}
 
-	ShapeFileData NewShapeFileData;
-	NewShapeFileData.Load(ShapeFilePath);
-
-	FEAABB ShapeFileAABB = NewShapeFileData.GetBounds();
-	float XRange = ShapeFileAABB.GetMax().x - ShapeFileAABB.GetMin().x;
-	float YRange = ShapeFileAABB.GetMax().y - ShapeFileAABB.GetMin().y;
-	float ZRange = ShapeFileAABB.GetMax().z - ShapeFileAABB.GetMin().z;
-
-	ExistingAnnotationData->SetEditingMode(true);
+	if (DEVELOPER_MODE.IsOn())
+		ExistingAnnotationData->SetEditingMode(true);
 
 	FEEntity* Entity = Object->GetEntity();
 	FEAABB EntityAABB = MAIN_SCENE_MANAGER.GetMainScene()->GetEntityAABB(Entity);
 
 	ExistingAnnotationData->ClearAllAnnotationsInfo();
 
-	std::vector<glm::vec4> ColorFromColorBrewer = { { 127 / 255.0f, 59 / 255.0f, 8 / 255.0f, 1.0f },
-													{ 179 / 255.0f, 88 / 255.0f, 6 / 255.0f, 1.0f },
-													{ 224 / 255.0f, 130 / 255.0f, 20 / 255.0f, 1.0f },
-													{ 253 / 255.0f, 184 / 255.0f, 99 / 255.0f, 1.0f },
-													{ 254 / 255.0f, 224 / 255.0f, 182 / 255.0f, 1.0f },
-													{ 216 / 255.0f, 218 / 255.0f, 235 / 255.0f, 1.0f },
-													{ 178 / 255.0f, 171 / 255.0f, 210 / 255.0f, 1.0f },
-													{ 128 / 255.0f, 115 / 255.0f, 172 / 255.0f, 1.0f },
-													{ 84 / 255.0f, 39 / 255.0f, 136 / 255.0f, 1.0f },
-													{ 45 / 255.0f, 0 / 255.0f, 75 / 255.0f, 1.0f } };
 	size_t ColorIndex = 0;
 
 	std::vector<std::vector<glm::vec3>> AllPolygonsPoints;
@@ -755,22 +802,27 @@ bool AnnotationManager::ReadAndAddAnnotationsFromShapeFile(std::string ShapeFile
 	PolygonPlane TemporaryPlane;
 	std::vector<int> AnnotationIDToPolygonIndex;
 
-	const std::vector<ShapeFileFeature> Features = NewShapeFileData.GetFeatures();
+	const std::vector<ShapeFileFeature> Features = TemporaryShapeFileData->GetFeatures();
 	for (size_t i = 0; i < Features.size(); i++)
 	{
 		for (size_t j = 0; j < Features[i].Polygons.size(); j++)
 		{
-			std::string Label = Features[i].GetField(std::string("label") , std::string(""));
+			std::string Label = GetFeatureLabel(Features[i], LabelFieldName);
 
 			AnnotationInfo* Info = ExistingAnnotationData->GetAnnotationInfoByName(Label);
 			if (Info == nullptr)
 			{
-				glm::vec4 AssignedColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-				if (ColorIndex < ColorFromColorBrewer.size())
-					AssignedColor = ColorFromColorBrewer[ColorIndex];
-
-				Info = ExistingAnnotationData->AddAnnotationInfo(Label, "", AssignedColor);
-				ColorIndex = (ColorIndex + 1) % ColorFromColorBrewer.size();
+				// Prefer the annotation prepared in the import popup, otherwise cycle through the default palette.
+				auto PreparedInfo = TemporaryLabelToAnnotationInfo.find(Label);
+				if (PreparedInfo != TemporaryLabelToAnnotationInfo.end())
+				{
+					Info = ExistingAnnotationData->AddAnnotationInfo(Label, PreparedInfo->second.Description, PreparedInfo->second.Color);
+				}
+				else
+				{
+					Info = ExistingAnnotationData->AddAnnotationInfo(Label, "", DefaultAnnotationColors[ColorIndex % DefaultAnnotationColors.size()]);
+					ColorIndex++;
+				}
 			}
 
 			std::vector<glm::vec2> PolygonPointsInUV;
@@ -799,109 +851,104 @@ bool AnnotationManager::ReadAndAddAnnotationsFromShapeFile(std::string ShapeFile
 		}
 	}
 
-	MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
-	if (CurrentMeshAnalysisData == nullptr)
-		return true;
-
-	std::vector<glm::vec3> ProjectedTriangleCentroids;
-	std::vector<OGRPoint> OGRProjectedTriangleCentroids;
-	ProjectedTriangleCentroids.resize(CurrentMeshAnalysisData->TrianglesCentroids.size());
-	OGRProjectedTriangleCentroids.resize(CurrentMeshAnalysisData->TrianglesCentroids.size());
-	for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+	if (Object->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
-		glm::vec3 TriangleCentroid = CurrentMeshAnalysisData->TrianglesCentroids[i];
-		glm::vec3 TransformedTriangleCentroid = Object->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TriangleCentroid, 1.0f);
+		MeshAnalysisData* CurrentMeshAnalysisData = Object->GetMeshAnalysisData();
+		if (CurrentMeshAnalysisData == nullptr)
+		{
+			ClearTemporaryShapeFileData();
+			return false;
+		}
+
+		std::vector<glm::vec3> ProjectedTriangleCentroids;
+		std::vector<OGRPoint> OGRProjectedTriangleCentroids;
+		ProjectedTriangleCentroids.resize(CurrentMeshAnalysisData->TrianglesCentroids.size());
+		OGRProjectedTriangleCentroids.resize(CurrentMeshAnalysisData->TrianglesCentroids.size());
+		for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+		{
+			glm::vec3 TriangleCentroid = CurrentMeshAnalysisData->TrianglesCentroids[i];
+			glm::vec3 TransformedTriangleCentroid = Object->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TriangleCentroid, 1.0f);
 		
-		ProjectedTriangleCentroids[i] = glm::vec3(CurrentMeshAnalysisData->TrianglesCentroids[i].x, CurrentMeshAnalysisData->TrianglesCentroids[i].y, 0.0f);
-		OGRProjectedTriangleCentroids[i] = OGRPoint(ProjectedTriangleCentroids[i].x, ProjectedTriangleCentroids[i].y, ProjectedTriangleCentroids[i].z);
-	}
+			ProjectedTriangleCentroids[i] = glm::vec3(CurrentMeshAnalysisData->TrianglesCentroids[i].x, CurrentMeshAnalysisData->TrianglesCentroids[i].y, 0.0f);
+			OGRProjectedTriangleCentroids[i] = OGRPoint(ProjectedTriangleCentroids[i].x, ProjectedTriangleCentroids[i].y, ProjectedTriangleCentroids[i].z);
+		}
 
-	for (size_t i = 0; i < AllPolygonsPoints.size(); i++)
+		for (size_t i = 0; i < AllPolygonsPoints.size(); i++)
+		{
+			std::vector<int> CurrentPolygonResult = FEPolygon::GetTriangleIndicesInPolygon(AllPolygonsPoints[i], AlternativeOGRPolygons[i], ProjectedTriangleCentroids, OGRProjectedTriangleCentroids);
+			ExistingAnnotationData->UpdateAnnotationForTriangles(CurrentPolygonResult, AnnotationIDToPolygonIndex[i]);
+		}
+	}
+	else if (Object->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
 	{
-		std::vector<int> CurrentPolygonResult = FEPolygon::GetTriangleIndicesInPolygon(AllPolygonsPoints[i], AlternativeOGRPolygons[i], ProjectedTriangleCentroids, OGRProjectedTriangleCentroids);
-		ExistingAnnotationData->UpdateAnnotationForTriangles(CurrentPolygonResult, AnnotationIDToPolygonIndex[i]);
+		PointCloudAnalysisData* CurrentPointCloudAnalysisData = Object->GetPointCloudAnalysisData();
+		if (CurrentPointCloudAnalysisData == nullptr)
+		{
+			ClearTemporaryShapeFileData();
+			return false;
+		}
+
+		const std::vector<FEPointCloudVertexDouble>& Points = CurrentPointCloudAnalysisData->RawPointCloudData;
+
+		std::vector<FEAABB> PolygonAABBs;
+		PolygonAABBs.resize(AllPolygonsPoints.size());
+		for (size_t i = 0; i < AllPolygonsPoints.size(); i++)
+			PolygonAABBs[i] = FEAABB(AllPolygonsPoints[i]);
+
+		size_t ElementCount = std::min(Points.size(), ExistingAnnotationData->PerElementID.size());
+		for (size_t i = 0; i < ElementCount; i++)
+		{
+			glm::vec3 ProjectedPoint = glm::vec3(Points[i].X, Points[i].Y, 0.0f);
+			for (size_t j = 0; j < AllPolygonsPoints.size(); j++)
+			{
+				if (!PolygonAABBs[j].ContainsPoint(ProjectedPoint))
+					continue;
+
+				if (FEPolygon::IsPointInsidePolygonXY(AllPolygonsPoints[j], Points[i].X, Points[i].Y))
+					ExistingAnnotationData->PerElementID[i] = AnnotationIDToPolygonIndex[j];
+			}
+		}
+
+		ANNOTATION_MANAGER.UpdateBuffer(ExistingAnnotationData);
 	}
 
+	ClearTemporaryShapeFileData();
 	return true;
 }
 
-glm::vec4 AnnotationManager::GetColor(const ShapeFileFeature& Feature)
+bool AnnotationManager::GetColor(const ShapeFileFeature& Feature, glm::vec4& OutColor)
 {
-	glm::vec4 Result = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	OutColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-	std::vector<std::string> PossibleRedColorFieldNames = { "red", "r", "Red", "R", "RED" };
-	for (size_t i = 0; i < PossibleRedColorFieldNames.size(); i++)
+	// Integer fields hold 0 to 255, real fields hold either 0 to 1 or 0 to 255.
+	auto ReadChannel = [&](const std::vector<std::string>& PossibleFieldNames, float& OutChannel) -> bool
 	{
-		int64_t Red = Feature.GetField(PossibleRedColorFieldNames[i], int64_t(-1));
-		if (Red != -1)
+		for (size_t i = 0; i < PossibleFieldNames.size(); i++)
 		{
-			Result.x = static_cast<float>(Red) / 255.0f;
-			break;
+			int64_t IntegerValue = Feature.GetField(PossibleFieldNames[i], int64_t(-1));
+			if (IntegerValue != -1)
+			{
+				OutChannel = static_cast<float>(IntegerValue) / 255.0f;
+				return true;
+			}
+
+			double RealValue = Feature.GetField(PossibleFieldNames[i], double(-1.0));
+			if (RealValue != -1.0)
+			{
+				OutChannel = static_cast<float>(RealValue) / (RealValue > 1.0 ? 255.0f : 1.0f);
+				return true;
+			}
 		}
 
-		double RedDouble = Feature.GetField(PossibleRedColorFieldNames[i], double(-1.0));
-		if (RedDouble != -1.0)
-		{
-			Result.x = static_cast<float>(RedDouble) / (RedDouble > 1.0 ? 255.0f : 1.0f);
-			break;
-		}
-	}
+		return false;
+	};
 
-	std::vector<std::string> PossibleGreenColorFieldNames = { "green", "g", "Green", "G", "GREEN" };
-	for (size_t i = 0; i < PossibleGreenColorFieldNames.size(); i++)
-	{
-		int64_t Green = Feature.GetField(PossibleGreenColorFieldNames[i], int64_t(-1));
-		if (Green != -1)
-		{
-			Result.y = static_cast<float>(Green) / 255.0f;
-			break;
-		}
+	bool bRedFound = ReadChannel({ "red", "r", "Red", "R", "RED" }, OutColor.x);
+	bool bGreenFound = ReadChannel({ "green", "g", "Green", "G", "GREEN" }, OutColor.y);
+	bool bBlueFound = ReadChannel({ "blue", "b", "Blue", "B", "BLUE" }, OutColor.z);
+	bool bAlphaFound = ReadChannel({ "alpha", "a", "Alpha", "A", "ALPHA" }, OutColor.w);
 
-		double GreenDouble = Feature.GetField(PossibleGreenColorFieldNames[i], double(-1.0));
-		if (GreenDouble != -1.0)
-		{
-			Result.y = static_cast<float>(GreenDouble) / (GreenDouble > 1.0 ? 255.0f : 1.0f);
-			break;
-		}
-	}
-
-	std::vector<std::string> PossibleBlueColorFieldNames = { "blue", "b", "Blue", "B", "BLUE" };
-	for (size_t i = 0; i < PossibleBlueColorFieldNames.size(); i++)
-	{
-		int64_t Blue = Feature.GetField(PossibleBlueColorFieldNames[i], int64_t(-1));
-		if (Blue != -1)
-		{
-			Result.z = static_cast<float>(Blue) / 255.0f;
-			break;
-		}
-
-		double BlueDouble = Feature.GetField(PossibleBlueColorFieldNames[i], double(-1.0));
-		if (BlueDouble != -1.0)
-		{
-			Result.z = static_cast<float>(BlueDouble) / (BlueDouble > 1.0 ? 255.0f : 1.0f);
-			break;
-		}
-	}
-
-	std::vector<std::string> PossibleAlphaColorFieldNames = { "alpha", "a", "Alpha", "A", "ALPHA" };
-	for (size_t i = 0; i < PossibleAlphaColorFieldNames.size(); i++)
-	{
-		int64_t Alpha = Feature.GetField(PossibleAlphaColorFieldNames[i], int64_t(-1));
-		if (Alpha != -1)
-		{
-			Result.w = static_cast<float>(Alpha) / 255.0f;
-			break;
-		}
-
-		double AlphaDouble = Feature.GetField(PossibleAlphaColorFieldNames[i], double(-1.0));
-		if (AlphaDouble != -1.0)
-		{
-			Result.w = static_cast<float>(AlphaDouble) / (AlphaDouble > 1.0 ? 255.0f : 1.0f);
-			break;
-		}
-	}
-
-	return Result;
+	return bRedFound || bGreenFound || bBlueFound || bAlphaFound;
 }
 
 bool AnnotationManager::ReadAnnotationsToPolygonPlane(std::string ShapeFilePath, PolygonPlane* TargetPlane, std::unordered_map<int, AnnotationInfo>& PolygonIndexToAnnotationInfoMap)
@@ -940,8 +987,7 @@ bool AnnotationManager::ReadAnnotationsToPolygonPlane(std::string ShapeFilePath,
 				LocalAnnotationInfoMap[Label].ID = static_cast<int>(LocalAnnotationInfoMap.size() - 1);
 				LocalAnnotationInfoMap[Label].Name = Label;
 
-				glm::vec4 CurrentColor = GetColor(Features[i]);
-				LocalAnnotationInfoMap[Label].Color = CurrentColor;
+				GetColor(Features[i], LocalAnnotationInfoMap[Label].Color);
 
 				CurrentInfo = &LocalAnnotationInfoMap[Label];
 			}
@@ -964,4 +1010,181 @@ bool AnnotationManager::ReadAnnotationsToPolygonPlane(std::string ShapeFilePath,
 	}
 
 	return true;
+}
+
+void AnnotationManager::Render()
+{
+	static const char* PopupName = "Import annotations";
+
+	static std::string PreviewField;
+	static std::map<std::string, int> LabelPreview;
+
+	// If TemporaryShapeFileData is not nullptr, open the popup.
+	if (TemporaryShapeFileData != nullptr && !ImGui::IsPopupOpen(PopupName))
+		ImGui::OpenPopup(PopupName);
+
+	ImGui::SetNextWindowSize(ImVec2(480, 0));
+	if (!ImGui::BeginPopupModal(PopupName, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		return;
+
+	int WindowW = 0;
+	int WindowH = 0;
+	APPLICATION.GetMainWindow()->GetSize(&WindowW, &WindowH);
+	ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
+
+	auto CloseImport = [&]() {
+		ClearTemporaryShapeFileData();
+		LabelPreview.clear();
+		// Forces the preview to be rebuilt for the next file even if the same field name gets selected.
+		PreviewField.clear();
+		ImGui::CloseCurrentPopup();
+	};
+
+	AnalysisObject* TargetObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (TemporaryShapeFileData == nullptr || TargetObject == nullptr)
+	{
+		CloseImport();
+		ImGui::EndPopup();
+		return;
+	}
+
+	if (PreviewField != FieldLabelToConsiderAnnotation)
+	{
+		PreviewField = FieldLabelToConsiderAnnotation;
+		LabelPreview.clear();
+		TemporaryLabelToAnnotationInfo.clear();
+
+		const std::vector<ShapeFileFeature>& Features = TemporaryShapeFileData->GetFeatures();
+		for (size_t i = 0; i < Features.size(); i++)
+		{
+			std::string Label = GetFeatureLabel(Features[i], FieldLabelToConsiderAnnotation);
+			LabelPreview[Label]++;
+
+			// The first feature of a label decides its color: color fields in the file win over the default palette.
+			if (TemporaryLabelToAnnotationInfo.find(Label) == TemporaryLabelToAnnotationInfo.end())
+			{
+				AnnotationInfo NewInfo;
+				NewInfo.Name = Label;
+				if (!GetColor(Features[i], NewInfo.Color))
+					NewInfo.Color = DefaultAnnotationColors[TemporaryLabelToAnnotationInfo.size() % DefaultAnnotationColors.size()];
+
+				TemporaryLabelToAnnotationInfo[Label] = NewInfo;
+			}
+		}
+	}
+
+	ImGui::Text("Object: %s", TargetObject->GetName().c_str());
+	ImGui::Text("Features: %d", static_cast<int>(TemporaryShapeFileData->GetFeatures().size()));
+	ImGui::Separator();
+
+	ImGui::Text("Field with annotation labels:");
+	ImGui::SetNextItemWidth(-FLT_MIN);
+	const char* ComboPreview = FieldLabelToConsiderAnnotation.empty() ? "Select field..." : FieldLabelToConsiderAnnotation.c_str();
+	if (ImGui::BeginCombo("##AnnotationLabelField", ComboPreview))
+	{
+		for (size_t i = 0; i < TemporaryFields.size(); i++)
+		{
+			std::string ItemText = TemporaryFields[i].Name + " (" + OGRFieldDefn::GetFieldTypeName(TemporaryFields[i].Type) + ")";
+			bool bIsSelected = TemporaryFields[i].Name == FieldLabelToConsiderAnnotation;
+			if (ImGui::Selectable(ItemText.c_str(), bIsSelected))
+				FieldLabelToConsiderAnnotation = TemporaryFields[i].Name;
+
+			if (bIsSelected)
+				ImGui::SetItemDefaultFocus();
+		}
+
+		ImGui::EndCombo();
+	}
+
+	ImGui::Text("Distinct labels: %d", static_cast<int>(LabelPreview.size()));
+	if (ImGui::BeginTable("##AnnotationLabelPreview", 2, ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter, ImVec2(0, 160)))
+	{
+		ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
+		ImGui::TableSetupColumn("Color", ImGuiTableColumnFlags_WidthFixed, 64.0f);
+		ImGui::TableSetupScrollFreeze(0, 1);
+		ImGui::TableHeadersRow();
+
+		for (auto& Entry : LabelPreview)
+		{
+			ImGui::PushID(Entry.first.c_str());
+			ImGui::TableNextRow();
+
+			ImGui::TableNextColumn();
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("%s: %d", Entry.first.c_str(), Entry.second);
+
+			// The swatch fills the column, clicking it opens the color picker for this label.
+			ImGui::TableNextColumn();
+			AnnotationInfo& PreparedInfo = TemporaryLabelToAnnotationInfo[Entry.first];
+			if (ImGui::ColorButton("##LabelColor", ImVec4(PreparedInfo.Color.x, PreparedInfo.Color.y, PreparedInfo.Color.z, 1.0f), ImGuiColorEditFlags_NoAlpha, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f)))
+				ImGui::OpenPopup("##LabelColorPicker");
+
+			if (ImGui::BeginPopup("##LabelColorPicker"))
+			{
+				ImGui::ColorPicker4("##Picker", &PreparedInfo.Color.x, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview);
+				ImGui::EndPopup();
+			}
+
+			ImGui::PopID();
+		}
+
+		ImGui::EndTable();
+	}
+
+	// A file in a different coordinate system does not overlap the object at all, warn before anything is assigned.
+	ResourceAnalysisData* ObjectAnalysisData = nullptr;
+	if (TargetObject->GetType() == DATA_SOURCE_TYPE::MESH)
+	{
+		ObjectAnalysisData = TargetObject->GetMeshAnalysisData();
+	}
+	else if (TargetObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+		ObjectAnalysisData = TargetObject->GetPointCloudAnalysisData();
+	}
+
+	if (ObjectAnalysisData != nullptr)
+	{
+		FEAABB ObjectAABB = ObjectAnalysisData->GetAABB();
+		FEAABB ShapeFileAABB = TemporaryShapeFileData->GetBounds();
+		glm::dvec3 AppliedShift = TargetObject->GetAppliedShift();
+
+		bool bOverlapX = ShapeFileAABB.GetMin().x - AppliedShift.x <= ObjectAABB.GetMax().x && ShapeFileAABB.GetMax().x - AppliedShift.x >= ObjectAABB.GetMin().x;
+		bool bOverlapY = ShapeFileAABB.GetMin().y - AppliedShift.y <= ObjectAABB.GetMax().y && ShapeFileAABB.GetMax().y - AppliedShift.y >= ObjectAABB.GetMin().y;
+		if (!bOverlapX || !bOverlapY)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
+			ImGui::TextWrapped("The file extent does not overlap the object. Check that it uses the same coordinate system as the object.");
+			ImGui::PopStyleColor();
+		}
+	}
+
+	ImGui::Separator();
+
+	// Each button is centered in its own half of the popup.
+	const float ButtonWidth = 120.0f;
+	const float ContentWidth = ImGui::GetContentRegionAvail().x;
+	const float ContentStartX = ImGui::GetCursorPosX();
+	const float ImportButtonX = ContentStartX + ContentWidth * 0.25f - ButtonWidth / 2.0f;
+	const float CancelButtonX = ContentStartX + ContentWidth * 0.75f - ButtonWidth / 2.0f;
+
+	bool bCanImport = !FieldLabelToConsiderAnnotation.empty();
+	if (!bCanImport)
+		ImGui::BeginDisabled();
+
+	ImGui::SetCursorPosX(ImportButtonX);
+	if (ImGui::Button("Import", ImVec2(ButtonWidth, 0)))
+	{
+		AddAnnotationsFromShapeFileData(TemporaryShapeFileData, TargetObject, FieldLabelToConsiderAnnotation);
+		CloseImport();
+	}
+
+	if (!bCanImport)
+		ImGui::EndDisabled();
+
+	ImGui::SameLine();
+	ImGui::SetCursorPosX(CancelButtonX);
+	if (ImGui::Button("Cancel", ImVec2(ButtonWidth, 0)))
+		CloseImport();
+
+	ImGui::EndPopup();
 }

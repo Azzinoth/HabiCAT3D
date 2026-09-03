@@ -94,16 +94,27 @@ public:
 	AnnotationData* GetAnnotationDataByEntityID(std::string EntityID);
 	bool RemoveAnnotationFromAnalysisObject(std::string AnalysisObjectID);
 
-	bool ReadAndAddAnnotationsFromShapeFile(std::string ShapeFilePath, AnalysisObject* Object);
+	bool InitializeReadAnnotationDataFromShapeFile(std::string ShapeFilePath, AnalysisObject* Object);
+	bool AddAnnotationsFromShapeFileData(ShapeFileData* CurrentShapeFile, AnalysisObject* Object, const std::string& LabelFieldName);
+
 	bool ReadAnnotationsToPolygonPlane(std::string ShapeFilePath, PolygonPlane* TargetPlane, std::unordered_map<int, AnnotationInfo>& PolygonIndexToAnnotationInfoMap);
 
 	void InitalizeBuffer(AnnotationData* Data);
 	void UpdateBuffer(AnnotationData* Data);
 	bool ReadBackBuffer(AnnotationData* Data);
+
+	void Render();
 private:
 	SINGLETON_PRIVATE_PART(AnnotationManager)
 
 	std::unordered_map<std::string, AnnotationData*> AnalisysObjectsToAnnotationData;
+
+	ShapeFileData* TemporaryShapeFileData = nullptr;
+	std::vector<ShapeFileFieldInfo> TemporaryFields;
+	std::string FieldLabelToConsiderAnnotation = "";
+	std::map<std::string, AnnotationInfo> TemporaryLabelToAnnotationInfo;
+	void ClearTemporaryShapeFileData();
+	std::string GetFeatureLabel(const ShapeFileFeature& Feature, const std::string& LabelFieldName);
 
 	static void OnAnalysisObjectDelete(AnalysisObject* DeletedObject);
 
@@ -114,7 +125,8 @@ private:
 
 	void UpdatePointCloudBuffers(AnnotationData* Data);
 
-	glm::vec4 GetColor(const ShapeFileFeature& Feature);
+	// Reads red, green, blue and alpha fields of a feature. Returns false when the feature has none of them, OutColor is white then.
+	bool GetColor(const ShapeFileFeature& Feature, glm::vec4& OutColor);
 };
 
 #define ANNOTATION_MANAGER AnnotationManager::GetInstance()

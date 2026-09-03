@@ -13,9 +13,9 @@ const COMDLG_FILTERSPEC MODEL_EXPORT_FILE_FILTER[] =
 	{ L"3D Model file (*.obj)", L"*.obj" }
 };
 
-const COMDLG_FILTERSPEC SHAPE_LOAD_FILE_FILTER[] =
+const COMDLG_FILTERSPEC VECTOR_LOAD_FILE_FILTER[] =
 {
-	{ L"Shapefiles (*.shp)", L"*.shp" }
+	{ L"Vector data (*.shp; *.gpkg; *.geojson)", L"*.shp;*.gpkg;*.geojson" }
 };
 
 class UIInspector
