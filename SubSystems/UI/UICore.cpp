@@ -277,3 +277,52 @@ void UICore::ShowTransformConfiguration(const std::string Name, FETransformCompo
 	if (bModified)
 		Transform->SetScale(WorldScale, FE_WORLD_SPACE);
 }
+
+bool UICore::ShowColorPickerButton(const char* ID, glm::vec4& Color)
+{
+	ImGui::PushID(ID);
+
+	if (ImGui::ColorButton("##ColorButton", ImVec4(Color.x, Color.y, Color.z, 1.0f), ImGuiColorEditFlags_NoAlpha, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f)))
+		ImGui::OpenPopup("##ColorPicker");
+
+	bool bChanged = false;
+	if (ImGui::BeginPopup("##ColorPicker"))
+	{
+		bChanged = ImGui::ColorPicker4("##Picker", &Color.x, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview);
+		ImGui::EndPopup();
+	}
+
+	ImGui::PopID();
+	return bChanged;
+}
+
+int UICore::ShowLabeledColorTable(const char* TableID, std::vector<LabeledColor>& Rows, float Height)
+{
+	int ChangedRowIndex = -1;
+	if (!ImGui::BeginTable(TableID, 2, ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter, ImVec2(0, Height)))
+		return ChangedRowIndex;
+
+	ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
+	ImGui::TableSetupColumn("Color", ImGuiTableColumnFlags_WidthFixed, 64.0f);
+	ImGui::TableSetupScrollFreeze(0, 1);
+	ImGui::TableHeadersRow();
+
+	for (size_t i = 0; i < Rows.size(); i++)
+	{
+		ImGui::PushID(static_cast<int>(i));
+		ImGui::TableNextRow();
+
+		ImGui::TableNextColumn();
+		ImGui::AlignTextToFramePadding();
+		ImGui::TextUnformatted(Rows[i].Label.c_str());
+
+		ImGui::TableNextColumn();
+		if (ShowColorPickerButton("RowColor", Rows[i].Color))
+			ChangedRowIndex = static_cast<int>(i);
+
+		ImGui::PopID();
+	}
+
+	ImGui::EndTable();
+	return ChangedRowIndex;
+}

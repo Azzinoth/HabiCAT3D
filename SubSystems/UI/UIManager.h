@@ -61,6 +61,7 @@ private:
 	void RenderAboutWindow();
 
 	static void OnLayerChange();
+	static void OnAnnotationColorChanged(AnnotationData* ChangedAnnotationData, int AnnotationID);
 
 	FETexture* AddNewLayerIcon = nullptr;
 	std::vector<std::string> DummyLayers;

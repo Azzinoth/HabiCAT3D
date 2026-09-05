@@ -1,5 +1,6 @@
 #include "AnnotationManager.h"
 #include "../DeveloperMode.h"
+#include "../UI/UICore.h"
 using namespace FocalEngine;
 
 glm::vec4 AnnotationInfo::GetColor() const
@@ -116,8 +117,12 @@ bool AnnotationData::UpdateAnnotationColor(int AnnotationID, const glm::vec4& Ne
 	{
 		if (UsedAnnotations[i].ID == AnnotationID)
 		{
+			if (UsedAnnotations[i].Color == NewColor)
+				return true;
+
 			UsedAnnotations[i].Color = NewColor;
 			UpdateColorInfoOnGPU();
+			ANNOTATION_MANAGER.NotifyAnnotationColorChanged(this, AnnotationID);
 			return true;
 		}
 	}
@@ -178,7 +183,7 @@ AnnotationInfo* AnnotationData::AddAnnotationInfo(std::string Name, std::string 
 	return &UsedAnnotations.back();
 }
 
-std::vector<AnnotationInfo> AnnotationData::GetAllAnnotationInfos()
+const std::vector<AnnotationInfo>& AnnotationData::GetAllAnnotationInfos() const
 {
 	return UsedAnnotations;
 }
@@ -295,6 +300,22 @@ void AnnotationManager::Initialize()
 	LAYER_MANAGER.AddActiveLayerChangedCallback(AnnotationManager::OnLayerChange);
 }
 
+void AnnotationManager::AddOnAnnotationColorChangedCallback(std::function<void(AnnotationData*, int)> Callback)
+{
+	ClientOnAnnotationColorChangedCallbacks.push_back(Callback);
+}
+
+void AnnotationManager::NotifyAnnotationColorChanged(AnnotationData* Data, int AnnotationID)
+{
+	for (size_t i = 0; i < ClientOnAnnotationColorChangedCallbacks.size(); i++)
+	{
+		if (ClientOnAnnotationColorChangedCallbacks[i] == nullptr)
+			continue;
+
+		ClientOnAnnotationColorChangedCallbacks[i](Data, AnnotationID);
+	}
+}
+
 bool AnnotationManager::AddAnnotationToAnalysisObject(std::string AnalysisObjectID)
 {
 	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(AnalysisObjectID);
@@ -328,8 +349,15 @@ bool AnnotationManager::RemoveAnnotationFromAnalysisObject(std::string AnalysisO
 	if (CurrentObject == nullptr)
 		return false;
 
-	if (ANNOTATION_MANAGER.AnalisysObjectsToAnnotationData.find(CurrentObject->GetID()) == ANNOTATION_MANAGER.AnalisysObjectsToAnnotationData.end())
+	AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(CurrentObject->GetID());
+	if (CurrentAnnotationData == nullptr)
 		return false;
+
+	CurrentAnnotationData->ClearAllAnnotation();
+
+	// We should updated the point cloud color before deleting the annotation data.
+	if (CurrentObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+		ANALYSIS_OBJECT_MANAGER.RecolorPointCloud(CurrentObject);
 
 	FEEntity* Entity = CurrentObject->GetEntity();
 	if (Entity != nullptr)
@@ -378,9 +406,6 @@ void AnnotationManager::BeforeRender(FEEntity* CurrentEntity)
 	if (CurrentObject == nullptr)
 		return;
 
-	if (CurrentObject->GetType() != DATA_SOURCE_TYPE::MESH)
-		return;
-
 	AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(CurrentObject->GetID());
 	if (CurrentAnnotationData == nullptr)
 		return;
@@ -393,29 +418,36 @@ void AnnotationManager::BeforeRender(FEEntity* CurrentEntity)
 	if (CurrentAnnotationData->AnnotationSSBO == GLuint(-1))
 		bShouldBeVisualized = false;
 
-	FEMesh* ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
-	if (ActiveMesh == nullptr)
-		bShouldBeVisualized = false;
-
-	if (CurrentAnnotationData->MeshBufferID == GLuint(-1))
-		bShouldBeVisualized = false;
-
-	if (bShouldBeVisualized)
+	if (CurrentObject->GetType() == DATA_SOURCE_TYPE::MESH)
 	{
-		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("AnnotationVisualizationActive", 1);
-		FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, CurrentAnnotationData->AnnotationSSBO));
-		FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, CurrentAnnotationData->AnnotationSSBO));
+		FEMesh* ActiveMesh = static_cast<FEMesh*>(CurrentObject->GetEngineResource());
+		if (ActiveMesh == nullptr)
+			bShouldBeVisualized = false;
 
-		FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
+		if (CurrentAnnotationData->MeshBufferID == GLuint(-1))
+			bShouldBeVisualized = false;
 
-		FE_GL_ERROR(glEnableVertexAttribArray(15));
-		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, CurrentAnnotationData->MeshBufferID));
+		if (bShouldBeVisualized)
+		{
+			ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("AnnotationVisualizationActive", 1);
+			FE_GL_ERROR(glBindBuffer(GL_SHADER_STORAGE_BUFFER, CurrentAnnotationData->AnnotationSSBO));
+			FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, CurrentAnnotationData->AnnotationSSBO));
 
-		FE_GL_ERROR(glBindVertexArray(0));
+			FE_GL_ERROR(glBindVertexArray(ActiveMesh->GetVaoID()));
+
+			FE_GL_ERROR(glEnableVertexAttribArray(15));
+			FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, CurrentAnnotationData->MeshBufferID));
+
+			FE_GL_ERROR(glBindVertexArray(0));
+		}
+		else
+		{
+			ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("AnnotationVisualizationActive", 0);
+		}
 	}
-	else
+	else if (CurrentObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
 	{
-		ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("AnnotationVisualizationActive", 0);
+		// It is done in AnalysisObjectManager::BeforeRender.
 	}
 }
 
@@ -630,6 +662,9 @@ bool AnnotationManager::ReadBackBuffer(AnnotationData* Data)
 
 void AnnotationManager::UpdateHistogramData(AnnotationData* Data)
 {
+	if (Data == nullptr)
+		return;
+
 	AnalysisObject* Object = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(Data->AnalysisObjectID);
 	if (Object == nullptr)
 		return;
@@ -1097,39 +1132,19 @@ void AnnotationManager::Render()
 	}
 
 	ImGui::Text("Distinct labels: %d", static_cast<int>(LabelPreview.size()));
-	if (ImGui::BeginTable("##AnnotationLabelPreview", 2, ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter, ImVec2(0, 160)))
+
+	// Rows follow LabelPreview order, so the changed row index maps back to its label.
+	std::vector<std::string> RowLabels;
+	std::vector<LabeledColor> Rows;
+	for (auto& Entry : LabelPreview)
 	{
-		ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-		ImGui::TableSetupColumn("Color", ImGuiTableColumnFlags_WidthFixed, 64.0f);
-		ImGui::TableSetupScrollFreeze(0, 1);
-		ImGui::TableHeadersRow();
-
-		for (auto& Entry : LabelPreview)
-		{
-			ImGui::PushID(Entry.first.c_str());
-			ImGui::TableNextRow();
-
-			ImGui::TableNextColumn();
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("%s: %d", Entry.first.c_str(), Entry.second);
-
-			// The swatch fills the column, clicking it opens the color picker for this label.
-			ImGui::TableNextColumn();
-			AnnotationInfo& PreparedInfo = TemporaryLabelToAnnotationInfo[Entry.first];
-			if (ImGui::ColorButton("##LabelColor", ImVec4(PreparedInfo.Color.x, PreparedInfo.Color.y, PreparedInfo.Color.z, 1.0f), ImGuiColorEditFlags_NoAlpha, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f)))
-				ImGui::OpenPopup("##LabelColorPicker");
-
-			if (ImGui::BeginPopup("##LabelColorPicker"))
-			{
-				ImGui::ColorPicker4("##Picker", &PreparedInfo.Color.x, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview);
-				ImGui::EndPopup();
-			}
-
-			ImGui::PopID();
-		}
-
-		ImGui::EndTable();
+		RowLabels.push_back(Entry.first);
+		Rows.push_back({ Entry.first + ": " + std::to_string(Entry.second), TemporaryLabelToAnnotationInfo[Entry.first].Color });
 	}
+
+	int ChangedRowIndex = UI_CORE.ShowLabeledColorTable("##AnnotationLabelPreview", Rows);
+	if (ChangedRowIndex != -1)
+		TemporaryLabelToAnnotationInfo[RowLabels[ChangedRowIndex]].Color = Rows[ChangedRowIndex].Color;
 
 	// A file in a different coordinate system does not overlap the object at all, warn before anything is assigned.
 	ResourceAnalysisData* ObjectAnalysisData = nullptr;
@@ -1187,4 +1202,132 @@ void AnnotationManager::Render()
 		CloseImport();
 
 	ImGui::EndPopup();
+}
+
+#include "../UI/UIManager.h"
+bool AnnotationManager::UpdateHistogramWithAnnotationData()
+{
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr)
+		return false;
+
+	if (ActiveObject->GetType() != DATA_SOURCE_TYPE::MESH && ActiveObject->GetType() != DATA_SOURCE_TYPE::POINT_CLOUD)
+		return false;
+
+	DataLayer* ActiveLayerData = ActiveObject->GetActiveLayer();
+	if (ActiveLayerData == nullptr)
+		return false;
+
+	AnnotationData* AnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(ActiveObject->GetID());
+	if (AnnotationData == nullptr)
+		return false;
+
+	// Stacks are assigned again below, a stale index would let a color change recolor the wrong stack.
+	for (size_t i = 0; i < AnnotationData->UsedAnnotations.size(); i++)
+		AnnotationData->UsedAnnotations[i].StackGraphIndex = -1;
+
+	FEWeightedHistogram* Histogram = UI.GetHistogramPointer();
+	Histogram->Clear();
+
+	std::vector<std::tuple<double, double, int>> NoAnnotationHistogramData;
+	if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
+	{
+		MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+		if (CurrentMeshAnalysisData == nullptr)
+			return false;
+
+		FEMesh* ActiveMesh = static_cast<FEMesh*>(ActiveObject->GetEngineResource());
+		if (ActiveMesh == nullptr)
+			return false;
+
+		for (int i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
+		{
+			if (AnnotationData->PerElementID[i] == -1)
+			{
+				double CurrentLayerTriangleValue = ActiveLayerData->ElementsToData[i];
+				NoAnnotationHistogramData.push_back(std::make_tuple(CurrentLayerTriangleValue, CurrentMeshAnalysisData->TrianglesArea[i], i));
+			}
+		}
+	}
+	else if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
+	{
+		size_t ElementCount = std::min(AnnotationData->PerElementID.size(), ActiveLayerData->ElementsToData.size());
+		for (size_t i = 0; i < ElementCount; i++)
+		{
+			if (AnnotationData->PerElementID[i] == -1)
+			{
+				double CurrentLayerPointValue = ActiveLayerData->ElementsToData[i];
+				// For point clouds, each point has weight equal to 1.0.
+				NoAnnotationHistogramData.push_back(std::make_tuple(CurrentLayerPointValue, 1.0, static_cast<int>(i)));
+			}
+		}
+	}
+
+	std::vector<double> Values;
+	std::vector<double> Weights;
+	for (const auto& Tuple : NoAnnotationHistogramData)
+	{
+		Values.push_back(std::get<0>(Tuple));
+		Weights.push_back(std::get<1>(Tuple));
+	}
+
+	std::vector<FEGraphDataPoint> NoAnnotationGraphDataPoints = Histogram->ConvertToDataPoints(Values, Weights,
+																							   Histogram->GetBinCount(), ActiveLayerData->GetMin(),
+																							   ActiveLayerData->GetMax());
+	Histogram->GetGraphPointer()->AddDataPoints(NoAnnotationGraphDataPoints);
+
+	FEGraphStackInfo* NoAnnotationStackInfo = Histogram->GetGraphPointer()->GetStackInfoByID(0);
+	if (NoAnnotationStackInfo != nullptr)
+		NoAnnotationStackInfo->Name = "No annotation";
+
+	std::vector<AnnotationInfo>& AllAnnotationInfo = AnnotationData->UsedAnnotations;
+	std::vector<std::vector<FEGraphDataPoint>> AnnotationGraphDataPoints;
+	int GraphStackIndex = 1;
+	for (size_t i = 0; i < AllAnnotationInfo.size(); i++)
+	{
+		if (AllAnnotationInfo[i].HistogramData.empty())
+			continue;
+
+		Values.clear();
+		Weights.clear();
+		for (const auto& Tuple : AllAnnotationInfo[i].HistogramData)
+		{
+			Values.push_back(std::get<0>(Tuple));
+			Weights.push_back(std::get<1>(Tuple));
+		}
+
+		std::vector<FEGraphDataPoint> CurrentAnnotationGraphDataPoints = Histogram->ConvertToDataPoints(Values, Weights,
+																										Histogram->GetBinCount(), ActiveLayerData->GetMin(),
+																										ActiveLayerData->GetMax());
+		for (size_t j = 0; j < CurrentAnnotationGraphDataPoints.size(); j++)
+			CurrentAnnotationGraphDataPoints[j].StackID = GraphStackIndex;
+
+		if (!CurrentAnnotationGraphDataPoints.empty())
+		{
+			AllAnnotationInfo[i].StackGraphIndex = GraphStackIndex;
+			GraphStackIndex++;
+		}
+		else
+		{
+			AllAnnotationInfo[i].StackGraphIndex = -1;
+		}
+
+		AnnotationGraphDataPoints.push_back(CurrentAnnotationGraphDataPoints);
+		UI.GetHistogramPointer()->GetGraphPointer()->AddDataPoints(AnnotationGraphDataPoints.back());
+
+		if (AllAnnotationInfo[i].StackGraphIndex != -1)
+		{
+			FEGraphStackInfo* CurrentStackInfo = UI.GetHistogramPointer()->GetGraphPointer()->GetStackInfoByID(AllAnnotationInfo[i].StackGraphIndex);
+			if (CurrentStackInfo != nullptr)
+			{
+				CurrentStackInfo->Name = "Annotation: " + AllAnnotationInfo[i].Name;
+
+				glm::vec4 Color = AllAnnotationInfo[i].GetColor();
+				CurrentStackInfo->StartGradientColor = ImColor(Color.x, Color.y, Color.z);
+				CurrentStackInfo->EndGradientColor = ImColor(Color.x, Color.y, Color.z);
+			}
+		}
+	}
+
+	return true;
 }

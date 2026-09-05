@@ -60,7 +60,7 @@ public:
 	bool UpdateAnnotationForTriangle(int TriangleIndex, int AnnotationID);
 	bool UpdateAnnotationForTriangles(std::vector<int>& TriangleIndexes, int AnnotationID);
 
-	std::vector< AnnotationInfo> GetAllAnnotationInfos();
+	const std::vector<AnnotationInfo>& GetAllAnnotationInfos() const;
 	void ClearAllAnnotationsInfo();
 
 	AnnotationInfo* AddAnnotationInfo(std::string Name, std::string Description, glm::vec4 Color);
@@ -104,10 +104,17 @@ public:
 	bool ReadBackBuffer(AnnotationData* Data);
 
 	void Render();
+
+	bool UpdateHistogramWithAnnotationData();
+
+	void AddOnAnnotationColorChangedCallback(std::function<void(AnnotationData*, int)> Callback);
 private:
 	SINGLETON_PRIVATE_PART(AnnotationManager)
 
 	std::unordered_map<std::string, AnnotationData*> AnalisysObjectsToAnnotationData;
+
+	std::vector<std::function<void(AnnotationData*, int)>> ClientOnAnnotationColorChangedCallbacks;
+	void NotifyAnnotationColorChanged(AnnotationData* Data, int AnnotationID);
 
 	ShapeFileData* TemporaryShapeFileData = nullptr;
 	std::vector<ShapeFileFieldInfo> TemporaryFields;

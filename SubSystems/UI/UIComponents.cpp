@@ -1064,32 +1064,45 @@ void FEGraphRender::Render()
 		if (CurrentWindow != nullptr)
 			WindowPosition = CurrentWindow->Pos;
 
+		int PixelX = static_cast<int>(ImGui::GetIO().MousePos.x - WindowPosition.x - Position.x);
+		float NormalizedX = PixelX / Size.x;
+		int PixelY = static_cast<int>(ImGui::GetIO().MousePos.y - WindowPosition.y - Position.y);
+		float NormalizedY = 1.0f - PixelY / Size.y;
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
 		ImGui::BeginTooltip();
 
-		int PixelX = static_cast<int>(ImGui::GetIO().MousePos.x - WindowPosition.x - Position.x);
-		float NormilizedX = PixelX / Size.x;
-		ImGui::Text("X Position: %d", PixelX);
-		ImGui::Text("Normalized X Position: %.4f", NormilizedX);
-		ImGui::Text("X Value: %.4f", GlobalXValueBounds.x + (GlobalXValueBounds.y - GlobalXValueBounds.x) * NormilizedX);
+		// A single stack carries no extra information, so its name is shown only when the graph is stacked.
+		FEGraphStackInfo* StackUnderMouse = GetStackInfoByID(GetStackID(glm::vec2(NormalizedX, NormalizedY)));
+		if (StackUnderMouse != nullptr && StacksInfo.size() > 1)
+		{
+			ImGui::TextUnformatted(StackUnderMouse->Name.c_str());
+			ImGui::Separator();
+		}
 
-		ImGui::Separator();
-		int PixelY = static_cast<int>(ImGui::GetIO().MousePos.y - WindowPosition.y - Position.y);
-		float NormilizedY = 1.0f - (PixelY) / Size.y;
-		ImGui::Text("Y Position: %d", PixelY);
-		ImGui::Text("Normalized Y Position: %.4f", NormilizedY);
-		double YValue = GetGraphYValue(glm::vec2(NormilizedX, NormilizedY));
+		ImGui::Text("X value: %.4f", GlobalXValueBounds.x + (GlobalXValueBounds.y - GlobalXValueBounds.x) * NormalizedX);
+
+		double YValue = GetGraphYValue(glm::vec2(NormalizedX, NormalizedY));
 		if (YValue == -std::numeric_limits<double>::max())
-			ImGui::Text("Y Value: N/A");
+		{
+			ImGui::Text("Y value: N/A");
+		}
 		else
-			ImGui::Text("Y Value: %.4f", YValue);
+		{
+			ImGui::Text("Y value: %.4f", YValue);
+		}
 
-		ImGui::Separator();
-		int StackedIDUnderMouse = GetStackID(glm::vec2(NormilizedX, NormilizedY));
-		ImGui::Text("GlobaMaxYValue : %.3f", GlobalYValueBounds.y);
-		ImGui::Text("Ceiling : %.3f", Ceiling);
-		ImGui::Text("Stack ID under mouse: %d", StackedIDUnderMouse);
-		ImGui::Separator();
+		if (DEVELOPER_MODE.IsOn())
+		{
+			ImGui::Separator();
+			ImGui::Text("X position: %d", PixelX);
+			ImGui::Text("Normalized X position: %.4f", NormalizedX);
+			ImGui::Text("Y position: %d", PixelY);
+			ImGui::Text("Normalized Y position: %.4f", NormalizedY);
+			ImGui::Text("Global max Y value: %.3f", GlobalYValueBounds.y);
+			ImGui::Text("Ceiling: %.3f", Ceiling);
+			ImGui::Text("Stack ID under mouse: %d", StackUnderMouse != nullptr ? StackUnderMouse->ID : -1);
+		}
 
 		ImGui::EndTooltip();
 		ImGui::PopStyleVar();

@@ -543,165 +543,130 @@ void UIInspector::RenderPhotogrammetryInformation(COLMAPProject* CurrentCOLMAPPr
 
 void UIInspector::RenderAnnotationInformation(AnnotationData* CurrentAnnotationData)
 {
-	if (ImGui::Button("Clear All Annotations from mesh/point cloud"))
+	const std::vector<AnnotationInfo>& AnnotationInfos = CurrentAnnotationData->GetAllAnnotationInfos();
+	std::vector<int> RowAnnotationIDs;
+	std::vector<LabeledColor> Rows;
+	for (size_t i = 0; i < AnnotationInfos.size(); i++)
 	{
-		CurrentAnnotationData->ClearAllAnnotation();
+		if (AnnotationInfos[i].ID == 0)
+			continue;
+
+		RowAnnotationIDs.push_back(AnnotationInfos[i].ID);
+		Rows.push_back({ AnnotationInfos[i].Name, AnnotationInfos[i].GetColor() });
 	}
 
-	bool bInEditingMode = CurrentAnnotationData->IsInEditingMode();
-	ImGui::Checkbox("Editing mode", &bInEditingMode);
-	CurrentAnnotationData->SetEditingMode(bInEditingMode);
-
-	ImGui::Separator();
-
-	PolygonPlane* CurrentPolygonPlane = CurrentAnnotationData->GetPolygonPlane();
-	if (CurrentPolygonPlane != nullptr)
+	ImGui::Text("Annotations: %d", static_cast<int>(Rows.size()));
+	if (Rows.empty())
 	{
-		if (CurrentAnnotationData->IsInEditingMode())
-		{
-			ImGui::Text("Canvas transform:");
-			UI_CORE.ShowTransformConfiguration("Debug Canvas transform", &CurrentPolygonPlane->CanvasEntity->GetComponent<FETransformComponent>());
-			CurrentPolygonPlane->UpdateCanvasTrianglePositions();
+		ImGui::TextDisabled("No annotations.");
+	}
+	else
+	{
+		int ChangedRowIndex = UI_CORE.ShowLabeledColorTable("##AnnotationColors", Rows);
+		if (ChangedRowIndex != -1)
+			CurrentAnnotationData->UpdateAnnotationColor(RowAnnotationIDs[ChangedRowIndex], Rows[ChangedRowIndex].Color);
+	}
 
-			if (ImGui::Button("Begin drafting a polygon"))
-				CurrentPolygonPlane->BeginDraftPolygon();
-
-			if (ImGui::Button("Finalize drafted polygon"))
-				CurrentPolygonPlane->FinalizeDraftPolygon();
-
-			if (ImGui::Button("Clear drafted polygon"))
-				CurrentPolygonPlane->ClearDraftPolygon();
-
-			if (ImGui::Button("Annotate mesh with polygons"))
-			{
-				AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-				if (ActiveObject == nullptr)
-					return;
-
-				std::vector<std::pair<int, std::vector<int>>> TriangleIndicesInPolygon = CurrentPolygonPlane->GetTriangleIndicesInAllPolygons(ActiveObject);
-				MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
-				if (CurrentMeshAnalysisData == nullptr)
-					return;
-
-				if (!TriangleIndicesInPolygon.empty())
-				{
-					for (size_t i = 0; i < CurrentAnnotationData->PerElementID.size(); i++)
-						CurrentAnnotationData->PerElementID[i] = -1;
-
-					AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(ActiveObject->GetID());
-					for (size_t i = 0; i < TriangleIndicesInPolygon.size(); i++)
-					{
-						int PolygonIndex = TriangleIndicesInPolygon[i].first;
-						AnnotationInfo* AssociatedAnnotationInfo = CurrentAnnotationData->GetAnnotationInfoByPolygonIndex(PolygonIndex);
-						if (AssociatedAnnotationInfo != nullptr)
-						{
-							for (size_t j = 0; j < TriangleIndicesInPolygon[i].second.size(); j++)
-							{
-								CurrentAnnotationData->PerElementID[TriangleIndicesInPolygon[i].second[j]] = AssociatedAnnotationInfo->ID;
-							}
-						}
-					}
-					
-					if (CurrentAnnotationData->MeshBufferID == GLuint(-1))
-						ANNOTATION_MANAGER.InitalizeBuffer(CurrentAnnotationData);
-
-					ANNOTATION_MANAGER.UpdateBuffer(CurrentAnnotationData);
-				}
-				else
-				{
-					for (size_t i = 0; i < CurrentAnnotationData->PerElementID.size(); i++)
-						CurrentAnnotationData->PerElementID[i] = -1;
-
-					if (CurrentAnnotationData->MeshBufferID != GLuint(-1))
-						ANNOTATION_MANAGER.UpdateBuffer(CurrentAnnotationData);
-				}
-			}
-
-			CurrentPolygonPlane->RenderAdditionalVisualization();
-		}
+	if (DEVELOPER_MODE.IsOn())
+	{
 		ImGui::Separator();
 
-		std::vector<FEPolygon> AllPolygons = CurrentPolygonPlane->GetAllPolygons();
-		std::vector<AnnotationInfo> AllAnnotationInfos = CurrentAnnotationData->GetAllAnnotationInfos();
+		bool bInEditingMode = CurrentAnnotationData->IsInEditingMode();
+		ImGui::Checkbox("Editing mode", &bInEditingMode);
+		CurrentAnnotationData->SetEditingMode(bInEditingMode);
 
-		auto PolygonIndexToString = [](int Index)->std::string {
-			if (Index == -1)
-				return "";
+		ImGui::Separator();
 
-			return "Polygon " + std::to_string(Index);
-		};
-
-		ImGui::Text("Select polygon: ");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(190);
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
-		static int SelectedPolygonIndex = -1;
-		if (ImGui::BeginCombo("##ChoosePolygon", (PolygonIndexToString(SelectedPolygonIndex)).c_str(), ImGuiWindowFlags_None))
+		PolygonPlane* CurrentPolygonPlane = CurrentAnnotationData->GetPolygonPlane();
+		if (CurrentPolygonPlane != nullptr)
 		{
-			for (size_t i = 0; i < AllPolygons.size(); i++)
+			if (CurrentAnnotationData->IsInEditingMode())
 			{
-				const bool bIsSelected = i == SelectedPolygonIndex;
-				if (ImGui::Selectable((PolygonIndexToString(static_cast<int>(i))).c_str(), bIsSelected))
+				ImGui::Text("Canvas transform:");
+				UI_CORE.ShowTransformConfiguration("Debug Canvas transform", &CurrentPolygonPlane->CanvasEntity->GetComponent<FETransformComponent>());
+				CurrentPolygonPlane->UpdateCanvasTrianglePositions();
+
+				if (ImGui::Button("Begin drafting a polygon"))
+					CurrentPolygonPlane->BeginDraftPolygon();
+
+				if (ImGui::Button("Finalize drafted polygon"))
+					CurrentPolygonPlane->FinalizeDraftPolygon();
+
+				if (ImGui::Button("Clear drafted polygon"))
+					CurrentPolygonPlane->ClearDraftPolygon();
+
+				if (ImGui::Button("Annotate mesh with polygons"))
 				{
-					SelectedPolygonIndex = static_cast<int>(i);
+					AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+					if (ActiveObject == nullptr)
+						return;
+
+					std::vector<std::pair<int, std::vector<int>>> TriangleIndicesInPolygon = CurrentPolygonPlane->GetTriangleIndicesInAllPolygons(ActiveObject);
+					MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
+					if (CurrentMeshAnalysisData == nullptr)
+						return;
+
+					if (!TriangleIndicesInPolygon.empty())
+					{
+						for (size_t i = 0; i < CurrentAnnotationData->PerElementID.size(); i++)
+							CurrentAnnotationData->PerElementID[i] = -1;
+
+						AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(ActiveObject->GetID());
+						for (size_t i = 0; i < TriangleIndicesInPolygon.size(); i++)
+						{
+							int PolygonIndex = TriangleIndicesInPolygon[i].first;
+							AnnotationInfo* AssociatedAnnotationInfo = CurrentAnnotationData->GetAnnotationInfoByPolygonIndex(PolygonIndex);
+							if (AssociatedAnnotationInfo != nullptr)
+							{
+								for (size_t j = 0; j < TriangleIndicesInPolygon[i].second.size(); j++)
+								{
+									CurrentAnnotationData->PerElementID[TriangleIndicesInPolygon[i].second[j]] = AssociatedAnnotationInfo->ID;
+								}
+							}
+						}
+
+						if (CurrentAnnotationData->MeshBufferID == GLuint(-1))
+							ANNOTATION_MANAGER.InitalizeBuffer(CurrentAnnotationData);
+
+						ANNOTATION_MANAGER.UpdateBuffer(CurrentAnnotationData);
+					}
+					else
+					{
+						for (size_t i = 0; i < CurrentAnnotationData->PerElementID.size(); i++)
+							CurrentAnnotationData->PerElementID[i] = -1;
+
+						if (CurrentAnnotationData->MeshBufferID != GLuint(-1))
+							ANNOTATION_MANAGER.UpdateBuffer(CurrentAnnotationData);
+					}
 				}
 
-				if (bIsSelected)
-					ImGui::SetItemDefaultFocus();
+				CurrentPolygonPlane->RenderAdditionalVisualization();
 			}
+			ImGui::Separator();
 
-			ImGui::EndCombo();
-		}
+			std::vector<FEPolygon> AllPolygons = CurrentPolygonPlane->GetAllPolygons();
+			const std::vector<AnnotationInfo>& AllAnnotationInfos = CurrentAnnotationData->GetAllAnnotationInfos();
 
-		if (SelectedPolygonIndex == -1)
-			ImGui::BeginDisabled();
-		ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.6f, 0.1f, 0.2f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.65f, 0.2f, 0.2f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.75f, 0.6f, 0.1f));
-		ImGui::SameLine();
-		if (ImGui::Button("Delete selected polygon"))
-		{
-			if (SelectedPolygonIndex != -1)
-			{
-				CurrentPolygonPlane->DeletePolygon(SelectedPolygonIndex);
-				SelectedPolygonIndex = -1;
-				ImGui::PopStyleColor(3);
-				return;
-			}
-		}
-		ImGui::PopStyleColor(3);
-		if (SelectedPolygonIndex == -1)
-			ImGui::EndDisabled();
-
-		if (SelectedPolygonIndex != -1)
-		{
-			FEPolygon SelectedPolygon = AllPolygons[SelectedPolygonIndex];
-			ImGui::Text("Number of points in polygon: %d", static_cast<int>(SelectedPolygon.Points.size()));
-
-			AnnotationInfo* AssociatedAnnotationInfo = CurrentAnnotationData->GetAnnotationInfoByPolygonIndex(SelectedPolygonIndex);
-			int SelectedAnnotationIndex = -1;
-			if (AssociatedAnnotationInfo != nullptr)
-				SelectedAnnotationIndex = AssociatedAnnotationInfo->ID;
-
-			auto AnnotationIndexToString = [&](int Index)->std::string {
-				if (Index >= AllAnnotationInfos.size() || Index < 0)
+			auto PolygonIndexToString = [](int Index)->std::string {
+				if (Index == -1)
 					return "";
 
-				return AllAnnotationInfos[Index].Name;
-			};
+				return "Polygon " + std::to_string(Index);
+				};
 
-			ImGui::Text("Select annotation: ");
+			ImGui::Text("Select polygon: ");
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(190);
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2); 
-			if (ImGui::BeginCombo("##ChooseAnnotation", (AnnotationIndexToString(SelectedAnnotationIndex)).c_str(), ImGuiWindowFlags_None))
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+			static int SelectedPolygonIndex = -1;
+			if (ImGui::BeginCombo("##ChoosePolygon", (PolygonIndexToString(SelectedPolygonIndex)).c_str(), ImGuiWindowFlags_None))
 			{
-				for (size_t i = 0; i < AllAnnotationInfos.size(); i++)
+				for (size_t i = 0; i < AllPolygons.size(); i++)
 				{
-					const bool bIsSelected = i == SelectedAnnotationIndex;
-					if (ImGui::Selectable((AnnotationIndexToString(static_cast<int>(i))).c_str(), bIsSelected))
+					const bool bIsSelected = i == SelectedPolygonIndex;
+					if (ImGui::Selectable((PolygonIndexToString(static_cast<int>(i))).c_str(), bIsSelected))
 					{
-						CurrentAnnotationData->SetPolygonIndexAnnotation(SelectedPolygonIndex, AllAnnotationInfos[i].ID);
+						SelectedPolygonIndex = static_cast<int>(i);
 					}
 
 					if (bIsSelected)
@@ -710,23 +675,82 @@ void UIInspector::RenderAnnotationInformation(AnnotationData* CurrentAnnotationD
 
 				ImGui::EndCombo();
 			}
-			
-			if (AssociatedAnnotationInfo != nullptr)
+
+			if (SelectedPolygonIndex == -1)
+				ImGui::BeginDisabled();
+			ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.6f, 0.1f, 0.2f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.65f, 0.2f, 0.2f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.75f, 0.6f, 0.1f));
+			ImGui::SameLine();
+			if (ImGui::Button("Delete selected polygon"))
 			{
-				ImGui::Text("Annotation name: %s", AssociatedAnnotationInfo->Name.c_str());
-				ImGui::Text("Annotation description: %s", AssociatedAnnotationInfo->Description.c_str());
-				glm::vec4 Color = AssociatedAnnotationInfo->GetColor();
-				if (ImGui::ColorEdit4("Annotation color", (float*)&Color))
-					CurrentAnnotationData->UpdateAnnotationColor(AssociatedAnnotationInfo->ID, Color);
-				
-				ImGui::Text("Number of histogram entries: %d", static_cast<int>(AssociatedAnnotationInfo->HistogramData.size()));
+				if (SelectedPolygonIndex != -1)
+				{
+					CurrentPolygonPlane->DeletePolygon(SelectedPolygonIndex);
+					SelectedPolygonIndex = -1;
+					ImGui::PopStyleColor(3);
+					return;
+				}
 			}
-			else
+			ImGui::PopStyleColor(3);
+			if (SelectedPolygonIndex == -1)
+				ImGui::EndDisabled();
+
+			if (SelectedPolygonIndex != -1)
 			{
-				ImGui::Text("No annotation data associated with this polygon.");
+				FEPolygon SelectedPolygon = AllPolygons[SelectedPolygonIndex];
+				ImGui::Text("Number of points in polygon: %d", static_cast<int>(SelectedPolygon.Points.size()));
+
+				AnnotationInfo* AssociatedAnnotationInfo = CurrentAnnotationData->GetAnnotationInfoByPolygonIndex(SelectedPolygonIndex);
+				int SelectedAnnotationIndex = -1;
+				if (AssociatedAnnotationInfo != nullptr)
+					SelectedAnnotationIndex = AssociatedAnnotationInfo->ID;
+
+				auto AnnotationIndexToString = [&](int Index)->std::string {
+					if (Index >= AllAnnotationInfos.size() || Index < 0)
+						return "";
+
+					return AllAnnotationInfos[Index].Name;
+					};
+
+				ImGui::Text("Select annotation: ");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(190);
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+				if (ImGui::BeginCombo("##ChooseAnnotation", (AnnotationIndexToString(SelectedAnnotationIndex)).c_str(), ImGuiWindowFlags_None))
+				{
+					for (size_t i = 0; i < AllAnnotationInfos.size(); i++)
+					{
+						const bool bIsSelected = i == SelectedAnnotationIndex;
+						if (ImGui::Selectable((AnnotationIndexToString(static_cast<int>(i))).c_str(), bIsSelected))
+						{
+							CurrentAnnotationData->SetPolygonIndexAnnotation(SelectedPolygonIndex, AllAnnotationInfos[i].ID);
+						}
+
+						if (bIsSelected)
+							ImGui::SetItemDefaultFocus();
+					}
+
+					ImGui::EndCombo();
+				}
+
+				if (AssociatedAnnotationInfo != nullptr)
+				{
+					ImGui::Text("Annotation name: %s", AssociatedAnnotationInfo->Name.c_str());
+					ImGui::Text("Annotation description: %s", AssociatedAnnotationInfo->Description.c_str());
+					glm::vec4 Color = AssociatedAnnotationInfo->GetColor();
+					if (ImGui::ColorEdit4("Annotation color", (float*)&Color))
+						CurrentAnnotationData->UpdateAnnotationColor(AssociatedAnnotationInfo->ID, Color);
+
+					ImGui::Text("Number of histogram entries: %d", static_cast<int>(AssociatedAnnotationInfo->HistogramData.size()));
+				}
+				else
+				{
+					ImGui::Text("No annotation data associated with this polygon.");
+				}
 			}
+			ImGui::Separator();
 		}
-		ImGui::Separator();
 	}
 }
 

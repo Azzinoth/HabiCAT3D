@@ -22,6 +22,7 @@ UIManager::UIManager()
 
 	ANALYSIS_OBJECT_MANAGER.AddOnObjectLoadCallback(UIManager::OnNewObjectLoaded);
 	LAYER_MANAGER.AddActiveLayerChangedCallback(UIManager::OnLayerChange);
+	ANNOTATION_MANAGER.AddOnAnnotationColorChangedCallback(UIManager::OnAnnotationColorChanged);
 
 	LAYER_RASTERIZATION_MANAGER.SetOnCalculationsStartCallback(OnLayerRasterizationCalculationsStart);
 	LAYER_RASTERIZATION_MANAGER.SetOnCalculationsEndCallback(OnLayerRasterizationCalculationsEnd);
@@ -1008,6 +1009,29 @@ void UIManager::RenderAboutWindow()
 	}
 }
 
+void UIManager::OnAnnotationColorChanged(AnnotationData* ChangedAnnotationData, int AnnotationID)
+{
+	if (ChangedAnnotationData == nullptr)
+		return;
+
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject == nullptr || ChangedAnnotationData->GetAnalysisObject() != ActiveObject)
+		return;
+
+	AnnotationInfo* ChangedAnnotationInfo = ChangedAnnotationData->GetAnnotationInfoByID(AnnotationID);
+	if (ChangedAnnotationInfo == nullptr || ChangedAnnotationInfo->StackGraphIndex == -1)
+		return;
+
+	FEGraphStackInfo* StackInfo = UI.Histogram.GetGraphPointer()->GetStackInfoByID(ChangedAnnotationInfo->StackGraphIndex);
+	if (StackInfo == nullptr)
+		return;
+
+	glm::vec4 Color = ChangedAnnotationInfo->GetColor();
+	StackInfo->StartGradientColor = ImColor(Color.x, Color.y, Color.z);
+	StackInfo->EndGradientColor = ImColor(Color.x, Color.y, Color.z);
+	UI.Histogram.GetGraphPointer()->InvalidateCache();
+}
+
 void UIManager::OnLayerChange()
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
@@ -1033,9 +1057,11 @@ void UIManager::OnLayerChange()
 	if (ActiveLayer->GetMin() != ActiveLayer->GetMax())
 	{
 		UI.UpdateHistogramData(ActiveLayer, UI.Histogram.GetBinCount());
+		ANNOTATION_MANAGER.UpdateHistogramWithAnnotationData();
 
 		if (CurrentMeshAnalysisData != nullptr)
 			CurrentMeshAnalysisData->SetHeatMapType(5);
+
 		UI.HeatMapColorRange.SetColorRangeFunction(GetTurboColorMap);
 		UI.HeatMapColorRange.bRenderSlider = true;
 

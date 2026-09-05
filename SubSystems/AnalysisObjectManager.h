@@ -40,6 +40,7 @@ public:
 	void AddOnObjectLoadCallback(std::function<void(AnalysisObject*)> Callback);
 
 	void ComplexityMetricDataToGPU(std::string LayerID, int GPULayerIndex = 0);
+	void RecolorPointCloud(AnalysisObject* Object);
 
 	int GetTriangleIndexUnderMouse(float* HitDistance = nullptr);
 	bool SelectTriangleByIndex(int TriangleIndex);
