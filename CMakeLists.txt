@@ -132,6 +132,8 @@ file(GLOB SubSystems_UI_SRC
 	"SubSystems/UI/HabiCATGraphBackend.h"
 	"SubSystems/UI/ObjectViewerWindow.cpp"
 	"SubSystems/UI/ObjectViewerWindow.h"
+	"SubSystems/UI/SceneWindow.cpp"
+	"SubSystems/UI/SceneWindow.h"
 	"SubSystems/UI/SettingsWindow.cpp"
 	"SubSystems/UI/SettingsWindow.h"
 	"SubSystems/UI/UIInspector.cpp"

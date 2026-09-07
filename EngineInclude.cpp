@@ -10,7 +10,6 @@ MainSceneManager::MainSceneManager()
 	std::vector<FEEntity*> AddedEntities = SCENE_MANAGER.InstantiatePrefab(ModelViewCameraPrefab, MainScene, true);
 	MainCamera = AddedEntities[0];
 	CAMERA_SYSTEM.SetMainCamera(MainCamera);
-	CAMERA_SYSTEM.SetCameraViewport(MainCamera, ENGINE.GetDefaultViewport()->GetID());
 }
 
 MainSceneManager::~MainSceneManager()

@@ -2,6 +2,7 @@
 
 #include "SettingsWindow.h"
 #include "UIInspector.h"
+#include "SceneWindow.h"
 
 class UIManager
 {
@@ -9,6 +10,8 @@ class UIManager
 public:
 	SINGLETON_PUBLIC_PART(UIManager)
 
+	void SetUpDocking();
+	ImGuiID GetDockspaceID() const;
 	void Render();
 
 	static void OnNewObjectLoaded(AnalysisObject* NewObject);
@@ -27,6 +30,8 @@ private:
 	SINGLETON_PRIVATE_PART(UIManager)
 
 	bool bPreviousFrameWindowWasNull = true;
+	bool bHadImGuiIniFileAtStartup = false;
+	ImGuiID DockspaceID = 0;
 	float TimeTookToJitter = 0.0f;
 
 	bool bApplyStandardLayoutOnResize = true;

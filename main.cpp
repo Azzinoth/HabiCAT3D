@@ -1108,7 +1108,7 @@ void LoadResource(std::string FileName)
 
 void MouseButtonCallback(int Button, int Action, int Mods)
 {
-	if (ImGui::GetIO().WantCaptureMouse)
+	if (SCENE_WINDOW.IsMouseCapturedByUI())
 	{
 		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
 		return;
@@ -1243,6 +1243,8 @@ void MainWindowRender()
 		SCREENSHOT_MANAGER.TakeScreenshot();
 		return;
 	}
+
+	UI.SetUpDocking();
 
 	JoeInfoProjectionUI();
 
@@ -1738,6 +1740,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		ENGINE.InitWindow(1280, 720, "HabiCAT3D");
 		// If I will directly assign result of APPLICATION.AddWindow to UI.MainWindow, then in Release build with full optimization app will crash, because of execution order.
 		FEWindow* MainWindow = APPLICATION.GetMainWindow();
+		ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
 		GLFWimage Icon = ConvertIconToGLFWImage(LoadIcon(hInstance, MAKEINTRESOURCE(101)));
 		glfwSetWindowIcon(MainWindow->GetGlfwWindow(), 1, &Icon);

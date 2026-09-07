@@ -1,4 +1,5 @@
 #include "COLMAPDataManager.h"
+#include "../UI/SceneWindow.h"
 using namespace FocalEngine;
 
 COLMAPDataManager::COLMAPDataManager()
@@ -150,13 +151,13 @@ COLMAPProject* COLMAPDataManager::GetProjectByEntityID(const std::string& Entity
 
 void COLMAPDataManager::MouseButtonCallback(int Button, int Action, int Mods)
 {
-	if (ImGui::GetIO().WantCaptureMouse)
+	if (SCENE_WINDOW.IsMouseCapturedByUI())
 	{
 		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
 		return;
 	}
 
-	if (Button == GLFW_MOUSE_BUTTON_1 && Action == GLFW_RELEASE)
+	if (Button == GLFW_MOUSE_BUTTON_1 && Action == GLFW_RELEASE && !SCENE_WINDOW.MouseWasDraggedSincePress())
 	{
 		for (const auto& CurrentProject : COLMAP_DATA_MANAGER.Projects)
 			CurrentProject.second->MouseButtonCallback(Button, Action, Mods);

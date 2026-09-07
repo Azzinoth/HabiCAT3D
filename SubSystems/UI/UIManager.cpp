@@ -28,9 +28,47 @@ UIManager::UIManager()
 	LAYER_RASTERIZATION_MANAGER.SetOnCalculationsEndCallback(OnLayerRasterizationCalculationsEnd);
 
 	AddNewLayerIcon = RESOURCE_MANAGER.LoadPNGTexture("Resources/AddNewLayer.png");
+
+	const char* ImGuiIniFile = ImGui::GetIO().IniFilename;
+	bHadImGuiIniFileAtStartup = ImGuiIniFile != nullptr && FILE_SYSTEM.DoesFileExist(ImGuiIniFile);
 }
 
 UIManager::~UIManager() {}
+
+void UIManager::SetUpDocking()
+{
+	DockspaceID = ImGui::DockSpaceOverViewport(0U, ImGui::GetMainViewport());
+	if (!bHadImGuiIniFileAtStartup && DockspaceID != 0)
+	{
+		bHadImGuiIniFileAtStartup = true;
+		ImGui::DockBuilderRemoveNode(DockspaceID);
+		ImGui::DockBuilderAddNode(DockspaceID, ImGuiDockNodeFlags_DockSpace);
+		ImGui::DockBuilderSetNodeSize(DockspaceID, ImGui::GetMainViewport()->Size);
+
+		// Split ratio is a fraction of the node being split.
+		ImGuiID CenterID;
+		ImGuiID BottomID;
+		ImGuiID RightID;
+		ImGuiID RightTopID;
+		ImGuiID RightBottomID;
+
+		ImGui::DockBuilderSplitNode(DockspaceID, ImGuiDir_Right, 0.275f, &RightID, &CenterID);
+		ImGui::DockBuilderSplitNode(CenterID, ImGuiDir_Down, 0.4f, &BottomID, &CenterID);
+		ImGui::DockBuilderSplitNode(RightID, ImGuiDir_Up, 0.3f, &RightTopID, &RightBottomID);
+
+		ImGui::DockBuilderDockWindow("Scene", CenterID);
+		ImGui::DockBuilderDockWindow("Histogram", BottomID);
+		ImGui::DockBuilderDockWindow("Objects", RightTopID);
+		ImGui::DockBuilderDockWindow("Inspector", RightBottomID);
+
+		ImGui::DockBuilderFinish(DockspaceID);
+	}
+}
+
+ImGuiID UIManager::GetDockspaceID() const
+{
+	return DockspaceID;
+}
 
 void UIManager::Render()
 {
@@ -115,6 +153,7 @@ void UIManager::Render()
 		ImGui::EndMainMenuBar();
 	}
 
+	SCENE_WINDOW.Render();
 	OBJECT_VIEWER_WINDOW.Render();
 
 	DataLayer* ActiveLayer = LAYER_MANAGER.GetActiveLayer();
@@ -276,7 +315,8 @@ void UIManager::RenderLegend()
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-	ImGui::SetNextWindowPos(ImVec2(2, 20));
+	ImVec2 ScenePosition = SCENE_WINDOW.GetContentPosition();
+	ImGui::SetNextWindowPos(ImVec2(ScenePosition.x + 2.0f, ScenePosition.y + 1.0f));
 	ImGui::SetNextWindowSize(ImVec2(150, DEVELOPER_MODE.IsOn() ? 700 : 670));
 	ImGui::Begin("Heat map legend", nullptr,
 									ImGuiWindowFlags_NoMove |
@@ -430,19 +470,12 @@ void UIManager::RenderLegend()
 
 void UIManager::GetUsableSpaceForLayerList(ImVec2& UsableSpaceStart, ImVec2& UsableSpaceEnd)
 {
-	ImGuiWindow* SettingsWindow = ImGui::FindWindowByName("Settings");
 	ImGuiWindow* LegendWindow = ImGui::FindWindowByName("Heat map legend");
 
-	UsableSpaceStart = ImVec2(0.0f, 0.0f);
-	UsableSpaceEnd = ImVec2(static_cast<float>(APPLICATION.GetMainWindow()->GetWidth()), static_cast<float>(APPLICATION.GetMainWindow()->GetHeight()));
-	if (SettingsWindow != nullptr && LegendWindow != nullptr)
-	{
+	UsableSpaceStart = SCENE_WINDOW.GetContentPosition();
+	UsableSpaceEnd = ImVec2(UsableSpaceStart.x + SCENE_WINDOW.GetContentSize().x, UsableSpaceStart.y + SCENE_WINDOW.GetContentSize().y);
+	if (LegendWindow != nullptr)
 		UsableSpaceStart.x = LegendWindow->Pos.x + LegendWindow->SizeFull.x;
-		UsableSpaceStart.y = 20;
-
-		UsableSpaceEnd.x = SettingsWindow->Pos.x;
-		UsableSpaceEnd.y = static_cast<float>(APPLICATION.GetMainWindow()->GetHeight() - 20);
-	}
 }
 
 ImVec2 UIManager::GetLayerListButtonSize(std::string ButtonText)
@@ -523,7 +556,7 @@ void UIManager::RenderLayerTabs()
 	const float CurrentWindowW = static_cast<float>(TotalWidthNeeded);
 	const float CurrentWindowH = 6.0f + RowHeight * RowCount;
 
-	ImVec2 LayerListWindowPosition = ImVec2(UsableSpaceCenter - CurrentWindowW / 2.0f, 21);
+	ImVec2 LayerListWindowPosition = ImVec2(UsableSpaceCenter - CurrentWindowW / 2.0f, UsableSpaceStart.y + 2.0f);
 	ImGui::SetNextWindowPos(LayerListWindowPosition);
 	ImGui::SetNextWindowSize(ImVec2(CurrentWindowW, CurrentWindowH));
 	ImGui::Begin("Layers", nullptr, ImGuiWindowFlags_NoMove |
@@ -935,17 +968,7 @@ void UIManager::SetApplyStandardLayoutOnResize(bool NewValue)
 
 void UIManager::ApplyStandardWindowsSizeAndPosition()
 {
-	ImGuiWindow* Window = ImGui::FindWindowByName("Histogram");
-	if (Window != nullptr)
-	{
-		Window->SizeFull.x = APPLICATION.GetMainWindow()->GetWidth() * 0.5f;
-		Window->Pos.x = APPLICATION.GetMainWindow()->GetWidth() / 2.0f - Window->SizeFull.x / 2.0f;
-
-		Window->SizeFull.y = APPLICATION.GetMainWindow()->GetHeight() * 0.35f;
-		Window->Pos.y = APPLICATION.GetMainWindow()->GetHeight() - 10.0f - Window->SizeFull.y;
-	}
-
-	Window = ImGui::FindWindowByName("Settings");
+	ImGuiWindow* Window = ImGui::FindWindowByName("Settings");
 	if (Window != nullptr)
 	{
 		Window->SizeFull.x = APPLICATION.GetMainWindow()->GetWidth() * 0.3f;

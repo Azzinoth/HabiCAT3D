@@ -1,4 +1,5 @@
 #include "UIInspector.h"
+#include "SceneWindow.h"
 using namespace FocalEngine;
 #include <shellapi.h>
 
@@ -15,7 +16,7 @@ UIInspector::UIInspector()
 
 void UIInspector::MouseScrollCallback(double XOffset, double YOffset)
 {
-	if (ImGui::GetIO().WantCaptureMouse)
+	if (SCENE_WINDOW.IsMouseCapturedByUI())
 		return;
 
 	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
@@ -1111,7 +1112,7 @@ void UIInspector::SetMeshSelectionMode(const int NewValue)
 
 void UIInspector::MouseButtonCallback(int Button, int Action, int Mods)
 {
-	if (ImGui::GetIO().WantCaptureMouse)
+	if (SCENE_WINDOW.IsMouseCapturedByUI())
 	{
 		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
 		return;
@@ -1134,6 +1135,8 @@ void UIInspector::MouseButtonCallback(int Button, int Action, int Mods)
 	if (Button == GLFW_MOUSE_BUTTON_1 && Action == GLFW_RELEASE)
 	{
 		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
+		if (SCENE_WINDOW.MouseWasDraggedSincePress())
+			return;
 
 		//LAYER_RASTERIZATION_MANAGER.DebugMouseClick();
 

@@ -1,4 +1,5 @@
 #include "PolygonPlane.h"
+#include "../UI/SceneWindow.h"
 using namespace FocalEngine;
 
 void FEPolygon::UpdateTransformedPoints(const PolygonPlane& Plane)
@@ -126,7 +127,7 @@ bool PolygonPlane::DeletePolygon(size_t Index)
 
 void PolygonPlane::MouseButtonCallback(int Button, int Action, int Mods)
 {
-	if (ImGui::GetIO().WantCaptureMouse)
+	if (SCENE_WINDOW.IsMouseCapturedByUI())
 	{
 		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
 		return;

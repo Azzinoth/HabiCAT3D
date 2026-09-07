@@ -1,6 +1,7 @@
 #include "DeveloperMode.h"
 using namespace FocalEngine;
 #include "UI/NewLayerWindow.h"
+#include "UI/SceneWindow.h"
 
 DeveloperMode::DeveloperMode() {}
 DeveloperMode::~DeveloperMode() {}
@@ -20,13 +21,13 @@ void DeveloperMode::MouseMoveCallback(double XPos, double YPos)
 
 void DeveloperMode::MouseButtonCallback(int button, int action, int mods)
 {
-	if (ImGui::GetIO().WantCaptureMouse)
+	if (SCENE_WINDOW.IsMouseCapturedByUI())
 	{
 		MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FECameraComponent>().SetActive(false);
 		return;
 	}
 
-	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE)
+	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE && !SCENE_WINDOW.MouseWasDraggedSincePress())
 	{
 		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 		if (ActiveObject != nullptr && DEVELOPER_MODE.GetDebugGrid() != nullptr)
