@@ -37,6 +37,23 @@ glm::dvec3 ArcBallCameraController::ProjectMouseToSphere(double NormalizedX, dou
 	return glm::normalize(glm::dvec3(NormalizedX, NormalizedY, 0.5 / sqrt(DistanceFromCenterSquared)));
 }
 
+void ArcBallCameraController::UpdateOrbit(double DeltaTime)
+{
+	if (!bWasOrbitingLastFrame)
+	{
+		const glm::dvec3 Offset = CurrentOrientation * glm::dvec3(0.0, 0.0, 1.0);
+		OrbitAzimuth = glm::degrees(atan2(Offset.x, Offset.z));
+		OrbitElevation = static_cast<float>(glm::degrees(asin(glm::clamp(Offset.y, -1.0, 1.0))));
+	}
+
+	if (DeltaTime > 0.0)
+		OrbitAzimuth += static_cast<double>(OrbitSpeed) * DeltaTime / 1000.0;
+
+	const double Elevation = glm::radians(static_cast<double>(glm::clamp(OrbitElevation, -89.0f, 89.0f)));
+	CurrentOrientation = glm::angleAxis(glm::radians(OrbitAzimuth), glm::dvec3(0.0, 1.0, 0.0)) * glm::angleAxis(-Elevation, glm::dvec3(1.0, 0.0, 0.0));
+	CurrentOrientation = glm::normalize(CurrentOrientation);
+}
+
 void ArcBallCameraController::UpdateViewMatrix()
 {
 	if (ParentEntity == nullptr || !ParentEntity->HasComponent<FECameraComponent>())
@@ -87,7 +104,7 @@ void ArcBallCameraController::OnUpdate(double DeltaTime)
 
 	if (CameraComponent.IsActive() && DeltaTime > 0.0)
 	{
-		if (bLeftButtonHeld && bWasDraggingLastFrame && (MouseX != LastMouseX || MouseY != LastMouseY))
+		if (!bOrbitAnimation && bLeftButtonHeld && bWasDraggingLastFrame && (MouseX != LastMouseX || MouseY != LastMouseY))
 		{
 			double PreviousNormalizedX, PreviousNormalizedY;
 			double CurrentNormalizedX, CurrentNormalizedY;
@@ -140,6 +157,10 @@ void ArcBallCameraController::OnUpdate(double DeltaTime)
 
 	LastMouseX = MouseX;
 	LastMouseY = MouseY;
+
+	if (bOrbitAnimation)
+		UpdateOrbit(DeltaTime);
+	bWasOrbitingLastFrame = bOrbitAnimation;
 
 	UpdateViewMatrix();
 }

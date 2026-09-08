@@ -1,4 +1,5 @@
 #include "SettingsWindow.h"
+#include "../VRManager/VRManager.h"
 using namespace FocalEngine;
 
 SettingsWindow::SettingsWindow() {}
@@ -81,6 +82,28 @@ void SettingsWindow::Render()
 				NativeScriptComponent.GetVariableValue<float>("MouseWheelSensitivity", ModelCameraMouseWheelSensitivity);
 				ImGui::DragFloat("Mouse wheel sensitivity", &ModelCameraMouseWheelSensitivity, 0.0001f, 0.000001f, 100.0f);
 				NativeScriptComponent.SetVariableValue("MouseWheelSensitivity", ModelCameraMouseWheelSensitivity);
+
+				if (DEVELOPER_MODE.IsOn())
+				{
+					ImGui::Text("Orbit animation:");
+
+					bool bOrbitAnimation = false;
+					NativeScriptComponent.GetVariableValue<bool>("bOrbitAnimation", bOrbitAnimation);
+					if (ImGui::Checkbox("Animate", &bOrbitAnimation))
+						NativeScriptComponent.SetVariableValue("bOrbitAnimation", bOrbitAnimation);
+
+					float OrbitSpeed = 0.0f;
+					NativeScriptComponent.GetVariableValue<float>("OrbitSpeed", OrbitSpeed);
+					ImGui::SetNextItemWidth(150);
+					if (ImGui::DragFloat("Speed (deg/s)", &OrbitSpeed, 0.1f, -360.0f, 360.0f))
+						NativeScriptComponent.SetVariableValue("OrbitSpeed", OrbitSpeed);
+
+					float OrbitElevation = 0.0f;
+					NativeScriptComponent.GetVariableValue<float>("OrbitElevation", OrbitElevation);
+					ImGui::SetNextItemWidth(150);
+					if (ImGui::DragFloat("Elevation (deg)", &OrbitElevation, 0.1f, -89.0f, 89.0f))
+						NativeScriptComponent.SetVariableValue("OrbitElevation", OrbitElevation);
+				}
 			}
 
 			ShowCameraTransform();
@@ -91,14 +114,79 @@ void SettingsWindow::Render()
 		if (ImGui::Checkbox("Developer mode", &bDeveloperModeOn))
 			DEVELOPER_MODE.SetIsOn(bDeveloperModeOn);
 
-		if (!DEVELOPER_MODE.IsOn())
-		{
-			//if (DebugGrid != nullptr && DebugGrid->RenderingMode != 0)
-				//UpdateRenderingMode(DebugGrid, 0);
-		}
+		if (DEVELOPER_MODE.IsOn())
+			ShowVRSettings();
 	}
 
 	ImGui::End();
+}
+
+void SettingsWindow::UpdateVR()
+{
+	if (!ENGINE.IsVREnabled())
+		return;
+
+	if (!DEVELOPER_MODE.IsOn())
+	{
+		ENGINE.DisableVR();
+		return;
+	}
+
+	VR_MANAGER.Update();
+}
+
+void SettingsWindow::ShowVRSettings()
+{
+	ImGui::Separator();
+
+	bool bVRMode = ENGINE.IsVREnabled();
+	if (ImGui::Checkbox("Enter VR mode", &bVRMode))
+	{
+		if (bVRMode)
+		{
+			if (ENGINE.EnableVR(FERenderingPipeline::Forward_Simplified))
+				VR_MANAGER.Initialize();
+		}
+		else
+		{
+			ENGINE.DisableVR();
+		}
+	}
+
+	ImGui::SetNextItemWidth(150);
+	ImGui::InputInt("Annotation ID", &VR_MANAGER.AnnotationIDToUse);
+
+	if (ImGui::Button("Read annotations data from GPU memory"))
+	{
+		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+		if (ActiveObject != nullptr)
+			ANNOTATION_MANAGER.ReadBackBuffer(ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(ActiveObject->GetID()));
+	}
+
+	if (!bVRMode)
+		return;
+
+	FEEntity* VRRigEntity = OpenXR_MANAGER.GetVRRigEntity();
+	if (VRRigEntity == nullptr)
+		return;
+
+	FETransformComponent& VRRigTransform = VRRigEntity->GetComponent<FETransformComponent>();
+	glm::vec3 VRRigPosition = VRRigTransform.GetPosition();
+
+	ImGui::Text("VRRig Position : ");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(70);
+	ImGui::DragFloat("##X VRRig", &VRRigPosition[0], 0.01f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(70);
+	ImGui::DragFloat("##Y VRRig", &VRRigPosition[1], 0.01f);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(70);
+	ImGui::DragFloat("##Z VRRig", &VRRigPosition[2], 0.01f);
+
+	VRRigTransform.SetPosition(VRRigPosition);
 }
 
 void SettingsWindow::ShowCameraTransform()

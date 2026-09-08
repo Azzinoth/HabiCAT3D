@@ -164,6 +164,7 @@ void UIManager::Render()
 	}
 
 	UI_INSPECTOR.Render();
+	SETTINGS_WINDOW.UpdateVR();
 	SETTINGS_WINDOW.Render();
 	RenderLegend();
 	RenderLayerTabs();

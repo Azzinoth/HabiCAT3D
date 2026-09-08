@@ -9,6 +9,7 @@ public:
 	SINGLETON_PUBLIC_PART(SettingsWindow)
 
 	void Render();
+	void UpdateVR();
 
 	bool GetWireFrameMode();
 	void SetWireFrameMode(bool NewValue);
@@ -42,6 +43,8 @@ private:
 	void AdjustCameraNearFarPlanes();
 	void ModelCameraAdjustment(AnalysisObject* Object = nullptr);
 	void FreeCameraAdjustment(AnalysisObject* Object = nullptr);
+
+	void ShowVRSettings();
 };
 
 #define SETTINGS_WINDOW SettingsWindow::GetInstance()
