@@ -131,7 +131,18 @@ void NewLayerWindow::Render()
 		ImGui::SetCursorPosY(CurrentWinowSize.y - 28.0f);
 		if (ImGui::Button("Add", ImVec2(120, 0)))
 		{
-			AddLayer();
+			if (IsSelectedCalculationSynchronous())
+			{
+				WAIT_MODAL_POPUP.OpenPopup("Calculating Layer", "Please wait while the layer is being calculated...", [this]() {
+					AddLayer();
+				});
+			}
+			else
+			{
+				AddLayer();
+			}
+
+			InternalClose();
 		}
 
 		ImGui::SetItemDefaultFocus();
@@ -155,6 +166,27 @@ void NewLayerWindow::InternalClose()
 	ImGui::CloseCurrentPopup();
 }
 
+bool NewLayerWindow::IsSelectedCalculationSynchronous()
+{
+	switch (SelectedLayerType)
+	{
+		case LAYER_TYPE::HEIGHT:
+		case LAYER_TYPE::TRIANGLE_AREA:
+		case LAYER_TYPE::TRIANGLE_EDGE:
+		case LAYER_TYPE::COMPARE:
+		case LAYER_TYPE::INTERPOLATION:
+			return true;
+		case LAYER_TYPE::TRIANGLE_DENSITY:
+		case LAYER_TYPE::RUGOSITY:
+		case LAYER_TYPE::VECTOR_DISPERSION:
+		case LAYER_TYPE::FRACTAL_DIMENSION:
+		case LAYER_TYPE::STRUCTURAL_ROUGHNESS:
+			return bRunOnWholeModel;
+		default:
+			return false;
+	}
+}
+
 void NewLayerWindow::AddLayer()
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
@@ -172,7 +204,6 @@ void NewLayerWindow::AddLayer()
 				ActiveObject->SetActiveLayer(NewLayer->GetID());
 			}
 
-			InternalClose();
 			break;
 		}
 		case LAYER_TYPE::TRIANGLE_AREA:
@@ -183,8 +214,7 @@ void NewLayerWindow::AddLayer()
 				ActiveObject->AddLayer(NewLayer);
 				ActiveObject->SetActiveLayer(NewLayer->GetID());
 			}
-			
-			InternalClose();
+
 			break;
 		}
 		case LAYER_TYPE::TRIANGLE_EDGE:
@@ -196,16 +226,12 @@ void NewLayerWindow::AddLayer()
 				ActiveObject->SetActiveLayer(NewLayer->GetID());
 			}
 
-			InternalClose();
 			break;
 		}
 		case LAYER_TYPE::TRIANGLE_DENSITY:
 		{
 			if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
-			{
-				InternalClose();
 				return;
-			}
 
 			MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 			if (bRunOnWholeModel)
@@ -219,16 +245,12 @@ void NewLayerWindow::AddLayer()
 				CurrentMeshAnalysisData->SetHeatMapType(5);
 			}
 
-			InternalClose();
 			break;
 		}
 		case LAYER_TYPE::RUGOSITY:
 		{
 			if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
-			{
-				InternalClose();
 				return;
-			}
 
 			MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 			if (bRunOnWholeModel)
@@ -242,16 +264,12 @@ void NewLayerWindow::AddLayer()
 				CurrentMeshAnalysisData->SetHeatMapType(5);
 			}
 
-			InternalClose();
 			break;
 		}
 		case LAYER_TYPE::VECTOR_DISPERSION:
 		{
 			if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
-			{
-				InternalClose();
 				return;
-			}
 
 			MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 			if (bRunOnWholeModel)
@@ -265,7 +283,6 @@ void NewLayerWindow::AddLayer()
 				CurrentMeshAnalysisData->SetHeatMapType(5);
 			}
 
-			InternalClose();
 			break;
 		}
 		case LAYER_TYPE::FRACTAL_DIMENSION:
@@ -289,25 +306,18 @@ void NewLayerWindow::AddLayer()
 				}
 			}
 
-			InternalClose();
 			break;
 		}
 		case LAYER_TYPE::COMPARE:
 		{
 			if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)
-			{
-				InternalClose();
 				return;
-			}
 
 			MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 
 			if (FirstChoosenLayerIndex == -1 || SecondChoosenLayerIndex == -1 || FirstChoosenLayerIndex == SecondChoosenLayerIndex ||
 				FirstChoosenLayerIndex >= ActiveObject->Layers.size() || SecondChoosenLayerIndex >= ActiveObject->Layers.size())
-			{
-				InternalClose();
 				return;
-			}
 
 			DataLayer* FirstLayer = ActiveObject->Layers[FirstChoosenLayerIndex];
 			DataLayer* SecondLayer = ActiveObject->Layers[SecondChoosenLayerIndex];
@@ -319,14 +329,12 @@ void NewLayerWindow::AddLayer()
 			}
 			CurrentMeshAnalysisData->SetHeatMapType(6);
 
-			InternalClose();
 			break;
 		}
 		case LAYER_TYPE::POINT_DENSITY:
 		{
 			POINT_DENSITY_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
-			
-			InternalClose();
+
 			break;
 		}
 		case LAYER_TYPE::STRUCTURAL_ROUGHNESS:
@@ -340,7 +348,6 @@ void NewLayerWindow::AddLayer()
 				STRUCTURAL_ROUGHNESS_LAYER_PRODUCER.CalculateWithJitterAsync(bSmootherResult);
 			}
 
-			InternalClose();
 			break;
 		}
 		case LAYER_TYPE::INTERPOLATION:
@@ -353,7 +360,6 @@ void NewLayerWindow::AddLayer()
 				ActiveObject->SetActiveLayer(NewLayer->GetID());
 			}
 
-			InternalClose();
 			break;
 		}
 	}

@@ -1,5 +1,6 @@
 #pragma once
 #include "ComplexityCore/Layers/DataLayer.h"
+#include "../SubSystems/UI/UIWaitModalPopup.h"
 using namespace FocalEngine;
 
 class FECGALWrapper;
@@ -43,9 +44,11 @@ public:
 	void RecolorPointCloud(AnalysisObject* Object);
 
 	int GetTriangleIndexUnderMouse(float* HitDistance = nullptr);
+	int GetTriangleIndexUnderRay(glm::dvec3 MouseRay, float* HitDistance = nullptr);
 	bool SelectTriangleByIndex(int TriangleIndex);
 
 	std::vector<int> GetTriangleIndexesInRadius(float Radius);
+	std::vector<int> GetTriangleIndexesInRadius(float Radius, glm::dvec3 MouseRay);
 	bool SelectTrianglesByIndexes(std::vector<int> TriangleIndexes);
 
 	glm::vec3 IntersectTriangle(glm::dvec3 MouseRay);

@@ -102,7 +102,7 @@ class VRManager
 	void ShowSphereCursor();
 	void HideSphereCursor();
 
-	GLuint DeletionFlagBuffer;
+	GLuint DeletionFlagBuffer = GLuint(-1);
 	float SphereCursorActionScale = 1.0f / 2.55f;
 
 	FEEntity* GreenCylinderEntity = nullptr;

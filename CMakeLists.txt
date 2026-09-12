@@ -120,6 +120,8 @@ file(GLOB SubSystems_Developer_Mode_SRC
 file(GLOB SubSystems_UI_SRC
 	"SubSystems/UI/UICore.cpp"
 	"SubSystems/UI/UICore.h"
+	"SubSystems/UI/UIWaitModalPopup.cpp"
+	"SubSystems/UI/UIWaitModalPopup.h"
 	"SubSystems/UI/UIComponents.cpp"
 	"SubSystems/UI/UIComponents.h"
 	"SubSystems/UI/UIWeightedHistogram.cpp"

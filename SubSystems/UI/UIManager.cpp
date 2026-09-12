@@ -15,8 +15,6 @@ UIManager::UIManager()
 	HistogramSelectRegionMax.SetColor(ImVec4(0.8f, 0.0f, 0.0f, 1.0f));
 	HistogramSelectRegionMax.SetOrientation(true);
 
-	APPLICATION.GetMainWindow()->AddOnResizeCallback(UIManager::WindowResizeCallback);
-
 	JITTER_MANAGER.SetOnCalculationsStartCallback(OnJitterCalculationsStart);
 	JITTER_MANAGER.SetOnCalculationsEndCallback(OnJitterCalculationsEnd);
 
@@ -94,7 +92,11 @@ void UIManager::Render()
 				FILE_SYSTEM.ShowFileOpenDialog(FilePath, RUGOSITY_LOAD_FILE_FILTER, 1);
 
 				if (!FilePath.empty())
-					ANALYSIS_OBJECT_MANAGER.LoadResource(FilePath);
+				{
+					WAIT_MODAL_POPUP.OpenPopup("Loading Resource", "Please wait while the resource is being loaded...", [FilePath]() {
+						ANALYSIS_OBJECT_MANAGER.LoadResource(FilePath);
+					});
+				}
 			}
 
 			size_t ObjectCount = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount();
@@ -133,15 +135,6 @@ void UIManager::Render()
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("Settings"))
-		{
-			bool bTemporary = IsApplyStandardLayoutOnResize();
-			if (ImGui::MenuItem("Reset Window Layout on Resize", nullptr, bTemporary))
-				SetApplyStandardLayoutOnResize(!IsApplyStandardLayoutOnResize());
-			
-			ImGui::EndMenu();
-		}
-
 		if (ImGui::BeginMenu("Info"))
 		{
 			if (ImGui::MenuItem("About..."))
@@ -174,6 +167,7 @@ void UIManager::Render()
 	NEW_LAYER_WINDOW.Render();
 	LOAD_PHOTOGRAMMETRY_WINDOW.Render();
 	ANNOTATION_MANAGER.Render();
+	WAIT_MODAL_POPUP.Render();
 
 	if (UI.bShouldOpenProgressPopup)
 	{
@@ -603,7 +597,14 @@ void UIManager::RenderLayerTabs()
 		{
 			ImGui::SetCursorPosY(static_cast<float>(YPosition));
 			if (ImGui::Button("No Layer"))
-				ActiveObject->ClearActiveLayer();
+			{
+				std::string ObjectID = ActiveObject->GetID();
+				WAIT_MODAL_POPUP.OpenPopup("Switching Layer", "Please wait while the layer is being cleared...", [ObjectID]() {
+					AnalysisObject* Object = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ObjectID);
+					if (Object != nullptr)
+						Object->ClearActiveLayer();
+				});
+			}
 		}
 		else
 		{
@@ -615,7 +616,15 @@ void UIManager::RenderLayerTabs()
 
 			ImGui::SetCursorPosY(static_cast<float>(YPosition + CurrentRow * RowHeight));
 			if (ImGui::Button((ActiveObject->Layers[i]->GetCaption() + "##" + std::to_string(i)).c_str()))
-				ActiveObject->SetActiveLayer(ActiveObject->Layers[i]->GetID());
+			{
+				std::string ObjectID = ActiveObject->GetID();
+				std::string LayerID = ActiveObject->Layers[i]->GetID();
+				WAIT_MODAL_POPUP.OpenPopup("Switching Layer", "Please wait while the layer is being applied...", [ObjectID, LayerID]() {
+					AnalysisObject* Object = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ObjectID);
+					if (Object != nullptr)
+						Object->SetActiveLayer(LayerID);
+				});
+			}
 		}
 		
 		ImGui::PopStyleColor(4);
@@ -949,32 +958,6 @@ bool UIManager::GetOutputSelectionToFile()
 void UIManager::SetOutputSelectionToFile(const bool NewValue)
 {
 	bOutputSelectionToFile = NewValue;
-}
-
-void UIManager::WindowResizeCallback(int Width, int Height)
-{
-	if (UI.IsApplyStandardLayoutOnResize())
-		UI.ApplyStandardWindowsSizeAndPosition();
-}
-
-bool UIManager::IsApplyStandardLayoutOnResize() const
-{
-	return bApplyStandardLayoutOnResize;
-}
-
-void UIManager::SetApplyStandardLayoutOnResize(bool NewValue)
-{
-	bApplyStandardLayoutOnResize = NewValue;
-}
-
-void UIManager::ApplyStandardWindowsSizeAndPosition()
-{
-	ImGuiWindow* Window = ImGui::FindWindowByName("Settings");
-	if (Window != nullptr)
-	{
-		Window->SizeFull.x = APPLICATION.GetMainWindow()->GetWidth() * 0.3f;
-		Window->SizeFull.y = APPLICATION.GetMainWindow()->GetHeight() * 0.7f;
-	}
 }
 
 void UIManager::ShowAboutDialog()

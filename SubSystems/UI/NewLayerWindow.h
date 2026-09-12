@@ -36,6 +36,7 @@ class NewLayerWindow
 
 	void InternalClose();
 	void AddLayer();
+	bool IsSelectedCalculationSynchronous();
 
 	void RenderCellSizeSettings();
 

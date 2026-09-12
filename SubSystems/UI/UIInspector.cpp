@@ -287,9 +287,12 @@ void UIInspector::RenderSelectedObjectTab()
 
 		if (CurrentAnnotationData == nullptr)
 		{
-			if (ImGui::Button("Add annotations"))
+			if (DEVELOPER_MODE.IsOn())
 			{
-				AddAnnotationToCurrentObject();
+				if (ImGui::Button("Add annotations"))
+				{
+					AddAnnotationToCurrentObject();
+				}
 			}
 
 			if (ImGui::Button("Load annotations from shape file..."))
@@ -1153,29 +1156,34 @@ void UIInspector::MouseButtonCallback(int Button, int Action, int Mods)
 			if (CurrentProject != nullptr)
 				CurrentProject->ImageUnderMouse(&PhotogrammetryHitDistance);
 
-			float MeshHitDistance = std::numeric_limits<float>::max();
-			int TriangleIndexUnderMouse = -1;
-			std::vector<int> TriangleIndexesInRadius;
-			if (UI_INSPECTOR.GetMeshSelectionMode() == 1)
-			{
-				TriangleIndexUnderMouse = ANALYSIS_OBJECT_MANAGER.GetTriangleIndexUnderMouse(&MeshHitDistance);
-			}
-			else if (UI_INSPECTOR.GetMeshSelectionMode() == 2)
-			{
-				TriangleIndexesInRadius = ANALYSIS_OBJECT_MANAGER.GetTriangleIndexesInRadius(UI_INSPECTOR.GetRadiusOfAreaToSelect());
-			}
+			int SelectionMode = UI_INSPECTOR.GetMeshSelectionMode();
+			if (SelectionMode != 1 && SelectionMode != 2)
+				return;
 
-			if (MeshHitDistance > PhotogrammetryHitDistance)
-			{
+			// Mouse ray is captured now, the search runs a few frames later when the mouse may have moved.
+			glm::dvec3 MouseRay = MAIN_SCENE_MANAGER.GetMouseRayDirection();
+			float Radius = UI_INSPECTOR.GetRadiusOfAreaToSelect();
+			WAIT_MODAL_POPUP.OpenPopup("Selecting Triangles", "Please wait while the triangles are being selected...", [MouseRay, SelectionMode, Radius, PhotogrammetryHitDistance]() {
+				float MeshHitDistance = std::numeric_limits<float>::max();
+				int TriangleIndexUnderMouse = -1;
+				std::vector<int> TriangleIndexesInRadius;
+				if (SelectionMode == 1)
+				{
+					TriangleIndexUnderMouse = ANALYSIS_OBJECT_MANAGER.GetTriangleIndexUnderRay(MouseRay, &MeshHitDistance);
+				}
+				else if (SelectionMode == 2)
+				{
+					TriangleIndexesInRadius = ANALYSIS_OBJECT_MANAGER.GetTriangleIndexesInRadius(Radius, MouseRay);
+				}
 
-			}
-			else
-			{
-				if (UI_INSPECTOR.GetMeshSelectionMode() == 1)
+				if (MeshHitDistance > PhotogrammetryHitDistance)
+					return;
+
+				if (SelectionMode == 1)
 				{
 					ANALYSIS_OBJECT_MANAGER.SelectTriangleByIndex(TriangleIndexUnderMouse);
 				}
-				else if (UI_INSPECTOR.GetMeshSelectionMode() == 2)
+				else if (SelectionMode == 2)
 				{
 					ANALYSIS_OBJECT_MANAGER.SelectTrianglesByIndexes(TriangleIndexesInRadius);
 					// FE_FIX_ME: Reenable this functionality.
@@ -1183,7 +1191,7 @@ void UIInspector::MouseButtonCallback(int Button, int Action, int Mods)
 				}
 
 				UI_INSPECTOR.UpdateMeshSelectedTrianglesRendering();
-			}
+			});
 		}
 	}
 }

@@ -123,6 +123,9 @@ private:
 	void ClearTemporaryShapeFileData();
 	std::string GetFeatureLabel(const ShapeFileFeature& Feature, const std::string& LabelFieldName);
 
+	// Import is deferred through WAIT_MODAL_POPUP, this keeps the "Import annotations" popup closed until it runs.
+	bool bImportPending = false;
+
 	static void OnAnalysisObjectDelete(AnalysisObject* DeletedObject);
 
 	static void BeforeRender(FEEntity* CurrentEntity);

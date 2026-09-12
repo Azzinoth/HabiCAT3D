@@ -1057,10 +1057,11 @@ void DropCallback(int Count, const char** Paths)
 	if (UI.IsProgressModalPopupOpen())
 		return;
 
-	for (size_t i = 0; i < size_t(Count); i++)
-	{
-		LoadResource(Paths[i]);
-	}
+	std::vector<std::string> FileNames(Paths, Paths + Count);
+	WAIT_MODAL_POPUP.OpenPopup("Loading Resource", "Please wait while the resource is being loaded...", [FileNames]() {
+		for (const std::string& FileName : FileNames)
+			ANALYSIS_OBJECT_MANAGER.LoadResource(FileName);
+	});
 }
 
 void AfterNewResourceLoads(AnalysisObject* NewObject)
@@ -1102,7 +1103,9 @@ void AfterNewResourceLoads(AnalysisObject* NewObject)
 
 void LoadResource(std::string FileName)
 {
-	ANALYSIS_OBJECT_MANAGER.LoadResource(FileName);
+	WAIT_MODAL_POPUP.OpenPopup("Loading Resource", "Please wait while the resource is being loaded...", [FileName]() {
+		ANALYSIS_OBJECT_MANAGER.LoadResource(FileName);
+	});
 }
 
 void MouseButtonCallback(int Button, int Action, int Mods)
@@ -1229,8 +1232,6 @@ void ApplyHeadLight()
 
 void MainWindowRender()
 {
-	static bool FirstFrame = true;
-
 	ApplyHeadLight();
 
 	if (UI_INSPECTOR.ShouldTakeScreenshot())
@@ -1248,12 +1249,6 @@ void MainWindowRender()
 	JoeInfoProjectionUI();
 
 	UI.Render();
-
-	if (FirstFrame)
-	{
-		FirstFrame = false;
-		UI.ApplyStandardWindowsSizeAndPosition();
-	}
 }
 
 GLFWimage ConvertIconToGLFWImage(HICON Icon)

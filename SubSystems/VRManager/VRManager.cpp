@@ -52,68 +52,75 @@ void VRManager::Initialize()
 	// FIX ME: Work of this shader is not correct.
 	SolidColorShader->UpdateUniformData("BrightnessFactor", 1.0f);
 
-	FEMaterial* GreenMaterial = RESOURCE_MANAGER.CreateMaterial();
-	GreenMaterial->Shader = SolidColorShader;
-	GreenMaterial->SetBaseColor(glm::vec3(0.0f, 1.0f, 0.0f));
-	FEGameModel* GreenCylinderGameModel = RESOURCE_MANAGER.CreateGameModel(CylinderMesh, GreenMaterial);
+	if (GreenCylinderEntity == nullptr || RedCylinderEntity == nullptr ||
+		BlueCylinderEntity == nullptr || WhiteCylinderEntity == nullptr)
+	{
+		FEMaterial* GreenMaterial = RESOURCE_MANAGER.CreateMaterial();
+		GreenMaterial->Shader = SolidColorShader;
+		GreenMaterial->SetBaseColor(glm::vec3(0.0f, 1.0f, 0.0f));
+		FEGameModel* GreenCylinderGameModel = RESOURCE_MANAGER.CreateGameModel(CylinderMesh, GreenMaterial);
 
-	FEMaterial* RedMaterial = RESOURCE_MANAGER.CreateMaterial();
-	RedMaterial->Shader = SolidColorShader;
-	RedMaterial->SetBaseColor(glm::vec3(1.0f, 0.0f, 0.0f));
-	FEGameModel* RedCylinderGameModel = RESOURCE_MANAGER.CreateGameModel(CylinderMesh, RedMaterial);
+		FEMaterial* RedMaterial = RESOURCE_MANAGER.CreateMaterial();
+		RedMaterial->Shader = SolidColorShader;
+		RedMaterial->SetBaseColor(glm::vec3(1.0f, 0.0f, 0.0f));
+		FEGameModel* RedCylinderGameModel = RESOURCE_MANAGER.CreateGameModel(CylinderMesh, RedMaterial);
 
-	FEMaterial* BlueMaterial = RESOURCE_MANAGER.CreateMaterial();
-	BlueMaterial->Shader = SolidColorShader;
-	BlueMaterial->SetBaseColor(glm::vec3(0.0f, 0.0f, 1.0f));
-	FEGameModel* BlueCylinderGameModel = RESOURCE_MANAGER.CreateGameModel(CylinderMesh, BlueMaterial);
+		FEMaterial* BlueMaterial = RESOURCE_MANAGER.CreateMaterial();
+		BlueMaterial->Shader = SolidColorShader;
+		BlueMaterial->SetBaseColor(glm::vec3(0.0f, 0.0f, 1.0f));
+		FEGameModel* BlueCylinderGameModel = RESOURCE_MANAGER.CreateGameModel(CylinderMesh, BlueMaterial);
 
-	FEMaterial* WhiteMaterial = RESOURCE_MANAGER.CreateMaterial();
-	WhiteMaterial->Shader = SolidColorShader;
-	WhiteMaterial->SetBaseColor(glm::vec3(0.9f, 0.9f, 0.9f));
-	FEGameModel* WhiteCylinderGameModel = RESOURCE_MANAGER.CreateGameModel(CylinderMesh, WhiteMaterial);
-	WhiteCylinderGameModel->SetName("White Cylinder Game Model");
+		FEMaterial* WhiteMaterial = RESOURCE_MANAGER.CreateMaterial();
+		WhiteMaterial->Shader = SolidColorShader;
+		WhiteMaterial->SetBaseColor(glm::vec3(0.9f, 0.9f, 0.9f));
+		FEGameModel* WhiteCylinderGameModel = RESOURCE_MANAGER.CreateGameModel(CylinderMesh, WhiteMaterial);
+		WhiteCylinderGameModel->SetName("White Cylinder Game Model");
 
-	GreenCylinderEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Green Cylinder");
-	GreenCylinderEntity->AddComponent<FEGameModelComponent>(GreenCylinderGameModel);
-	FEGameModelComponent& GreenCylinderGameModelComponent = GreenCylinderEntity->GetComponent<FEGameModelComponent>();
-	GreenCylinderGameModelComponent.SetReceivingShadows(false);
-	GreenCylinderEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
-	FETransformComponent& GreenCylinderTransform = GreenCylinderEntity->GetComponent<FETransformComponent>();
-	GreenCylinderTransform.SetScale(glm::vec3(0.001f, 0.01f, 0.001f));
+		GreenCylinderEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Green Cylinder");
+		GreenCylinderEntity->AddComponent<FEGameModelComponent>(GreenCylinderGameModel);
+		FEGameModelComponent& GreenCylinderGameModelComponent = GreenCylinderEntity->GetComponent<FEGameModelComponent>();
+		GreenCylinderGameModelComponent.SetReceivingShadows(false);
+		GreenCylinderEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
+		FETransformComponent& GreenCylinderTransform = GreenCylinderEntity->GetComponent<FETransformComponent>();
+		GreenCylinderTransform.SetScale(glm::vec3(0.001f, 0.01f, 0.001f));
 
-	RedCylinderEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Red Cylinder");
-	RedCylinderEntity->AddComponent<FEGameModelComponent>(RedCylinderGameModel);
-	FEGameModelComponent& RedCylinderGameModelComponent = RedCylinderEntity->GetComponent<FEGameModelComponent>();
-	RedCylinderGameModelComponent.SetReceivingShadows(false);
-	RedCylinderEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
-	FETransformComponent& RedCylinderTransform = RedCylinderEntity->GetComponent<FETransformComponent>();
-	RedCylinderTransform.SetScale(glm::vec3(0.001f, 0.01f, 0.001f));
-	RedCylinderTransform.SetRotation(glm::vec3(90.0f, 0.0f, 0.0f));
+		RedCylinderEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Red Cylinder");
+		RedCylinderEntity->AddComponent<FEGameModelComponent>(RedCylinderGameModel);
+		FEGameModelComponent& RedCylinderGameModelComponent = RedCylinderEntity->GetComponent<FEGameModelComponent>();
+		RedCylinderGameModelComponent.SetReceivingShadows(false);
+		RedCylinderEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
+		FETransformComponent& RedCylinderTransform = RedCylinderEntity->GetComponent<FETransformComponent>();
+		RedCylinderTransform.SetScale(glm::vec3(0.001f, 0.01f, 0.001f));
+		RedCylinderTransform.SetRotation(glm::vec3(90.0f, 0.0f, 0.0f));
 
-	BlueCylinderEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Blue Cylinder");
-	BlueCylinderEntity->AddComponent<FEGameModelComponent>(BlueCylinderGameModel);
-	FEGameModelComponent& BlueCylinderGameModelComponent = BlueCylinderEntity->GetComponent<FEGameModelComponent>();
-	BlueCylinderGameModelComponent.SetReceivingShadows(false);
-	BlueCylinderEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
-	FETransformComponent& BlueCylinderTransform = BlueCylinderEntity->GetComponent<FETransformComponent>();
-	BlueCylinderTransform.SetScale(glm::vec3(0.001f, 0.01f, 0.001f));
-	BlueCylinderTransform.SetRotation(glm::vec3(0.0f, 0.0f, 90.0f));
+		BlueCylinderEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Blue Cylinder");
+		BlueCylinderEntity->AddComponent<FEGameModelComponent>(BlueCylinderGameModel);
+		FEGameModelComponent& BlueCylinderGameModelComponent = BlueCylinderEntity->GetComponent<FEGameModelComponent>();
+		BlueCylinderGameModelComponent.SetReceivingShadows(false);
+		BlueCylinderEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
+		FETransformComponent& BlueCylinderTransform = BlueCylinderEntity->GetComponent<FETransformComponent>();
+		BlueCylinderTransform.SetScale(glm::vec3(0.001f, 0.01f, 0.001f));
+		BlueCylinderTransform.SetRotation(glm::vec3(0.0f, 0.0f, 90.0f));
 
-	WhiteCylinderEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("White Cylinder");
-	WhiteCylinderEntity->AddComponent<FEGameModelComponent>(WhiteCylinderGameModel);
-	FEGameModelComponent& WhiteCylinderGameModelComponent = WhiteCylinderEntity->GetComponent<FEGameModelComponent>();
-	WhiteCylinderGameModelComponent.SetReceivingShadows(false);
-	WhiteCylinderEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
-	FETransformComponent& WhiteCylinderTransform = WhiteCylinderEntity->GetComponent<FETransformComponent>();
-	WhiteCylinderTransform.SetScale(glm::vec3(VR_MANAGER.SelectionRayWideness, 0.1f, VR_MANAGER.SelectionRayWideness));
-	WhiteCylinderTransform.SetRotation(glm::vec3(0.0f, 0.0f, 90.0f));
+		WhiteCylinderEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("White Cylinder");
+		WhiteCylinderEntity->AddComponent<FEGameModelComponent>(WhiteCylinderGameModel);
+		FEGameModelComponent& WhiteCylinderGameModelComponent = WhiteCylinderEntity->GetComponent<FEGameModelComponent>();
+		WhiteCylinderGameModelComponent.SetReceivingShadows(false);
+		WhiteCylinderEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
+		FETransformComponent& WhiteCylinderTransform = WhiteCylinderEntity->GetComponent<FETransformComponent>();
+		WhiteCylinderTransform.SetScale(glm::vec3(VR_MANAGER.SelectionRayWideness, 0.1f, VR_MANAGER.SelectionRayWideness));
+		WhiteCylinderTransform.SetRotation(glm::vec3(0.0f, 0.0f, 90.0f));
+	}
 
 	InitializeSphereCursor();
 
-	DeletePointsComputeShader = RESOURCE_MANAGER.CreateShader("AnnotationComputeShader",
-		nullptr, nullptr,
-		nullptr, nullptr,
-		nullptr, RESOURCE_MANAGER.LoadGLSL("Resources//Annotation_CS.glsl").c_str());
+	if (DeletePointsComputeShader == nullptr)
+	{
+		DeletePointsComputeShader = RESOURCE_MANAGER.CreateShader("AnnotationComputeShader",
+																  nullptr, nullptr,
+																  nullptr, nullptr,
+																  nullptr, RESOURCE_MANAGER.LoadGLSL("Resources//Annotation_CS.glsl").c_str());
+	}
 }
 
 float VRManager::ControllerDistance()
@@ -323,6 +330,10 @@ void VRManager::Update()
 	if (OpenXR_MANAGER.GetVRRigEntity() == nullptr)
 		return;
 
+	// Always manipulate the active analysis object.
+	if (!bLeftControllerTriggerIsPressed && !bScalingWithControllersActive)
+		CurrentEntityToManipulate = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
+
 	if (bRightControllerTriggerIsPressed)
 	{
 		FEScene* MainScene = MAIN_SCENE_MANAGER.GetMainScene();
@@ -441,20 +452,30 @@ void VRManager::InitializeSphereCursor()
 {
 	SphereCursorMeshes.resize(3);
 	// In the beginning, different meshes were used for inner, middle and outer parts of the cursor.
-	SphereCursorMeshes[0] = RESOURCE_MANAGER.LoadFEMesh("Resources/SphereCursor/TorusMiddleMesh.model", "TorusMiddleMesh");
+	std::vector<FEMesh*> ExistingSphereCursorMeshes = RESOURCE_MANAGER.GetMeshByName("TorusMiddleMesh");
+	SphereCursorMeshes[0] = ExistingSphereCursorMeshes.empty() ? nullptr : ExistingSphereCursorMeshes[0];
+	if (SphereCursorMeshes[0] == nullptr)
+		SphereCursorMeshes[0] = RESOURCE_MANAGER.LoadFEMesh("Resources/SphereCursor/TorusMiddleMesh.model", "TorusMiddleMesh");
 	SphereCursorMeshes[1] = SphereCursorMeshes[0];
 	SphereCursorMeshes[2] = SphereCursorMeshes[1];
 
 	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
-	SphereCursorMaterial = RESOURCE_MANAGER.CreateMaterial();
-	SphereCursorMaterial->Shader = SolidColorShader;
-	SphereCursorMaterial->SetBaseColor(glm::vec3(0.9f, 0.9f, 0.9f));
+	if (SphereCursorMaterial == nullptr)
+	{
+		SphereCursorMaterial = RESOURCE_MANAGER.CreateMaterial();
+		SphereCursorMaterial->Shader = SolidColorShader;
+		SphereCursorMaterial->SetBaseColor(glm::vec3(0.9f, 0.9f, 0.9f));
+	}
 
-	SphereCursorGameModels.resize(3);
-	SphereCursorGameModels[0] = RESOURCE_MANAGER.CreateGameModel(SphereCursorMeshes[0], SphereCursorMaterial, "Sphere Cursor Inner Game Model");
-	SphereCursorGameModels[1] = RESOURCE_MANAGER.CreateGameModel(SphereCursorMeshes[1], SphereCursorMaterial, "Sphere Cursor Middle Game Model");
-	SphereCursorGameModels[2] = RESOURCE_MANAGER.CreateGameModel(SphereCursorMeshes[2], SphereCursorMaterial, "Sphere Cursor Outer Game Model");
+	if (SphereCursorGameModels.empty())
+	{
+		SphereCursorGameModels.resize(3);
+		SphereCursorGameModels[0] = RESOURCE_MANAGER.CreateGameModel(SphereCursorMeshes[0], SphereCursorMaterial, "Sphere Cursor Inner Game Model");
+		SphereCursorGameModels[1] = RESOURCE_MANAGER.CreateGameModel(SphereCursorMeshes[1], SphereCursorMaterial, "Sphere Cursor Middle Game Model");
+		SphereCursorGameModels[2] = RESOURCE_MANAGER.CreateGameModel(SphereCursorMeshes[2], SphereCursorMaterial, "Sphere Cursor Outer Game Model");
+	}
 
+	// We still need to recreate entities.
 	FEScene* MainScene = MAIN_SCENE_MANAGER.GetMainScene();
 	SphereCursorEntities.resize(3);
 	SphereCursorEntities[0] = MainScene->CreateEntity("Sphere Cursor Inner Entity");
@@ -474,10 +495,13 @@ void VRManager::InitializeSphereCursor()
 	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
 		SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
 
-	glGenBuffers(1, &DeletionFlagBuffer);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, DeletionFlagBuffer);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t), nullptr, GL_DYNAMIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, DeletionFlagBuffer);
+	if (DeletionFlagBuffer == GLuint(-1))
+	{
+		glGenBuffers(1, &DeletionFlagBuffer);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, DeletionFlagBuffer);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t), nullptr, GL_DYNAMIC_READ);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, DeletionFlagBuffer);
+	}
 }
 
 void VRManager::RotateTowardCamera(FEEntity* Entity, FEEntity* CameraEntity)

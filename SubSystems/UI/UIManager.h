@@ -19,10 +19,6 @@ public:
 	bool GetOutputSelectionToFile();
 	void SetOutputSelectionToFile(bool NewValue);
 
-	bool IsApplyStandardLayoutOnResize() const;
-	void SetApplyStandardLayoutOnResize(bool NewValue);
-	void ApplyStandardWindowsSizeAndPosition();
-
 	bool IsProgressModalPopupOpen();
 
 	FEWeightedHistogram* GetHistogramPointer();
@@ -33,8 +29,6 @@ private:
 	bool bHadImGuiIniFileAtStartup = false;
 	ImGuiID DockspaceID = 0;
 	float TimeTookToJitter = 0.0f;
-
-	bool bApplyStandardLayoutOnResize = true;
 
 	std::string NoDataText = "No Data.(Drag & Drop model or point cloud)";
 
@@ -84,8 +78,6 @@ private:
 	bool bLayerRasterizationCalculationsInProgress = false;
 	static void OnLayerRasterizationCalculationsStart();
 	static void OnLayerRasterizationCalculationsEnd();
-
-	static void WindowResizeCallback(int Width, int Height);
 };
 
 #define UI UIManager::GetInstance()

@@ -147,7 +147,18 @@ void ObjectViewerWindow::OnNodeClicked(SceneGraphUI::NodeHandle Node, ImGuiMouse
 
 	AnalysisObject* CurrentObject = GetAnalysisObjectFromNode(CurrentNode);
 	if (CurrentObject != nullptr)
-		ANALYSIS_OBJECT_MANAGER.SetActiveAnalysisObject(CurrentObject->GetID());
+		SetActiveAnalysisObjectWithWaitPopup(CurrentObject->GetID());
+}
+
+void ObjectViewerWindow::SetActiveAnalysisObjectWithWaitPopup(std::string ObjectID)
+{
+	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
+	if (ActiveObject != nullptr && ActiveObject->GetID() == ObjectID)
+		return;
+
+	WAIT_MODAL_POPUP.OpenPopup("Switching Object", "Please wait while the object is being activated...", [ObjectID]() {
+		ANALYSIS_OBJECT_MANAGER.SetActiveAnalysisObject(ObjectID);
+	});
 }
 
 void ObjectViewerWindow::OnNodeSelectionChanged(SceneGraphUI::NodeHandle Node, bool bOldState)
@@ -164,7 +175,7 @@ void ObjectViewerWindow::OnNodeSelectionChanged(SceneGraphUI::NodeHandle Node, b
 	}
 	else
 	{
-		ANALYSIS_OBJECT_MANAGER.SetActiveAnalysisObject(CurrentObject->GetID());
+		SetActiveAnalysisObjectWithWaitPopup(CurrentObject->GetID());
 	}
 }
 

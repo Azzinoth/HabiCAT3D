@@ -123,16 +123,34 @@ void SettingsWindow::Render()
 
 void SettingsWindow::UpdateVR()
 {
+	if (ENGINE.IsVREnabled() && !DEVELOPER_MODE.IsOn())
+		ENGINE.DisableVR();
+
+	// Runs every frame, so the desktop camera is restored no matter how VR got disabled.
+	ApplyVRMainWindowRenderingMode();
+
 	if (!ENGINE.IsVREnabled())
 		return;
 
-	if (!DEVELOPER_MODE.IsOn())
-	{
-		ENGINE.DisableVR();
-		return;
-	}
-
 	VR_MANAGER.Update();
+}
+
+VR_MAIN_WINDOW_RENDERING_MODE SettingsWindow::GetVRMainWindowRenderingMode() const
+{
+	return VRMainWindowRenderingMode;
+}
+
+void SettingsWindow::ApplyVRMainWindowRenderingMode()
+{
+	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
+	if (CameraEntity == nullptr || !CameraEntity->HasComponent<FECameraComponent>())
+		return;
+
+	// Outside of VR the desktop camera always renders. In VR only the free camera mode needs it, the other two modes skip it to save performance.
+	bool bDesktopCameraShouldRender = !ENGINE.IsVREnabled() || VRMainWindowRenderingMode == VR_MAIN_WINDOW_RENDERING_MODE::FREE_CAMERA_VIEW;
+	FECameraComponent& CameraComponent = CameraEntity->GetComponent<FECameraComponent>();
+	if (CameraComponent.IsRenderingEnabled() != bDesktopCameraShouldRender)
+		CameraComponent.SetRenderingEnabled(bDesktopCameraShouldRender);
 }
 
 void SettingsWindow::ShowVRSettings()
@@ -165,6 +183,19 @@ void SettingsWindow::ShowVRSettings()
 
 	if (!bVRMode)
 		return;
+
+	ImGui::Text("Main window view:");
+	if (ImGui::RadioButton("Mirror VR view", VRMainWindowRenderingMode == VR_MAIN_WINDOW_RENDERING_MODE::MIRROR_VR_VIEW))
+		VRMainWindowRenderingMode = VR_MAIN_WINDOW_RENDERING_MODE::MIRROR_VR_VIEW;
+	UI_CORE.ShowToolTip("Display what the VR headset sees in the scene window.");
+
+	if (ImGui::RadioButton("Free camera view", VRMainWindowRenderingMode == VR_MAIN_WINDOW_RENDERING_MODE::FREE_CAMERA_VIEW))
+		VRMainWindowRenderingMode = VR_MAIN_WINDOW_RENDERING_MODE::FREE_CAMERA_VIEW;
+	UI_CORE.ShowToolTip("Show the independent desktop camera, which can be moved to view the scene from another perspective.\nThis lowers performance because the scene is rendered one more time.");
+
+	if (ImGui::RadioButton("Disabled", VRMainWindowRenderingMode == VR_MAIN_WINDOW_RENDERING_MODE::DISABLED))
+		VRMainWindowRenderingMode = VR_MAIN_WINDOW_RENDERING_MODE::DISABLED;
+	UI_CORE.ShowToolTip("Do not render anything in the scene window to save performance.");
 
 	FEEntity* VRRigEntity = OpenXR_MANAGER.GetVRRigEntity();
 	if (VRRigEntity == nullptr)

@@ -1,6 +1,7 @@
 #include "AnnotationManager.h"
 #include "../DeveloperMode.h"
 #include "../UI/UICore.h"
+#include <random>
 using namespace FocalEngine;
 
 glm::vec4 AnnotationInfo::GetColor() const
@@ -749,6 +750,50 @@ static const std::vector<glm::vec4> DefaultAnnotationColors = { { 127 / 255.0f, 
 																{ 84 / 255.0f, 39 / 255.0f, 136 / 255.0f, 1.0f },
 																{ 45 / 255.0f, 0 / 255.0f, 75 / 255.0f, 1.0f } };
 
+static float ColorDistance(const glm::vec4& First, const glm::vec4& Second)
+{
+	return glm::length(glm::vec3(First) - glm::vec3(Second));
+}
+
+static glm::vec4 GetRandomDistinctColor(const std::vector<glm::vec4>& AlreadyUsedColors)
+{
+	static std::mt19937 Generator(std::random_device{}());
+	std::uniform_real_distribution<float> HueDistribution(0.0f, 1.0f);
+	std::uniform_real_distribution<float> SaturationDistribution(0.55f, 1.0f);
+	std::uniform_real_distribution<float> ValueDistribution(0.6f, 1.0f);
+
+	const int AttemptsPerThreshold = 32;
+	const float MinimalUsefulDistance = 0.02f;
+	float MinimalDistance = 0.45f;
+
+	glm::vec4 Candidate = glm::vec4(1.0f);
+	while (MinimalDistance >= MinimalUsefulDistance)
+	{
+		for (int Attempt = 0; Attempt < AttemptsPerThreshold; Attempt++)
+		{
+			ImGui::ColorConvertHSVtoRGB(HueDistribution(Generator), SaturationDistribution(Generator), ValueDistribution(Generator), Candidate.x, Candidate.y, Candidate.z);
+			Candidate.w = 1.0f;
+
+			bool bTooClose = false;
+			for (size_t i = 0; i < AlreadyUsedColors.size(); i++)
+			{
+				if (ColorDistance(Candidate, AlreadyUsedColors[i]) < MinimalDistance)
+				{
+					bTooClose = true;
+					break;
+				}
+			}
+
+			if (!bTooClose)
+				return Candidate;
+		}
+
+		MinimalDistance *= 0.75f;
+	}
+
+	return Candidate;
+}
+
 void AnnotationManager::ClearTemporaryShapeFileData()
 {
 	delete TemporaryShapeFileData;
@@ -1054,8 +1099,8 @@ void AnnotationManager::Render()
 	static std::string PreviewField;
 	static std::map<std::string, int> LabelPreview;
 
-	// If TemporaryShapeFileData is not nullptr, open the popup.
-	if (TemporaryShapeFileData != nullptr && !ImGui::IsPopupOpen(PopupName))
+	// If TemporaryShapeFileData is not nullptr, open the popup. While an import is pending the data is still held, but the popup must stay closed.
+	if (TemporaryShapeFileData != nullptr && !bImportPending && !ImGui::IsPopupOpen(PopupName))
 		ImGui::OpenPopup(PopupName);
 
 	ImGui::SetNextWindowSize(ImVec2(480, 0));
@@ -1146,6 +1191,33 @@ void AnnotationManager::Render()
 	if (ChangedRowIndex != -1)
 		TemporaryLabelToAnnotationInfo[RowLabels[ChangedRowIndex]].Color = Rows[ChangedRowIndex].Color;
 
+	// Files often store one color for every feature, these give the user a quick way out of that.
+	if (RowLabels.empty())
+		ImGui::BeginDisabled();
+
+	if (ImGui::Button("Randomize colors"))
+	{
+		std::vector<glm::vec4> UsedColors;
+		for (size_t i = 0; i < RowLabels.size(); i++)
+		{
+			glm::vec4 NewColor = GetRandomDistinctColor(UsedColors);
+			UsedColors.push_back(NewColor);
+			TemporaryLabelToAnnotationInfo[RowLabels[i]].Color = NewColor;
+		}
+	}
+	UI_CORE.ShowToolTip("Assign a random color to every label, keeping each new color visibly different from the ones already assigned.");
+
+	ImGui::SameLine();
+	if (ImGui::Button("Use default palette"))
+	{
+		for (size_t i = 0; i < RowLabels.size(); i++)
+			TemporaryLabelToAnnotationInfo[RowLabels[i]].Color = DefaultAnnotationColors[i % DefaultAnnotationColors.size()];
+	}
+	UI_CORE.ShowToolTip("Ignore colors from the file and assign the built-in palette in label order.");
+
+	if (RowLabels.empty())
+		ImGui::EndDisabled();
+
 	// A file in a different coordinate system does not overlap the object at all, warn before anything is assigned.
 	ResourceAnalysisData* ObjectAnalysisData = nullptr;
 	if (TargetObject->GetType() == DATA_SOURCE_TYPE::MESH)
@@ -1189,8 +1261,28 @@ void AnnotationManager::Render()
 	ImGui::SetCursorPosX(ImportButtonX);
 	if (ImGui::Button("Import", ImVec2(ButtonWidth, 0)))
 	{
-		AddAnnotationsFromShapeFileData(TemporaryShapeFileData, TargetObject, FieldLabelToConsiderAnnotation);
-		CloseImport();
+		// Temporary shape file data is kept alive, the deferred import consumes and clears it.
+		bImportPending = true;
+		std::string ObjectID = TargetObject->GetID();
+		WAIT_MODAL_POPUP.OpenPopup("Importing Annotations", "Please wait while annotations are being imported...", [this, ObjectID]() {
+			AnalysisObject* Object = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ObjectID);
+			if (Object != nullptr && TemporaryShapeFileData != nullptr)
+			{
+				// Copy, the member is cleared by ClearTemporaryShapeFileData inside the import.
+				std::string LabelFieldName = FieldLabelToConsiderAnnotation;
+				AddAnnotationsFromShapeFileData(TemporaryShapeFileData, Object, LabelFieldName);
+			}
+			else
+			{
+				ClearTemporaryShapeFileData();
+			}
+
+			bImportPending = false;
+		});
+
+		LabelPreview.clear();
+		PreviewField.clear();
+		ImGui::CloseCurrentPopup();
 	}
 
 	if (!bCanImport)

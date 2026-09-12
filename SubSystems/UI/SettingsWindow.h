@@ -2,6 +2,14 @@
 
 #include "UICore.h"
 
+// What the desktop scene window shows while VR mode is active.
+enum class VR_MAIN_WINDOW_RENDERING_MODE
+{
+	MIRROR_VR_VIEW = 0,
+	FREE_CAMERA_VIEW = 1,
+	DISABLED = 2
+};
+
 class SettingsWindow
 {
 	friend class UIManager;
@@ -10,6 +18,8 @@ public:
 
 	void Render();
 	void UpdateVR();
+
+	VR_MAIN_WINDOW_RENDERING_MODE GetVRMainWindowRenderingMode() const;
 
 	bool GetWireFrameMode();
 	void SetWireFrameMode(bool NewValue);
@@ -45,6 +55,9 @@ private:
 	void FreeCameraAdjustment(AnalysisObject* Object = nullptr);
 
 	void ShowVRSettings();
+
+	VR_MAIN_WINDOW_RENDERING_MODE VRMainWindowRenderingMode = VR_MAIN_WINDOW_RENDERING_MODE::MIRROR_VR_VIEW;
+	void ApplyVRMainWindowRenderingMode();
 };
 
 #define SETTINGS_WINDOW SettingsWindow::GetInstance()

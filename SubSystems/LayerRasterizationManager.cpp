@@ -871,7 +871,9 @@ bool LayerRasterizationManager::PromptUserForSaveLocation()
 
 	if (!FilePath.empty())
 	{
-		LAYER_RASTERIZATION_MANAGER.SaveToFile(FilePath, static_cast<LayerRasterizationManager::SaveMode>(Index));
+		WAIT_MODAL_POPUP.OpenPopup("Saving Image", "Please wait while the image is being saved...", [FilePath, Index]() {
+			LAYER_RASTERIZATION_MANAGER.SaveToFile(FilePath, static_cast<LayerRasterizationManager::SaveMode>(Index));
+		});
 		return true;
 	}
 	

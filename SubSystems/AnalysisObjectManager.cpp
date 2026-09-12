@@ -760,6 +760,11 @@ void AnalysisObjectManager::ComplexityMetricDataToGPU(std::string LayerID, int G
 
 int AnalysisObjectManager::GetTriangleIndexUnderMouse(float* HitDistance)
 {
+	return GetTriangleIndexUnderRay(MAIN_SCENE_MANAGER.GetMouseRayDirection(), HitDistance);
+}
+
+int AnalysisObjectManager::GetTriangleIndexUnderRay(glm::dvec3 MouseRay, float* HitDistance)
+{
 	int Result = -1;
 
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
@@ -777,8 +782,6 @@ int AnalysisObjectManager::GetTriangleIndexUnderMouse(float* HitDistance)
 	MeshAnalysisData* CurrentMeshAnalysisData = ActiveObject->GetMeshAnalysisData();
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
-
-	glm::dvec3 MouseRay = MAIN_SCENE_MANAGER.GetMouseRayDirection();
 
 	double CurrentDistance = std::numeric_limits<double>::max();
 	double LastDistance = std::numeric_limits<double>::max();
@@ -877,6 +880,11 @@ glm::vec3 AnalysisObjectManager::IntersectTriangle(glm::dvec3 MouseRay)
 
 std::vector<int> AnalysisObjectManager::GetTriangleIndexesInRadius(float Radius)
 {
+	return GetTriangleIndexesInRadius(Radius, MAIN_SCENE_MANAGER.GetMouseRayDirection());
+}
+
+std::vector<int> AnalysisObjectManager::GetTriangleIndexesInRadius(float Radius, glm::dvec3 MouseRay)
+{
 	std::vector<int> Result;
 
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
@@ -895,7 +903,7 @@ std::vector<int> AnalysisObjectManager::GetTriangleIndexesInRadius(float Radius)
 	if (CurrentMeshAnalysisData == nullptr)
 		return Result;
 
-	int TriangleIndexUnderMouse = GetTriangleIndexUnderMouse();
+	int TriangleIndexUnderMouse = GetTriangleIndexUnderRay(MouseRay);
 	if (TriangleIndexUnderMouse == -1)
 		return Result;
 
@@ -1228,8 +1236,12 @@ void AnalysisObjectManager::SaveToRUGFileAskForFilePath()
 {
 	std::string FilePath;
 	FILE_SYSTEM.ShowFileSaveDialog(FilePath, RUGOSITY_SAVE_FILE_FILTER, 1);
+	if (FilePath.empty())
+		return;
 
-	SaveToRUGFile(FilePath);
+	WAIT_MODAL_POPUP.OpenPopup("Saving Resource", "Please wait while the resource is being saved...", [FilePath]() {
+		ANALYSIS_OBJECT_MANAGER.SaveToRUGFile(FilePath);
+	});
 }
 
 void AnalysisObjectManager::SaveAnalysisDataToRUGFile(std::fstream& File, AnalysisObject* Object)

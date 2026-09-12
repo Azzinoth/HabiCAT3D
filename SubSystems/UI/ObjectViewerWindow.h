@@ -29,6 +29,7 @@ class ObjectViewerWindow
 	static void OnNodeClicked(SceneGraphUI::NodeHandle Node, ImGuiMouseButton_ MouseButton);
 	static void OnDoubleClickNode(SceneGraphUI::NodeHandle Node, ImGuiMouseButton_ MouseButton);
 	static void OnNodeSelectionChanged(SceneGraphUI::NodeHandle Node, bool bOldState);
+	static void SetActiveAnalysisObjectWithWaitPopup(std::string ObjectID);
 public:
 	SINGLETON_PUBLIC_PART(ObjectViewerWindow)
 

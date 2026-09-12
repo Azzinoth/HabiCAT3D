@@ -44,9 +44,41 @@ void SceneWindow::Render()
 				CAMERA_SYSTEM.SetCameraViewport(CameraEntity, ViewportID);
 			}
 
-			FETexture* CameraResult = RENDERER.GetCameraResult(CameraEntity);
-			if (CameraResult != nullptr)
-				ImGui::Image(CameraResult->GetTextureID(), ContentSize, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+			VR_MAIN_WINDOW_RENDERING_MODE VRRenderingMode = SETTINGS_WINDOW.GetVRMainWindowRenderingMode();
+			if (ENGINE.IsVREnabled() && VRRenderingMode == VR_MAIN_WINDOW_RENDERING_MODE::MIRROR_VR_VIEW)
+			{
+				// Headset result holds the last rendered eye. It is letterboxed instead of stretched, the eye aspect ratio rarely matches the window.
+				FETexture* HeadsetResult = RENDERER.GetCameraResult(OpenXR_MANAGER.GetVRHeadsetEntity());
+				if (HeadsetResult != nullptr && HeadsetResult->GetWidth() > 0 && HeadsetResult->GetHeight() > 0)
+				{
+					float TextureAspectRatio = static_cast<float>(HeadsetResult->GetWidth()) / static_cast<float>(HeadsetResult->GetHeight());
+					ImVec2 ImageSize = ContentSize;
+					if (ContentSize.x / ContentSize.y > TextureAspectRatio)
+					{
+						ImageSize.x = ContentSize.y * TextureAspectRatio;
+					}
+					else
+					{
+						ImageSize.y = ContentSize.x / TextureAspectRatio;
+					}
+
+					ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + (ContentSize.x - ImageSize.x) / 2.0f, ImGui::GetCursorPosY() + (ContentSize.y - ImageSize.y) / 2.0f));
+					ImGui::Image(HeadsetResult->GetTextureID(), ImageSize, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+				}
+			}
+			else if (ENGINE.IsVREnabled() && VRRenderingMode == VR_MAIN_WINDOW_RENDERING_MODE::DISABLED)
+			{
+				const char* MessageText = "Scene window rendering is disabled while in VR mode.";
+				ImVec2 TextSize = ImGui::CalcTextSize(MessageText);
+				ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + (ContentSize.x - TextSize.x) / 2.0f, ImGui::GetCursorPosY() + (ContentSize.y - TextSize.y) / 2.0f));
+				ImGui::TextDisabled("%s", MessageText);
+			}
+			else
+			{
+				FETexture* CameraResult = RENDERER.GetCameraResult(CameraEntity);
+				if (CameraResult != nullptr)
+					ImGui::Image(CameraResult->GetTextureID(), ContentSize, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+			}
 		}
 	}
 	ImGui::End();
