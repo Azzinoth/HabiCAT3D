@@ -213,6 +213,7 @@ void ObjectViewerWindow::Render()
 			if (CurrentObject != nullptr)
 			{
 				ANALYSIS_OBJECT_MANAGER.DeleteAnalysisObject(CurrentObject->GetID());
+				return;
 			}
 
 			AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByEntityID(CurrentEntity->GetObjectID());

@@ -117,6 +117,13 @@ file(GLOB SubSystems_Developer_Mode_SRC
 	"SubSystems/DeveloperMode.h"
 )
 
+file(GLOB SubSystems_VolumetricReconstruction_SRC
+	"SubSystems/VolumetricReconstruction/VolumetricReconstruction.cpp"
+	"SubSystems/VolumetricReconstruction/VolumetricReconstruction.h"
+	"SubSystems/VolumetricReconstruction/VolumeTransferFunctionWidget.h"
+	"SubSystems/VolumetricReconstruction/VolumeTransferFunctionWidget.cpp"
+)
+
 file(GLOB SubSystems_UI_SRC
 	"SubSystems/UI/UICore.cpp"
 	"SubSystems/UI/UICore.h"
@@ -224,8 +231,6 @@ set(MAIN_SOURCE_FILES "")
 list(APPEND MAIN_SOURCE_FILES
     "EngineInclude.h"
 	"EngineInclude.cpp"
-	"VolumeTransferFunctionWidget.h"
-	"VolumeTransferFunctionWidget.cpp"
 	"main.cpp"
 	"HabiCAT3D.rc"
 )
@@ -260,6 +265,7 @@ add_executable(HabiCAT3D WIN32
 					     ${SubSystems_Layers_SRC}
 						 ${SubSystems_Layers_Producers_SRC}
 						 ${SubSystems_Developer_Mode_SRC}
+						 ${SubSystems_VolumetricReconstruction_SRC}
 					     ${SubSystems_UI_SRC}
 					     ${SubSystems_ConsoleJobs_SRC}
 					     ${SubSystems_ComplexityCore_SRC}
@@ -291,6 +297,7 @@ source_group("Source Files/SubSystems/ComplexityCore" FILES ${SubSystems_Complex
 source_group("Source Files/SubSystems/ComplexityCore/Layers" FILES ${SubSystems_Layers_SRC})
 source_group("Source Files/SubSystems/ComplexityCore/Layers/Producers" FILES ${SubSystems_Layers_Producers_SRC})
 source_group("Source Files/SubSystems/DeveloperMode" FILES ${SubSystems_Developer_Mode_SRC})
+source_group("Source Files/SubSystems/VolumetricReconstruction" FILES ${SubSystems_VolumetricReconstruction_SRC})
 source_group("Source Files/SubSystems/UI" FILES ${SubSystems_UI_SRC})
 source_group("Source Files/Shaders/Mesh/" FILES ${MeshShaders_SRC})
 source_group("Source Files/Shaders/PointCloud/" FILES ${PointCloudShaders_SRC})
