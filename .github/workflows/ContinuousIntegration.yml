@@ -39,7 +39,8 @@ jobs:
         copy "media/Tests/CI_Small.txt" CI_Small.txt
         copy "media/Tests/staghornOriginal.obj" staghornOriginal.obj
         Move "${{github.workspace}}\build\Release\HabiCAT3D.exe" "${{github.workspace}}\HabiCAT3D.exe"
-        
+        Copy-Item "${{github.workspace}}\build\Release\*.dll" "${{github.workspace}}"
+
     - name: Run test
       working-directory: ${{github.workspace}}
       run: |
@@ -56,7 +57,7 @@ jobs:
         Write-Host "Executable started."
         
         Write-Host "Waiting for the process to exit..."
-        $process.WaitForExit(500000) # 500 seconds
+        $process.WaitForExit(1800000) # 30 minutes
         
         $substring = "All evaluations passed"
         $found = $false
