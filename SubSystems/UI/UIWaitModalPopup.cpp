@@ -20,11 +20,11 @@ void WaitModalPopup::Render()
 	if (bActive && !ImGui::IsPopupOpen(CurrentPopupData.Title.c_str()))
 		ImGui::OpenPopup(CurrentPopupData.Title.c_str());
 
-	int TitleWidth = ImGui::CalcTextSize(CurrentPopupData.Title.c_str()).x + 40;
-	int MessageWidth = ImGui::CalcTextSize(CurrentPopupData.Message.c_str()).x + 40;
+	int TitleWidth = static_cast<int>(ImGui::CalcTextSize(CurrentPopupData.Title.c_str()).x + 40);
+	int MessageWidth = static_cast<int>(ImGui::CalcTextSize(CurrentPopupData.Message.c_str()).x + 40);
 
 	int PopupWidth = TitleWidth > MessageWidth ? TitleWidth : MessageWidth;
-	ImGui::SetNextWindowSize(ImVec2(PopupWidth, 0));
+	ImGui::SetNextWindowSize(ImVec2(static_cast<float>(PopupWidth), 0.0f));
 	if (!ImGui::BeginPopupModal(CurrentPopupData.Title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 		return;
 

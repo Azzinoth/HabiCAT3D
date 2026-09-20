@@ -72,8 +72,8 @@ glm::vec4 VolumetricReconstruction::GetValueOfDepth(int X, int Y)
 
 float VolumetricReconstruction::ConvertDepthToWorldDistance(float DepthValue, float NearPlaneValue, float FarPlaneValue)
 {
-	float WorldDistance = 2.0 * DepthValue - 1.0;
-	WorldDistance = 2.0 * NearPlaneValue * FarPlaneValue / (FarPlaneValue + NearPlaneValue - WorldDistance * (FarPlaneValue - NearPlaneValue));
+	float WorldDistance = 2.0f * DepthValue - 1.0f;
+	WorldDistance = 2.0f * NearPlaneValue * FarPlaneValue / (FarPlaneValue + NearPlaneValue - WorldDistance * (FarPlaneValue - NearPlaneValue));
 	return WorldDistance;
 }
 

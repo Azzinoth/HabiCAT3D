@@ -15,6 +15,7 @@ ObjectViewerWindow::ObjectViewerWindow()
 
 		GraphBackend = new HabiCATGraphBackend();
 		SceneGraphUI = new TreeView(GraphBackend);
+		SceneGraphUI->SetFontSize(28.0f);
 	}
 }
 

@@ -4,7 +4,7 @@ using namespace FocalEngine;
 
 const COMDLG_FILTERSPEC RUGOSITY_LOAD_FILE_FILTER[] =
 {
-	{ L"Mesh files (*.obj; *.rug)", L"*.obj;*.rug" }
+	{ L"Supported files (*.obj; *.ply; *.las; *.laz; *.rug)", L"*.obj;*.ply;*.las;*.laz;*.rug" }
 };
 
 const COMDLG_FILTERSPEC RUGOSITY_SAVE_FILE_FILTER[] =

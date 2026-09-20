@@ -312,7 +312,7 @@ void UIManager::RenderLegend()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 	ImVec2 ScenePosition = SCENE_WINDOW.GetContentPosition();
 	ImGui::SetNextWindowPos(ImVec2(ScenePosition.x + 2.0f, ScenePosition.y + 1.0f));
-	ImGui::SetNextWindowSize(ImVec2(150, DEVELOPER_MODE.IsOn() ? 700 : 670));
+	ImGui::SetNextWindowSize(ImVec2(150.0f, DEVELOPER_MODE.IsOn() ? 700.0f : 670.0f));
 	ImGui::Begin("Heat map legend", nullptr,
 									ImGuiWindowFlags_NoMove |
 									ImGuiWindowFlags_NoResize |
