@@ -4,6 +4,8 @@ To use the application in command line interface (CLI) mode, the user can set `-
 -console -NEXT_COMMAND -NEXT ...
 ```
 
+To run the built-in test suite instead of commands, use `-console -run_tests`. The results are written to `HabiCAT3D_Tests.xml`.
+
 # Command signature:
   `-[COMMAND] [OPTIONS]=[VALUE]`
 
@@ -19,16 +21,19 @@ Settings:
   - `command_name` (Optional): The name of the command to print help for.
       Default: (prints help for all commands)  
 ---
-`-file_load`
+`-load`
 
 Purpose:
 
-Loads a file from the specified path.
+Loads a file from the specified path. In CLI mode, `OBJ` meshes, `LAS` and `LAZ` point clouds, and `RUG` files that contain meshes can be loaded. `PLY` files can be loaded only in GUI mode.
 
 Settings:
-  - filepath (Required): The path of the file to load.
+  - `filepath` (Required): The path of the file to load.
+
+  - `keep_existing_data` (Optional): Whether to keep existing data when loading a new file. By default, loading a file removes everything that was loaded before. Set it to `"true"` to load several objects into one workspace. All following commands work on the most recently loaded object.
+    Default: `"false"`
 ---
-`-file_save`
+`-save`
 
 Purpose:
 
@@ -55,7 +60,8 @@ Creates a job to add complexity layer of a model based on the specified type.
 
 Settings:
   - `type` (Required): Specifies the type of complexity calculation.
-    Possible Values: `'HEIGHT'`, `'AREA'`, `'RUGOSITY'`, `'TRIANGLE_EDGE'`, `'TRIANGLE_COUNT'`, `'VECTOR_DISPERSION'`, `'FRACTAL_DIMENSION'`, `'COMPARE'`
+    Possible Values: `'HEIGHT'`, `'AREA'`, `'RUGOSITY'`, `'TRIANGLE_EDGE'`, `'TRIANGLE_COUNT'`, `'VECTOR_DISPERSION'`, `'FRACTAL_DIMENSION'`, `'COMPARE'`, `'POINT_DENSITY'`, `'STRUCTURAL_ROUGHNESS'`
+    `'POINT_DENSITY'` and `'STRUCTURAL_ROUGHNESS'` require a point cloud. `'FRACTAL_DIMENSION'` works on both meshes and point clouds. All other types require a mesh.
 
   - `resolution` (Optional): Specifies the resolution in meters for the complexity calculation. Alternative to relative_resolution.
     Default: `Minimal possible`
@@ -92,7 +98,7 @@ Settings:
     Default: `91`
 
   - `fractal_dimension_should_filter_values` (Optional): Specifies if the app should filter values that are less that `2.0`. Relevant only for `'FRACTAL_DIMENSION'` complexity type.
-    Default: `"true"`
+    Default: Depends on object type, `"true"` for meshes and `"false"` for point clouds.
 
   - `is_standard_deviation_needed` (Optional): Specifies if the app should also add layer with standard deviation.
     Default: `"false"`
@@ -123,9 +129,6 @@ Settings:
 
   - `layer_index` (Optional): Specifies the index of the layer to evaluate. Relevant only for `'COMPLEXITY'` evaluation type.
     Default: `'-1'` Which means the last layer.
-
-  - `convert_to_script` (Optional): Specifies if the job should be converted to a script that later can be used to run the same job but with actual values.(Mostly used to make it easier to create a script file for new models)
-    Default: `"false"`
 ---
 `-global_settings`
 
@@ -136,6 +139,7 @@ Sets a global setting for the application.
 Settings:
   - `type` (Required): Specifies the type of global setting.
     Possible Values: `'EVALUATION_JOB_TO_SCRIPT'`, `'OUTPUT_LOG_TO_FILE'`
+    With `'OUTPUT_LOG_TO_FILE'` enabled, the console output is also written to `CONSOLE_LOG.txt` in the working directory.
 
   - `int_value` (Optional): Specifies the integer value for the global setting.
     Default: `0`
@@ -150,7 +154,7 @@ Settings:
 
 Purpose:
 
-Exports a layer as an image.
+Exports a layer as an image. Available only for meshes.
 
 Settings:
   - `export_mode` (Required): Specifies the mode of the export.
@@ -185,6 +189,15 @@ Settings:
   - `request` (Required): Specifies what to query.
     Possible Values: `'EVALUATION_SUMMARY'`
 ---
+`-exit`
+
+Purpose:
+
+Closes the application. Use it as the last command of a script, otherwise the console window stays open and waits for more commands.
+
+Settings:
+  - None.
+---
 
 ## Examples:
 ```
@@ -192,6 +205,15 @@ Settings:
 -save filepath="C:/data/processed_mesh.rug"
 -complexity type=RUGOSITY rugosity_algorithm=MIN jitter_quality=73
 -evaluation type=COMPLEXITY subtype=MAX_LAYER_VALUE expected_value=5.02 tolerance=0.01
+```
+
+A script file that calculates two layers on a point cloud, saves the result and closes the application:
+```
+-load filepath="C:/data/site.laz"
+-complexity type=POINT_DENSITY
+-complexity type=STRUCTURAL_ROUGHNESS
+-save filepath="C:/data/site.rug"
+-exit
 ```
 
 ## Notes:
