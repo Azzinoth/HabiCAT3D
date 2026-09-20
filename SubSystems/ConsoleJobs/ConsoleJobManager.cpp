@@ -22,6 +22,7 @@ ConsoleJobManager::ConsoleJobManager()
 	ConsoleJobsInfo["global_settings"] = GlobalSettingJob::GetInfo();
 	ConsoleJobsInfo["export_layer_as_image"] = ExportLayerAsImageJob::GetInfo();
 	ConsoleJobsInfo["query"] = QueryJob::GetInfo();
+	ConsoleJobsInfo["exit"] = ExitJob::GetInfo();
 
 	HelpJob::ConsoleJobsInfo = &ConsoleJobsInfo;
 }

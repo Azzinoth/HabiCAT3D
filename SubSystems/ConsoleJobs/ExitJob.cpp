@@ -15,7 +15,7 @@ ConsoleJobInfo ExitJob::GetInfo()
 {
 	ConsoleJobInfo Info;
 	Info.CommandName = "exit";
-	Info.Purpose = "Prints help for all commands or for a specific command.";
+	Info.Purpose = "Closes the application.";
 
 	return Info;
 }
