@@ -1,6 +1,7 @@
 #include "SubSystems/ConsoleJobs/ConsoleJobManager.h"
 #include "SubSystems/VRManager/VRManager.h"
 #include "SubSystems/VolumetricReconstruction/VolumetricReconstruction.h"
+#include "SubSystems/UpdateManager.h"
 #include "Tests/RunAllTests.h"
 using namespace FocalEngine;
 
@@ -317,6 +318,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		SCREENSHOT_MANAGER.Init();
 		DEVELOPER_MODE.Initialize();
 		ANNOTATION_MANAGER.Initialize();
+		UPDATE_MANAGER.CheckAsync();
 
 		while (ENGINE.IsNotTerminated())
 		{

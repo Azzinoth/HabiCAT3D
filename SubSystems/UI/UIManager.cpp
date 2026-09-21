@@ -1,6 +1,7 @@
 #include "UIManager.h"
 using namespace FocalEngine;
 #include "../ScreenshotManager.h"
+#include "../UpdateManager.h"
 
 UIManager::UIManager()
 {
@@ -151,6 +152,7 @@ void UIManager::Render()
 	RenderLayerTabs();
 	RenderHistogramWindow();
 	RenderAboutWindow();
+	UPDATE_MANAGER.Render();
 
 	NEW_LAYER_WINDOW.Render();
 	LOAD_PHOTOGRAMMETRY_WINDOW.Render();

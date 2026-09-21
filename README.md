@@ -107,6 +107,7 @@ If you use this code in your research, please cite one of the following papers:
 > **K. Beregovyi and T. Butkiewicz, "HabiCAT 3D: Unified Visualization, Analysis, and Annotation of Structure-from-Motion Scans" in OCEANS 2026, 2026.**
 
 > **K. Beregovyi, J. Dijkstra and T. Butkiewicz, "Calculating 3D rugosity maps for complex habitat scans" Frontiers in Marine Science, vol. 12, 2025.**
+
 > Paper link: https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2025.1449332
 
 ## Acknowledgements
