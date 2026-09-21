@@ -1620,10 +1620,10 @@ void UIInspector::RenderExportTab()
 
 	ImGui::Separator();
 
-	ImGui::Text("Screenshoot:");
+	ImGui::Text("Screenshot:");
 	ImGui::Checkbox("Transparent background", &bUseTransparentBackground);
 
-	if (ImGui::Button("Take screenshoot"))
+	if (ImGui::Button("Take screenshot"))
 		bNextFrameForScreenshot = true;
 
 	if (ImGui::TreeNodeEx("Export layer as image", TreeFlags))

@@ -27,9 +27,9 @@ public:
 	float GetAmbientLightFactor();
 	void SetAmbientLightFactor(float NewValue);
 
-	bool IsInModelCameraMode();
-	void SetIsModelCamera(bool NewValue, glm::vec3 ModelCameraFocusPoint = glm::vec3(0.0f));
-	void SwitchCameraMode(bool bModelCamera, glm::vec3 ModelCameraFocusPoint = glm::vec3(0.0f));
+	bool IsInArcBallCameraMode();
+	void SetIsArcBallCamera(bool NewValue, glm::vec3 ArcBallCameraFocusPoint = glm::vec3(0.0f));
+	void SwitchCameraMode(bool bArcBallCamera, glm::vec3 ArcBallCameraFocusPoint = glm::vec3(0.0f));
 
 	void FocusCameraOnObject(AnalysisObject* Object = nullptr);
 
@@ -44,14 +44,13 @@ private:
 
 	bool bVisible = false;
 
-	bool bModelCamera = true;
-	bool bChooseCameraFocusPointMode = false;
+	bool bArcBallCamera = true;
 
 	bool bWireframeMode = false;
 	float AmbientLightFactor = 2.2f;
 
 	void AdjustCameraNearFarPlanes();
-	void ModelCameraAdjustment(AnalysisObject* Object = nullptr);
+	void ArcBallCameraAdjustment(AnalysisObject* Object = nullptr);
 	void FreeCameraAdjustment(AnalysisObject* Object = nullptr);
 
 	void ShowVRSettings();

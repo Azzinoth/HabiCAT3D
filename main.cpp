@@ -41,7 +41,7 @@ void AfterNewResourceLoads(AnalysisObject* NewObject)
 	if (!APPLICATION.HasConsoleWindow())
 	{
 		if (ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount() == 1)
-			SETTINGS_WINDOW.SetIsModelCamera(true);
+			SETTINGS_WINDOW.SetIsArcBallCamera(true);
 
 		if (NewObject->GetType() == DATA_SOURCE_TYPE::MESH)
 			ANALYSIS_OBJECT_MANAGER.CustomMeshShader->UpdateUniformData("lightDirection", glm::normalize(ANALYSIS_OBJECT_MANAGER.GetAllMeshObjectsAverageNormal()));

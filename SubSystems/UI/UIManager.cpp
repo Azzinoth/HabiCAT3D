@@ -120,20 +120,8 @@ void UIManager::Render()
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("View"))
-		{
-			if (ImGui::MenuItem("Inspector", nullptr, UI_INSPECTOR.bVisible))
-			{
-				UI_INSPECTOR.bVisible = !UI_INSPECTOR.bVisible;
-			}
-
-			if (ImGui::MenuItem("Settings", nullptr, SETTINGS_WINDOW.bVisible))
-			{
-				SETTINGS_WINDOW.bVisible = !SETTINGS_WINDOW.bVisible;
-			}
-
-			ImGui::EndMenu();
-		}
+		if (ImGui::MenuItem("Advanced Settings", nullptr, SETTINGS_WINDOW.bVisible))
+			SETTINGS_WINDOW.bVisible = !SETTINGS_WINDOW.bVisible;
 
 		if (ImGui::BeginMenu("Info"))
 		{

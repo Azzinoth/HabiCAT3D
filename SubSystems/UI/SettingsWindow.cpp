@@ -30,58 +30,36 @@ void SettingsWindow::Render()
 	if (!bVisible)
 		return;
 
-	if (ImGui::Begin("Settings_new"))
+	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+	if (ImGui::Begin("Advanced Settings", &bVisible))
 	{
-		/*AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
-		if (ActiveObject != nullptr)
-		{
-			FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
-			if (ActiveObject->GetType() == DATA_SOURCE_TYPE::MESH)
-			{*/
-				ImGui::Checkbox("Wireframe", &bWireframeMode);
+		ImGui::Checkbox("Wireframe", &bWireframeMode);
 
-				ImGui::Text("Ambiant light intensity:");
-				ImGui::SetNextItemWidth(150);
-				ImGui::DragFloat("##AmbiantLightScale", &AmbientLightFactor, 0.025f);
-				ImGui::SameLine();
-				if (ImGui::Button("Reset"))
-				{
-					AmbientLightFactor = 2.2f;
-				}
-		//	}
-		//}
+		ImGui::Text("Ambiant light intensity:");
+		ImGui::SetNextItemWidth(150);
+		ImGui::DragFloat("##AmbiantLightScale", &AmbientLightFactor, 0.025f);
+		ImGui::SameLine();
+		if (ImGui::Button("Reset"))
+		{
+			AmbientLightFactor = 2.2f;
+		}
 
 		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 		if (ActiveObject != nullptr)
 		{
-			FEEntity* ActiveEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
-			bool bModelCameraMode = bModelCamera;
-			if (ImGui::Checkbox("Model camera", &bModelCameraMode))
+			bool bArcBallCameraMode = bArcBallCamera;
+			if (ImGui::Checkbox("Arcball camera", &bArcBallCameraMode))
 			{
-				SetIsModelCamera(bModelCameraMode);
+				SetIsArcBallCamera(bArcBallCameraMode);
 			}
 
-			if (bModelCamera && bChooseCameraFocusPointMode && ImGui::IsMouseReleased(0) && ActiveEntity != nullptr)
+			if (bArcBallCamera)
 			{
-				glm::dvec3 IntersectionPoint = ANALYSIS_OBJECT_MANAGER.IntersectTriangle(MAIN_SCENE_MANAGER.GetMouseRayDirection());
-
-				IntersectionPoint = glm::dvec3(ActiveEntity->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(IntersectionPoint, 1.0));
-				if (IntersectionPoint != glm::dvec3(0.0))
-				{
-					SetIsModelCamera(true, IntersectionPoint);
-				}
-			}
-
-			if (bModelCamera)
-			{
-				if (ImGui::Button("Set point on model as a focus point"))
-					bChooseCameraFocusPointMode = true;
-
 				FENativeScriptComponent& NativeScriptComponent = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FENativeScriptComponent>();
-				float ModelCameraMouseWheelSensitivity = 0.0f;
-				NativeScriptComponent.GetVariableValue<float>("MouseWheelSensitivity", ModelCameraMouseWheelSensitivity);
-				ImGui::DragFloat("Mouse wheel sensitivity", &ModelCameraMouseWheelSensitivity, 0.0001f, 0.000001f, 100.0f);
-				NativeScriptComponent.SetVariableValue("MouseWheelSensitivity", ModelCameraMouseWheelSensitivity);
+				float ArcBallCameraMouseWheelSensitivity = 0.0f;
+				NativeScriptComponent.GetVariableValue<float>("MouseWheelSensitivity", ArcBallCameraMouseWheelSensitivity);
+				ImGui::DragFloat("Mouse wheel sensitivity", &ArcBallCameraMouseWheelSensitivity, 0.0001f, 0.000001f, 100.0f);
+				NativeScriptComponent.SetVariableValue("MouseWheelSensitivity", ArcBallCameraMouseWheelSensitivity);
 
 				if (DEVELOPER_MODE.IsOn())
 				{
@@ -222,7 +200,7 @@ void SettingsWindow::ShowVRSettings()
 
 void SettingsWindow::ShowCameraTransform()
 {
-	if (!bModelCamera)
+	if (!bArcBallCamera)
 	{
 		// ********* POSITION *********
 		glm::vec3 CameraPosition = MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().GetPosition(FE_WORLD_SPACE);
@@ -454,17 +432,17 @@ void SettingsWindow::StringToCameraRotation(std::string Text)
 	MAIN_SCENE_MANAGER.GetMainCamera()->GetComponent<FETransformComponent>().SetRotation(glm::vec3(X, Y, Z), FE_WORLD_SPACE);
 }
 
-bool SettingsWindow::IsInModelCameraMode()
+bool SettingsWindow::IsInArcBallCameraMode()
 {
-	return bModelCamera;
+	return bArcBallCamera;
 }
 
 void SettingsWindow::FocusCameraOnObject(AnalysisObject* Object)
 {
-	IsInModelCameraMode() ? ModelCameraAdjustment(Object) : FreeCameraAdjustment(Object);
+	IsInArcBallCameraMode() ? ArcBallCameraAdjustment(Object) : FreeCameraAdjustment(Object);
 }
 
-void SettingsWindow::ModelCameraAdjustment(AnalysisObject* Object)
+void SettingsWindow::ArcBallCameraAdjustment(AnalysisObject* Object)
 {
 	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
 	if (CameraEntity == nullptr)
@@ -515,13 +493,13 @@ void SettingsWindow::AdjustCameraNearFarPlanes()
 	CameraComponent.SetFarPlane(AllObjectsAABB.GetLongestAxisLength() * 5.0f);
 }
 
-void SettingsWindow::SwitchCameraMode(bool bModelCamera, glm::vec3 ModelCameraFocusPoint)
+void SettingsWindow::SwitchCameraMode(bool bArcBallCamera, glm::vec3 ArcBallCameraFocusPoint)
 {
 	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainCamera();
 	if (CameraEntity == nullptr)
 		return;
 
-	if (bModelCamera)
+	if (bArcBallCamera)
 	{
 		std::vector<FEPrefab*> CameraPrefab = RESOURCE_MANAGER.GetPrefabByName("Model view camera prefab");
 		if (CameraPrefab.empty())
@@ -564,7 +542,7 @@ void SettingsWindow::SwitchCameraMode(bool bModelCamera, glm::vec3 ModelCameraFo
 				CameraEntity->AddComponent<FENativeScriptComponent>();
 				NATIVE_SCRIPT_SYSTEM.InitializeScriptComponent(CameraEntity, ArcBallCameraModuleID, "ArcBallCameraController");
 				FENativeScriptComponent& NativeScriptComponent = CameraEntity->GetComponent<FENativeScriptComponent>();
-				NativeScriptComponent.SetVariableValue("TargetPosition", ModelCameraFocusPoint);
+				NativeScriptComponent.SetVariableValue("TargetPosition", ArcBallCameraFocusPoint);
 
 				CameraEntity->GetComponent<FECameraComponent>().SetActive(false);
 				return;
@@ -600,13 +578,11 @@ void SettingsWindow::SwitchCameraMode(bool bModelCamera, glm::vec3 ModelCameraFo
 	}
 }
 
-void SettingsWindow::SetIsModelCamera(const bool NewValue, glm::vec3 ModelCameraFocusPoint)
+void SettingsWindow::SetIsArcBallCamera(const bool NewValue, glm::vec3 ArcBallCameraFocusPoint)
 {
-	bChooseCameraFocusPointMode = false;
-
-	SwitchCameraMode(NewValue, ModelCameraFocusPoint);
+	SwitchCameraMode(NewValue, ArcBallCameraFocusPoint);
 	AdjustCameraNearFarPlanes();
 	FocusCameraOnObject();
 
-	bModelCamera = NewValue;
+	bArcBallCamera = NewValue;
 }
