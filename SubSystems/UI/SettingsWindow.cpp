@@ -505,7 +505,7 @@ void SettingsWindow::SwitchCameraMode(bool bArcBallCamera, glm::vec3 ArcBallCame
 		if (CameraPrefab.empty())
 			return;
 
-		std::vector<std::string> EntitiesIDList = CameraPrefab[0]->GetScene()->GetEntityIDList();
+		std::vector<FEUUID> EntitiesIDList = CameraPrefab[0]->GetScene()->GetEntityIDList();
 		if (EntitiesIDList.empty())
 			return;
 
@@ -517,9 +517,9 @@ void SettingsWindow::SwitchCameraMode(bool bArcBallCamera, glm::vec3 ArcBallCame
 
 			if (CurrentEntity->HasComponent<FECameraComponent>() && CurrentEntity->HasComponent<FENativeScriptComponent>())
 			{
-				const std::string ArcBallCameraModuleID = "4A7C82E16F9013ABEDC05324";
+				const FEUUID ArcBallCameraModuleID = UNIQUE_ID.FromString("a3dd9769-5a74-54d1-bfe1-e1bdfefeba6c");
 
-				const std::vector<std::string> ActiveModuleIDs = NATIVE_SCRIPT_SYSTEM.GetActiveModuleIDList();
+				const std::vector<FEUUID> ActiveModuleIDs = NATIVE_SCRIPT_SYSTEM.GetActiveModuleIDList();
 				bool bModuleAlreadyActive = false;
 				for (size_t ActiveIndex = 0; ActiveIndex < ActiveModuleIDs.size(); ActiveIndex++)
 				{
@@ -555,7 +555,7 @@ void SettingsWindow::SwitchCameraMode(bool bArcBallCamera, glm::vec3 ArcBallCame
 		if (CameraPrefab.empty())
 			return;
 
-		std::vector<std::string> EntitiesIDList = CameraPrefab[0]->GetScene()->GetEntityIDList();
+		std::vector<FEUUID> EntitiesIDList = CameraPrefab[0]->GetScene()->GetEntityIDList();
 		if (EntitiesIDList.empty())
 			return;
 

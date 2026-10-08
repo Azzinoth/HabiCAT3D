@@ -391,7 +391,7 @@ FEEntity* VolumetricReconstruction::CreatePointCloudFromExternalDepthMap(FEEntit
 			std::vector<FEPointCloudVertex> AccumulatedPoints = OldPointCloud->GetRawData();
 			AccumulatedPoints.insert(AccumulatedPoints.end(), Points.begin(), Points.end());
 
-			FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(AccumulatedPoints, Name, "", false, true);
+			FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(AccumulatedPoints, Name, FEUUID(), false, true);
 			PointCloudComponent.SetPointCloud(NewPointCloud);
 
 			RESOURCE_MANAGER.DeleteFEPointCloud(OldPointCloud);
@@ -401,7 +401,7 @@ FEEntity* VolumetricReconstruction::CreatePointCloudFromExternalDepthMap(FEEntit
 		}
 	}
 
-	FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(Points, Name, "", false, true);
+	FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(Points, Name, FEUUID(), false, true);
 	EntityToReturn = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity(Name);
 	EntityToReturn->AddComponent<FEPointCloudComponent>(NewPointCloud);
 
@@ -440,7 +440,7 @@ void VolumetricReconstruction::RenderUI()
 						MaterialFor3DTextures->SetMaterialType(FEMaterialType::Volumetric);
 						MaterialFor3DTextures->SetBlendMode(FEMaterialBlendMode::Additive);
 						MaterialFor3DTextures->SetShader(VOLUME_SYSTEM.GetVolumetricShaders()[0]);
-						MaterialFor3DTextures->SetTextureOverride("VolumeTexture", VolumeTexture->GetObjectID());
+						MaterialFor3DTextures->SetTextureOverride("VolumeTexture", VolumeTexture->GetID());
 
 						FEVolumeComponent& VolumeComponent = VolumetricEntity->GetComponent<FEVolumeComponent>();
 						VolumeComponent.SetMaterial(MaterialFor3DTextures);
@@ -454,7 +454,7 @@ void VolumetricReconstruction::RenderUI()
 				ImGui::SeparatorText("Volumetric Entity Transform");
 
 				FETransformComponent& VolumeTransform = VolumetricEntity->GetComponent<FETransformComponent>();
-				UI_CORE.ShowTransformConfiguration(VolumetricEntity->GetObjectID(), &VolumeTransform);
+				UI_CORE.ShowTransformConfiguration(UNIQUE_ID.ToString(VolumetricEntity->GetID()), &VolumeTransform);
 			}
 
 			// TEMP / DEBUG: volumetric shader-parameter and transfer-function editor,
@@ -725,7 +725,7 @@ void VolumetricReconstruction::RenderUI()
 
 				if (ImGui::Button("Delete created point cloud"))
 				{
-					MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(LastCreatedEntity->GetObjectID());
+					MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(LastCreatedEntity->GetID());
 					LastCreatedEntity = nullptr;
 				}
 			}

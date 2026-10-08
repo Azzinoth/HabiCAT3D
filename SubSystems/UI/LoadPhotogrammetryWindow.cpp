@@ -74,7 +74,7 @@ void LoadPhotogrammetryWindow::Render()
 			ImGui::SetCursorPosY(CurrentWinowSize.y - 28.0f);
 			if (ImGui::Button("Load", ImVec2(120, 0)))
 			{
-				std::string ObjectID = ActiveObject->GetID();
+				FEUUID ObjectID = ActiveObject->GetID();
 				std::string FolderPathToLoad = FolderPath;
 				COLMAPFoundData DataToLoad = FoundData;
 				WAIT_MODAL_POPUP.OpenPopup("Loading Photogrammetry", "Please wait while the photogrammetry project is being loaded...", [ObjectID, FolderPathToLoad, DataToLoad]() mutable {

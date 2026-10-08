@@ -2,7 +2,7 @@
 using namespace FocalEngine;
 
 // DO NOT CHANGE THIS LINE.
-SET_MODULE_ID("4A7C82E16F9013ABEDC05324");
+SET_MODULE_ID("a3dd9769-5a74-54d1-bfe1-e1bdfefeba6c");
 
 class ArcBallCameraController : public FENativeScriptCore
 {

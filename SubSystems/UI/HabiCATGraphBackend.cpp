@@ -12,7 +12,7 @@ bool HabiCATGraphBackend::IsReady() const
     return Graph != nullptr;
 }
 
-void HabiCATGraphBackend::SetSceneID(std::string NewSceneID)
+void HabiCATGraphBackend::SetSceneID(FEUUID NewSceneID)
 {
     SceneID = NewSceneID;
     Graph = &SCENE_MANAGER.GetSceneByID(SceneID)->SceneGraph;
@@ -37,7 +37,7 @@ SceneGraphUI::NodeHandle HabiCATGraphBackend::GetParent(SceneGraphUI::NodeHandle
     return { Node.As<FENaiveSceneGraphNode>()->GetParent(), this };
 }
 
-SceneGraphUI::NodeHandle HabiCATGraphBackend::GetNodeByID(const std::string& ID)
+SceneGraphUI::NodeHandle HabiCATGraphBackend::GetNodeByID(const FEUUID& ID)
 {
     FEScene* Scene = SCENE_MANAGER.GetSceneByID(SceneID);
     if (Scene == nullptr)
@@ -46,9 +46,9 @@ SceneGraphUI::NodeHandle HabiCATGraphBackend::GetNodeByID(const std::string& ID)
     return { Scene->SceneGraph.GetNodeByID(ID), this };
 }
 
-std::string HabiCATGraphBackend::GetNodeID(SceneGraphUI::NodeHandle Node)
+FEUUID HabiCATGraphBackend::GetNodeID(SceneGraphUI::NodeHandle Node)
 {
-    return Node.As<FENaiveSceneGraphNode>()->GetObjectID();
+    return Node.As<FENaiveSceneGraphNode>()->GetID();
 }
 
 std::string HabiCATGraphBackend::GetNodeName(SceneGraphUI::NodeHandle Node)
@@ -64,7 +64,7 @@ std::string HabiCATGraphBackend::GetNodeName(SceneGraphUI::NodeHandle Node)
     std::string EntityName = Entity->GetName();
     if (Depth == ANALISYS_OBJECTS_DEPTH)
     {
-        AnalysisObject* CurrentAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(Entity->GetObjectID());
+        AnalysisObject* CurrentAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(Entity->GetID());
         if (CurrentAnalysisObject != nullptr)
             DisplayedName = CurrentAnalysisObject->GetName();
     }

@@ -13,7 +13,7 @@ COLMAPDataManager::COLMAPDataManager()
 	ImagesInstancedMaterial = RESOURCE_MANAGER.CreateMaterial("ImagesInstancedMaterial");
 	ImagesInstancedMaterial->Shader = ImagesInstancedShader;
 
-	FEMesh* PlaneMesh = RESOURCE_MANAGER.GetMesh("1Y251E6E6T78013635793156"/*"plane"*/);
+	FEMesh* PlaneMesh = RESOURCE_MANAGER.GetMesh(FEEngineResourceIDs::PlaneMesh);
 	ImagesInstancedGameModel = RESOURCE_MANAGER.CreateGameModel(PlaneMesh, ImagesInstancedMaterial);
 
 	APPLICATION.GetMainWindow()->AddOnMouseButtonCallback(COLMAPDataManager::MouseButtonCallback);
@@ -29,7 +29,7 @@ bool COLMAPDataManager::CreateVisualsForNewProject(COLMAPProject* NewProject)
 	if (NewProject->GetPhotogrammetryAnchorEntity() == nullptr)
 	{
 		FEEntity* NewAnchor = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("COLMAPImagesAnchor");
-		NewProject->PhotogrammetryAnchorID = NewAnchor->GetObjectID();
+		NewProject->PhotogrammetryAnchorID = NewAnchor->GetID();
 		FEEntity* MainEntity = MAIN_SCENE_MANAGER.GetMainScene()->GetEntity(NewProject->ParentAnalysisObjectID);
 		NewAnchor->AttachTo(MainEntity, false);
 	}
@@ -50,7 +50,7 @@ bool COLMAPDataManager::CreateVisualsForNewProject(COLMAPProject* NewProject)
 	return true;
 }
 
-COLMAPProject* COLMAPDataManager::CreateNewProject(std::string& ParentAnalysisObjectID, std::string& FolderPath, COLMAPFoundData WhatToLoad)
+COLMAPProject* COLMAPDataManager::CreateNewProject(const FEUUID& ParentAnalysisObjectID, std::string& FolderPath, COLMAPFoundData WhatToLoad)
 {
 	COLMAPProject* Result = nullptr;
 
@@ -96,7 +96,7 @@ COLMAPProject* COLMAPDataManager::CreateNewProject(std::string& ParentAnalysisOb
 	return Result;
 }
 
-COLMAPProject* COLMAPDataManager::GetProjectByID(const std::string& ProjectID)
+COLMAPProject* COLMAPDataManager::GetProjectByID(const FEUUID& ProjectID)
 {
 	if (Projects.find(ProjectID) == Projects.end())
 		return nullptr;
@@ -104,7 +104,7 @@ COLMAPProject* COLMAPDataManager::GetProjectByID(const std::string& ProjectID)
 	return Projects[ProjectID];
 }
 
-bool COLMAPDataManager::DeleteProject(const std::string& ProjectID)
+bool COLMAPDataManager::DeleteProject(const FEUUID& ProjectID)
 {
 	COLMAPProject* ProjectToDelete = GetProjectByID(ProjectID);
 	if (ProjectToDelete == nullptr)
@@ -115,16 +115,16 @@ bool COLMAPDataManager::DeleteProject(const std::string& ProjectID)
 	return true;
 }
 
-std::vector<std::string> COLMAPDataManager::GetProjectsIDList() const
+std::vector<FEUUID> COLMAPDataManager::GetProjectsIDList() const
 {
-	std::vector<std::string> Result;
+	std::vector<FEUUID> Result;
 	for (const auto& CurrentProject : Projects)
 		Result.push_back(CurrentProject.first);
 
 	return Result;
 }
 
-COLMAPProject* COLMAPDataManager::GetProjectByAnalysisObjectID(const std::string& AnalysisObjectID)
+COLMAPProject* COLMAPDataManager::GetProjectByAnalysisObjectID(const FEUUID& AnalysisObjectID)
 {
 	for (const auto& CurrentProject : Projects)
 	{
@@ -135,7 +135,7 @@ COLMAPProject* COLMAPDataManager::GetProjectByAnalysisObjectID(const std::string
 	return nullptr;
 }
 
-COLMAPProject* COLMAPDataManager::GetProjectByEntityID(const std::string& EntityID)
+COLMAPProject* COLMAPDataManager::GetProjectByEntityID(const FEUUID& EntityID)
 {
 	// FE_TO_DO: Using slow linear search for now, optimize later if needed.
 	for (const auto& CurrentProject : Projects)

@@ -3,14 +3,14 @@ using namespace FocalEngine;
 
 COLMAPPhysicalCamera::COLMAPPhysicalCamera()
 {
-	ID = APPLICATION.GetUniqueHexID();
+	ID = UNIQUE_ID.GenerateID();
 	Width = 0;
 	Height = 0;
 }
 
 COLMAPPhysicalCamera::~COLMAPPhysicalCamera() {}
 
-std::string COLMAPPhysicalCamera::GetID() const
+FEUUID COLMAPPhysicalCamera::GetID() const
 {
 	return ID;
 }

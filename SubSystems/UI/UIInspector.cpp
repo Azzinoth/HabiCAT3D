@@ -85,7 +85,7 @@ void UIInspector::OnSelectedImageChangedCallback(COLMAPProject* Project, int Ima
 		return;
 
 	FEScene* Scene = MAIN_SCENE_MANAGER.GetMainScene();
-	FENaiveSceneGraphNode* ImageInstancedSceneNode = Scene->SceneGraph.GetNodeByEntityID(ImageEntity->GetObjectID());
+	FENaiveSceneGraphNode* ImageInstancedSceneNode = Scene->SceneGraph.GetNodeByEntityID(ImageEntity->GetID());
 
 	OBJECT_VIEWER_WINDOW.SetNodeSelected(ImageInstancedSceneNode, true);
 }
@@ -105,7 +105,7 @@ void UIInspector::RenderSelectedObjectTab()
 		return;
 	}
 
-	AnalysisObject* SelectedAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(SelectedEntity->GetObjectID());
+	AnalysisObject* SelectedAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(SelectedEntity->GetID());
 	COLMAPProject* CurrentCOLMAPProject = nullptr;
 	if (SelectedAnalysisObject != nullptr)
 	{
@@ -113,10 +113,10 @@ void UIInspector::RenderSelectedObjectTab()
 	}
 	else
 	{
-		CurrentCOLMAPProject = COLMAP_DATA_MANAGER.GetProjectByEntityID(SelectedEntity->GetObjectID());
+		CurrentCOLMAPProject = COLMAP_DATA_MANAGER.GetProjectByEntityID(SelectedEntity->GetID());
 	}
 
-	AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByEntityID(SelectedEntity->GetObjectID());
+	AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByEntityID(SelectedEntity->GetID());
 
 	std::string SelectedObjectType = "Unknown";
 	if (SelectedAnalysisObject != nullptr)
@@ -307,7 +307,7 @@ void UIInspector::RenderSelectedObjectTab()
 					{
 						ANNOTATION_MANAGER.InitializeReadAnnotationDataFromShapeFile(ShapeFilePath, ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject());
 
-						FENaiveSceneGraphNode* AnnotationSceneNode = MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetNodeByEntityID(SelectedEntity->GetObjectID());
+						FENaiveSceneGraphNode* AnnotationSceneNode = MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetNodeByEntityID(SelectedEntity->GetID());
 						OBJECT_VIEWER_WINDOW.ExpandToNode(AnnotationSceneNode);
 						OBJECT_VIEWER_WINDOW.SetNodeSelected(AnnotationSceneNode, true);
 					}
@@ -335,7 +335,7 @@ void UIInspector::RenderSelectedObjectTab()
 		FETransformComponent& TransformComponent = SelectedEntity->GetComponent<FETransformComponent>();
 		if (ImGui::TreeNodeEx("Selected Object Transform", TreeFlags))
 		{
-			UI_CORE.ShowTransformConfiguration(SelectedEntity->GetObjectID(), &TransformComponent);
+			UI_CORE.ShowTransformConfiguration(UNIQUE_ID.ToString(SelectedEntity->GetID()), &TransformComponent);
 
 			ImGui::TreePop();
 		}
@@ -348,7 +348,7 @@ void UIInspector::AddAnnotationToCurrentObject()
 	if (SelectedEntity == nullptr)
 		return;
 
-	AnalysisObject* SelectedAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(SelectedEntity->GetObjectID());
+	AnalysisObject* SelectedAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(SelectedEntity->GetID());
 	if (SelectedAnalysisObject == nullptr)
 		return;
 
@@ -357,7 +357,7 @@ void UIInspector::AddAnnotationToCurrentObject()
 	AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(SelectedAnalysisObject->GetID());
 	FEEntity* AnnotationEntity = CurrentAnnotationData->GetEntity();
 
-	FENaiveSceneGraphNode* AnnotationSceneNode = MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetNodeByEntityID(AnnotationEntity->GetObjectID());
+	FENaiveSceneGraphNode* AnnotationSceneNode = MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetNodeByEntityID(AnnotationEntity->GetID());
 	OBJECT_VIEWER_WINDOW.ExpandToNode(AnnotationSceneNode);
 	OBJECT_VIEWER_WINDOW.SetNodeSelected(AnnotationSceneNode, true);
 }
@@ -856,7 +856,7 @@ void UIInspector::RenderLayerTab()
 		ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0.0f);
 		if (ImGui::TreeNodeEx("General Info", TreeFlags))
 		{
-			ImGui::Text((std::string("ID: ") + ActiveLayer->GetID()).c_str());
+			ImGui::Text((std::string("ID: ") + UNIQUE_ID.ToString(ActiveLayer->GetID())).c_str());
 			static char CurrentLayerCaption[1024];
 			strcpy_s(CurrentLayerCaption, ActiveLayer->GetCaption().c_str());
 			ImGui::Text("Caption: ");
@@ -1086,8 +1086,8 @@ void UIInspector::OnObjectLoad(AnalysisObject* NewObject)
 	if (NewActiveEntity != nullptr)
 	{
 		FEScene* Scene = MAIN_SCENE_MANAGER.GetMainScene();
-		FENaiveSceneGraphNode* Node = Scene->SceneGraph.GetNodeByEntityID(NewActiveEntity->GetObjectID());
-		OBJECT_VIEWER_WINDOW.SetNodeSelected(Scene->SceneGraph.GetNodeByEntityID(NewActiveEntity->GetObjectID()), true);
+		FENaiveSceneGraphNode* Node = Scene->SceneGraph.GetNodeByEntityID(NewActiveEntity->GetID());
+		OBJECT_VIEWER_WINDOW.SetNodeSelected(Scene->SceneGraph.GetNodeByEntityID(NewActiveEntity->GetID()), true);
 	}
 }
 

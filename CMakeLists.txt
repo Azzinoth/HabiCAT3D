@@ -47,9 +47,9 @@ configure_file(${ENGINE_FOLDER}/ResourceManager/Config.h.in ${ENGINE_FOLDER}/Res
 if(USE_STATIC_RUNTIME)
     # Add standard FocalEngine native scripts
     # TODO: This should be done in the FocalEngine project, or make it simpler to add it user projects
-    file(GLOB Unpacked_NativeScript_2B7956623302254F620A675F_SRC
-	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/2B7956623302254F620A675F/FirstScript.h"
-	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/2B7956623302254F620A675F/FirstScript.cpp"
+    file(GLOB Unpacked_NativeScript_e1ff1a0e-000b-5f87-9b08-dcec07635c17_SRC
+	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/e1ff1a0e-000b-5f87-9b08-dcec07635c17/FirstScript.h"
+	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/e1ff1a0e-000b-5f87-9b08-dcec07635c17/FirstScript.cpp"
     )
 
     file(GLOB HabiCATNativeScripts_ArcBall_SRC
@@ -241,7 +241,7 @@ set(EXTRACTED_NATIVE_SCRIPTS "")
 set(APP_NATIVE_SCRIPTS_SRC "")
 if(USE_STATIC_RUNTIME)
 	list(APPEND EXTRACTED_NATIVE_SCRIPTS
-		${Unpacked_NativeScript_2B7956623302254F620A675F_SRC}
+		${Unpacked_NativeScript_e1ff1a0e-000b-5f87-9b08-dcec07635c17_SRC}
 	)
 
 	list(APPEND APP_NATIVE_SCRIPTS_SRC
@@ -280,6 +280,7 @@ add_executable(HabiCAT3D WIN32
 
 target_link_libraries(HabiCAT3D
 	PRIVATE
+		FEBasicApplication
 		FocalEngine
 		FESceneGraphUI
 		FocalEngine::GTest
@@ -290,7 +291,7 @@ target_link_libraries(HabiCAT3D
 
 source_group("Source Files" FILES ${MAIN_SOURCE_FILES})
 if(USE_STATIC_RUNTIME)
-	source_group("Source Files/FocalEngine/2B7956623302254F620A675F" FILES ${EXTRACTED_NATIVE_SCRIPTS})
+	source_group("Source Files/FocalEngine/e1ff1a0e-000b-5f87-9b08-dcec07635c17" FILES ${EXTRACTED_NATIVE_SCRIPTS})
 	source_group("Source Files/SubSystems/NativeScripts" FILES ${APP_NATIVE_SCRIPTS_SRC})
 endif()
 # *************** SUB_SYSTEM ***************

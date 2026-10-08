@@ -132,9 +132,9 @@ DataLayer* CompareLayerProducer::Calculate(DataLayer* FirstLayer, DataLayer* Sec
 	std::string TemporaryString = bNormalize ? "Yes" : "No";
 	NewLayer->DebugInfo->AddEntry("Normalized", TemporaryString);
 
-	NewLayer->DebugInfo->AddEntry("First layer ID", FirstLayer->GetID());
+	NewLayer->DebugInfo->AddEntry("First layer ID", UNIQUE_ID.ToString(FirstLayer->GetID()));
 	NewLayer->DebugInfo->AddEntry("First layer caption", FirstLayer->GetCaption());
-	NewLayer->DebugInfo->AddEntry("Second layer ID", SecondLayer->GetID());
+	NewLayer->DebugInfo->AddEntry("Second layer ID", UNIQUE_ID.ToString(SecondLayer->GetID()));
 	NewLayer->DebugInfo->AddEntry("Second layer caption", SecondLayer->GetCaption());
 
 	return NewLayer;

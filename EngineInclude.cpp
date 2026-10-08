@@ -3,10 +3,10 @@ using namespace FocalEngine;
 
 MainSceneManager::MainSceneManager()
 {
-	MainScene = SCENE_MANAGER.CreateScene("Main scene", "", FESceneFlag::Active | FESceneFlag::Renderable | FESceneFlag::GameMode);
+	MainScene = SCENE_MANAGER.CreateScene("Main scene", FEUUID(), FESceneFlag::Active | FESceneFlag::Renderable | FESceneFlag::GameMode);
 	MainCamera = MainScene->CreateEntity("Main camera");
 
-	FEPrefab* ModelViewCameraPrefab = RESOURCE_MANAGER.GetPrefab("14745A482D1B2C328C268027");
+	FEPrefab* ModelViewCameraPrefab = RESOURCE_MANAGER.GetPrefab(FEEngineResourceIDs::ModelViewCameraPrefab);
 	std::vector<FEEntity*> AddedEntities = SCENE_MANAGER.InstantiatePrefab(ModelViewCameraPrefab, MainScene, true);
 	MainCamera = AddedEntities[0];
 	CAMERA_SYSTEM.SetMainCamera(MainCamera);

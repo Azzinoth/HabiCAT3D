@@ -657,7 +657,7 @@ void RugosityLayerProducer::OnJitterCalculationsEnd(DataLayer* NewLayer)
 		DebugInfo->Type = "RugosityStandardDeviationLayerDebugInfo";
 		DebugInfo->AddEntry("Start time", StartTime);
 		DebugInfo->AddEntry("End time", TIME.GetTimeStamp(FE_TIME_RESOLUTION_NANOSECONDS));
-		DebugInfo->AddEntry("Source layer ID", CurrentObject->Layers.back()->GetID());
+		DebugInfo->AddEntry("Source layer ID", UNIQUE_ID.ToString(CurrentObject->Layers.back()->GetID()));
 		DebugInfo->AddEntry("Source layer caption", CurrentObject->Layers.back()->GetCaption());
 
 		CurrentObject->AddLayer(StandardDeviationLayer);

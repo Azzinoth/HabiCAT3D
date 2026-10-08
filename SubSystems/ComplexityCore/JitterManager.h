@@ -505,7 +505,7 @@ private:
 	std::vector<std::string> JitterVectorSetNames;
 	std::string CurrentJitterVectorSetName = "55";
 
-	std::unordered_map<std::string, PerAnalysisObjectJitterData> PerObjectData;
+	std::unordered_map<FEUUID, PerAnalysisObjectJitterData> PerObjectData;
 
 	float ShiftX = 0.0f;
 	float ShiftY = 0.0f;

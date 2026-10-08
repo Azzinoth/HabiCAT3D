@@ -25,7 +25,7 @@ class ConsoleJobManager;
 class ConsoleJob
 {
 	friend ConsoleJobManager;
-	std::string ID;
+	FEUUID ID;
 protected:
 	std::string Type;
 
@@ -37,5 +37,5 @@ protected:
 
 	static void OutputConsoleTextWithColor(std::string Text, int R, int G, int B);
 public:
-	std::string GetID();
+	FEUUID GetID();
 };

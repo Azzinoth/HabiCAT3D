@@ -223,7 +223,7 @@ void MeasurementGrid::FillCellsWithTriangleInfo()
 			NumberOfTrianglesPerThread = static_cast<int>(CurrentMeshAnalysisData->Triangles.size());
 		}
 
-		std::vector<std::string> ThreadIDs;
+		std::vector<FEUUID> ThreadIDs;
 		std::vector<GridThreadData*> ThreadData;
 		std::vector<std::vector<GridUpdateTask>*> AllOutputTasks;
 
@@ -448,7 +448,7 @@ void MeasurementGrid::FillCellsWithPointInfo()
 			NumberOfPointsPerThread = static_cast<int>(CurrentPointCloudAnalysisData->RawPointCloudData.size());
 		}
 
-		std::vector<std::string> ThreadIDs;
+		std::vector<FEUUID> ThreadIDs;
 		std::vector<GridThreadData*> ThreadData;
 		std::vector<std::vector<GridUpdateTask>*> AllOutputTasks;
 

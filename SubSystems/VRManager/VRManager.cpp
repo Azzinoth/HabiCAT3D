@@ -44,11 +44,11 @@ void VRManager::Initialize()
 	FEOpenXR_INPUT.SetLeftViveMenuClickCallBack(&VRManager::OnLeftViveMenuClick);
 
 	// Cylinder
-	FEMesh* CylinderMesh = RESOURCE_MANAGER.GetMesh("583C221E48395B72517E4037");
+	FEMesh* CylinderMesh = RESOURCE_MANAGER.GetMesh(UNIQUE_ID.ConvertLegacyHexID("583C221E48395B72517E4037"));
 	if (CylinderMesh == nullptr)
 		CylinderMesh = RESOURCE_MANAGER.LoadFEMesh("Resources//Cylinder.model");
 
-	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
+	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader(FEEngineResourceIDs::SolidColorShader);
 	// FIX ME: Work of this shader is not correct.
 	SolidColorShader->UpdateUniformData("BrightnessFactor", 1.0f);
 
@@ -459,7 +459,7 @@ void VRManager::InitializeSphereCursor()
 	SphereCursorMeshes[1] = SphereCursorMeshes[0];
 	SphereCursorMeshes[2] = SphereCursorMeshes[1];
 
-	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
+	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader(FEEngineResourceIDs::SolidColorShader);
 	if (SphereCursorMaterial == nullptr)
 	{
 		SphereCursorMaterial = RESOURCE_MANAGER.CreateMaterial();

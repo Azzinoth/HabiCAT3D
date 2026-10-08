@@ -46,7 +46,7 @@ bool ObjectViewerWindow::ShouldRenderNode(SceneGraphUI::NodeHandle SubTreeRoot)
 
 	if (Depth == ANALISYS_OBJECTS_DEPTH)
 	{
-		AnalysisObject* CurrentAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+		AnalysisObject* CurrentAnalysisObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetID());
 		if (CurrentAnalysisObject == nullptr)
 			return false;
 	}
@@ -84,7 +84,7 @@ ImTextureID ObjectViewerWindow::NodeIcon(SceneGraphUI::NodeHandle Node)
 	if (CurrentEntity == nullptr)
 		return 0;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetID());
 	if (CurrentObject == nullptr)
 		return 0;
 
@@ -101,7 +101,7 @@ void ObjectViewerWindow::OnDoubleClickNode(SceneGraphUI::NodeHandle Node, ImGuiM
 	if (CurrentEntity == nullptr)
 		return;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetID());
 	if (CurrentObject == nullptr)
 		return;
 
@@ -114,7 +114,7 @@ AnalysisObject* GetAnalysisObjectFromNode(FENaiveSceneGraphNode* Node)
 	if (CurrentEntity == nullptr)
 		return nullptr;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetID());
 	if (CurrentObject != nullptr)
 		return CurrentObject;
 
@@ -125,7 +125,7 @@ AnalysisObject* GetAnalysisObjectFromNode(FENaiveSceneGraphNode* Node)
 		CurrentEntity = CurrentNode->GetEntity();
 		if (CurrentEntity != nullptr)
 		{
-			CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+			CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetID());
 			if (CurrentObject != nullptr)
 				return CurrentObject;
 		}
@@ -151,7 +151,7 @@ void ObjectViewerWindow::OnNodeClicked(SceneGraphUI::NodeHandle Node, ImGuiMouse
 		SetActiveAnalysisObjectWithWaitPopup(CurrentObject->GetID());
 }
 
-void ObjectViewerWindow::SetActiveAnalysisObjectWithWaitPopup(std::string ObjectID)
+void ObjectViewerWindow::SetActiveAnalysisObjectWithWaitPopup(FEUUID ObjectID)
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject != nullptr && ActiveObject->GetID() == ObjectID)
@@ -169,7 +169,7 @@ void ObjectViewerWindow::OnNodeSelectionChanged(SceneGraphUI::NodeHandle Node, b
 	if (CurrentEntity == nullptr)
 		return;
 
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetID());
 	if (CurrentObject == nullptr)
 	{
 
@@ -210,14 +210,14 @@ void ObjectViewerWindow::Render()
 			if (CurrentEntity == nullptr)
 				return;
 
-			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+			AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetID());
 			if (CurrentObject != nullptr)
 			{
 				ANALYSIS_OBJECT_MANAGER.DeleteAnalysisObject(CurrentObject->GetID());
 				return;
 			}
 
-			AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByEntityID(CurrentEntity->GetObjectID());
+			AnnotationData* CurrentAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByEntityID(CurrentEntity->GetID());
 			if (CurrentAnnotationData != nullptr)
 			{
 				AnalysisObject* AnnotatedObject = CurrentAnnotationData->GetAnalysisObject();
@@ -264,7 +264,7 @@ void ObjectViewerWindow::Render()
 		ImVec2 CurrentWindowPosition = ImGui::GetWindowPos();
 		ImVec2 CurrentWindowSize = ImGui::GetWindowSize();
 
-		GraphBackend->SetSceneID(MAIN_SCENE_MANAGER.GetMainScene()->GetObjectID());
+		GraphBackend->SetSceneID(MAIN_SCENE_MANAGER.GetMainScene()->GetID());
 		SceneGraphUI->Render(SceneGraphUI::NodeHandle(MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetRoot(), GraphBackend), false);
 	}
 
@@ -274,7 +274,7 @@ void ObjectViewerWindow::Render()
 
 FEEntity* ObjectViewerWindow::GetSelectedEntity()
 {
-	std::vector<std::string> SelectedNodes = SceneGraphUI->GetSelectedNodeIDs();
+	std::vector<FEUUID> SelectedNodes = SceneGraphUI->GetSelectedNodeIDs();
 	// Although SceneGraphUI support multiple selection, we use default single selection mode.
 	if (SelectedNodes.empty())
 		return nullptr;

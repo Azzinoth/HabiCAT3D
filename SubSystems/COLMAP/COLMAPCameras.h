@@ -11,14 +11,14 @@ private:
 	COLMAPPhysicalCamera();
 	~COLMAPPhysicalCamera();
 
-	std::string ID;
+	FEUUID ID;
 	std::string Model;
 	int Width, Height;
 	std::vector<double> Parameters;
 
-	std::string SceneEntityID = "";
+	FEUUID SceneEntityID;
 public:
-	std::string GetID() const;
+	FEUUID GetID() const;
 	std::string GetModel() const;
 	int GetWidth() const;
 	int GetHeight() const;

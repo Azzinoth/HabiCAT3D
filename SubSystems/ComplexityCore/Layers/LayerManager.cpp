@@ -4,7 +4,7 @@ using namespace FocalEngine;
 
 LayerEvent::LayerEvent() {}
 
-LayerEvent::LayerEvent(LAYER_EVENT_TYPE Type, std::string ParentObjectID, std::string PrimaryLayerID, std::vector<std::string> OtherLayerIDs)
+LayerEvent::LayerEvent(LAYER_EVENT_TYPE Type, FEUUID ParentObjectID, FEUUID PrimaryLayerID, std::vector<FEUUID> OtherLayerIDs)
 {
 	this->Type = Type;
 	this->ParentObjectID = ParentObjectID;
@@ -135,9 +135,9 @@ void LayerManager::PropagateLayerEvent(LayerEvent Event)
 
 	if (Event.Type == LAYER_EVENT_TYPE::LAYER_ACTIVE_ID_CHANGED)
 	{
-		if (Event.PrimaryLayerID == "")
+		if (UNIQUE_ID.IsNull(Event.PrimaryLayerID))
 		{
-			if (Event.PrimaryLayerID == "" && !Event.OtherLayerIDs.empty() && Event.OtherLayerIDs[0] != "")
+			if (UNIQUE_ID.IsNull(Event.PrimaryLayerID) && !Event.OtherLayerIDs.empty() && !UNIQUE_ID.IsNull(Event.OtherLayerIDs[0]))
 			{
 				// FIX ME: Is it good idea to reset the colors here?
 				if (ActiveObject->GetType() == DATA_SOURCE_TYPE::POINT_CLOUD)

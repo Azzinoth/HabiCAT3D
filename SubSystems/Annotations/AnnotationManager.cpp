@@ -9,7 +9,7 @@ glm::vec4 AnnotationInfo::GetColor() const
 	return Color;
 }
 
-AnnotationData::AnnotationData(std::string AnalysisObjectID)
+AnnotationData::AnnotationData(FEUUID AnalysisObjectID)
 {
 	this->AnalysisObjectID = AnalysisObjectID;
 
@@ -317,7 +317,7 @@ void AnnotationManager::NotifyAnnotationColorChanged(AnnotationData* Data, int A
 	}
 }
 
-bool AnnotationManager::AddAnnotationToAnalysisObject(std::string AnalysisObjectID)
+bool AnnotationManager::AddAnnotationToAnalysisObject(FEUUID AnalysisObjectID)
 {
 	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(AnalysisObjectID);
 	if (CurrentObject == nullptr)
@@ -333,7 +333,7 @@ bool AnnotationManager::AddAnnotationToAnalysisObject(std::string AnalysisObject
 	if (Entity != nullptr)
 	{
 		FEEntity* AnnotationEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("AnnotationEntity_" + CurrentObject->GetName());
-		CurrentAnnotationData->EntityID = AnnotationEntity->GetObjectID();
+		CurrentAnnotationData->EntityID = AnnotationEntity->GetID();
 		AnnotationEntity->AttachTo(Entity, false);
 
 		RENDERER.AddBeforeRenderCallback(Entity, AnnotationManager::BeforeRender);
@@ -344,7 +344,7 @@ bool AnnotationManager::AddAnnotationToAnalysisObject(std::string AnalysisObject
 	return true;
 }
 
-bool AnnotationManager::RemoveAnnotationFromAnalysisObject(std::string AnalysisObjectID)
+bool AnnotationManager::RemoveAnnotationFromAnalysisObject(FEUUID AnalysisObjectID)
 {
 	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(AnalysisObjectID);
 	if (CurrentObject == nullptr)
@@ -378,7 +378,7 @@ void AnnotationManager::OnAnalysisObjectDelete(AnalysisObject* DeletedObject)
 	ANNOTATION_MANAGER.RemoveAnnotationFromAnalysisObject(DeletedObject->GetID());
 }
 
-AnnotationData* AnnotationManager::GetAnnotationDataByAnalysisObjectID(std::string AnalysisObjectID)
+AnnotationData* AnnotationManager::GetAnnotationDataByAnalysisObjectID(FEUUID AnalysisObjectID)
 {
 	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(AnalysisObjectID);
 	if (CurrentObject == nullptr)
@@ -390,7 +390,7 @@ AnnotationData* AnnotationManager::GetAnnotationDataByAnalysisObjectID(std::stri
 	return ANNOTATION_MANAGER.AnalisysObjectsToAnnotationData[CurrentObject->GetID()];
 }
 
-AnnotationData* AnnotationManager::GetAnnotationDataByEntityID(std::string EntityID)
+AnnotationData* AnnotationManager::GetAnnotationDataByEntityID(FEUUID EntityID)
 {
 	for (auto& MapRecord : ANNOTATION_MANAGER.AnalisysObjectsToAnnotationData)
 	{
@@ -403,7 +403,7 @@ AnnotationData* AnnotationManager::GetAnnotationDataByEntityID(std::string Entit
 
 void AnnotationManager::BeforeRender(FEEntity* CurrentEntity)
 {
-	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetObjectID());
+	AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByEntityID(CurrentEntity->GetID());
 	if (CurrentObject == nullptr)
 		return;
 
@@ -522,7 +522,7 @@ void AnnotationManager::UpdateBuffer(AnnotationData* Data)
 			// If it is still -1, it means that buffer initialization failed, so we should not try to update it.
 			if (Data->MeshBufferID == GLuint(-1))
 			{
-				LOG.Add("Failed to initialize annotation data buffer for analysis object with ID: " + Object->GetID(), "ANNOTATION_MANAGER", FE_LOG_ERROR);
+				LOG.Add("Failed to initialize annotation data buffer for analysis object with ID: " + UNIQUE_ID.ToString(Object->GetID()), "ANNOTATION_MANAGER", FE_LOG_ERROR);
 				return;
 			}
 		}
@@ -1263,7 +1263,7 @@ void AnnotationManager::Render()
 	{
 		// Temporary shape file data is kept alive, the deferred import consumes and clears it.
 		bImportPending = true;
-		std::string ObjectID = TargetObject->GetID();
+		FEUUID ObjectID = TargetObject->GetID();
 		WAIT_MODAL_POPUP.OpenPopup("Importing Annotations", "Please wait while annotations are being imported...", [this, ObjectID]() {
 			AnalysisObject* Object = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ObjectID);
 			if (Object != nullptr && TemporaryShapeFileData != nullptr)

@@ -40,7 +40,7 @@ void SceneWindow::Render()
 			FECameraComponent& CameraComponent = CameraEntity->GetComponent<FECameraComponent>();
 			if (CameraComponent.GetViewport() == nullptr || CameraComponent.GetViewport()->GetType() != FE_VIEWPORT_IMGUI_WINDOW)
 			{
-				std::string ViewportID = ENGINE.CreateViewport(ImGui::GetCurrentWindow());
+				FEUUID ViewportID = ENGINE.CreateViewport(ImGui::GetCurrentWindow());
 				CAMERA_SYSTEM.SetCameraViewport(CameraEntity, ViewportID);
 			}
 

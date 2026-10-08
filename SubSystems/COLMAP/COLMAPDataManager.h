@@ -16,7 +16,7 @@ class COLMAPDataManager
 	friend class COLMAPProject;
 	SINGLETON_PRIVATE_PART(COLMAPDataManager)
 
-	std::unordered_map<std::string, COLMAPProject*> Projects;
+	std::unordered_map<FEUUID, COLMAPProject*> Projects;
 	bool CreateVisualsForNewProject(COLMAPProject* NewProject);
 	void RegisterOnSelectedImageChanged(COLMAPProject* Project, int ImageID);
 	std::vector<std::function<void(COLMAPProject*, int)>> OnSelectedImageChangedCallbacks;
@@ -30,12 +30,12 @@ class COLMAPDataManager
 public:
 	SINGLETON_PUBLIC_PART(COLMAPDataManager)
 
-	COLMAPProject* CreateNewProject(std::string& ParentAnalysisObjectID, std::string& FolderPath, COLMAPFoundData WhatToLoad = {true, true, true, true});
-	COLMAPProject* GetProjectByID(const std::string& ProjectID);
-	COLMAPProject* GetProjectByAnalysisObjectID(const std::string& AnalysisObjectID);
-	COLMAPProject* GetProjectByEntityID(const std::string& EntityID);
-	bool DeleteProject(const std::string& ProjectID);
-	std::vector<std::string> GetProjectsIDList() const;
+	COLMAPProject* CreateNewProject(const FEUUID& ParentAnalysisObjectID, std::string& FolderPath, COLMAPFoundData WhatToLoad = {true, true, true, true});
+	COLMAPProject* GetProjectByID(const FEUUID& ProjectID);
+	COLMAPProject* GetProjectByAnalysisObjectID(const FEUUID& AnalysisObjectID);
+	COLMAPProject* GetProjectByEntityID(const FEUUID& EntityID);
+	bool DeleteProject(const FEUUID& ProjectID);
+	std::vector<FEUUID> GetProjectsIDList() const;
 	COLMAPFoundData FindCOLMAPDataInFolder(const std::string& FolderPath) const;
 
 	void AddOnSelectedImageChangedCallback(std::function<void(COLMAPProject*, int)> Callback);

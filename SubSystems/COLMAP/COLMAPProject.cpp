@@ -45,7 +45,7 @@ void COLMAPViewRenderSettings::SetAutoOpenResult(bool Value)
 
 COLMAPProject::COLMAPProject()
 {
-	ID = APPLICATION.GetUniqueHexID();
+	ID = UNIQUE_ID.GenerateID();
 	CurrentViewRenderSettings = new COLMAPViewRenderSettings();
 }
 
@@ -61,25 +61,25 @@ COLMAPProject::~COLMAPProject()
 	Images.clear();
 	TiePoints.clear();
 
-	if (!PhotogrammetryAnchorID.empty())
+	if (!UNIQUE_ID.IsNull(PhotogrammetryAnchorID))
 	{
 		MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(PhotogrammetryAnchorID);
-		PhotogrammetryAnchorID = "";
+		PhotogrammetryAnchorID = FEUUID();
 	}
 
-	if (!TiePointsEntityID.empty())
+	if (!UNIQUE_ID.IsNull(TiePointsEntityID))
 	{
 		MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(TiePointsEntityID);
-		TiePointsEntityID = "";
+		TiePointsEntityID = FEUUID();
 	}
 }
 
-std::string COLMAPProject::GetID() const
+FEUUID COLMAPProject::GetID() const
 {
 	return ID;
 }
 
-std::string COLMAPProject::GetParentAnalysisObjectID() const
+FEUUID COLMAPProject::GetParentAnalysisObjectID() const
 {
 	return ParentAnalysisObjectID;
 }
@@ -147,7 +147,7 @@ size_t COLMAPProject::GetPhysicalCameraCount() const
 	return PhysicalCameras.size();
 }
 
-COLMAPPhysicalCamera* COLMAPProject::GetPhysicalCamera(std::string ID)
+COLMAPPhysicalCamera* COLMAPProject::GetPhysicalCamera(FEUUID ID)
 {
 	if (PhysicalCameras.find(ID) == PhysicalCameras.end())
 		return nullptr;
@@ -155,9 +155,9 @@ COLMAPPhysicalCamera* COLMAPProject::GetPhysicalCamera(std::string ID)
 	return PhysicalCameras[ID];
 }
 
-std::vector<std::string> COLMAPProject::GetPhysicalCamerasIDList() const
+std::vector<FEUUID> COLMAPProject::GetPhysicalCamerasIDList() const
 {
-	std::vector<std::string> Result;
+	std::vector<FEUUID> Result;
 	for (const auto& CurrentCamera : PhysicalCameras)
 		Result.push_back(CurrentCamera.first);
 
@@ -169,7 +169,7 @@ size_t COLMAPProject::GetCameraCount() const
 	return Cameras.size();
 }
 
-bool COLMAPProject::CreateCameraSceneRepresentation(std::string CameraID)
+bool COLMAPProject::CreateCameraSceneRepresentation(FEUUID CameraID)
 {
 	COLMAPPhysicalCamera* PhysicalCamera = GetPhysicalCamera(CameraID);
 	if (PhysicalCamera == nullptr)
@@ -178,7 +178,7 @@ bool COLMAPProject::CreateCameraSceneRepresentation(std::string CameraID)
 	if (PhysicalCamera->GetSceneEntity() != nullptr)
 		return false;
 
-	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("COLMAPPhysicalCamera_" + PhysicalCamera->GetID());
+	FEEntity* CameraEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("COLMAPPhysicalCamera_" + UNIQUE_ID.ToString(PhysicalCamera->GetID()));
 	CameraEntity->AttachTo(GetPhotogrammetryAnchorEntity(), false);
 	CameraEntity->AddComponent<FECameraComponent>();
 	CAMERA_SYSTEM.SetCameraRenderingPipeline(CameraEntity, FERenderingPipeline::Forward_Simplified);
@@ -207,13 +207,13 @@ bool COLMAPProject::CreateCameraSceneRepresentation(std::string CameraID)
 	FELineCollection* LineCollection = RESOURCE_MANAGER.RawDataToFELineCollection(LinesToRender);
 
 	CameraLineComponent.SetLineCollection(LineCollection);
-	PhysicalCamera->SceneEntityID = CameraEntity->GetObjectID();
+	PhysicalCamera->SceneEntityID = CameraEntity->GetID();
 	CameraEntity->SetComponentVisible(ComponentVisibilityType::ALL, false);
-	
+
 	return true;
 }
 
-bool COLMAPProject::DeleteCameraSceneRepresentation(std::string CameraID)
+bool COLMAPProject::DeleteCameraSceneRepresentation(FEUUID CameraID)
 {
 	COLMAPPhysicalCamera* PhysicalCamera = GetPhysicalCamera(CameraID);
 	if (PhysicalCamera == nullptr)
@@ -223,12 +223,12 @@ bool COLMAPProject::DeleteCameraSceneRepresentation(std::string CameraID)
 	if (CameraEntity == nullptr)
 		return false;
 
-	MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(CameraEntity->GetObjectID());
-	PhysicalCamera->SceneEntityID = "";
+	MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(CameraEntity->GetID());
+	PhysicalCamera->SceneEntityID = FEUUID();
 	return true;
 }
 
-std::vector<int> COLMAPProject::GetCamerasWithPhysicalCameraID(const std::string& PhysicalCameraID) const
+std::vector<int> COLMAPProject::GetCamerasWithPhysicalCameraID(const FEUUID& PhysicalCameraID) const
 {
 	std::vector<int> Result;
 	for (const auto& CurrentCamera : Cameras)
@@ -443,12 +443,12 @@ bool COLMAPProject::RenderViewFromImage(int ImageID, bool bDepthMap, FE_DEPTH_EX
 	// We should hide current physical camera, so that it wouldn't be visible in the rendered result(as green lines on coners).
 	CameraEntity->SetComponentVisible(ComponentVisibilityType::ALL, false);
 
-	std::unordered_map<std::string, bool> PreviousAnalysisObjectsVisibility;
+	std::unordered_map<FEUUID, bool> PreviousAnalysisObjectsVisibility;
 	if (CurrentViewRenderSettings->bRenderOnlyCurrentAnalysisObject)
 	{
 		AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ParentAnalysisObjectID);
-		
-		std::vector<std::string> AllAnalysisObjectIDs = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectsIDList();
+
+		std::vector<FEUUID> AllAnalysisObjectIDs = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectsIDList();
 		for (size_t i = 0; i < AllAnalysisObjectIDs.size(); i++)
 		{
 			if (ActiveObject->GetID() == AllAnalysisObjectIDs[i])
@@ -622,7 +622,7 @@ void COLMAPProject::BeforeRenderCallback(FEEntity* Entity)
 		return;
 
 	// This function is static so we need to get the current project instance by Entity.
-	COLMAPProject* CurrentProject = COLMAP_DATA_MANAGER.GetProjectByEntityID(Entity->GetObjectID());
+	COLMAPProject* CurrentProject = COLMAP_DATA_MANAGER.GetProjectByEntityID(Entity->GetID());
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, CurrentProject->ImagesColorsSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
@@ -634,7 +634,7 @@ bool COLMAPProject::CreateImagesInstancedSceneRepresentation()
 		MAIN_SCENE_MANAGER.GetMainScene()->DeleteEntity(ImagesInstancedEntityID);
 
 	ImagesInstancedEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("COLMAPImagesInstanced");
-	ImagesInstancedEntityID = ImagesInstancedEntity->GetObjectID();
+	ImagesInstancedEntityID = ImagesInstancedEntity->GetID();
 
 	ImagesInstancedEntity->AddComponent<FEGameModelComponent>(COLMAP_DATA_MANAGER.ImagesInstancedGameModel);
 	ImagesInstancedEntity->GetComponent<FEGameModelComponent>().SetReceivingShadows(false);
@@ -1078,9 +1078,9 @@ bool COLMAPProject::CreateTiePointsSceneRepresentation()
 
 
 
-	FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(FEPoints, "", "", false, true);
-	FEEntity* NewEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Tie Points_" + GetID());
-	TiePointsEntityID = NewEntity->GetObjectID();
+	FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(FEPoints, "", FEUUID(), false, true);
+	FEEntity* NewEntity = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("Tie Points_" + UNIQUE_ID.ToString(GetID()));
+	TiePointsEntityID = NewEntity->GetID();
 	NewEntity->AddComponent<FEPointCloudComponent>(NewPointCloud);
 
 	NewEntity->AttachTo(GetPhotogrammetryAnchorEntity(), false);
@@ -1115,8 +1115,8 @@ bool COLMAPProject::LoadFromFolder(const std::string& FolderPath, bool bLoadTieP
 		return false;
 	}
 	
-	FEEntity* Anchor = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("PhotogrammetryAnchor_" + this->GetID());
-	PhotogrammetryAnchorID = Anchor->GetObjectID();
+	FEEntity* Anchor = MAIN_SCENE_MANAGER.GetMainScene()->CreateEntity("PhotogrammetryAnchor_" + UNIQUE_ID.ToString(this->GetID()));
+	PhotogrammetryAnchorID = Anchor->GetID();
 	FEEntity* MainEntity = ANALYSIS_OBJECT_MANAGER.GetActiveEntity();
 	Anchor->AttachTo(MainEntity, false);
 

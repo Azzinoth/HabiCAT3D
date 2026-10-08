@@ -588,7 +588,7 @@ void UIManager::RenderLayerTabs()
 			ImGui::SetCursorPosY(static_cast<float>(YPosition));
 			if (ImGui::Button("No Layer"))
 			{
-				std::string ObjectID = ActiveObject->GetID();
+				FEUUID ObjectID = ActiveObject->GetID();
 				WAIT_MODAL_POPUP.OpenPopup("Switching Layer", "Please wait while the layer is being cleared...", [ObjectID]() {
 					AnalysisObject* Object = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ObjectID);
 					if (Object != nullptr)
@@ -607,8 +607,8 @@ void UIManager::RenderLayerTabs()
 			ImGui::SetCursorPosY(static_cast<float>(YPosition + CurrentRow * RowHeight));
 			if (ImGui::Button((ActiveObject->Layers[i]->GetCaption() + "##" + std::to_string(i)).c_str()))
 			{
-				std::string ObjectID = ActiveObject->GetID();
-				std::string LayerID = ActiveObject->Layers[i]->GetID();
+				FEUUID ObjectID = ActiveObject->GetID();
+				FEUUID LayerID = ActiveObject->Layers[i]->GetID();
 				WAIT_MODAL_POPUP.OpenPopup("Switching Layer", "Please wait while the layer is being applied...", [ObjectID, LayerID]() {
 					AnalysisObject* Object = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ObjectID);
 					if (Object != nullptr)

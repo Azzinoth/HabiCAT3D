@@ -104,7 +104,7 @@ class AnalysisObject
 	friend class AnalysisObjectManager;
 	friend class LayerManager;
 
-	std::string ID;
+	FEUUID ID;
 	std::string Name;
 	std::string FilePath;
 
@@ -113,7 +113,7 @@ class AnalysisObject
 	ResourceAnalysisData* AnalysisData = nullptr;
 	DATA_SOURCE_TYPE Type = DATA_SOURCE_TYPE::UNKNOWN;
 
-	std::string ActiveLayerID = "";
+	FEUUID ActiveLayerID;
 
 	FEObject* EngineResource = nullptr;
 	FEEntity* Entity = nullptr;
@@ -123,7 +123,7 @@ public:
 	AnalysisObject();
 	~AnalysisObject();
 
-	std::string GetID();
+	FEUUID GetID();
 	std::string GetName();
 	void SetName(std::string NewName);
 	std::string GetFilePath();
@@ -141,12 +141,12 @@ public:
 
 	DataLayer* GetActiveLayer();
 	int GetActiveLayerIndex();
-	bool SetActiveLayer(std::string LayerID, bool bForceUpdate = false);
+	bool SetActiveLayer(FEUUID LayerID, bool bForceUpdate = false);
 	void ClearActiveLayer();
-	bool RemoveLayer(std::string LayerID);
+	bool RemoveLayer(FEUUID LayerID);
 
 	bool AddLayer(DataLayer* NewLayer);
-	DataLayer* GetLayer(std::string LayerID);
+	DataLayer* GetLayer(FEUUID LayerID);
 
 	glm::dvec3 GetAppliedShift();
 };

@@ -45,11 +45,11 @@ class COLMAPProject
 	COLMAPProject();
 	~COLMAPProject();
 
-	std::string ID;
-	std::string ParentAnalysisObjectID;
+	FEUUID ID;
+	FEUUID ParentAnalysisObjectID;
 	std::string FolderPath;
 
-	std::unordered_map<std::string, COLMAPPhysicalCamera*> PhysicalCameras;
+	std::unordered_map<FEUUID, COLMAPPhysicalCamera*> PhysicalCameras;
 	std::unordered_map<int, COLMAPCamera*> Cameras;
 	std::unordered_map<int, COLMAPImage*> Images;
 	const glm::vec4 DefaultImageColor = glm::vec4(58.0f / 255.0f, 110.0f / 255.0f, 165.0f / 255.0f, 1.0f);
@@ -66,13 +66,13 @@ class COLMAPProject
 
 	std::unordered_map<int, COLMAPPoint3D> TiePoints;
 
-	std::string PhotogrammetryAnchorID = "";
-	std::string TiePointsEntityID = "";
+	FEUUID PhotogrammetryAnchorID;
+	FEUUID TiePointsEntityID;
 
 	GLuint ImagesColorsSSBO = GLuint(-1);
 	static void BeforeRenderCallback(FEEntity* Entity);
 
-	std::string ImagesInstancedEntityID = "";
+	FEUUID ImagesInstancedEntityID;
 	std::unordered_map<int, int> ImageInstanceIndexToImageID;
 
 	bool LoadCameras(const std::string& FilePath);
@@ -81,8 +81,8 @@ class COLMAPProject
 
 	bool LoadFromFolder(const std::string& FolderPath, bool bLoadTiePoints);
 
-	bool CreateCameraSceneRepresentation(std::string CameraID);
-	bool DeleteCameraSceneRepresentation(std::string CameraID);
+	bool CreateCameraSceneRepresentation(FEUUID CameraID);
+	bool DeleteCameraSceneRepresentation(FEUUID CameraID);
 
 	bool CreateImagesInstancedSceneRepresentation();
 	int CameraAttachedToImageID = -1;
@@ -95,17 +95,17 @@ class COLMAPProject
 
 	COLMAPViewRenderSettings* CurrentViewRenderSettings = nullptr;
 public:
-	std::string GetID() const;
-	std::string GetParentAnalysisObjectID() const;
+	FEUUID GetID() const;
+	FEUUID GetParentAnalysisObjectID() const;
 	std::string GetFolderPath() const;
 
 	FEEntity* GetPhotogrammetryAnchorEntity();
 
 	size_t GetPhysicalCameraCount() const;
-	COLMAPPhysicalCamera* GetPhysicalCamera(std::string ID);
-	std::vector<std::string> GetPhysicalCamerasIDList() const;
+	COLMAPPhysicalCamera* GetPhysicalCamera(FEUUID ID);
+	std::vector<FEUUID> GetPhysicalCamerasIDList() const;
 	COLMAPPhysicalCamera* FindPhysicalCameraEquvialentTo(COLMAPPhysicalCamera* OtherCamera) const;
-	std::vector<int> GetCamerasWithPhysicalCameraID(const std::string& PhysicalCameraID) const;
+	std::vector<int> GetCamerasWithPhysicalCameraID(const FEUUID& PhysicalCameraID) const;
 
 	size_t GetCameraCount() const;
 	COLMAPCamera* GetCamera(int ID);

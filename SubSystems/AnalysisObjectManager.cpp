@@ -253,7 +253,7 @@ AnalysisObject* AnalysisObjectManager::LoadRUGFile(std::string FilePath)
 
 		if (Version >= 0.62)
 		{
-			Layers[i]->ForceID(FILE_SYSTEM.ReadFEString(File));
+			Layers[i]->ForceID(UNIQUE_ID.FromStringLegacyCompatible(FILE_SYSTEM.ReadFEString(File)));
 		}
 
 		Layers[i]->SetCaption(FILE_SYSTEM.ReadFEString(File));
@@ -422,7 +422,7 @@ AnalysisObject* AnalysisObjectManager::CreateAnalysisObject(std::vector<FEPointC
 	if (RawPointCloudData.empty())
 		return Result;
 
-	FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(RawPointCloudData, "", "", false);
+	FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(RawPointCloudData, "", FEUUID(), false);
 	NewPointCloud->SetAdvancedRenderingEnabled(true);
 
 	Result = new AnalysisObject();
@@ -636,7 +636,7 @@ std::vector<int> AnalysisObjectManager::GetVertexAttributeIndexes(int Interpolat
 	return Result;
 };
 
-void AnalysisObjectManager::ComplexityMetricDataToGPU(std::string LayerID, int GPULayerIndex)
+void AnalysisObjectManager::ComplexityMetricDataToGPU(FEUUID LayerID, int GPULayerIndex)
 {
 	AnalysisObject* ActiveObject = ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject();
 	if (ActiveObject == nullptr)
@@ -1043,7 +1043,7 @@ size_t AnalysisObjectManager::GetAnalysisObjectCount()
 	return AnalysisObjects.size();
 }
 
-AnalysisObject* AnalysisObjectManager::GetAnalysisObjectByID(std::string ID)
+AnalysisObject* AnalysisObjectManager::GetAnalysisObjectByID(FEUUID ID)
 {
 	if (AnalysisObjects.find(ID) != AnalysisObjects.end())
 		return AnalysisObjects[ID];
@@ -1051,11 +1051,11 @@ AnalysisObject* AnalysisObjectManager::GetAnalysisObjectByID(std::string ID)
 	return nullptr;
 }
 
-AnalysisObject* AnalysisObjectManager::GetAnalysisObjectByEntityID(std::string EntityID)
+AnalysisObject* AnalysisObjectManager::GetAnalysisObjectByEntityID(FEUUID EntityID)
 {
 	for (auto& CurrentPair : AnalysisObjects)
 	{
-		if (CurrentPair.second->Entity != nullptr && CurrentPair.second->Entity->GetObjectID() == EntityID)
+		if (CurrentPair.second->Entity != nullptr && CurrentPair.second->Entity->GetID() == EntityID)
 			return CurrentPair.second;
 	}
 
@@ -1067,14 +1067,14 @@ AnalysisObject* AnalysisObjectManager::GetActiveAnalysisObject()
 	return GetAnalysisObjectByID(ActiveAnalysisObjectID);
 }
 
-bool AnalysisObjectManager::SetActiveAnalysisObject(std::string ID)
+bool AnalysisObjectManager::SetActiveAnalysisObject(FEUUID ID)
 {
 	if (ID == ActiveAnalysisObjectID)
 		return true;
 
-	if (ID.empty())
+	if (UNIQUE_ID.IsNull(ID))
 	{
-		ActiveAnalysisObjectID = "";
+		ActiveAnalysisObjectID = FEUUID();
 		for (size_t i = 0; i < ClientOnActiveObjectChangeCallbacks.size(); i++)
 		{
 			if (ClientOnActiveObjectChangeCallbacks[i] == nullptr)
@@ -1106,9 +1106,13 @@ bool AnalysisObjectManager::SetActiveAnalysisObject(std::string ID)
 	return false;
 }
 
-std::vector<std::string> AnalysisObjectManager::GetAnalysisObjectsIDList()
+std::vector<FEUUID> AnalysisObjectManager::GetAnalysisObjectsIDList()
 {
-	FE_MAP_TO_STR_VECTOR(AnalysisObjects)
+	std::vector<FEUUID> Result;
+	for (const auto& CurrentPair : AnalysisObjects)
+		Result.push_back(CurrentPair.first);
+
+	return Result;
 }
 
 PointCloudAnalysisData* AnalysisObjectManager::ExtractAdditionalGeometryData(FEPointCloud* PointCloud)
@@ -1161,7 +1165,7 @@ FEEntity* AnalysisObjectManager::GetActiveEntity()
 	return ActiveObject->GetEntity();
 }
 
-bool AnalysisObjectManager::DeleteAnalysisObject(std::string ID)
+bool AnalysisObjectManager::DeleteAnalysisObject(FEUUID ID)
 {
 	AnalysisObject* ObjectToDelete = GetAnalysisObjectByID(ID);
 	if (ObjectToDelete == nullptr)
@@ -1176,7 +1180,7 @@ bool AnalysisObjectManager::DeleteAnalysisObject(std::string ID)
 	}
 
 	if (GetActiveAnalysisObject() == ObjectToDelete)
-		SetActiveAnalysisObject("");
+		SetActiveAnalysisObject(FEUUID());
 
 	FEEntity* EntityToDelete = ObjectToDelete->GetEntity();
 	if (EntityToDelete != nullptr)
@@ -1375,17 +1379,19 @@ void AnalysisObjectManager::SaveLayersDataToRUGFile(std::fstream& File, Analysis
 		LAYER_TYPE LayerType = CurrentLayer->GetType();
 		File.write((char*)&LayerType, sizeof(LAYER_TYPE));
 
-		int LayerIDSize = static_cast<int>(CurrentLayer->GetID().size() + 1);
+		const std::string LayerIDString = UNIQUE_ID.ToString(CurrentLayer->GetID());
+		int LayerIDSize = static_cast<int>(LayerIDString.size() + 1);
 		File.write((char*)&LayerIDSize, sizeof(int));
-		File.write((char*)CurrentLayer->GetID().c_str(), sizeof(char) * LayerIDSize);
+		File.write((char*)LayerIDString.c_str(), sizeof(char) * LayerIDSize);
 
 		int ParentIDSize = (int)CurrentLayer->ParentObjectIDs.size();
 		File.write((char*)&ParentIDSize, sizeof(int));
 		for (size_t j = 0; j < CurrentLayer->ParentObjectIDs.size(); j++)
 		{
-			int SingleParentIDSize = static_cast<int>(CurrentLayer->ParentObjectIDs[j].size() + 1);
+			const std::string ParentIDString = UNIQUE_ID.ToString(CurrentLayer->ParentObjectIDs[j]);
+			int SingleParentIDSize = static_cast<int>(ParentIDString.size() + 1);
 			File.write((char*)&SingleParentIDSize, sizeof(int));
-			File.write((char*)CurrentLayer->ParentObjectIDs[j].c_str(), sizeof(char) * SingleParentIDSize);
+			File.write((char*)ParentIDString.c_str(), sizeof(char) * SingleParentIDSize);
 		}
 
 		Count = static_cast<int>(CurrentLayer->GetCaption().size());
@@ -1399,14 +1405,15 @@ void AnalysisObjectManager::SaveLayersDataToRUGFile(std::fstream& File, Analysis
 		LayerInterpolationData* InterpolationData = CurrentLayer->GetInterpolationData();
 		if (InterpolationData != nullptr)
 		{
-			std::vector<std::string> UsedLayerIDs = InterpolationData->GetUsedLayerIDs();
+			std::vector<FEUUID> UsedLayerIDs = InterpolationData->GetUsedLayerIDs();
 			int UsedLayerIDSize = (int)UsedLayerIDs.size();
 			File.write((char*)&UsedLayerIDSize, sizeof(int));
 			for (size_t j = 0; j < UsedLayerIDs.size(); j++)
 			{
-				int SingleUsedLayerIDSize = static_cast<int>(UsedLayerIDs[j].size() + 1);
+				const std::string UsedLayerIDString = UNIQUE_ID.ToString(UsedLayerIDs[j]);
+				int SingleUsedLayerIDSize = static_cast<int>(UsedLayerIDString.size() + 1);
 				File.write((char*)&SingleUsedLayerIDSize, sizeof(int));
-				File.write((char*)UsedLayerIDs[j].c_str(), sizeof(char) * SingleUsedLayerIDSize);
+				File.write((char*)UsedLayerIDString.c_str(), sizeof(char) * SingleUsedLayerIDSize);
 			}
 
 			float InterpolationFactor = InterpolationData->GetInterpolationFactor();
@@ -1538,9 +1545,10 @@ bool AnalysisObjectManager::SaveToRUGFile(std::string FilePath)
 		AnalysisObject* CurrentObject = ObjectsMapIterator->second;
 		if (CurrentObject != nullptr)
 		{
-			int ObjectIDSize = static_cast<int>(CurrentObject->GetID().size() + 1);
+			const std::string ObjectIDString = UNIQUE_ID.ToString(CurrentObject->GetID());
+			int ObjectIDSize = static_cast<int>(ObjectIDString.size() + 1);
 			File.write((char*)&ObjectIDSize, sizeof(int));
-			File.write((char*)CurrentObject->GetID().c_str(), sizeof(char) * ObjectIDSize);
+			File.write((char*)ObjectIDString.c_str(), sizeof(char) * ObjectIDSize);
 
 			int ObjectNameSize = static_cast<int>(CurrentObject->GetName().size() + 1);
 			File.write((char*)&ObjectNameSize, sizeof(int));
@@ -1744,7 +1752,7 @@ void AnalysisObjectManager::LoadPointCloudDataFromRUGFile(std::fstream& File, An
 		PointCloudData[i].A = *(unsigned char*)(ColorBuffer + i * 4 * sizeof(unsigned char) + sizeof(unsigned char) * 3);
 	}
 
-	FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(PointCloudData, "", "", false);
+	FEPointCloud* NewPointCloud = RESOURCE_MANAGER.RawDataToFEPointCloud(PointCloudData, "", FEUUID(), false);
 	NewPointCloud->SetAdvancedRenderingEnabled(true);
 	Object->EngineResource = NewPointCloud;
 	Object->AnalysisData = ExtractAdditionalGeometryData(NewPointCloud);
@@ -1769,13 +1777,13 @@ void AnalysisObjectManager::LoadLayersDataFromRUGFile(std::fstream& File, Analys
 		const int LayerType = *(int*)Buffer;
 		Object->Layers[i]->SetType(LAYER_TYPE(LayerType));
 
-		Object->Layers[i]->ForceID(FILE_SYSTEM.ReadFEString(File));
+		Object->Layers[i]->ForceID(UNIQUE_ID.FromStringLegacyCompatible(FILE_SYSTEM.ReadFEString(File)));
 
 		File.read(Buffer, 4);
 		const int ParentsIDsCount = *(int*)Buffer;
 		Object->Layers[i]->ParentObjectIDs.resize(ParentsIDsCount);
 		for (size_t j = 0; j < ParentsIDsCount; j++)
-			Object->Layers[i]->ParentObjectIDs[j] = FILE_SYSTEM.ReadFEString(File);
+			Object->Layers[i]->ParentObjectIDs[j] = UNIQUE_ID.FromStringLegacyCompatible(FILE_SYSTEM.ReadFEString(File));
 		
 		Object->Layers[i]->SetCaption(FILE_SYSTEM.ReadFEString(File));
 		Object->Layers[i]->SetNote(FILE_SYSTEM.ReadFEString(File));
@@ -1788,7 +1796,7 @@ void AnalysisObjectManager::LoadLayersDataFromRUGFile(std::fstream& File, Analys
 			const int UsedLayersCount = *(int*)Buffer;
 			Object->Layers[i]->InterpolationData->UsedLayerIDs.resize(UsedLayersCount);
 			for (size_t j = 0; j < UsedLayersCount; j++)
-				Object->Layers[i]->InterpolationData->UsedLayerIDs[j] = FILE_SYSTEM.ReadFEString(File);
+				Object->Layers[i]->InterpolationData->UsedLayerIDs[j] = UNIQUE_ID.FromStringLegacyCompatible(FILE_SYSTEM.ReadFEString(File));
 
 			File.read(Buffer, 4);
 			const float InterpolationFactor = *(float*)Buffer;
@@ -1875,13 +1883,13 @@ bool AnalysisObjectManager::LoadRUGFile_V0_9_1(std::string FilePath)
 		const int ObjectIDSize = *(int*)Buffer32;
 		char* ObjectIDBuffer = new char[ObjectIDSize];
 		File.read(ObjectIDBuffer, ObjectIDSize);
-		const std::string ObjectID = std::string(ObjectIDBuffer);
+		const FEUUID ObjectID = UNIQUE_ID.FromStringLegacyCompatible(std::string(ObjectIDBuffer));
 
 		// FE_FIX_ME: It is not good solution, it would not delete all previously loaded objects.
 		// Better solution would to have header in the file with all object IDs and check it before loading.
 		if (AnalysisObjects.find(ObjectID) != AnalysisObjects.end())
 		{
-			LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadRUGFile_V0_9_1. Object with ID " + ObjectID + " already exists in the scene!");
+			LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadRUGFile_V0_9_1. Object with ID " + UNIQUE_ID.ToString(ObjectID) + " already exists in the scene!");
 			delete NewAnalysisObject;
 			delete[] ObjectIDBuffer;
 			delete[] Buffer32;
@@ -2213,9 +2221,9 @@ void AnalysisObjectManager::AddOnObjectDeleteCallback(std::function<void(Analysi
 
 void AnalysisObjectManager::ClearAll()
 {
-	SetActiveAnalysisObject("");
+	SetActiveAnalysisObject(FEUUID());
 
-	std::vector<std::string> ObjectsIDs = GetAnalysisObjectsIDList();
+	std::vector<FEUUID> ObjectsIDs = GetAnalysisObjectsIDList();
 	for (size_t i = 0; i < ObjectsIDs.size(); i++)
 		DeleteAnalysisObject(ObjectsIDs[i]);
 

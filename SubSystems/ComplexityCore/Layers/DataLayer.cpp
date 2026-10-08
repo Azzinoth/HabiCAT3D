@@ -4,12 +4,12 @@ using namespace FocalEngine;
 
 DataLayer::DataLayer()
 {
-	ID = APPLICATION.GetUniqueHexID();
+	ID = UNIQUE_ID.GenerateID();
 }
 
-DataLayer::DataLayer(std::vector<std::string> ParentIDs)
+DataLayer::DataLayer(std::vector<FEUUID> ParentIDs)
 {
-	ID = APPLICATION.GetUniqueHexID();
+	ID = UNIQUE_ID.GenerateID();
 
 	for (size_t i = 0; i < ParentIDs.size(); i++)
 	{
@@ -19,9 +19,9 @@ DataLayer::DataLayer(std::vector<std::string> ParentIDs)
 	}
 }
 
-DataLayer::DataLayer(std::vector<std::string> ParentIDs, const std::vector<float> ElementsToData)
+DataLayer::DataLayer(std::vector<FEUUID> ParentIDs, const std::vector<float> ElementsToData)
 {
-	ID = APPLICATION.GetUniqueHexID();
+	ID = UNIQUE_ID.GenerateID();
 	for (size_t i = 0; i < ParentIDs.size(); i++)
 	{
 		AnalysisObject* CurrentObject = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectByID(ParentIDs[i]);
@@ -441,12 +441,12 @@ void DataLayer::SetSelectedRangeMax(float NewValue)
 	SelectedRangeMax = NewValue;
 }
 
-std::string DataLayer::GetID()
+FEUUID DataLayer::GetID()
 {
 	return ID;
 }
 
-void DataLayer::ForceID(std::string ID)
+void DataLayer::ForceID(FEUUID ID)
 {
 	this->ID = ID;
 }
@@ -491,7 +491,7 @@ void LayerInterpolationData::SetMinMaxInterpolationEnabled(bool NewValue)
 	bInterpolateMinMaxValues = NewValue;
 }
 
-std::vector<std::string> LayerInterpolationData::GetUsedLayerIDs()
+std::vector<FEUUID> LayerInterpolationData::GetUsedLayerIDs()
 {
 	return UsedLayerIDs;
 }

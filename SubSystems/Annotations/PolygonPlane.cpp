@@ -64,8 +64,8 @@ void PolygonPlane::Initialize()
 
 	APPLICATION.GetMainWindow()->AddOnMouseButtonCallback(std::bind(&PolygonPlane::MouseButtonCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
-	CanvasMesh = RESOURCE_MANAGER.GetMesh("1Y251E6E6T78013635793156"/*"plane"*/);
-	CanvasMaterial = RESOURCE_MANAGER.GetMaterial("6917497A5E0C05454876186F");
+	CanvasMesh = RESOURCE_MANAGER.GetMesh(FEEngineResourceIDs::PlaneMesh);
+	CanvasMaterial = RESOURCE_MANAGER.GetMaterial(FEEngineResourceIDs::SolidColorMaterial);
 	CanvasGameModel = RESOURCE_MANAGER.CreateGameModel(CanvasMesh, CanvasMaterial, "Canvas GameModel");
 	CanvasEntity = MainScene->CreateEntity("Canvas Entity");
 	CanvasEntity->AddComponent<FEGameModelComponent>(CanvasGameModel);

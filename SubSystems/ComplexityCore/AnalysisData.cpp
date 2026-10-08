@@ -97,7 +97,7 @@ void MeshAnalysisData::SetUnselectedAreaBrightnessFactor(float NewValue)
 
 AnalysisObject::AnalysisObject()
 {
-	ID = APPLICATION.GetUniqueHexID();
+	ID = UNIQUE_ID.GenerateID();
 }
 
 AnalysisObject::~AnalysisObject()
@@ -116,7 +116,7 @@ AnalysisObject::~AnalysisObject()
 	}
 }
 
-std::string AnalysisObject::GetID()
+FEUUID AnalysisObject::GetID()
 {
 	return ID;
 }
@@ -194,10 +194,10 @@ bool AnalysisObject::AddLayer(DataLayer* NewLayer)
 	return true;
 }
 
-DataLayer* AnalysisObject::GetLayer(std::string LayerID)
+DataLayer* AnalysisObject::GetLayer(FEUUID LayerID)
 {
 	DataLayer* Result = nullptr;
-	if (LayerID.empty())
+	if (UNIQUE_ID.IsNull(LayerID))
 		return Result;
 
 	for (size_t i = 0; i < Layers.size(); i++)
@@ -214,29 +214,29 @@ DataLayer* AnalysisObject::GetLayer(std::string LayerID)
 
 void AnalysisObject::ClearActiveLayer()
 {
-	SetActiveLayer("");
+	SetActiveLayer(FEUUID());
 }
 
 DataLayer* AnalysisObject::GetActiveLayer()
 {
 	DataLayer* Result = nullptr;
-	if (ActiveLayerID.empty())
+	if (UNIQUE_ID.IsNull(ActiveLayerID))
 		return Result;
 
 	Result = GetLayer(ActiveLayerID);
 	if (Result == nullptr)
-		ActiveLayerID = "";
-	
+		ActiveLayerID = FEUUID();
+
 	return Result;
 }
 
-bool AnalysisObject::SetActiveLayer(std::string LayerID, bool bForceUpdate)
+bool AnalysisObject::SetActiveLayer(FEUUID LayerID, bool bForceUpdate)
 {
 	if (LayerID == ActiveLayerID && !bForceUpdate)
 		return true;
 
 	DataLayer* NewActiveLayer = GetLayer(LayerID);
-	if (NewActiveLayer == nullptr && !LayerID.empty())
+	if (NewActiveLayer == nullptr && !UNIQUE_ID.IsNull(LayerID))
 		return false;
 
 	LayerEvent NewEvent = LayerEvent(LAYER_EVENT_TYPE::LAYER_ACTIVE_ID_CHANGED, ID, LayerID, { ActiveLayerID });
@@ -253,7 +253,7 @@ size_t AnalysisObject::GetLayerCount()
 
 int AnalysisObject::GetActiveLayerIndex()
 {
-	if (ActiveLayerID.empty())
+	if (UNIQUE_ID.IsNull(ActiveLayerID))
 		return -1;
 
 	for (size_t i = 0; i < Layers.size(); i++)
@@ -265,9 +265,9 @@ int AnalysisObject::GetActiveLayerIndex()
 	return -1;
 }
 
-bool AnalysisObject::RemoveLayer(std::string LayerID)
+bool AnalysisObject::RemoveLayer(FEUUID LayerID)
 {
-	if (LayerID.empty())
+	if (UNIQUE_ID.IsNull(LayerID))
 		return false;
 
 	for (size_t i = 0; i < Layers.size(); i++)

@@ -3,10 +3,10 @@ using namespace FocalEngine;
 
 ConsoleJob::ConsoleJob()
 {
-	ID = APPLICATION.GetUniqueHexID();
+	ID = UNIQUE_ID.GenerateID();
 }
 
-std::string ConsoleJob::GetID()
+FEUUID ConsoleJob::GetID()
 {
 	return ID;
 }

@@ -13,12 +13,12 @@ enum class LAYER_EVENT_TYPE
 struct LayerEvent
 {
 	LAYER_EVENT_TYPE Type = LAYER_EVENT_TYPE::UNKNOWN;
-	std::string ParentObjectID = "";
-	std::string PrimaryLayerID = "";
-	std::vector<std::string> OtherLayerIDs = std::vector<std::string>();
+	FEUUID ParentObjectID;
+	FEUUID PrimaryLayerID;
+	std::vector<FEUUID> OtherLayerIDs = std::vector<FEUUID>();
 
 	LayerEvent();
-	LayerEvent(LAYER_EVENT_TYPE Type, std::string ParentObjectID, std::string PrimaryLayerID, std::vector<std::string> OtherLayerIDs = std::vector<std::string>());
+	LayerEvent(LAYER_EVENT_TYPE Type, FEUUID ParentObjectID, FEUUID PrimaryLayerID, std::vector<FEUUID> OtherLayerIDs = std::vector<FEUUID>());
 };
 
 class LayerManager

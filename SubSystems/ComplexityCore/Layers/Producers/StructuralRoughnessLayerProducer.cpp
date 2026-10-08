@@ -201,7 +201,7 @@ void StructuralRoughnessLayerProducer::RenderDebugInfoForSelectedNode(Measuremen
 		if (glm::length(NormalDirection) > 0.001f)
 			NormalDirection = glm::normalize(NormalDirection);
 
-		FEMesh* PlaneMesh = RESOURCE_MANAGER.GetMesh("1Y251E6E6T78013635793156"/*"plane"*/);
+		FEMesh* PlaneMesh = RESOURCE_MANAGER.GetMesh(FEEngineResourceIDs::PlaneMesh);
 		FEAABB PlaneAABB = PlaneMesh->GetAABB();
 		glm::vec3 PlaneNormal = glm::normalize(PlaneAABB.GetApproximateForwardDirection());
 		glm::quat RotationQuaternion = glm::rotation(PlaneNormal, BestFitPlaneNormal);

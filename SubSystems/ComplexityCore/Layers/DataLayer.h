@@ -65,7 +65,7 @@ struct LayerInterpolationData
 	friend class AnalysisObjectManager;
 	friend class InterpolationLayerProducer;
 private:
-	std::vector<std::string> UsedLayerIDs;
+	std::vector<FEUUID> UsedLayerIDs;
 	float InterpolationFactor = 0.0f;
 	std::vector<std::vector<float>> RawData;
 	std::vector<float> LayerMinValues;
@@ -75,7 +75,7 @@ private:
 public:
 	size_t GetLayerCount();
 
-	std::vector<std::string> GetUsedLayerIDs();
+	std::vector<FEUUID> GetUsedLayerIDs();
 
 	float GetInterpolationFactor();
 	void SetInterpolationFactor(float NewValue);
@@ -94,11 +94,11 @@ class DataLayer
 	friend class LayerManager;
 	friend class InterpolationLayerProducer;
 
-	std::string ID;
+	FEUUID ID;
 	std::string Caption = "Layer caption";
 	std::string UserNote;
 	LAYER_TYPE Type = LAYER_TYPE::UNKNOWN;
-	std::vector<std::string> ParentObjectIDs;
+	std::vector<FEUUID> ParentObjectIDs;
 
 	float Max = -FLT_MAX;
 	float Min = FLT_MAX;
@@ -115,8 +115,8 @@ class DataLayer
 	LayerInterpolationData* InterpolationData = nullptr;
 public:
 	DataLayer();
-	DataLayer(std::vector<std::string> ParentIDs);
-	DataLayer(std::vector<std::string> ParentIDs, std::vector<float> ElementsToData);
+	DataLayer(std::vector<FEUUID> ParentIDs);
+	DataLayer(std::vector<FEUUID> ParentIDs, std::vector<float> ElementsToData);
 	~DataLayer();
 
 	static std::vector<DATA_SOURCE_TYPE> GetDataSourceTypeForLayerType(LAYER_TYPE Type);
@@ -126,8 +126,8 @@ public:
 	static bool TransfareDataFromTrianglesToVertices(AnalysisObject* Object, std::vector<glm::vec3>& TriangleData, std::vector<glm::vec3>& VertexData);
 	void FillRawData();
 
-	std::string GetID();
-	void ForceID(std::string ID);
+	FEUUID GetID();
+	void ForceID(FEUUID ID);
 
 	AnalysisObject* GetMainParentObject();
 	std::vector<AnalysisObject*> GetAllParentObjects();

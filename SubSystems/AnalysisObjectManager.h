@@ -26,21 +26,21 @@ public:
 	void SaveToRUGFileAskForFilePath();
 
 	size_t GetAnalysisObjectCount();
-	AnalysisObject* GetAnalysisObjectByID(std::string ID);
-	AnalysisObject* GetAnalysisObjectByEntityID(std::string EntityID);
-	std::vector<std::string> AnalysisObjectManager::GetAnalysisObjectsIDList();
+	AnalysisObject* GetAnalysisObjectByID(FEUUID ID);
+	AnalysisObject* GetAnalysisObjectByEntityID(FEUUID EntityID);
+	std::vector<FEUUID> GetAnalysisObjectsIDList();
 
-	bool SetActiveAnalysisObject(std::string ID);
+	bool SetActiveAnalysisObject(FEUUID ID);
 	AnalysisObject* GetActiveAnalysisObject();
 	FEEntity* GetActiveEntity();
 
-	bool DeleteAnalysisObject(std::string ID);
+	bool DeleteAnalysisObject(FEUUID ID);
 
 	void AddOnActiveObjectChangeCallback(std::function<void(AnalysisObject*)> Callback);
 	void AddOnObjectDeleteCallback(std::function<void(AnalysisObject*)> Callback);
 	void AddOnObjectLoadCallback(std::function<void(AnalysisObject*)> Callback);
 
-	void ComplexityMetricDataToGPU(std::string LayerID, int GPULayerIndex = 0);
+	void ComplexityMetricDataToGPU(FEUUID LayerID, int GPULayerIndex = 0);
 	void RecolorPointCloud(AnalysisObject* Object);
 
 	int GetTriangleIndexUnderMouse(float* HitDistance = nullptr);
@@ -82,8 +82,8 @@ private:
 	std::vector<std::function<void(AnalysisObject*)>> ClientOnActiveObjectChangeCallbacks;
 	std::vector<std::function<void(AnalysisObject*)>> ClientOnObjectDeleteCallbacks;
 
-	std::unordered_map<std::string, AnalysisObject*> AnalysisObjects;
-	std::string ActiveAnalysisObjectID = "";
+	std::unordered_map<FEUUID, AnalysisObject*> AnalysisObjects;
+	FEUUID ActiveAnalysisObjectID;
 	MeshAnalysisData* ExtractAdditionalGeometryData(std::vector<double>& Vertices, std::vector<float>& Colors, std::vector<float>& UVs, std::vector<float>& Tangents, std::vector<int>& Indices, std::vector<float>& Normals);
 	PointCloudAnalysisData* ExtractAdditionalGeometryData(FEPointCloud* PointCloud);
 	PointCloudAnalysisData* ExtractAdditionalGeometryData(std::vector<FEPointCloudVertexDouble>& PointCloudVertices, FEAABB PointCloudAABB);

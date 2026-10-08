@@ -36,15 +36,15 @@ private:
 	std::vector<AnnotationInfo> UsedAnnotations;
 	void UpdateColorInfoOnGPU();
 
-	std::string AnalysisObjectID;
-	std::string EntityID = "";
+	FEUUID AnalysisObjectID;
+	FEUUID EntityID;
 
 	bool bInEditingMode = false;
 
 	PolygonPlane* Plane = nullptr;
 	std::vector<std::pair<int, int>> AnnotationIDToPolygonIndices;
 public:
-	AnnotationData(std::string AnalysisObjectID);
+	AnnotationData(FEUUID AnalysisObjectID);
 	~AnnotationData();
 
 	GLuint AnnotationSSBO = GLuint(-1);
@@ -89,10 +89,10 @@ public:
 
 	void Initialize();
 
-	bool AddAnnotationToAnalysisObject(std::string AnalysisObjectID);
-	AnnotationData* GetAnnotationDataByAnalysisObjectID(std::string AnalysisObjectID);
-	AnnotationData* GetAnnotationDataByEntityID(std::string EntityID);
-	bool RemoveAnnotationFromAnalysisObject(std::string AnalysisObjectID);
+	bool AddAnnotationToAnalysisObject(FEUUID AnalysisObjectID);
+	AnnotationData* GetAnnotationDataByAnalysisObjectID(FEUUID AnalysisObjectID);
+	AnnotationData* GetAnnotationDataByEntityID(FEUUID EntityID);
+	bool RemoveAnnotationFromAnalysisObject(FEUUID AnalysisObjectID);
 
 	bool InitializeReadAnnotationDataFromShapeFile(std::string ShapeFilePath, AnalysisObject* Object);
 	bool AddAnnotationsFromShapeFileData(ShapeFileData* CurrentShapeFile, AnalysisObject* Object, const std::string& LabelFieldName);
@@ -111,7 +111,7 @@ public:
 private:
 	SINGLETON_PRIVATE_PART(AnnotationManager)
 
-	std::unordered_map<std::string, AnnotationData*> AnalisysObjectsToAnnotationData;
+	std::unordered_map<FEUUID, AnnotationData*> AnalisysObjectsToAnnotationData;
 
 	std::vector<std::function<void(AnnotationData*, int)>> ClientOnAnnotationColorChangedCallbacks;
 	void NotifyAnnotationColorChanged(AnnotationData* Data, int AnnotationID);
