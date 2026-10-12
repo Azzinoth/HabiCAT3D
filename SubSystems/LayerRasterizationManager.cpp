@@ -856,28 +856,26 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 	return true;
 }
 
-const COMDLG_FILTERSPEC RASTERIZATION_EXPORT_FILE_FILTER[] =
+const std::vector<FEFileSystem::FileDialogFilter> RASTERIZATION_EXPORT_FILE_FILTER =
 {
-	{ L"PNG file (*.png)", L"*.png"},
-	{ L"GeoTiff file (*.tif)", L"*.tif" },
-	{ L"GeoTiff file 32-bit gray scale (*.tif)", L"*.tif" }
+	{ "PNG file (*.png)", { "png" } },
+	{ "GeoTiff file (*.tif)", { "tif" } },
+	{ "GeoTiff file 32-bit gray scale (*.tif)", { "tif" } }
 };
 
 bool LayerRasterizationManager::PromptUserForSaveLocation()
 {
-	int Index = -1;
-	std::string FilePath;
-	FILE_SYSTEM.ShowFileSaveDialog(FilePath, RASTERIZATION_EXPORT_FILE_FILTER, 3, &Index);
-
-	if (!FilePath.empty())
-	{
-		WAIT_MODAL_POPUP.OpenPopup("Saving Image", "Please wait while the image is being saved...", [FilePath, Index]() {
-			LAYER_RASTERIZATION_MANAGER.SaveToFile(FilePath, static_cast<LayerRasterizationManager::SaveMode>(Index));
+	bool bFileWasChosen = false;
+	// The chosen filter index matches SaveMode.
+	FILE_SYSTEM.SaveFileDialog("", RASTERIZATION_EXPORT_FILE_FILTER, [&bFileWasChosen](const std::string& FilePath, int ChosenFilterIndex) {
+		bFileWasChosen = true;
+		WAIT_MODAL_POPUP.OpenPopup("Saving Image", "Please wait while the image is being saved...", [FilePath, ChosenFilterIndex]() {
+			LAYER_RASTERIZATION_MANAGER.SaveToFile(FilePath, static_cast<LayerRasterizationManager::SaveMode>(ChosenFilterIndex));
 		});
 		return true;
-	}
-	
-	return false;
+	});
+
+	return bFileWasChosen;
 }
 
 void LayerRasterizationManager::UpdateGridDebugDistributionInfo()

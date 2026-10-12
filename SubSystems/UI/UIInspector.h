@@ -8,14 +8,14 @@
 #include "../ComplexityCore/Layers/LayerManager.h"
 #include "../SubSystems/Annotations/AnnotationManager.h"
 
-const COMDLG_FILTERSPEC MODEL_EXPORT_FILE_FILTER[] =
+const std::vector<FEFileSystem::FileDialogFilter> MODEL_EXPORT_FILE_FILTER =
 {
-	{ L"3D Model file (*.obj)", L"*.obj" }
+	{ "3D Model file (*.obj)", { "obj" } }
 };
 
-const COMDLG_FILTERSPEC VECTOR_LOAD_FILE_FILTER[] =
+const std::vector<FEFileSystem::FileDialogFilter> VECTOR_LOAD_FILE_FILTER =
 {
-	{ L"Vector data (*.shp; *.gpkg; *.geojson)", L"*.shp;*.gpkg;*.geojson" }
+	{ "Vector data (*.shp; *.gpkg; *.geojson)", { "shp", "gpkg", "geojson" } }
 };
 
 class UIInspector

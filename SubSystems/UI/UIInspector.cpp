@@ -279,9 +279,9 @@ void UIInspector::RenderSelectedObjectTab()
 		{
 			if (ImGui::Button("Load Photogrammetry..."))
 			{
-				std::string LocalPhotogrammetryFolder;
-				FILE_SYSTEM.ShowFolderOpenDialog(LocalPhotogrammetryFolder);
-				LOAD_PHOTOGRAMMETRY_WINDOW.Show(LocalPhotogrammetryFolder, COLMAP_DATA_MANAGER.FindCOLMAPDataInFolder(LocalPhotogrammetryFolder));
+				FILE_SYSTEM.OpenFolderDialog([](const std::string& LocalPhotogrammetryFolder) {
+					LOAD_PHOTOGRAMMETRY_WINDOW.Show(LocalPhotogrammetryFolder, COLMAP_DATA_MANAGER.FindCOLMAPDataInFolder(LocalPhotogrammetryFolder));
+				});
 			}
 		}
 
@@ -300,17 +300,16 @@ void UIInspector::RenderSelectedObjectTab()
 				FEEntity* SelectedEntity = OBJECT_VIEWER_WINDOW.GetSelectedEntity();
 				if (SelectedEntity != nullptr)
 				{
-					std::string ShapeFilePath;
-					FILE_SYSTEM.ShowFileOpenDialog(ShapeFilePath, VECTOR_LOAD_FILE_FILTER, 1);
-					
-					if (!ShapeFilePath.empty() && FILE_SYSTEM.DoesFileExist(ShapeFilePath))
-					{
+					FILE_SYSTEM.OpenFileDialog(VECTOR_LOAD_FILE_FILTER, [SelectedEntity](const std::string& ShapeFilePath) {
+						if (ShapeFilePath.empty() || !FILE_SYSTEM.DoesFileExist(ShapeFilePath))
+							return;
+
 						ANNOTATION_MANAGER.InitializeReadAnnotationDataFromShapeFile(ShapeFilePath, ANALYSIS_OBJECT_MANAGER.GetActiveAnalysisObject());
 
 						FENaiveSceneGraphNode* AnnotationSceneNode = MAIN_SCENE_MANAGER.GetMainScene()->SceneGraph.GetNodeByEntityID(SelectedEntity->GetID());
 						OBJECT_VIEWER_WINDOW.ExpandToNode(AnnotationSceneNode);
 						OBJECT_VIEWER_WINDOW.SetNodeSelected(AnnotationSceneNode, true);
-					}
+					});
 				}
 			}
 		}
@@ -1535,10 +1534,9 @@ void UIInspector::RenderExportTab()
 			ImGui::Text("Export model with selected layer(as vertex color):");
 			if (ImGui::Button("Export to file..."))
 			{
-				std::string FilePath;
-				FILE_SYSTEM.ShowFileSaveDialog(FilePath, MODEL_EXPORT_FILE_FILTER, 1);
-
-				ExportOBJ(FilePath, LAYER_MANAGER.GetActiveLayerIndex());
+				FILE_SYSTEM.SaveFileDialog("", MODEL_EXPORT_FILE_FILTER, [this, LayerIndex = LAYER_MANAGER.GetActiveLayerIndex()](const std::string& FilePath, int ChosenFilterIndex) {
+					return ExportOBJ(FilePath, LayerIndex);
+				});
 			}
 
 			ImGui::TreePop();

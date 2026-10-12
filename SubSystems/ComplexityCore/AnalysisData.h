@@ -2,14 +2,14 @@
 #include "../../EngineInclude.h"
 using namespace FocalEngine;
 
-const COMDLG_FILTERSPEC RUGOSITY_LOAD_FILE_FILTER[] =
+const std::vector<FEFileSystem::FileDialogFilter> RUGOSITY_LOAD_FILE_FILTER =
 {
-	{ L"Supported files (*.obj; *.ply; *.las; *.laz; *.rug)", L"*.obj;*.ply;*.las;*.laz;*.rug" }
+	{ "Supported files (*.obj; *.ply; *.las; *.laz; *.rug)", { "obj", "ply", "las", "laz", "rug" } }
 };
 
-const COMDLG_FILTERSPEC RUGOSITY_SAVE_FILE_FILTER[] =
+const std::vector<FEFileSystem::FileDialogFilter> RUGOSITY_SAVE_FILE_FILTER =
 {
-	{ L"Rugosity file (*.rug)", L"*.rug" }
+	{ "Rugosity file (*.rug)", { "rug" } }
 };
 
 enum class DATA_SOURCE_TYPE

@@ -1238,13 +1238,11 @@ void AnalysisObjectManager::InitializeSceneObjects(AnalysisObject* NewAnalysisOb
 
 void AnalysisObjectManager::SaveToRUGFileAskForFilePath()
 {
-	std::string FilePath;
-	FILE_SYSTEM.ShowFileSaveDialog(FilePath, RUGOSITY_SAVE_FILE_FILTER, 1);
-	if (FilePath.empty())
-		return;
-
-	WAIT_MODAL_POPUP.OpenPopup("Saving Resource", "Please wait while the resource is being saved...", [FilePath]() {
-		ANALYSIS_OBJECT_MANAGER.SaveToRUGFile(FilePath);
+	FILE_SYSTEM.SaveFileDialog("", RUGOSITY_SAVE_FILE_FILTER, [](const std::string& FilePath, int ChosenFilterIndex) {
+		WAIT_MODAL_POPUP.OpenPopup("Saving Resource", "Please wait while the resource is being saved...", [FilePath]() {
+			ANALYSIS_OBJECT_MANAGER.SaveToRUGFile(FilePath);
+		});
+		return true;
 	});
 }
 

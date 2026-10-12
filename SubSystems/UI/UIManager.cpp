@@ -89,15 +89,14 @@ void UIManager::Render()
 		{
 			if (ImGui::MenuItem("Load..."))
 			{
-				std::string FilePath;
-				FILE_SYSTEM.ShowFileOpenDialog(FilePath, RUGOSITY_LOAD_FILE_FILTER, 1);
+				FILE_SYSTEM.OpenFileDialog(RUGOSITY_LOAD_FILE_FILTER, [](const std::string& FilePath) {
+					if (FilePath.empty())
+						return;
 
-				if (!FilePath.empty())
-				{
 					WAIT_MODAL_POPUP.OpenPopup("Loading Resource", "Please wait while the resource is being loaded...", [FilePath]() {
 						ANALYSIS_OBJECT_MANAGER.LoadResource(FilePath);
 					});
-				}
+				});
 			}
 
 			size_t ObjectCount = ANALYSIS_OBJECT_MANAGER.GetAnalysisObjectCount();

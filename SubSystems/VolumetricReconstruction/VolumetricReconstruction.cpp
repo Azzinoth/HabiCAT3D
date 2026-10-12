@@ -567,19 +567,19 @@ void VolumetricReconstruction::RenderUI()
 		ImGui::Text("Depth maps folder: %s", DepthReconstructionFolder.empty() ? "not set" : DepthReconstructionFolder.c_str());
 		if (ImGui::Button("Select depth maps folder..."))
 		{
-			std::string SelectedFolder;
-			FILE_SYSTEM.ShowFolderOpenDialog(SelectedFolder);
-			if (!SelectedFolder.empty())
-				DepthReconstructionFolder = SelectedFolder + "/";
+			FILE_SYSTEM.OpenFolderDialog([this](const std::string& SelectedFolder) {
+				if (!SelectedFolder.empty())
+					DepthReconstructionFolder = SelectedFolder + "/";
+			});
 		}
 
 		ImGui::Text("Masks folder: %s", MasksFolder.empty() ? "not set" : MasksFolder.c_str());
 		if (ImGui::Button("Select masks folder..."))
 		{
-			std::string SelectedFolder;
-			FILE_SYSTEM.ShowFolderOpenDialog(SelectedFolder);
-			if (!SelectedFolder.empty())
-				MasksFolder = SelectedFolder + "/";
+			FILE_SYSTEM.OpenFolderDialog([this](const std::string& SelectedFolder) {
+				if (!SelectedFolder.empty())
+					MasksFolder = SelectedFolder + "/";
+			});
 		}
 
 		const bool bFoldersAreSet = !DepthReconstructionFolder.empty() && !MasksFolder.empty();
