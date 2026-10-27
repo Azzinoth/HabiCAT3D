@@ -1,6 +1,7 @@
 #include "AnalysisObjectManager.h"
 using namespace FocalEngine;
 #include "ComplexityCore/Layers/LayerManager.h"
+#include "LASPluginInterface.h"
 #include "Shaders/CustomMeshShader/VS.glsl"
 #include "Shaders/CustomMeshShader/FS.glsl"
 #include "Shaders/PointCloudColorShader/CS.glsl"
@@ -542,15 +543,33 @@ void AnalysisObjectManager::LoadResource(std::string FilePath)
 	{
 		if (APPLICATION.HasConsoleWindow())
 		{
-			if (!LAS_LOADER.ReadFile(FilePath))
+			LASPluginInterface* LASPlugin = PLUGIN_MANAGER.GetPlugin<LASPluginInterface>(UNIQUE_ID.FromString(LASPluginInterface::PluginID));
+			if (LASPlugin == nullptr || LASPlugin->GetInterfaceVersion() != LASPluginInterface::InterfaceVersion)
+			{
+				LOG.Add(std::string("Can't load file: ") + FilePath + " in function LoadResource. LASPlugin is not loaded.");
 				return;
+			}
 
-			FELASData* LoadedData = nullptr;
-			LAS_LOADER.TakeOwnershipOfLastLoadedData(LoadedData);
+			const LASPluginInterface::FileData* LoadedData = LASPlugin->ReadFile(FilePath);
 			if (LoadedData == nullptr)
 				return;
 
-			std::vector<FEPointCloudVertexDouble>& Vertices = LoadedData->PointCloudVertices;
+			const size_t PointCount = LoadedData->Positions.size() / 3;
+			std::vector<FEPointCloudVertexDouble> Vertices(PointCount);
+			for (size_t i = 0; i < PointCount; i++)
+			{
+				Vertices[i].X = LoadedData->Positions[i * 3];
+				Vertices[i].Y = LoadedData->Positions[i * 3 + 1];
+				Vertices[i].Z = LoadedData->Positions[i * 3 + 2];
+
+				// Same conversion as LASPlugin uses on import, so console and GUI get the same colors.
+				if (!LoadedData->Colors.empty())
+				{
+					Vertices[i].R = static_cast<unsigned char>(LoadedData->Colors[i * 3] / float(1 << 16) * 255);
+					Vertices[i].G = static_cast<unsigned char>(LoadedData->Colors[i * 3 + 1] / float(1 << 16) * 255);
+					Vertices[i].B = static_cast<unsigned char>(LoadedData->Colors[i * 3 + 2] / float(1 << 16) * 255);
+				}
+			}
 
 			glm::dvec3 Min = glm::dvec3(std::numeric_limits<double>::max());
 			glm::dvec3 Max = glm::dvec3(-std::numeric_limits<double>::max());
@@ -594,10 +613,8 @@ void AnalysisObjectManager::LoadResource(std::string FilePath)
 			LoadedResource->FilePath = FilePath;
 			LoadedResource->Name = FILE_SYSTEM.GetFileName(FilePath, false);
 			LoadedResource->EngineResource = nullptr;
-			LoadedResource->AnalysisData = ExtractAdditionalGeometryData(LoadedData->PointCloudVertices, PointCloudAABB);
+			LoadedResource->AnalysisData = ExtractAdditionalGeometryData(Vertices, PointCloudAABB);
 			LoadedResource->AppliedShift = Center;
-
-			delete LoadedData;
 		}
 		else
 		{

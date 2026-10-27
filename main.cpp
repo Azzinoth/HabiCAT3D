@@ -237,6 +237,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		Console->WaitForCreation();
 		Console->SetTitle("HabiCAT3D console");
 
+		ENGINE.InitHeadless();
+
 		bool bRunTestsRequested = false;
 		if (!ParsedCommandActions.empty())
 		{
@@ -262,12 +264,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			std::cout << std::endl << "Test suite finished with exit code " << TestResult << "." << std::endl;
 			std::cout << "Close the console window to exit." << std::endl;
 
-			while (APPLICATION.IsNotTerminated())
+			while (ENGINE.IsNotTerminated())
 			{
-				APPLICATION.BeginFrame();
+				ENGINE.BeginFrame();
 				APPLICATION.RenderWindows();
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
-				APPLICATION.EndFrame();
+				ENGINE.Render();
+				ENGINE.EndFrame();
 			}
 
 			return TestResult;
@@ -279,15 +282,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			CONSOLE_JOB_MANAGER.AddJob(ParsedJobs[i]);
 		}
 
-		while (APPLICATION.IsNotTerminated())
+		while (ENGINE.IsNotTerminated())
 		{
-			APPLICATION.BeginFrame();
+			ENGINE.BeginFrame();
 
 			ConsoleMainFunction();
 			APPLICATION.RenderWindows();
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-			APPLICATION.EndFrame();
+			ENGINE.Render();
+			ENGINE.EndFrame();
 		}
 	}
 	else

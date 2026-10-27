@@ -705,7 +705,7 @@ COLMAPImage* COLMAPProject::ImageUnderMouse(float* HitDistance)
 		return Result;
 
 	float Distance = 0.0f;
-	std::vector<pair<size_t, float>> InstanceIndexAndHitDistance;
+	std::vector<std::pair<size_t, float>> InstanceIndexAndHitDistance;
 	for (size_t i = 0; i < ImagesInstancedComponent.IndividualInstancedAABB.size(); i++)
 	{
 		FEAABB IndividualAABB = ImagesInstancedComponent.IndividualInstancedAABB[i];
