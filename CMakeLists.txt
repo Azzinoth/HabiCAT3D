@@ -32,6 +32,12 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/SubSystems/FocalEngine/SubSystems/PluginSyst
 fe_require_plugin(LASPlugin REPOSITORY Azzinoth/LASPlugin VERSION 1.0.0)
 fe_require_plugin(GDALPlugin REPOSITORY Azzinoth/GDALPlugin VERSION 1.0.0)
 
+option(HABICAT_MCP_SUPPORT "AI assistants could use HabiCAT through MCP server of MCPPlugin" OFF)
+if(HABICAT_MCP_SUPPORT)
+	fe_require_plugin(PythonPlugin REPOSITORY Azzinoth/PythonPlugin VERSION 1.0.0)
+	fe_require_plugin(MCPPlugin REPOSITORY Azzinoth/MCPPlugin VERSION 1.0.0)
+endif()
+
 if(NOT TARGET FocalEngine)
 	add_subdirectory(SubSystems/FocalEngine)
 endif()
@@ -77,6 +83,13 @@ file(GLOB SubSystems_SRC
 	"SubSystems/UpdateManager.cpp"
 	"SubSystems/UpdateManager.h"
 )
+
+if(HABICAT_MCP_SUPPORT)
+	list(APPEND SubSystems_SRC
+		"SubSystems/MCPToolManager.cpp"
+		"SubSystems/MCPToolManager.h"
+	)
+endif()
 
 file(GLOB SubSystems_Layers_Producers_SRC
 	"SubSystems/ComplexityCore/Layers/Producers/HeightLayerProducer.cpp"
@@ -288,6 +301,12 @@ target_link_libraries(HabiCAT3D
 		FESceneGraphUI
 		FocalEngine::GTest
 )
+
+if(HABICAT_MCP_SUPPORT)
+	target_compile_definitions(HabiCAT3D PRIVATE HABICAT_MCP_SUPPORT)
+endif()
+
+fe_copy_plugin_runtime(HabiCAT3D)
 
 source_group("Source Files" FILES ${MAIN_SOURCE_FILES})
 if(USE_STATIC_RUNTIME)

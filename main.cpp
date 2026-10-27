@@ -3,6 +3,9 @@
 #include "SubSystems/VolumetricReconstruction/VolumetricReconstruction.h"
 #include "SubSystems/UpdateManager.h"
 #include "Tests/RunAllTests.h"
+#ifdef HABICAT_MCP_SUPPORT
+#include "SubSystems/MCPToolManager.h"
+#endif
 using namespace FocalEngine;
 
 glm::vec4 ClearColor = glm::vec4(0.33f, 0.39f, 0.49f, 1.0f);
@@ -322,6 +325,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		DEVELOPER_MODE.Initialize();
 		ANNOTATION_MANAGER.Initialize();
 		UPDATE_MANAGER.CheckAsync();
+#ifdef HABICAT_MCP_SUPPORT
+		MCP_TOOL_MANAGER.Initialize();
+#endif
 
 		while (ENGINE.IsNotTerminated())
 		{
