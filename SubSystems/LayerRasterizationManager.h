@@ -5,10 +5,6 @@ using namespace FocalEngine;
 
 #include "CGALDeclarations.h"
 
-#pragma warning (disable: 4251) // for GDAL library
-#include "GDAL/gdal.h"
-#include "GDAL/gdal_priv.h"
-
 class LayerRasterizationManager
 {
 public:
@@ -147,8 +143,6 @@ private:
 	glm::uvec2 GetResolutionInPixelsBasedOnResolutionInMeters(glm::vec3 ProjectionVector, float ResolutionInMeters);
 
 	bool GLMVec3Equal(const glm::vec3& A, const glm::vec3& B);
-
-	void GDALCopyProjectionAndGeoTransform(GDALDataset* DataSetToChange, std::string ExampleFile);
 };
 
 #define LAYER_RASTERIZATION_MANAGER LayerRasterizationManager::GetInstance()

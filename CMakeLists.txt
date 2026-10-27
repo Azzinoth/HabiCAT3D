@@ -30,6 +30,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Before engine is added, because engine links plugins that are in its Plugins folder at that moment.
 include(${CMAKE_CURRENT_SOURCE_DIR}/SubSystems/FocalEngine/SubSystems/PluginSystem/FEPlugins.cmake)
 fe_require_plugin(LASPlugin REPOSITORY Azzinoth/LASPlugin VERSION 1.0.0)
+fe_require_plugin(GDALPlugin REPOSITORY Azzinoth/GDALPlugin VERSION 1.0.0)
 
 if(NOT TARGET FocalEngine)
 	add_subdirectory(SubSystems/FocalEngine)
@@ -214,8 +215,6 @@ file(GLOB SubSystems_VRManager_SRC
 )
 
 file(GLOB SubSystems_AnnotationManager_SRC
-	"SubSystems/Annotations/ShapeFileData.h"
-	"SubSystems/Annotations/ShapeFileData.cpp"
 	"SubSystems/Annotations/PolygonPlane.h"
 	"SubSystems/Annotations/PolygonPlane.cpp"
 	"SubSystems/Annotations/AnnotationManager.h"
@@ -288,9 +287,6 @@ target_link_libraries(HabiCAT3D
 		FocalEngine
 		FESceneGraphUI
 		FocalEngine::GTest
-	 PUBLIC
-		debug ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/Lib/x64/Debug/gdald.lib
-        optimized ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/Lib/x64/Release/gdal.lib
 )
 
 source_group("Source Files" FILES ${MAIN_SOURCE_FILES})
@@ -325,17 +321,7 @@ include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/SubSystems/FocalEngine/SubSystems/FEBasicApplication/ThirdParty/imgui
 	${BASICAPP_DIR}
 	${FOCAL_ENGINE_THIRD_PARTY_DIR}
-	"ThirdParty/GDAL"
-	"ThirdParty/GDAL/ogr"
-	"ThirdParty/GDAL/port"
 	"ThirdParty/"
-)
-
-set(GDAL_DLL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/Lib/x64")
-add_custom_command(TARGET HabiCAT3D POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${GDAL_DLL_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>"
-    "$<TARGET_FILE_DIR:HabiCAT3D>"
 )
 
 add_custom_command(TARGET HabiCAT3D PRE_BUILD

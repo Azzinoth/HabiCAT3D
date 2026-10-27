@@ -804,7 +804,7 @@ void AnnotationManager::ClearTemporaryShapeFileData()
 }
 
 // Same rule for the popup preview and for the import, so the prepared annotations line up with the created ones.
-std::string AnnotationManager::GetFeatureLabel(const ShapeFileFeature& Feature, const std::string& LabelFieldName)
+std::string AnnotationManager::GetFeatureLabel(const GDALPluginInterface::VectorFeature& Feature, const std::string& LabelFieldName)
 {
 	auto FieldIterator = Feature.Fields.find(LabelFieldName);
 	if (FieldIterator == Feature.Fields.end())
@@ -822,6 +822,23 @@ std::string AnnotationManager::GetFeatureLabel(const ShapeFileFeature& Feature, 
 	return "Unlabeled";
 }
 
+bool AnnotationManager::ReadShapeFileLayer(const std::string& ShapeFilePath, GDALPluginInterface::VectorLayer& OutLayer)
+{
+	GDALPluginInterface* GDALPlugin = PLUGIN_MANAGER.GetPlugin<GDALPluginInterface>(UNIQUE_ID.FromString(GDALPluginInterface::PluginID));
+	if (GDALPlugin == nullptr || GDALPlugin->GetInterfaceVersion() != GDALPluginInterface::InterfaceVersion)
+	{
+		LOG.Add("Can't read shape file: " + ShapeFilePath + ", GDALPlugin is not loaded.", "ANNOTATION_MANAGER", FE_LOG_ERROR);
+		return false;
+	}
+
+	const GDALPluginInterface::VectorFileData* Data = GDALPlugin->ReadVectorFile(ShapeFilePath);
+	if (Data == nullptr || Data->Layers.empty())
+		return false;
+
+	OutLayer = Data->Layers[0];
+	return true;
+}
+
 bool AnnotationManager::InitializeReadAnnotationDataFromShapeFile(std::string ShapeFilePath, AnalysisObject* Object)
 {
 	ClearTemporaryShapeFileData();
@@ -835,9 +852,14 @@ bool AnnotationManager::InitializeReadAnnotationDataFromShapeFile(std::string Sh
 		return false;
 	}
 
-	TemporaryShapeFileData = new ShapeFileData();
-	TemporaryShapeFileData->Load(ShapeFilePath);
-	TemporaryFields = TemporaryShapeFileData->GetFieldDefinitions();
+	TemporaryShapeFileData = new GDALPluginInterface::VectorLayer();
+	if (!ReadShapeFileLayer(ShapeFilePath, *TemporaryShapeFileData))
+	{
+		ClearTemporaryShapeFileData();
+		return false;
+	}
+
+	TemporaryFields = TemporaryShapeFileData->FieldDefinitions;
 
 	if (TemporaryFields.empty())
 		ClearTemporaryShapeFileData();
@@ -845,7 +867,7 @@ bool AnnotationManager::InitializeReadAnnotationDataFromShapeFile(std::string Sh
 	return TemporaryShapeFileData != nullptr;
 }
 
-bool AnnotationManager::AddAnnotationsFromShapeFileData(ShapeFileData* CurrentShapeFile, AnalysisObject* Object, const std::string& LabelFieldName)
+bool AnnotationManager::AddAnnotationsFromShapeFileData(GDALPluginInterface::VectorLayer* CurrentShapeFile, AnalysisObject* Object, const std::string& LabelFieldName)
 {
 	AnnotationData* ExistingAnnotationData = ANNOTATION_MANAGER.GetAnnotationDataByAnalysisObjectID(Object->GetID());
 	if (ExistingAnnotationData != nullptr)
@@ -878,11 +900,10 @@ bool AnnotationManager::AddAnnotationsFromShapeFileData(ShapeFileData* CurrentSh
 	size_t ColorIndex = 0;
 
 	std::vector<std::vector<glm::vec3>> AllPolygonsPoints;
-	std::vector<OGRPolygon> AlternativeOGRPolygons;
 	PolygonPlane TemporaryPlane;
 	std::vector<int> AnnotationIDToPolygonIndex;
 
-	const std::vector<ShapeFileFeature> Features = TemporaryShapeFileData->GetFeatures();
+	const std::vector<GDALPluginInterface::VectorFeature> Features = TemporaryShapeFileData->Features;
 	for (size_t i = 0; i < Features.size(); i++)
 	{
 		for (size_t j = 0; j < Features[i].Polygons.size(); j++)
@@ -906,15 +927,15 @@ bool AnnotationManager::AddAnnotationsFromShapeFileData(ShapeFileData* CurrentSh
 			}
 
 			std::vector<glm::vec2> PolygonPointsInUV;
-			for (size_t k = 0; k < Features[i].Polygons[j].size(); k++)
+			for (size_t k = 0; k < Features[i].Polygons[j].ExteriorRing.size(); k++)
 			{
-				glm::vec2 PolygonPoint = Features[i].Polygons[j][k];
+				const GDALPluginInterface::VectorPoint& PolygonPoint = Features[i].Polygons[j].ExteriorRing[k];
 
 				glm::vec3 EntityPosition = Entity->GetComponent<FETransformComponent>().GetPosition();
-				glm::vec3 ObjectAppliedShift = Object->GetAppliedShift();
+				glm::dvec3 ObjectAppliedShift = Object->GetAppliedShift();
 
-				glm::vec2 PointInEntitySpace = PolygonPoint;
-				PointInEntitySpace -= glm::vec2(ObjectAppliedShift.x, ObjectAppliedShift.y);
+				// Shift is subtracted in double, georeferenced coordinates lose precision in float.
+				glm::vec2 PointInEntitySpace = glm::vec2(PolygonPoint.X - ObjectAppliedShift.x, PolygonPoint.Y - ObjectAppliedShift.y);
 				PolygonPointsInUV.push_back(PointInEntitySpace);
 			}
 
@@ -925,8 +946,6 @@ bool AnnotationManager::AddAnnotationsFromShapeFileData(ShapeFileData* CurrentSh
 				CurrentPolygonPoints.push_back(PointIn3DSpace);
 			}
 			AllPolygonsPoints.push_back(CurrentPolygonPoints);
-
-			AlternativeOGRPolygons.push_back(FEPolygon::CreatedOGRPolygonFromPoints(AllPolygonsPoints.back()));
 			AnnotationIDToPolygonIndex.push_back(Info->ID);
 		}
 	}
@@ -941,21 +960,18 @@ bool AnnotationManager::AddAnnotationsFromShapeFileData(ShapeFileData* CurrentSh
 		}
 
 		std::vector<glm::vec3> ProjectedTriangleCentroids;
-		std::vector<OGRPoint> OGRProjectedTriangleCentroids;
 		ProjectedTriangleCentroids.resize(CurrentMeshAnalysisData->TrianglesCentroids.size());
-		OGRProjectedTriangleCentroids.resize(CurrentMeshAnalysisData->TrianglesCentroids.size());
 		for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
 		{
 			glm::vec3 TriangleCentroid = CurrentMeshAnalysisData->TrianglesCentroids[i];
 			glm::vec3 TransformedTriangleCentroid = Object->GetEntity()->GetComponent<FETransformComponent>().GetWorldMatrix() * glm::vec4(TriangleCentroid, 1.0f);
-		
+
 			ProjectedTriangleCentroids[i] = glm::vec3(CurrentMeshAnalysisData->TrianglesCentroids[i].x, CurrentMeshAnalysisData->TrianglesCentroids[i].y, 0.0f);
-			OGRProjectedTriangleCentroids[i] = OGRPoint(ProjectedTriangleCentroids[i].x, ProjectedTriangleCentroids[i].y, ProjectedTriangleCentroids[i].z);
 		}
 
 		for (size_t i = 0; i < AllPolygonsPoints.size(); i++)
 		{
-			std::vector<int> CurrentPolygonResult = FEPolygon::GetTriangleIndicesInPolygon(AllPolygonsPoints[i], AlternativeOGRPolygons[i], ProjectedTriangleCentroids, OGRProjectedTriangleCentroids);
+			std::vector<int> CurrentPolygonResult = FEPolygon::GetTriangleIndicesInPolygon(AllPolygonsPoints[i], ProjectedTriangleCentroids);
 			ExistingAnnotationData->UpdateAnnotationForTriangles(CurrentPolygonResult, AnnotationIDToPolygonIndex[i]);
 		}
 	}
@@ -996,7 +1012,7 @@ bool AnnotationManager::AddAnnotationsFromShapeFileData(ShapeFileData* CurrentSh
 	return true;
 }
 
-bool AnnotationManager::GetColor(const ShapeFileFeature& Feature, glm::vec4& OutColor)
+bool AnnotationManager::GetColor(const GDALPluginInterface::VectorFeature& Feature, glm::vec4& OutColor)
 {
 	OutColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
@@ -1036,18 +1052,17 @@ bool AnnotationManager::ReadAnnotationsToPolygonPlane(std::string ShapeFilePath,
 	if (TargetPlane == nullptr)
 		return false;
 
-	ShapeFileData NewShapeFileData;
-	if (!NewShapeFileData.Load(ShapeFilePath))
+	GDALPluginInterface::VectorLayer ShapeFileLayer;
+	if (!ReadShapeFileLayer(ShapeFilePath, ShapeFileLayer))
 		return false;
 
 	std::unordered_map<std::string, AnnotationInfo> LocalAnnotationInfoMap;
 	PolygonIndexToAnnotationInfoMap.clear();
 
-	FEAABB ShapeFileAABB = NewShapeFileData.GetBounds();
-	float XRange = ShapeFileAABB.GetMax().x - ShapeFileAABB.GetMin().x;
-	float YRange = ShapeFileAABB.GetMax().y - ShapeFileAABB.GetMin().y;
+	double XRange = ShapeFileLayer.BoundsMax.X - ShapeFileLayer.BoundsMin.X;
+	double YRange = ShapeFileLayer.BoundsMax.Y - ShapeFileLayer.BoundsMin.Y;
 
-	const std::vector<ShapeFileFeature> Features = NewShapeFileData.GetFeatures();
+	const std::vector<GDALPluginInterface::VectorFeature>& Features = ShapeFileLayer.Features;
 	for (size_t i = 0; i < Features.size(); i++)
 	{
 		for (size_t j = 0; j < Features[i].Polygons.size(); j++)
@@ -1073,13 +1088,13 @@ bool AnnotationManager::ReadAnnotationsToPolygonPlane(std::string ShapeFilePath,
 			}
 
 			std::vector<glm::vec2> PolygonPointsInUV;
-			for (size_t k = 0; k < Features[i].Polygons[j].size(); k++)
+			for (size_t k = 0; k < Features[i].Polygons[j].ExteriorRing.size(); k++)
 			{
-				glm::vec2 PolygonPoint = Features[i].Polygons[j][k];
+				const GDALPluginInterface::VectorPoint& PolygonPoint = Features[i].Polygons[j].ExteriorRing[k];
 
 				glm::vec2 PointInUV;
-				PointInUV.x = (PolygonPoint.x - ShapeFileAABB.GetMin().x) / XRange;
-				PointInUV.y = (PolygonPoint.y - ShapeFileAABB.GetMin().y) / YRange;
+				PointInUV.x = static_cast<float>((PolygonPoint.X - ShapeFileLayer.BoundsMin.X) / XRange);
+				PointInUV.y = static_cast<float>((PolygonPoint.Y - ShapeFileLayer.BoundsMin.Y) / YRange);
 
 				PolygonPointsInUV.push_back(PointInUV);
 			}
@@ -1134,7 +1149,7 @@ void AnnotationManager::Render()
 		LabelPreview.clear();
 		TemporaryLabelToAnnotationInfo.clear();
 
-		const std::vector<ShapeFileFeature>& Features = TemporaryShapeFileData->GetFeatures();
+		const std::vector<GDALPluginInterface::VectorFeature>& Features = TemporaryShapeFileData->Features;
 		for (size_t i = 0; i < Features.size(); i++)
 		{
 			std::string Label = GetFeatureLabel(Features[i], FieldLabelToConsiderAnnotation);
@@ -1154,7 +1169,7 @@ void AnnotationManager::Render()
 	}
 
 	ImGui::Text("Object: %s", TargetObject->GetName().c_str());
-	ImGui::Text("Features: %d", static_cast<int>(TemporaryShapeFileData->GetFeatures().size()));
+	ImGui::Text("Features: %d", static_cast<int>(TemporaryShapeFileData->Features.size()));
 	ImGui::Separator();
 
 	ImGui::Text("Field with annotation labels:");
@@ -1164,7 +1179,7 @@ void AnnotationManager::Render()
 	{
 		for (size_t i = 0; i < TemporaryFields.size(); i++)
 		{
-			std::string ItemText = TemporaryFields[i].Name + " (" + OGRFieldDefn::GetFieldTypeName(TemporaryFields[i].Type) + ")";
+			std::string ItemText = TemporaryFields[i].Name + " (" + TemporaryFields[i].TypeName + ")";
 			bool bIsSelected = TemporaryFields[i].Name == FieldLabelToConsiderAnnotation;
 			if (ImGui::Selectable(ItemText.c_str(), bIsSelected))
 				FieldLabelToConsiderAnnotation = TemporaryFields[i].Name;
@@ -1232,11 +1247,12 @@ void AnnotationManager::Render()
 	if (ObjectAnalysisData != nullptr)
 	{
 		FEAABB ObjectAABB = ObjectAnalysisData->GetAABB();
-		FEAABB ShapeFileAABB = TemporaryShapeFileData->GetBounds();
+		const GDALPluginInterface::VectorPoint& ShapeFileMin = TemporaryShapeFileData->BoundsMin;
+		const GDALPluginInterface::VectorPoint& ShapeFileMax = TemporaryShapeFileData->BoundsMax;
 		glm::dvec3 AppliedShift = TargetObject->GetAppliedShift();
 
-		bool bOverlapX = ShapeFileAABB.GetMin().x - AppliedShift.x <= ObjectAABB.GetMax().x && ShapeFileAABB.GetMax().x - AppliedShift.x >= ObjectAABB.GetMin().x;
-		bool bOverlapY = ShapeFileAABB.GetMin().y - AppliedShift.y <= ObjectAABB.GetMax().y && ShapeFileAABB.GetMax().y - AppliedShift.y >= ObjectAABB.GetMin().y;
+		bool bOverlapX = ShapeFileMin.X - AppliedShift.x <= ObjectAABB.GetMax().x && ShapeFileMax.X - AppliedShift.x >= ObjectAABB.GetMin().x;
+		bool bOverlapY = ShapeFileMin.Y - AppliedShift.y <= ObjectAABB.GetMax().y && ShapeFileMax.Y - AppliedShift.y >= ObjectAABB.GetMin().y;
 		if (!bOverlapX || !bOverlapY)
 		{
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));

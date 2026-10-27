@@ -1,4 +1,5 @@
 #include "LayerRasterizationManager.h"
+#include "GDALPluginInterface.h"
 using namespace FocalEngine;
 
 LayerRasterizationManager::LayerRasterizationManager() {}
@@ -688,42 +689,6 @@ void LayerRasterizationManager::PrepareRawImageData()
 	}
 }
 
-void LayerRasterizationManager::GDALCopyProjectionAndGeoTransform(GDALDataset* DataSetToChange, std::string ExampleFile)
-{
-	if (DataSetToChange == nullptr)
-		return;
-
-	if (ExampleFile == "")
-		return;
-
-	if (!FILE_SYSTEM.DoesFileExist(ExampleFile.c_str()))
-		return;
-
-	// Open source dataset
-	GDALDataset* SourceDataSet = static_cast<GDALDataset*>(GDALOpen(ExampleFile.c_str(), GA_ReadOnly));
-	if (SourceDataSet == nullptr)
-		return;
-
-	// Extract projection and geotransformation from source dataset
-	const char* Projection = SourceDataSet->GetProjectionRef();
-	double GeoTransform[6];
-	if (SourceDataSet->GetGeoTransform(GeoTransform) != CE_None)
-	{
-		GDALClose(SourceDataSet);
-		return;
-	}
-
-	// Set projection and geotransformation to the target dataset
-	DataSetToChange->SetProjection(Projection);
-	if (DataSetToChange->SetGeoTransform(GeoTransform) != CE_None)
-	{
-		GDALClose(SourceDataSet);
-		return;
-	}
-
-	GDALClose(SourceDataSet);
-}
-
 bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMode)
 {
 	if (Grid.size() == 0)
@@ -747,44 +712,26 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 			FilePath += ".png";
 	}
 
-	if (SaveMode == SaveAs32bitTIF)
+	GDALPluginInterface* GDALPlugin = nullptr;
+	GDALPluginInterface::GeoTIFFSettings Settings;
+	if (SaveMode == SaveAsTIF || SaveMode == SaveAs32bitTIF)
 	{
-		int ImageWidth = CurrentResolution;
-		int ImageHeight = CurrentResolution;
-		int BandsCount = 1;
-		GDALDataType Type = GDT_Float32;
-
-		// Get the GeoTIFF driver
-		GDALDriver* Driver = GetGDALDriverManager()->GetDriverByName("GTiff");
-		if (Driver == nullptr)
-			return false;
-
-		// Create a new GeoTIFF file
-		GDALDataset* Dataset = Driver->Create(FilePath.c_str(), ImageWidth, ImageHeight, BandsCount, Type, nullptr);
-		if (Dataset == nullptr)
-			return false;
-
-		// Set geotransform and projection if necessary
-		double GeoTransform[6] = { 0, 1, 0, 0, 0, -1 }; // Generic transformation
-		Dataset->SetGeoTransform(GeoTransform);
-
-		// Set the projection using the WKT representation
-		const char* WKT = "PROJCS[\"WGS 84 / UTM zone 18N\",GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],AUTHORITY[\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"EPSG\",\"4326\"]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",-75],PARAMETER[\"scale_factor\",0.9996],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH],AUTHORITY[\"EPSG\",\"32618\"]]";
-		Dataset->SetProjection(WKT);
-
-		// Write data to the first band
-		GDALRasterBand* Band = Dataset->GetRasterBand(1);
-		// Set the NODATA value for the band
-		Band->SetNoDataValue(0.0);
-		CPLErr Error = Band->RasterIO(GF_Write, 0, 0, ImageWidth, ImageHeight, ImageRawData32Bits.data(), ImageWidth, ImageHeight, Type, 0, 0);
-		if (Error != CE_None)
+		GDALPlugin = PLUGIN_MANAGER.GetPlugin<GDALPluginInterface>(UNIQUE_ID.FromString(GDALPluginInterface::PluginID));
+		if (GDALPlugin == nullptr || GDALPlugin->GetInterfaceVersion() != GDALPluginInterface::InterfaceVersion)
 		{
-			GDALClose(Dataset);
+			LOG.Add("Can't save file: " + FilePath + " in function LayerRasterizationManager::SaveToFile. GDALPlugin is not loaded.");
 			return false;
 		}
 
-		GDALClose(Dataset);
-		return true;
+		// Geotransform is generic transformation, the default of GeoTIFFSettings.
+		Settings.ProjectionWKT = "PROJCS[\"WGS 84 / UTM zone 18N\",GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],AUTHORITY[\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"EPSG\",\"4326\"]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",-75],PARAMETER[\"scale_factor\",0.9996],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH],AUTHORITY[\"EPSG\",\"32618\"]]";
+	}
+
+	if (SaveMode == SaveAs32bitTIF)
+	{
+		Settings.bHasNoDataValue = true;
+		Settings.NoDataValue = 0.0;
+		return GDALPlugin->SaveFloat32GeoTIFF(FilePath, CurrentResolution, CurrentResolution, 1, ImageRawData32Bits.data(), Settings);
 	}
 
 	unsigned char* RawImageData = nullptr;
@@ -803,52 +750,13 @@ bool LayerRasterizationManager::SaveToFile(std::string FilePath, SaveMode SaveMo
 	}
 	else if (SaveMode == SaveAsTIF)
 	{
-		int ImageWidth = CurrentResolution;
-		int ImageHeight = CurrentResolution;
-		int BandsCount = 4;
-		GDALDataType Type = GDT_Byte;
-
-		// Get the GeoTIFF driver
-		GDALDriver* Driver = GetGDALDriverManager()->GetDriverByName("GTiff");
-		if (Driver == nullptr)
+		// RGBA image.
+		if (!GDALPlugin->SaveByteGeoTIFF(FilePath, CurrentResolution, CurrentResolution, 4, RawImageData, Settings))
 		{
 			if (!APPLICATION.HasConsoleWindow())
 				delete[] RawImageData;
 			return false;
 		}
-
-		// Create a new GeoTIFF file
-		GDALDataset* Dataset = Driver->Create(FilePath.c_str(), ImageWidth, ImageHeight, BandsCount, Type, nullptr);
-		if (Dataset == nullptr)
-		{
-			if (!APPLICATION.HasConsoleWindow())
-				delete[] RawImageData;
-			return false;
-		}
-
-		// Set geotransform and projection if necessary
-		double GeoTransform[6] = { 0, 1, 0, 0, 0, -1 }; // Generic transformation
-		Dataset->SetGeoTransform(GeoTransform);
-
-		// Set the projection using the WKT representation
-		const char* WKT = "PROJCS[\"WGS 84 / UTM zone 18N\",GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],AUTHORITY[\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"EPSG\",\"4326\"]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",-75],PARAMETER[\"scale_factor\",0.9996],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH],AUTHORITY[\"EPSG\",\"32618\"]]";
-		Dataset->SetProjection(WKT);
-
-		// Write data to the RGBA bands
-		for (int CurrentBand = 1; CurrentBand <= 4; CurrentBand++)
-		{
-			GDALRasterBand* Band = Dataset->GetRasterBand(CurrentBand);
-			CPLErr Error = Band->RasterIO(GF_Write, 0, 0, ImageWidth, ImageHeight, RawImageData + (CurrentBand - 1), ImageWidth, ImageHeight, Type, 4, 4 * ImageWidth);
-			if (Error != CE_None)
-			{
-				GDALClose(Dataset);
-				if (!APPLICATION.HasConsoleWindow())
-					delete[] RawImageData;
-				return false;
-			}
-		}
-
-		GDALClose(Dataset);
 	}
 
 	if (!APPLICATION.HasConsoleWindow())

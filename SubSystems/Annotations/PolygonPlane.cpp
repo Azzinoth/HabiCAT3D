@@ -32,24 +32,6 @@ void FEPolygon::BuildVisualizationLines()
 	}
 }
 
-bool FEPolygon::IsPointInside(const glm::vec3& Point) const
-{
-	OGRLinearRing Ring;
-	for (int i = 0; i < PointsTransformed.size(); i++)
-		Ring.addPoint(PointsTransformed[i].x, PointsTransformed[i].y, PointsTransformed[i].z);
-
-	// GDAL rings must be explicitly closed.
-	if (PointsTransformed.size() > 0)
-		Ring.closeRings();
-
-	// Wrap the ring in an OGRPolygon
-	OGRPolygon Polygon;
-	Polygon.addRing(&Ring);
-
-	OGRPoint PointToTest(Point.x, Point.y, Point.z);
-	return bool(Polygon.Contains(&PointToTest)) == true;
-}
-
 PolygonPlane::PolygonPlane() {}
 PolygonPlane::~PolygonPlane()
 {
@@ -75,23 +57,6 @@ void PolygonPlane::Initialize()
 	TriangleUVs = CanvasMesh->GetTriangleUVs();
 
 	CanvasPlane = FEPlane(OriginalPlaneTrianglePositions[0][0], OriginalPlaneTrianglePositions[0][1], OriginalPlaneTrianglePositions[0][2]);
-}
-
-OGRPolygon PolygonPlane::CreatedPolygonInOGRFormat(FEPolygon* OrdinaryPolygon)
-{
-	OGRLinearRing Ring;
-	for (int i = 0; i < OrdinaryPolygon->PointsTransformed.size(); i++)
-		Ring.addPoint(OrdinaryPolygon->PointsTransformed[i].x, OrdinaryPolygon->PointsTransformed[i].y, OrdinaryPolygon->PointsTransformed[i].z);
-
-	// GDAL rings must be explicitly closed.
-	if (OrdinaryPolygon->PointsTransformed.size() > 0)
-		Ring.closeRings();
-
-	// Wrap the ring in an OGRPolygon
-	OGRPolygon Polygon;
-	Polygon.addRing(&Ring);
-
-	return Polygon;
 }
 
 FEPolygon* PolygonPlane::GetPolygonByIndex(size_t Index)
@@ -120,7 +85,6 @@ bool PolygonPlane::DeletePolygon(size_t Index)
 	if (Index >= Polygons.size())
 		return false;
 
-	OGRPolygons.erase(OGRPolygons.begin() + Index);
 	Polygons.erase(Polygons.begin() + Index);
 	return true;
 }
@@ -147,7 +111,6 @@ void PolygonPlane::BeginDraftPolygon()
 
 	Polygons.push_back(FEPolygon());
 	DraftPolygonIndex = static_cast<int>(Polygons.size()) - 1;
-	OGRPolygons.resize(Polygons.size());
 }
 
 void PolygonPlane::FinalizeDraftPolygon()
@@ -158,7 +121,6 @@ void PolygonPlane::FinalizeDraftPolygon()
 	if (Polygons[DraftPolygonIndex].Points.size() < 3)
 		return;
 
-	OGRPolygons.push_back(CreatedPolygonInOGRFormat(&Polygons[DraftPolygonIndex]));
 	Polygons[DraftPolygonIndex].bFinalized = true;
 	DraftPolygonIndex = -1;
 }
@@ -187,7 +149,6 @@ void PolygonPlane::UpdateCanvasTrianglePositions()
 	for (size_t i = 0; i < Polygons.size(); i++)
 	{
 		Polygons[i].UpdateTransformedPoints(*this);
-		OGRPolygons[i] = CreatedPolygonInOGRFormat(&Polygons[i]);
 
 		if (!Polygons[i].Lines.empty())
 		{
@@ -302,13 +263,10 @@ void PolygonPlane::RenderAdditionalVisualization()
 	}
 }
 
-std::vector<int> PolygonPlane::GetTriangleIndicesInPolygon(FEPolygon& CurrentPolygon,
-														   OGRPolygon& CurrentOGRPolygon,
-														   std::vector<glm::vec3>& ProjectedTriangleCentroids,
-														   std::vector<OGRPoint>& OGRProjectedTriangleCentroids)
+std::vector<int> PolygonPlane::GetTriangleIndicesInPolygon(FEPolygon& CurrentPolygon, std::vector<glm::vec3>& ProjectedTriangleCentroids)
 {
 	std::vector<glm::vec3> CurrentPolygonPositions = CurrentPolygon.PointsTransformed;
-	std::vector<int> Result = FEPolygon::GetTriangleIndicesInPolygon(CurrentPolygonPositions, CurrentOGRPolygon, ProjectedTriangleCentroids, OGRProjectedTriangleCentroids);
+	std::vector<int> Result = FEPolygon::GetTriangleIndicesInPolygon(CurrentPolygonPositions, ProjectedTriangleCentroids);
 
 	return Result;
 }
@@ -321,9 +279,7 @@ std::vector<std::pair<int, std::vector<int>>> PolygonPlane::GetTriangleIndicesIn
 		return Result;
 
 	std::vector<glm::vec3> ProjectedTriangleCentroids;
-	std::vector<OGRPoint> OGRProjectedTriangleCentroids;
 	ProjectedTriangleCentroids.resize(CurrentMeshAnalysisData->TrianglesCentroids.size());
-	OGRProjectedTriangleCentroids.resize(CurrentMeshAnalysisData->TrianglesCentroids.size());
 	for (size_t i = 0; i < CurrentMeshAnalysisData->Triangles.size(); i++)
 	{
 		glm::vec3 TriangleCentroid = CurrentMeshAnalysisData->TrianglesCentroids[i];
@@ -331,14 +287,12 @@ std::vector<std::pair<int, std::vector<int>>> PolygonPlane::GetTriangleIndicesIn
 		ProjectedTriangleCentroids[i] = CanvasPlane.ProjectPoint(TransformedTriangleCentroid);
 		// FE_DEBUG
 		//ProjectedTriangleCentroids[i] = glm::vec3(CurrentMeshAnalysisData->TrianglesCentroids[i].x, CurrentMeshAnalysisData->TrianglesCentroids[i].y, 0.0f);
-		
-		OGRProjectedTriangleCentroids[i] = OGRPoint(ProjectedTriangleCentroids[i].x, ProjectedTriangleCentroids[i].y, ProjectedTriangleCentroids[i].z);
 	}
-	
+
 	for (size_t i = 0; i < Polygons.size(); i++)
 	{
 		Polygons[i].UpdateTransformedPoints(*this);
-		std::vector<int> CurrentPolygonResult = GetTriangleIndicesInPolygon(Polygons[i], OGRPolygons[i], ProjectedTriangleCentroids, OGRProjectedTriangleCentroids);
+		std::vector<int> CurrentPolygonResult = GetTriangleIndicesInPolygon(Polygons[i], ProjectedTriangleCentroids);
 		Result.push_back(std::make_pair(static_cast<int>(i), CurrentPolygonResult));
 	}
 
@@ -352,7 +306,6 @@ FEPolygon* PolygonPlane::AddPolygon(std::vector<glm::vec2> PointsInUV)
 	NewPolygon.UpdateTransformedPoints(*this);
 
 	NewPolygon.bFinalized = true;
-	OGRPolygons.push_back(CreatedPolygonInOGRFormat(&NewPolygon));
 	Polygons.push_back(NewPolygon);
 
 	UpdateCanvasTrianglePositions();

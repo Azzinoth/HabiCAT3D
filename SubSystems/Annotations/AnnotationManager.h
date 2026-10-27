@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ComplexityCore/Layers/LayerManager.h"
-#include "ShapeFileData.h"
+#include "GDALPluginInterface.h"
 #include "PolygonPlane.h"
 using namespace FocalEngine;
 
@@ -95,7 +95,7 @@ public:
 	bool RemoveAnnotationFromAnalysisObject(FEUUID AnalysisObjectID);
 
 	bool InitializeReadAnnotationDataFromShapeFile(std::string ShapeFilePath, AnalysisObject* Object);
-	bool AddAnnotationsFromShapeFileData(ShapeFileData* CurrentShapeFile, AnalysisObject* Object, const std::string& LabelFieldName);
+	bool AddAnnotationsFromShapeFileData(GDALPluginInterface::VectorLayer* CurrentShapeFile, AnalysisObject* Object, const std::string& LabelFieldName);
 
 	bool ReadAnnotationsToPolygonPlane(std::string ShapeFilePath, PolygonPlane* TargetPlane, std::unordered_map<int, AnnotationInfo>& PolygonIndexToAnnotationInfoMap);
 
@@ -116,12 +116,14 @@ private:
 	std::vector<std::function<void(AnnotationData*, int)>> ClientOnAnnotationColorChangedCallbacks;
 	void NotifyAnnotationColorChanged(AnnotationData* Data, int AnnotationID);
 
-	ShapeFileData* TemporaryShapeFileData = nullptr;
-	std::vector<ShapeFileFieldInfo> TemporaryFields;
+	GDALPluginInterface::VectorLayer* TemporaryShapeFileData = nullptr;
+	std::vector<GDALPluginInterface::VectorFieldDefinition> TemporaryFields;
 	std::string FieldLabelToConsiderAnnotation = "";
 	std::map<std::string, AnnotationInfo> TemporaryLabelToAnnotationInfo;
 	void ClearTemporaryShapeFileData();
-	std::string GetFeatureLabel(const ShapeFileFeature& Feature, const std::string& LabelFieldName);
+	std::string GetFeatureLabel(const GDALPluginInterface::VectorFeature& Feature, const std::string& LabelFieldName);
+	// Copies first layer, shapefile has only one, data of GDALPlugin is valid only until its next read.
+	bool ReadShapeFileLayer(const std::string& ShapeFilePath, GDALPluginInterface::VectorLayer& OutLayer);
 
 	// Import is deferred through WAIT_MODAL_POPUP, this keeps the "Import annotations" popup closed until it runs.
 	bool bImportPending = false;
@@ -136,7 +138,7 @@ private:
 	void UpdatePointCloudBuffers(AnnotationData* Data);
 
 	// Reads red, green, blue and alpha fields of a feature. Returns false when the feature has none of them, OutColor is white then.
-	bool GetColor(const ShapeFileFeature& Feature, glm::vec4& OutColor);
+	bool GetColor(const GDALPluginInterface::VectorFeature& Feature, glm::vec4& OutColor);
 };
 
 #define ANNOTATION_MANAGER AnnotationManager::GetInstance()

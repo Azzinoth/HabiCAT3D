@@ -211,7 +211,6 @@ GLFWimage ConvertIconToGLFWImage(HICON Icon)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	//LOG.SetFileOutput(true);
-	GDALAllRegister();
 
 	const auto ProcessorCount = THREAD_POOL.GetLogicalCoreCount();
 	const unsigned int HowManyToUse = ProcessorCount > 4 ? ProcessorCount - 2 : 1;
