@@ -27,6 +27,10 @@ endif()
 # defined projects like INSTALL.vcproj and ZERO_CHECK.vcproj
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Before engine is added, because engine links plugins that are in its Plugins folder at that moment.
+include(${CMAKE_CURRENT_SOURCE_DIR}/SubSystems/FocalEngine/SubSystems/PluginSystem/FEPlugins.cmake)
+fe_require_plugin(LASPlugin REPOSITORY Azzinoth/LASPlugin VERSION 1.0.0)
+
 if(NOT TARGET FocalEngine)
 	add_subdirectory(SubSystems/FocalEngine)
 endif()
@@ -326,14 +330,6 @@ include_directories(
 	"ThirdParty/GDAL/port"
 	"ThirdParty/"
 )
-
-if(LASZIP_FINAL_DLL)
-	add_custom_command(TARGET HabiCAT3D POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${LASZIP_FINAL_DLL}
-        "$<TARGET_FILE_DIR:HabiCAT3D>"
-	)
-endif()
 
 set(GDAL_DLL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GDAL/Lib/x64")
 add_custom_command(TARGET HabiCAT3D POST_BUILD
