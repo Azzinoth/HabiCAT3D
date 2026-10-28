@@ -29,13 +29,13 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Before engine is added, because engine links plugins that are in its Plugins folder at that moment.
 include(${CMAKE_CURRENT_SOURCE_DIR}/SubSystems/FocalEngine/SubSystems/PluginSystem/FEPlugins.cmake)
-fe_require_plugin(LASPlugin REPOSITORY Azzinoth/LASPlugin VERSION 1.0.0)
-fe_require_plugin(GDALPlugin REPOSITORY Azzinoth/GDALPlugin VERSION 1.0.0)
+fe_require_plugin(LASPlugin REPOSITORY Azzinoth/LASPlugin VERSION 1.0.1)
+fe_require_plugin(GDALPlugin REPOSITORY Azzinoth/GDALPlugin VERSION 1.0.1)
 
 option(HABICAT_MCP_SUPPORT "AI assistants could use HabiCAT through MCP server of MCPPlugin" OFF)
 if(HABICAT_MCP_SUPPORT)
-	fe_require_plugin(PythonPlugin REPOSITORY Azzinoth/PythonPlugin VERSION 1.0.0)
-	fe_require_plugin(MCPPlugin REPOSITORY Azzinoth/MCPPlugin VERSION 1.0.1)
+	fe_require_plugin(PythonPlugin REPOSITORY Azzinoth/PythonPlugin VERSION 1.0.1)
+	fe_require_plugin(MCPPlugin REPOSITORY Azzinoth/MCPPlugin VERSION 1.0.2)
 endif()
 
 if(NOT TARGET FocalEngine)
