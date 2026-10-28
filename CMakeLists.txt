@@ -35,7 +35,7 @@ fe_require_plugin(GDALPlugin REPOSITORY Azzinoth/GDALPlugin VERSION 1.0.0)
 option(HABICAT_MCP_SUPPORT "AI assistants could use HabiCAT through MCP server of MCPPlugin" OFF)
 if(HABICAT_MCP_SUPPORT)
 	fe_require_plugin(PythonPlugin REPOSITORY Azzinoth/PythonPlugin VERSION 1.0.0)
-	fe_require_plugin(MCPPlugin REPOSITORY Azzinoth/MCPPlugin VERSION 1.0.0)
+	fe_require_plugin(MCPPlugin REPOSITORY Azzinoth/MCPPlugin VERSION 1.0.1)
 endif()
 
 if(NOT TARGET FocalEngine)
